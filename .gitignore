@@ -1,0 +1,17 @@
+__pycache__
+.idea*
+venv
+*.pyc
+install
+.ipynb_checkpoints
+.vscode
+htmlcov
+.nfs*
+.coverage*
+*.xml
+*.egg-info
+
+# build artifacts
+.cache
+
+experiments/*
