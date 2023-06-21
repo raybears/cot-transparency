@@ -43,7 +43,7 @@ def add_retries(f):
 
 @add_retries
 @limiter.ratelimit("identity", delay=True)
-def generate(prompt, n=1, model="text-davinci-003", max_tokens=256, logprobs=None, temperature=0.7):
+def generate_openai(prompt, n=1, model="text-davinci-003", max_tokens=256, logprobs=None, temperature=0.7):
     return openai.Completion.create(
         model=model, prompt=prompt, temperature=temperature, max_tokens=max_tokens, n=n, logprobs=logprobs
     )["choices"]
@@ -61,6 +61,19 @@ def generate_chat(prompt, model="gpt-3.5-turbo", temperature=1):
 
 def aformat(s):
     return f"{anthropic.HUMAN_PROMPT} {s}{anthropic.AI_PROMPT}"
+
+
+def generate_response(inp, config, tokens_per_ex=256):
+    # Get generations and predictions
+    if config.anthropic_model:
+        resp = generate_anth(inp, model=config.model, max_tokens_to_sample=tokens_per_ex)
+        out = resp["completion"]
+    elif config.model == "gpt-3.5-turbo":
+        out = generate_chat(inp, model=config.model)
+    else:
+        resp = generate_openai(inp, model=config.model, max_tokens=tokens_per_ex)
+        out = resp[0]["text"]
+    return out
 
 
 @add_retries

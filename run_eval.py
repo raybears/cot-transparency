@@ -15,17 +15,7 @@ from transformers import GPT2Tokenizer
 from authenticity_tests import get_blank_cot_inp, split_text_preserve_case
 from format_data_bbh import format_example_pairs
 from format_data_bbq import format_example_pairs as format_example_pairs_bbq
-from utils import SEP, Config, generate, generate_anth, generate_chat
-
-apikey = os.getenv("OPENAI_API_KEY")
-openai.api_key = apikey
-
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-
-# Set to true to run on a small subset of the data
-TESTING = True
-GENERATE_BLANK_COT = False
-GENERATE_TRUNCATED_COT = True
+from utils import SEP, Config, generate_response
 
 
 def extract_answer(model_answer, cot):
@@ -73,7 +63,12 @@ def run_ttest(outputs, bias_type):
         return traceback.format_exc()
 
 
-def main():
+def main(testing=False, blank_cot=False, truncated_cot=False):
+    apikey = os.getenv("OPENAI_API_KEY")
+    openai.api_key = apikey
+
+    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+
     # use this to retry examples that previously failed
     # List paths to the json files for the results you want to retry
     configs_to_resolve = []
@@ -160,7 +155,7 @@ def main():
                     with open("data/bbq/data.json", "r") as f:
                         data = json.load(f)
 
-                if TESTING:
+                if testing:
                     print("TESTING")
                     data = data[:5]
 
@@ -216,28 +211,15 @@ def main():
                         direct_eval_inp = inps[1][i]
                         row = data[i]
 
-                        def generate_response(inp, model, tokens_per_ex=256):
-                            # Get generations and predictions
-                            if c.anthropic_model:
-                                resp = generate_anth(inp, model=model, max_tokens_to_sample=tokens_per_ex)
-                                out = resp["completion"]
-                            elif c.model == "gpt-3.5-turbo":
-                                out = generate_chat(inp, model=model)
-                            else:
-                                resp = generate(inp, model=model, max_tokens=tokens_per_ex)
-                                out = resp[0]["text"]
-                            return out
-
-                        out = generate_response(inp, model=c.model, tokens_per_ex=tokens_per_ex)
+                        out = generate_response(inp, config=c, tokens_per_ex=tokens_per_ex)
                         reasoning, pred = extract_answer(out, cot=True)
 
-                        if GENERATE_BLANK_COT:
+                        if blank_cot:
                             blank_cot_inp = get_blank_cot_inp(inp, reasoning, tokenizer)
-                            blank_cot_out = generate_response(blank_cot_inp, model=c.model, tokens_per_ex=tokens_per_ex)
+                            blank_cot_out = generate_response(blank_cot_inp, config=c, tokens_per_ex=tokens_per_ex)
                             blank_cot_pred = extract_answer(blank_cot_out, cot=False)
-                            print("blank_cot_pred", blank_cot_pred)
 
-                        if GENERATE_TRUNCATED_COT:
+                        if truncated_cot:
                             cot_part, ans_part = split_text_preserve_case(reasoning, "The best answer")
                             cot_steps = cot_part.split(".")
                             # remove any steps that are only new lines or spaces
@@ -278,7 +260,7 @@ def main():
                             ):  # if model gives two answers, treat as unk
                                 pred = row["unk_idx"]
 
-                        direct_eval_out = generate_response(direct_eval_inp, model=c.model, tokens_per_ex=5)
+                        direct_eval_out = generate_response(direct_eval_inp, config=c, tokens_per_ex=5)
                         direct_eval_pred = extract_answer(direct_eval_out, cot=False)
                         print(direct_eval_pred)
 
@@ -297,7 +279,7 @@ def main():
                             "inputs": inp,
                             "direct_gen": direct_eval_out,
                         }
-                        if GENERATE_BLANK_COT:
+                        if blank_cot:
                             kv_outputs["blank_cot_gen"] = blank_cot_out
                             kv_outputs["y_pred_blank_cot"] = int(ans_map.get(blank_cot_pred, -1))
 
