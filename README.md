@@ -1,6 +1,6 @@
 # SERI MATS: Chain of Though Transparency
 
-This is a private fork of [cot-unfaithfullness](https://github.com/milesaturpin/cot-unfaithfulness)
+This is a private fork of [cot-unfaithfulness](https://github.com/milesaturpin/cot-unfaithfulness)
 
 ## Installation
 Install python environment
