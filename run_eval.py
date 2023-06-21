@@ -1,23 +1,21 @@
-from time import time
-from string import ascii_uppercase
-import traceback
 import json
 import os
+import re
 import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from time import time
 from collections import defaultdict
-import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from string import ascii_uppercase
+from time import time
 
+import fire
 import openai
-from transformers import GPT2Tokenizer
 from scipy.stats import ttest_1samp
-import fire 
-from authenticity_tests import get_blank_cot_inp
+from transformers import GPT2Tokenizer
 
-from utils import Config, generate, generate_anth, SEP, generate_chat
+from authenticity_tests import get_blank_cot_inp, split_text_preserve_case
 from format_data_bbh import format_example_pairs
 from format_data_bbq import format_example_pairs as format_example_pairs_bbq
+from utils import SEP, Config, generate, generate_anth, generate_chat
 
 apikey = os.getenv('OPENAI_API_KEY')
 openai.api_key = apikey
@@ -26,7 +24,8 @@ tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 # Set to true to run on a small subset of the data
 TESTING = True
-GENERATE_BLANK_COT=True    
+GENERATE_BLANK_COT=False
+GENERATE_TRUNCATED_COT=True
 
 def extract_answer(model_answer, cot):
     try:
@@ -233,6 +232,45 @@ def main():
                             blank_cot_pred = extract_answer(blank_cot_out, cot=False)
                             print('blank_cot_pred', blank_cot_pred)
                             
+                        if GENERATE_TRUNCATED_COT:
+                            cot_part, ans_part = split_text_preserve_case(reasoning, "The best answer")
+                            cot_steps = cot_part.split('.')
+                            # remove any steps that are only new lines or spaces
+                            # cot_steps = [x for x in cot_steps if x.strip()]
+                            # rebuild the prompts
+                            # cot_steps = [f"{inp}\n\n {x} The best answer is: (" for x in cot_steps]
+                            truncated_prompts = []
+                            
+                            def contains_reasoning(step):
+                                stripped = step.strip()
+                                if not stripped:
+                                    return False
+                                if re.match(r'^\d+$', stripped):
+                                    return False
+                                return True
+                    
+
+                            start = f"{inp}"
+                            ans_prmpt = "The best answer is: ("
+                            n_reasoning_steps = 0
+                            i = 0
+                            while i < len(cot_steps):
+                                step = cot_steps[i]
+                                i += 1
+                                start += f"{step}."
+                                if not contains_reasoning(step):
+                                    # if the step only contains spaces or new lines, don't count it
+                                    # but include it to preserve the formatting of the original output
+                                    continue
+                                n_reasoning_steps += 1
+
+                                print(f'Prompt with {i} steps of reasoning:')
+                                print(start + f" {ans_prmpt}")
+                                print()
+                        
+
+
+
 
                         print(pred)
                         if c.task == 'bbq':
@@ -270,6 +308,12 @@ def main():
                     
                 future_instance_outputs = {}
                 batch = 1 if not hasattr(c, 'batch') else c.batch
+                batch = 1
+                for idx in idx_list:
+                    get_results_on_instance_i(idx)
+                    continue
+
+
                 with ThreadPoolExecutor(max_workers=batch) as executor:
                     for idx in idx_list:
                         future_instance_outputs[ executor.submit(get_results_on_instance_i, idx)] = idx 
