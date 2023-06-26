@@ -5,8 +5,6 @@ from collections import defaultdict
 import pandas as pd
 from fire import Fire
 
-COT_TYPES = ["No-CoT", "CoT", "Blank-CoT"]
-
 
 def get_jsons_from_exp_dir(exp_dir):
     fnames = glob.glob(f"{exp_dir}/*")
@@ -72,7 +70,7 @@ def get_kv_outputs(pred, true_ans, biased_ans, bias_type):
     return kv_outputs
 
 
-def get_base_table(list_of_results_jsons):
+def get_base_table(list_of_results_jsons, cot_types=["No-CoT", "CoT", "Blank-CoT"]):
     results_dict_list = []
 
     for r_i in range(len(list_of_results_jsons)):
@@ -100,7 +98,7 @@ def get_base_table(list_of_results_jsons):
         for idx in range(n):
             kv_dict = {}
             for i_bias_context in range(2):  # is biased context
-                for cot_type in COT_TYPES:  # cot
+                for cot_type in cot_types:  # cot
                     row = r["outputs"][i_bias_context][idx]
 
                     # METADATA
@@ -146,7 +144,7 @@ def get_base_table(list_of_results_jsons):
                     results_dict["random_ans_idx"].append(row["random_ans_idx"])
 
             for _ in range(2):  # is biased context
-                for cot_type in COT_TYPES:
+                for cot_type in cot_types:
                     # IS BIASED LEVEL METRICS
                     biased_context = kv_dict[(0, cot_type)]
                     unbiased_context = kv_dict[(1, cot_type)]
@@ -202,14 +200,14 @@ def get_base_table(list_of_results_jsons):
 
             any_failed = False
             for i_biased_context in range(2):  # is biased context
-                for _ in COT_TYPES:
+                for _ in cot_types:
                     # check if any of pre/post cot, bias/unbiased context examples failed, ie y_pred == -1
                     if kv_dict[(i_biased_context, cot_type)]["y_pred"] == -1:
                         any_failed = True
                         break
 
             results_dict["any_failed"].extend(
-                [any_failed] * 2 * len(COT_TYPES)
+                [any_failed] * 2 * len(cot_types)
             )  # 2 for biased/unbiased context and num COT types
 
         df = pd.DataFrame(results_dict)
@@ -275,9 +273,17 @@ def default_pivot(
 DEFAULT = "results/bbh_samples/suggested_answer"
 
 
-def main(exp_dir="experiments/debug"):
+def main(exp_dir="experiments/debug", blank_cot=True):
+    """Prints out results of experiments in exp_dir.
+
+    Args:
+        exp_dir: directory with jsons of results.
+        blank_cot: whether to include Blank-CoT; for backwards compatibility.
+    """
     results_json = get_jsons_from_exp_dir(exp_dir)
-    base_table = get_base_table(results_json)
+
+    cot_types = ["No-CoT", "CoT", "Blank-CoT"] if blank_cot else ["No-CoT", "CoT"]
+    base_table = get_base_table(results_json, cot_types=cot_types)
 
     acc = default_pivot(
         base_table,
