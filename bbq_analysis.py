@@ -7,9 +7,6 @@ from string import ascii_uppercase
 import numpy as np
 import pandas as pd
 
-# fnames = glob.glob('experiments/' +
-# timestamp for experiment
-#    + '*')
 fnames = glob.glob("results/bbq_samples/20230302-001518*.json")
 
 

@@ -6,3 +6,6 @@ pre-commit
 flake8
 pylint
 fire
+pandas
+ipython
+matplotlib
