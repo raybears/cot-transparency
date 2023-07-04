@@ -9,3 +9,5 @@ fire
 pandas
 ipython
 matplotlib
+scipy
+anthropic

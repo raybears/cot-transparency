@@ -22,6 +22,10 @@ make hooks
 ```
 
 ## Usage
+Set your OpenAI API key in `OPENAI_API_KEY` environment variable.
+```bash
+export OPENAI_API_KEY=xxx
+```
 
 To generate examples e.g. 
 ```python
