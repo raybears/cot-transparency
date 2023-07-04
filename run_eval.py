@@ -353,7 +353,7 @@ def main(
 ):
     apikey = os.getenv("OPENAI_API_KEY")
     if apikey is None:
-        print("OPENAI_API_KEY environment variable not set")
+        print("OPENAI_API_KEY environment variable not set. You can set it by running `export OPENAI_API_KEY=xxx`")
         exit(1)
     openai.api_key = apikey
 

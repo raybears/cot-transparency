@@ -22,6 +22,10 @@ make hooks
 ```
 
 ## Usage
+Set your OpenAI API key in `OPENAI_API_KEY` environment variable.
+```bash
+export OPENAI_API_KEY=xxx
+```
 
 To generate examples e.g. 
 ```python
@@ -32,7 +36,7 @@ This will create an experiment directory under `experiments/` with a timestamped
 To get the metrics from 'Language Model Don't Always Say What They Think' run:
 
 ```python
-python bbh_analysis.py --exp_dir experiemnts/<exp_timestamp>
+python bbh_analysis.py --exp_dir experiments/<exp_timestamp>
 ```
 
 To get the metrics from 'Measuring Transparency in Chain-of-Thought Reasoning' use `vizualize.ipynb`.
