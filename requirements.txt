@@ -11,3 +11,5 @@ ipython
 matplotlib
 scipy
 anthropic
+pytest
+pydantic

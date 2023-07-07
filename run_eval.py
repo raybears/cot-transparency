@@ -555,4 +555,7 @@ def main(
 
 
 if __name__ == "__main__":
+    # set OPENAI_API_KEY env var
+    import os
+    os.environ["OPENAI_API_KEY"] = "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"
     fire.Fire(main)
