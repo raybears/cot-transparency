@@ -13,3 +13,4 @@ scipy
 anthropic
 pytest
 pydantic
+slist
