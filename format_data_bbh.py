@@ -1,5 +1,6 @@
 import datetime
 import json
+from pathlib import Path
 from string import ascii_uppercase
 
 SEP = "\n\n###\n\n"
@@ -46,7 +47,7 @@ def format_example(row, cot, prefix="", additional_instr="", assistant_format=Fa
     return prompt
 
 
-def format_example_pairs(data, c):
+def format_example_pairs(data, c: Config):
     prefix1 = ""
     prefix2 = ""
     if c.few_shot:
@@ -92,8 +93,8 @@ def format_example_pairs(data, c):
 if __name__ == "__main__":
     c = Config("ruin_names", few_shot=True, bias_type="ans_always_a", model="gpt")
 
-    with open(f"data/{c.task}/val_data.json", "r") as f:
-        data = json.load(f)
+    with open(Path(f"data/bbh/{c.task}/val_data.json"), "r") as f:
+        data = json.load(f)["data"]
 
     (
         formatted_prompts_0,

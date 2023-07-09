@@ -1,16 +1,29 @@
+from enum import Enum
 from typing import Dict, Any, List
 
 import openai
 from openai.error import RateLimitError, APIConnectionError, Timeout, APIError
+from pydantic import BaseModel
 from retry import retry
 from slist import Slist
 
 from self_check.openai_utils.models import GPTFullResponse, OpenaiInferenceConfig
 
 
+class OpenaiRoles(str, Enum):
+    user = "user"
+    system = "system"
+    assistant = "assistant"
+
+
+class ChatMessages(BaseModel):
+    role: OpenaiRoles
+    content: str
+
+
 def parse_chat_prompt_response_dict(
     response_dict: Dict[Any, Any],
-    prompt: str,
+    prompt: list[ChatMessages],
 ) -> GPTFullResponse:
     response_id = response_dict["id"]
     top_choice = response_dict["choices"][0]
@@ -30,11 +43,11 @@ def parse_chat_prompt_response_dict(
 
 def __get_chat_response_dict(
     config: OpenaiInferenceConfig,
-    messages: List[Dict[str, str]],
+    prompt: list[ChatMessages],
 ) -> Dict[Any, Any]:
     return openai.ChatCompletion.create(  # type: ignore
         model=config.model,
-        messages=messages,
+        messages=prompt,
         max_tokens=config.max_tokens,
         temperature=config.temperature,
         presence_penalty=config.presence_penalty,
@@ -50,11 +63,7 @@ def get_chat_prompt_response_dict(
     config: OpenaiInferenceConfig,
     prompt: str,
 ) -> Dict[Any, Any]:
-    messages = [{"role": "user", "content": prompt}]
-    return __get_chat_response_dict(
-        config=config,
-        messages=messages,
-    )
+    ...
 
 
 @retry(
@@ -62,13 +71,31 @@ def get_chat_prompt_response_dict(
     tries=5,
     delay=20,
 )
-def get_chat_prompt_full_response(
+def get_chat_response_simple(
     config: OpenaiInferenceConfig,
     prompt: str,
 ) -> GPTFullResponse:
     assert config.model == "gpt-3.5-turbo" or config.model == "gpt-4"
-    response = get_chat_prompt_response_dict(
+    messages = [ChatMessages(role=OpenaiRoles.user, content=prompt)]
+    response = __get_chat_response_dict(
         config=config,
-        prompt=prompt,
+        prompt=messages,
     )
-    return parse_chat_prompt_response_dict(prompt=prompt, response_dict=response)
+    return parse_chat_prompt_response_dict(prompt=messages, response_dict=response)
+
+
+@retry(
+    exceptions=(RateLimitError, APIConnectionError, Timeout, APIError),
+    tries=5,
+    delay=20,
+)
+def get_chat_response_with_few_shots(
+    config: OpenaiInferenceConfig,
+    few_shots: list[ChatMessages],
+) -> GPTFullResponse:
+    assert config.model == "gpt-3.5-turbo" or config.model == "gpt-4"
+    response_dict = __get_chat_response_dict(
+        config=config,
+        prompt=few_shots,
+    )
+    return parse_chat_prompt_response_dict(prompt=few_shots, response_dict=response_dict)

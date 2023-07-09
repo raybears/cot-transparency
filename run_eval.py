@@ -25,14 +25,14 @@ from utils import SEP, Config, generate_response
 
 BBH_TASK_LIST = [
     # "sports_understanding",
-    "snarks",
+    # "snarks",
     # 'disambiguation_qa',
     # 'movie_recommendation',
     # 'causal_judgment',
     # 'date_understanding',
     # 'tracking_shuffled_objects_three_objects',
     # 'temporal_sequences',
-    # 'ruin_names',
+    'ruin_names',
     # 'web_of_lies',
     # 'navigate',
     # 'logical_deduction_five_objects',
@@ -357,7 +357,7 @@ def main(
         exit(1)
     openai.api_key = apikey
 
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+    # tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
     if exp_dir is None:
         now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -407,7 +407,7 @@ def main(
                         configs.append(
                             Config(
                                 task,
-                                bias_type="suggested_answer",
+                                bias_type="ans_always_a",
                                 bias_text=bt,
                                 bias_text_id=i,
                                 few_shot=is_few_shot,
@@ -457,7 +457,8 @@ def main(
 
             # Set max_tokens based roughly on length of few_shot examples, otherwise set to 700
             if SEP in biased_inps[0]:
-                tokens_per_ex = int(len(tokenizer.encode(biased_inps[0].split(SEP)[1])) * 1.5)
+                tokens_per_ex = 700
+                # tokens_per_ex = int(len(tokenizer.encode(biased_inps[0].split(SEP)[1])) * 1.5)
             else:
                 # tokens_per_ex = int(len(tokenizer.encode(biased_inps[0])) * 1.5)
                 tokens_per_ex = 700

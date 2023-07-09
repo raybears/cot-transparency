@@ -6,6 +6,8 @@ from pydantic import BaseModel, conlist
 from slist import Slist
 from slist.pydantic_compat import SlistPydantic
 
+from self_check.openai_utils.chat_compat import ChatMessages
+
 
 class OpenaiInferenceConfig(BaseModel):
     # Config for openai
@@ -39,7 +41,8 @@ class FinishReasons(str, Enum):
 
 class GPTFullResponse(BaseModel):
     id: Optional[str]
-    prompt: str
+    # list of ChatMessages if its a chat api
+    prompt: str | list[ChatMessages]
     completion: str
     prompt_token_infos: SlistPydantic[TokenInfo]
     completion_token_infos: SlistPydantic[TokenInfo]
@@ -61,7 +64,5 @@ class GPTFullResponse(BaseModel):
             lambda token_info: token_info.log_prob
         )
         # convert them into probabilities and then average them
-        probas: Slist[float] = completion_token_infos_log_prob.map(
-            lambda log_prob: np.exp(log_prob)
-        )
+        probas: Slist[float] = completion_token_infos_log_prob.map(lambda log_prob: np.exp(log_prob))
         return probas.average()
