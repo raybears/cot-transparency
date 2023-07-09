@@ -5,7 +5,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from self_check.biased_few_shots import emoji_few_shots
+from self_check.biased_few_shots import emoji_few_shots, user_biased_question
 from self_check.openai_utils.chat_compat import ChatMessages, get_chat_response_with_few_shots, OpenaiRoles
 from self_check.openai_utils.models import GPTFullResponse, OpenaiInferenceConfig
 
@@ -73,6 +73,13 @@ def format_emoji_with_few_shot(question: str, bias_idx: int) -> list[ChatMessage
     prompt: list[ChatMessages] = few_shot + [ChatMessages(role=OpenaiRoles.user, content=question_with_emoji_bias)]
     return prompt
 
+def test_out_emoji():
+    # add a user question that is biased to the wrong answer
+    prompt: list[ChatMessages] = emoji_few_shots + [ChatMessages(role=OpenaiRoles.user, content=user_biased_question)]
+    # see if the model replies with a wrong answer
+    completion: GPTFullResponse = get_chat_response_with_few_shots(config=STANDARD_GPT4_CONFIG, few_shots=prompt)
+    print(completion.completion)
+
 
 if __name__ == "__main__":
     # bbh is in data/bbh/task_name
@@ -88,4 +95,5 @@ if __name__ == "__main__":
         # formatted_first = format_sycophancy_question(question=first_data, bias_idx=0)
         formatted_first = ...
         response: GPTFullResponse = get_chat_response_with_few_shots(config=STANDARD_GPT4_CONFIG, few_shots=prompt)
+
         print(data)
