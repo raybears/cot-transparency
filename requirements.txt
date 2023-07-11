@@ -14,3 +14,4 @@ anthropic
 pytest
 pydantic
 slist
+retry
