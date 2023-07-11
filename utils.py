@@ -80,7 +80,7 @@ def generate_response(inp, config, tokens_per_ex=256):
     if config.anthropic_model:
         resp = generate_anth(inp, model=config.model, max_tokens_to_sample=tokens_per_ex)
         out = resp["completion"]
-    elif config.model == "gpt-3.5-turbo":
+    elif (config.model == "gpt-3.5-turbo") or config.model == "gpt-4":
         out = generate_chat(inp, model=config.model)
     else:
         resp = generate_openai(inp, model=config.model, max_tokens=tokens_per_ex)
