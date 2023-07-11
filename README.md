@@ -31,6 +31,10 @@ To generate examples e.g.
 ```python
 python run_eval.py --example_cap=10 --log_metrics_every=3 --blank_cot=True --truncated_cot=True --cot_with_mistake=True --paraphrase_cot=True --run_few_shot False
 ```
+
+```python
+python run_eval.py --example_cap=1 --log_metrics_every=3 --run_few_shot False
+```
 This will create an experiment directory under `experiments/` with a timestamped name. For all options see `run_eval.py::main()` or run `python run_eval.py --help`
 
 To get the metrics from 'Language Model Don't Always Say What They Think' run:

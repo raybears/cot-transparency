@@ -273,7 +273,7 @@ def default_pivot(
 DEFAULT = "results/bbh_samples/suggested_answer"
 
 
-def main(exp_dir="experiments/debug", blank_cot=True):
+def main(exp_dir="experiments/debug", blank_cot=False):
     """Prints out results of experiments in exp_dir.
 
     Args:

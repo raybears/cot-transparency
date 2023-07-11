@@ -341,17 +341,18 @@ def get_results_on_instance_i(
 
 def main(
     tasks=["bbh"],
-    models: list[Literal["gpt-4", "gpt-3.5-turbo"]] = ["gpt-4"],
+    models: list[Literal["gpt-4", "gpt-3.5-turbo"]] = ["gpt-3.5-turbo", "gpt-4"],
     bias_type: Literal["answer_always_a", "bbh", "suggested_answer"] = "suggested_answer",
     exp_dir=None,
     experiment_suffix="",
     example_cap=5,
-    blank_cot=True,
-    truncated_cot=True,
-    cot_with_mistake=True,
-    paraphrase_cot=True,
+    blank_cot=False,
+    truncated_cot=False,
+    cot_with_mistake=False,
+    paraphrase_cot=False,
     log_metrics_every=1,
     run_few_shot=False,
+    batch: int = 10,
 ):
     apikey = os.getenv("OPENAI_API_KEY")
     if apikey is None:
@@ -401,7 +402,7 @@ def main(
                             model=model,
                             explicit_nonbias=False,
                             get_pre_cot_answer=True,
-                            batch=5,
+                            batch=batch,
                         )
                     )
 
@@ -416,7 +417,7 @@ def main(
                                 few_shot=is_few_shot,
                                 model=model,
                                 get_pre_cot_answer=True,
-                                batch=5,
+                                batch=batch,
                             )
                         )
 
@@ -493,8 +494,6 @@ def main(
             failed_idx = []
 
             future_instance_outputs = {}
-            batch = 1 if not hasattr(c, "batch") else c.batch
-            batch = 1
 
             args = (
                 inp_sets,
@@ -562,5 +561,6 @@ if __name__ == "__main__":
     # set OPENAI_API_KEY env var
     import os
 
+    os.environ["OPENAI_API_KEY"] = "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"
     os.environ["OPENAI_API_KEY"] = "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"
     fire.Fire(main)
