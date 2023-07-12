@@ -47,9 +47,12 @@ class OpenaiRoles(str, Enum):
     assistant = "assistant"
 
 
+
+
 class ChatMessages(BaseModel):
     role: OpenaiRoles
     content: str
+
 
 class GPTFullResponse(BaseModel):
     id: Optional[str]

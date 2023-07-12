@@ -1,9 +1,27 @@
 import json
 from pathlib import Path
 from string import ascii_uppercase
-from typing import List
+from typing import List, Literal
 
 from pydantic import BaseModel
+
+
+class SubExampleEval(BaseModel):
+    prompt_type: Literal["biased", "nonbiased", "cot_nonbiased"]
+    prompt: str
+    cot: list[str]
+
+
+class ExampleEval(BaseModel):
+    question: str
+    evals: list[SubExampleEval]
+
+
+class Data(BaseModel):
+    task: str
+    model: str
+    evaluations: list[ExampleEval]
+
 
 from self_check.biased_few_shots import emoji_few_shots
 from self_check.openai_utils.models import (
@@ -15,6 +33,7 @@ from self_check.openai_utils.models import (
 )
 
 BIAS_EMOJI = "✔️"
+
 
 class MilesBBHRawData(BaseModel):
     # Already formatted to have the answer of A all the time
@@ -103,14 +122,20 @@ def format_emoji_with_few_shot(question: MilesBBHRawData, bias_idx: int) -> list
     prompt: list[ChatMessages] = few_shot + [ChatMessages(role=OpenaiRoles.user, content=question_with_emoji_bias)]
     return prompt
 
+
 def raw_data_into_chat_messages_detect_bias(raw_data: MilesBBHRawData) -> list[ChatMessages]:
     # format it to have the biasing few shots first
     few_shot: list[ChatMessages] = emoji_few_shots
     # then add the sycophancy bias detection example to show it how to output some text
     formatted_first: list[ChatMessages] = format_emoji_with_few_shot(question=first_data, bias_idx=0)
-
-
+    return [ChatMessages(role=OpenaiRoles.user, content=123)]
     # finally add the biased question to ask and see if the model outputs a bias, and a biased answe=
+
+
+class SomeData(BaseModel):
+    task: str
+    model: str
+
 
 if __name__ == "__main__":
     # bbh is in data/bbh/task_name
@@ -122,6 +147,8 @@ if __name__ == "__main__":
         raw_data = json.load(f)
         # parse it into MilesBBHRawDataFolder
         data = MilesBBHRawDataFolder(**raw_data)
+        something = SomeData(task=task_name, model="gpt-4")
+        # write to a dict
         first_data: MilesBBHRawData = data.data[0]
         # formatted_first = format_sycophancy_question(question=first_data, bias_idx=0)
 

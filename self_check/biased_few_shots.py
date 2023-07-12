@@ -200,3 +200,15 @@ So based on those considerations, I will go with the one that gives a significan
 The best answer is: (B)""",
 )
 
+
+def extract_choice_from_answer(answer: str) -> Optional[str]:
+    """Extracts the choice from the answer, e.g.
+    best answer is: (B) -> B
+    the best answer is: ( B ) -> B"""
+    # extract everything between the brackets
+    match = re.search(r"best answer is: \((.*)\)", answer)
+    return match.group(1).strip() if match else ""
+
+def test_extract_choice_from_answer():
+    assert extract_choice_from_answer("best answer is: (B)") == "B"
+    assert extract_choice_from_answer("the best answer is: (B)") == "B"
