@@ -79,7 +79,7 @@ def format_for_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConf
 
 
 def main(
-    tasks: list[str],
+    tasks: list[str]  = ["ruin_names"],
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     bias_type: str = "suggested_answer",
     exp_dir: Optional[str]=None,
@@ -94,7 +94,6 @@ def main(
     task_name = "ruin_names"
     # data/bbh/{task_name}/val_data.json
 
-    models: list[str] = []
     formatters: list[ZeroShotCOTSycophancyFormatter] = [ZeroShotCOTSycophancyFormatter()]
 
     # parse it into MilesBBHRawDataFolder
@@ -120,7 +119,7 @@ def main(
 
     # Actually run the tasks
     for task in tasks:
-        print("i'm running")
+        print(task)
 
 if __name__ == "__main__":
     fire.Fire(main)
