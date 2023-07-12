@@ -29,7 +29,7 @@ from self_check.openai_utils.models import (
     OpenaiInferenceConfig,
     OpenaiRoles,
     ChatMessages,
-    get_chat_response_with_few_shots,
+    get_chat_response,
 )
 
 BIAS_EMOJI = "✔️"
@@ -152,6 +152,6 @@ if __name__ == "__main__":
         first_data: MilesBBHRawData = data.data[0]
         # formatted_first = format_sycophancy_question(question=first_data, bias_idx=0)
 
-        response: GPTFullResponse = get_chat_response_with_few_shots(config=STANDARD_GPT4_CONFIG, few_shots=prompt)
+        response: GPTFullResponse = get_chat_response(config=STANDARD_GPT4_CONFIG, messages=prompt)
 
         print(data)

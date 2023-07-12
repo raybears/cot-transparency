@@ -45,6 +45,9 @@ class OpenaiRoles(str, Enum):
     user = "user"
     system = "system"
     assistant = "assistant"
+    # If you are OpenAI chat, you need to add this back into the previous user message
+    # Anthropic can handle it as per normal like an actual assistant
+    assistant_preferred = "assistant_preferred"
 
 
 
@@ -122,12 +125,6 @@ def __get_chat_response_dict(
     )
 
 
-def get_chat_prompt_response_dict(
-    config: OpenaiInferenceConfig,
-    prompt: str,
-) -> Dict[Any, Any]:
-    ...
-
 
 @retry(
     exceptions=(RateLimitError, APIConnectionError, Timeout, APIError),
@@ -152,13 +149,13 @@ def get_chat_response_simple(
     tries=5,
     delay=20,
 )
-def get_chat_response_with_few_shots(
+def get_chat_response(
     config: OpenaiInferenceConfig,
-    few_shots: list[ChatMessages],
+    messages: list[ChatMessages],
 ) -> GPTFullResponse:
     assert config.model == "gpt-3.5-turbo" or config.model == "gpt-4"
     response_dict = __get_chat_response_dict(
         config=config,
-        prompt=few_shots,
+        prompt=messages,
     )
-    return parse_chat_prompt_response_dict(prompt=few_shots, response_dict=response_dict)
+    return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
