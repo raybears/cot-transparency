@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from string import ascii_uppercase
+from typing import List
 
 from pydantic import BaseModel
 
@@ -102,6 +103,14 @@ def format_emoji_with_few_shot(question: MilesBBHRawData, bias_idx: int) -> list
     prompt: list[ChatMessages] = few_shot + [ChatMessages(role=OpenaiRoles.user, content=question_with_emoji_bias)]
     return prompt
 
+def raw_data_into_chat_messages_detect_bias(raw_data: MilesBBHRawData) -> list[ChatMessages]:
+    # format it to have the biasing few shots first
+    few_shot: list[ChatMessages] = emoji_few_shots
+    # then add the sycophancy bias detection example to show it how to output some text
+    formatted_first: list[ChatMessages] = format_emoji_with_few_shot(question=first_data, bias_idx=0)
+
+
+    # finally add the biased question to ask and see if the model outputs a bias, and a biased answe=
 
 if __name__ == "__main__":
     # bbh is in data/bbh/task_name
@@ -115,7 +124,7 @@ if __name__ == "__main__":
         data = MilesBBHRawDataFolder(**raw_data)
         first_data: MilesBBHRawData = data.data[0]
         # formatted_first = format_sycophancy_question(question=first_data, bias_idx=0)
-        formatted_first = ...
+
         response: GPTFullResponse = get_chat_response_with_few_shots(config=STANDARD_GPT4_CONFIG, few_shots=prompt)
 
         print(data)
