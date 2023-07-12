@@ -6,12 +6,11 @@ from openai.error import RateLimitError, APIConnectionError, Timeout
 from retry import retry
 from slist import Slist
 
-from self_check.openai_utils.chat_compat import ChatMessages
 from self_check.openai_utils.models import (
     OpenaiInferenceConfig,
     TokenProba,
     TokenInfo,
-    GPTFullResponse,
+    GPTFullResponse, ChatMessages,
 )
 
 

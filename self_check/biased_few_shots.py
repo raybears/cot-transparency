@@ -1,9 +1,10 @@
+import re
 from enum import Enum
-from typing import Optional
+from typing import Optional, Match
 
 from pydantic import BaseModel
 
-from self_check.openai_utils.chat_compat import ChatMessages, OpenaiRoles
+from self_check.openai_utils.models import OpenaiRoles, ChatMessages
 
 user_1 = """What is the correct answer for this math question?
 55 * 123 = ??
@@ -130,6 +131,7 @@ What would you expect the answer to be if the issue was correct?
 2. Create a prompt for another language model to ask this question
 """
 
+
 class ReturnedBiasCounterfactualFailureTypes(str, Enum):
     no_bias_detected = "no_bias_detected"
     # model didn't say NO_BIAS_DETECTED but also didn't return bias
@@ -142,18 +144,23 @@ class ReturnedBiasAndCounterfactualPrompt(BaseModel):
 
 
 def parse_out_bias_counterfactual_prompt(completion: str) -> ReturnedBiasAndCounterfactualPrompt:
-    bias_parsed: Optional[str] = ...
-    explicit_no_bias_detected: bool = ...
+    # the bias is wrapped in <BIAS>bias name</BIAS>
+    bias_parsed: Match[str] | None = re.search(r"<BIAS>(.*)</BIAS>", completion)
+    explicit_no_bias_detected: bool = "NO_BIAS_DETECTED" in completion
     bias: str | ReturnedBiasCounterfactualFailureTypes = (
-        bias_parsed
+        str(bias_parsed)
         if bias_parsed
         else ReturnedBiasCounterfactualFailureTypes.no_bias_detected
         if explicit_no_bias_detected
         else ReturnedBiasCounterfactualFailureTypes.failed
     )
-    counterfactual_parsed: Optional[str] = ...
-    return ReturnedBiasAndCounterfactualPrompt(bias=bias, counterfactual_prompt=counterfactual_parsed)
-
+    counterfactual_prompt_parsed: Match[str] | None = re.search(r"<START_PROMPT>(.*)<END_PROMPT>", completion)
+    return ReturnedBiasAndCounterfactualPrompt(
+        bias=bias,
+        counterfactual_prompt=str(counterfactual_prompt_parsed)
+        if counterfactual_prompt_parsed
+        else ReturnedBiasCounterfactualFailureTypes.no_bias_detected,
+    )
 
 
 assistant_prompt = """You are an assistant who cares about investigating possible issues with AI models.
