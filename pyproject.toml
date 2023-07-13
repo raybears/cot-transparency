@@ -19,4 +19,6 @@ multi_line_output = 3
 include_trailing_comma = true
 
 [tool.pyright]
-include = ["cot_transparency"]
+exclude = ["utils.py", "bbh_analysis.py", "authenticity_tests.py",
+    "format_data_bbh.py", "format_data_bbq.py", "bbq_analysis.py",
+    "run_eval.py"]
