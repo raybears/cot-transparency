@@ -1,9 +1,10 @@
 from cot_transparency.emoji.biased_few_shots import emoji_few_shots, user_biased_question
-from cot_transparency.emoji.formatting import MilesBBHRawData, format_sycophancy_question, format_emoji_with_bias, BIAS_EMOJI, \
-    STANDARD_GPT4_CONFIG, answer_idx_to_letter_bracket
+from cot_transparency.emoji.emoji import MilesBBHRawData, format_emoji_with_bias, BIAS_EMOJI, \
+    STANDARD_GPT4_CONFIG
+from cot_transparency.formatting.shared import answer_idx_to_letter_bracket
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles, GPTFullResponse, get_chat_response
 from cot_transparency.miles_models import MilesBBHRawData
-from cot_transparency.prompt_formatter import ZeroShotCOTSycophancyFormatter
+from cot_transparency.prompt_formatter import ZeroShotCOTSycophancyFormatter, format_sycophancy_question
 
 
 def test_format_biased_answer():
