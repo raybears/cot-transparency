@@ -4,10 +4,10 @@ name: main workflow
 
 # Controls when the action will run.
 on:
-  # runs on any branch
   push:
     branches:
-      - '**'
+      - 'main'
+  # runs on any branch
   pull_request:
     branches:
       - '**'
