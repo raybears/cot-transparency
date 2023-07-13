@@ -12,6 +12,6 @@ matplotlib
 scipy
 anthropic
 pytest
-pydantic
+pydantic>=2.0.0
 slist
 retry
