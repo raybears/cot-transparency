@@ -6,10 +6,6 @@ name: main workflow
 on:
   push:
     branches:
-      - 'main'
-  # runs on any branch
-  pull_request:
-    branches:
       - '**'
 
   # Allows you to run this workflow manually from the Actions tab
