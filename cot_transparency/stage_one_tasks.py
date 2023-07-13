@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Type
 
 from pydantic import BaseModel
 from retry import retry
@@ -17,7 +18,7 @@ class TaskSpec:
     messages: list[ChatMessages]
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
-    formatter: PromptFormatter
+    formatter: Type[PromptFormatter]
     times_to_repeat: int
     task_hash: str
 
@@ -36,12 +37,13 @@ class TaskOutput(BaseModel):
     ground_truth: str
     task_hash: str
     config: OpenaiInferenceConfig
+    formatter_name: str
     out_file_path: Path
 
 
 @retry(exceptions=AnswerNotFound, tries=10, delay=1)
 def call_model_until_suitable_response(
-    messages: list[ChatMessages], config: OpenaiInferenceConfig, formatter: PromptFormatter
+    messages: list[ChatMessages], config: OpenaiInferenceConfig, formatter: Type[PromptFormatter]
 ) -> ModelOutput:
     # call api
     response = call_model_api(messages, config)
@@ -67,6 +69,7 @@ def task_function(task: TaskSpec) -> TaskOutput:
         task_hash=task.task_hash,
         config=task.model_config,
         out_file_path=task.out_file_path,
+        formatter_name=task.formatter.name(),
     )
 
 
