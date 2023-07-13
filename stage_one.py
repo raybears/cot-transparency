@@ -10,6 +10,7 @@ from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 from cot_transparency.prompt_formatter import ZeroShotCOTSycophancyFormatter
 from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput, TaskSpec, save_loaded_dict, task_function
+from cot_transparency.util import get_exp_dir_name
 
 BBH_TASK_LIST = [
     # "sports_understanding",
@@ -51,6 +52,7 @@ def main(
     formatters: list[ZeroShotCOTSycophancyFormatter] = [ZeroShotCOTSycophancyFormatter()]
 
     loaded_dict: dict[Path, ExperimentJsonFormat] = {}
+    exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
 
     # parse it into MilesBBHRawDataFolder
     # Create tasks
@@ -64,7 +66,7 @@ def main(
             data = data[:example_cap]
         for formatter in formatters:
             for model in models:
-                out_file_path: Path = Path(f"experiments/{bbh_task}/{model}/{formatter.name}.json")
+                out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name}.json")
                 # read in the json file
                 if out_file_path.exists():
                     with open(out_file_path, "r") as f:
