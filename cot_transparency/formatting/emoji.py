@@ -1,37 +1,21 @@
 import json
 from pathlib import Path
-from typing import Literal
 
-from pydantic import BaseModel
-
+from cot_transparency.formatting.biased_few_shots import emoji_few_shots, syco_spot_bias_answer, syco_spot_bias_qn
 from cot_transparency.formatting.letters import answer_idx_to_letter_bracket
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
-from cot_transparency.formatting.biased_few_shots import emoji_few_shots
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
-
+from cot_transparency.prompt_formatter import (
+    instruction_to_cot,
+    instruction_to_cot_spot_bias,
+)
 
 # ruff: noqa: E501
-class SubExampleEval(BaseModel):
-    prompt_type: Literal["biased", "nonbiased", "cot_nonbiased"]
-    prompt: str
-    cot: list[str]
-
-
-class ExampleEval(BaseModel):
-    question: str
-    evals: list[SubExampleEval]
-
-
-class Data(BaseModel):
-    task: str
-    model: str
-    evaluations: list[ExampleEval]
-
 
 BIAS_EMOJI = "✔️"
 
 
-def format_emoji_with_bias(question: MilesBBHRawData, bias_idx: int, bias_emoji: str = BIAS_EMOJI) -> str:
+def question_with_emoji_bias(question: MilesBBHRawData, bias_idx: int, bias_emoji: str = BIAS_EMOJI) -> str:
     """
     bias_idx of 0 and
     parsed_input of Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?\n\nAnswer choices:\n(A) empire of the pants\n(B) empiqe of the ants\n(C) empire of tihe ants\n(D) empire of the antts
@@ -54,24 +38,47 @@ def format_emoji_with_bias(question: MilesBBHRawData, bias_idx: int, bias_emoji:
     return f"{first_line}\n\nAnswer choices:\n{options_str}"
 
 
-def format_emoji_with_few_shot(question: MilesBBHRawData, bias_idx: int) -> list[ChatMessages]:
+def format_emoji_bias_spot(question: MilesBBHRawData) -> list[ChatMessages]:
+    """This formats it with few shot examples, and we ask it to spot the bias"""
+    # format it to have the biasing few shots first
     few_shot: list[ChatMessages] = emoji_few_shots
-    question_with_emoji_bias: str = format_emoji_with_bias(question=question, bias_idx=bias_idx)
-    prompt: list[ChatMessages] = few_shot + [ChatMessages(role=OpenaiRoles.user, content=question_with_emoji_bias)]
+    # then add the sycophancy bias detection example to show it how to detect bias
+    bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer]
+    biased_qn: str = question_with_emoji_bias(question=question, bias_idx=question.random_ans_idx)
+    # ask it to spot its bias
+    biased_qn_with_spot_bias_cot = instruction_to_cot_spot_bias(question=biased_qn)
+    prompt = (
+        few_shot + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_spot_bias_cot)]
+    )
     return prompt
 
 
-def raw_data_into_chat_messages_detect_bias(raw_data: MilesBBHRawData) -> list[ChatMessages]:
+def format_emoji_bias_baseline_no_spot(example: MilesBBHRawData) -> list[ChatMessages]:
+    """This formats it with few shot examples, but we don't ask it to spot its bias"""
     # format it to have the biasing few shots first
-    # then add the sycophancy bias detection example to show it how to output some text
-    format_emoji_with_few_shot(question=first_data, bias_idx=0)
-    return [ChatMessages(role=OpenaiRoles.user, content="test")]
-    # finally add the biased question to ask and see if the model outputs a bias, and a biased answe=
+    biased_qn: str = question_with_emoji_bias(question=example, bias_idx=example.random_ans_idx)
+    # then add the sycophancy bias detection example to show it how to detect bias
+    bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer]
+    # just ask for COT instead of asking for COT with bias
+    biased_qn_with_cot = instruction_to_cot(question=biased_qn)
+    prompt: list[ChatMessages] = (
+        emoji_few_shots + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_cot)]
+    )
+    return prompt
 
 
-class SomeData(BaseModel):
-    task: str
-    model: str
+def format_emoji_bias_baseline_no_spot_no_sycophancy(example: MilesBBHRawData) -> list[ChatMessages]:
+    """This is zero shot baseline w/o any sycophancy example"""
+    # format it to have the biasing few shots first
+    biased_qn: str = question_with_emoji_bias(question=example, bias_idx=example.random_ans_idx)
+    # then add the sycophancy bias detection example to show it how to detect bias
+    bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer]
+    # just ask for COT instead of asking for COT with bias
+    biased_qn_with_cot = instruction_to_cot(question=biased_qn)
+    prompt: list[ChatMessages] = (
+        emoji_few_shots + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_cot)]
+    )
+    return prompt
 
 
 if __name__ == "__main__":
@@ -84,10 +91,10 @@ if __name__ == "__main__":
         raw_data = json.load(f)
         # parse it into MilesBBHRawDataFolder
         data = MilesBBHRawDataFolder(**raw_data)
-        something = SomeData(task=task_name, model="gpt-4")
         # write to a dict
         first_data: MilesBBHRawData = data.data[0]
-        # formatted_first = format_sycophancy_question(question=first_data, bias_idx=0)
+        formatted_spot = format_emoji_bias_spot(question=first_data)
+        formatted_baseline = format_emoji_bias_baseline_no_spot(example=first_data)
 
         # response: GPTFullResponse = get_chat_response(config=STANDARD_GPT4_CONFIG, messages="sadd")
 
