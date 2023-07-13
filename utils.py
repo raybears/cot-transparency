@@ -92,7 +92,7 @@ def generate_response(inp, config, tokens_per_ex=256):
 def generate_anth(prompt, model="claude-v1", max_tokens_to_sample=256, apply_aformat=False):
     if apply_aformat:
         prompt = aformat(prompt)
-    c = anthropic.Client(os.environ["ANTHROPIC_API_KEY"])
+    c = anthropic.Client(os.environ["ANTHROPIC_API_KEY"])  # pylint: disable=too-many-function-args
     resp = c.completion(
         prompt=prompt,
         stop_sequences=[anthropic.HUMAN_PROMPT],

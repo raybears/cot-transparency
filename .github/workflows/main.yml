@@ -1,0 +1,51 @@
+# This is a basic workflow to help you get started with Actions
+
+name: main workflow
+
+# Controls when the action will run.
+on:
+  push:
+    branches:
+      - '**'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "test"
+  test:
+    # The type of runner that the job will run on
+    strategy:
+      matrix:
+        python-versions: ["3.11"]
+        os: [ubuntu-18.04, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-versions }}
+
+      - name: Install dependencies
+        run: |
+          make env
+
+      # Need this to install node for pyright
+      - name: Type Checking
+        uses: jakebailey/pyright-action@v1
+
+      # Run all the pre-commit hooks on all files
+      # Skip pyright because we already ran it
+      - name: Run pre-commit hooks
+        run: |
+          make hooks
+          SKIP=pyright pre-commit run --all-files
+
+      - name: test with pytest
+        run:
+          pytest tests
+

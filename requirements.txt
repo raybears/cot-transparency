@@ -15,4 +15,5 @@ pytest
 pydantic>=1.9.0,<2.0.0
 slist
 retry
+pyright
 pyrate_limiter

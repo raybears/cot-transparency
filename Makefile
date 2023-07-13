@@ -4,7 +4,7 @@ hooks:
 	git checkout
 
 .PHONY: format
-format: hooks
+check: hooks
 	pre-commit run -a --hook-stage commit
 
 .PHONY: check-python
