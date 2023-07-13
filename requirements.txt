@@ -1,10 +1,8 @@
 transformers
 openai
 black
-isort
+ruff
 pre-commit
-flake8
-pylint
 fire
 pandas
 ipython

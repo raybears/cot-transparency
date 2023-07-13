@@ -11,12 +11,10 @@ exclude = '''
 '''
 target-version = ['py38']
 
-[tool.isort]
-profile = "black"
-line_length = 120
-force_grid_wrap = 0
-multi_line_output = 3
-include_trailing_comma = true
+
+[tool.ruff]
+line-length = 120
+
 
 [tool.pyright]
 exclude = ["utils.py", "bbh_analysis.py", "authenticity_tests.py",
