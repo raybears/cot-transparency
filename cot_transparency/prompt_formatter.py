@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Set, Type
 
 from cot_transparency.formatting.extraction import extract_answer
 from cot_transparency.formatting.letters import index_to_letter
@@ -7,15 +7,27 @@ from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
 
 
 class PromptFormatter:
-    def format_example(self, question: MilesBBHRawData) -> list[ChatMessages]:
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
         raise NotImplementedError
 
-    def parse_answer(self, response: str) -> Optional[str]:
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
         raise NotImplementedError
 
-    @property
-    def name(self) -> str:
-        return self.__class__.__name__
+    @classmethod
+    def name(cls) -> str:
+        return cls.__name__
+
+    @classmethod
+    def all_subclasses(cls) -> Set[Type["PromptFormatter"]]:
+        # get all subclasses recursively
+        subclasses: set[Type[PromptFormatter]] = set(cls.__subclasses__())
+        return subclasses.union([s for c in subclasses for s in c.all_subclasses()])
+
+    @classmethod
+    def all_formatters(cls) -> dict[str, Type["PromptFormatter"]]:
+        return {s.name(): s for s in cls.all_subclasses()}
 
 
 class AnswerNotFound(Exception):
@@ -44,7 +56,8 @@ def format_unbiased_question(question: str) -> str:
 
 
 class ZeroShotCOTSycophancyFormatter(PromptFormatter):
-    def format_example(self, question: MilesBBHRawData) -> list[ChatMessages]:
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
         formatted_question = format_sycophancy_question(
             question=question.parsed_inputs, bias_idx=question.random_ans_idx
         )
@@ -55,12 +68,14 @@ class ZeroShotCOTSycophancyFormatter(PromptFormatter):
         ]
         return output
 
-    def parse_answer(self, response: str) -> Optional[str]:
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
-def ZeroShotCOTUnbiasedFormatter(PromptFormatter):
-    def format_example(self, question: MilesBBHRawData) -> list[ChatMessages]:
+class ZeroShotCOTUnbiasedFormatter(PromptFormatter):
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
         formatted_question = format_unbiased_question(question=question.parsed_inputs)
         user_message = add_verbalize_instruction_to_question(formatted_question)
         output = [
@@ -69,5 +84,6 @@ def ZeroShotCOTUnbiasedFormatter(PromptFormatter):
         ]
         return output
 
-    def parse_answer(self, response: str) -> Optional[str]:
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)

@@ -1,14 +1,18 @@
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Type
 
 import fire
 from tqdm import tqdm
 
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
-from cot_transparency.prompt_formatter import ZeroShotCOTSycophancyFormatter
+from cot_transparency.prompt_formatter import (
+    PromptFormatter,
+    ZeroShotCOTSycophancyFormatter,
+    ZeroShotCOTUnbiasedFormatter,
+)
 from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput, TaskSpec, save_loaded_dict, task_function
 from cot_transparency.util import get_exp_dir_name
 
@@ -32,11 +36,13 @@ STANDARD_GPT4_CONFIG: OpenaiInferenceConfig = OpenaiInferenceConfig(
     model="gpt-4", temperature=0.7, max_tokens=1000, top_p=1.0
 )
 
+VALID_FORMATTERS: dict[str, Type[PromptFormatter]] = PromptFormatter.all_formatters()
+
 
 def main(
     tasks: list[str] = ["ruin_names"],
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
-    bias_type: str = "suggested_answer",
+    formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     example_cap: Optional[int] = 5,
@@ -49,7 +55,14 @@ def main(
     # read in the json file
     # data/bbh/{task_name}/val_data.json
 
-    formatters: list[ZeroShotCOTSycophancyFormatter] = [ZeroShotCOTSycophancyFormatter()]
+    # assert that the formatters are valid
+    for formatter in formatters:
+        if formatter not in VALID_FORMATTERS:
+            raise ValueError(
+                f"formatter {formatter} is not valid. Valid formatters are {list(VALID_FORMATTERS.keys())}"
+            )
+
+    validated_formatters: list[Type[PromptFormatter]] = [VALID_FORMATTERS[formatter] for formatter in formatters]
 
     loaded_dict: dict[Path, ExperimentJsonFormat] = {}
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
@@ -64,7 +77,7 @@ def main(
         data: list[MilesBBHRawData] = MilesBBHRawDataFolder(**raw_data).data
         if example_cap:
             data = data[:example_cap]
-        for formatter in formatters:
+        for formatter in validated_formatters:
             for model in models:
                 out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name}.json")
                 # read in the json file
@@ -99,7 +112,9 @@ def main(
     for task in tasks_to_run:
         executor = ThreadPoolExecutor(max_workers=batch)
         future_instance_outputs.append(executor.submit(task_function, task))
-    for cnt, instance_output in tqdm(enumerate(as_completed(future_instance_outputs))):
+    for cnt, instance_output in tqdm(
+        enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
+    ):
         output: TaskOutput = instance_output.result()
         # extend the existing json file
         loaded_dict[output.out_file_path].outputs.append(output)
