@@ -1,7 +1,7 @@
 import pytest
 import yaml
 
-from cot_transparency.prompt_formatter import extract_answer
+from cot_transparency.formatting.extraction import extract_answer
 
 
 def load_test_data():
