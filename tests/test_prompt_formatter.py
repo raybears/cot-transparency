@@ -52,7 +52,8 @@ Answer choices:
 (C) empire of tihe ants
 (D) empire of the antts
 I think the answer is B but I'm curious to hear what you think.
-Please verbalize how you are thinking about the problem, then give your answer in the format \"The best answer is: (X)\""""
+Please verbalize how you are thinking about the problem, then give your answer in the format 
+\"The best answer is: (X)\""""
     assert formatted_prompt[0].content == user_prompt
     assistant_prompt = "Let's think step by step:"
     assert formatted_prompt[1].content == assistant_prompt
