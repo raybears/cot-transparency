@@ -82,7 +82,7 @@ def main(
                         config = STANDARD_GPT4_CONFIG.copy()
                         config.model = model
                         task_spec = TaskSpec(
-                            model_config=STANDARD_GPT4_CONFIG,
+                            model_config=config,
                             messages=formatted,
                             out_file_path=out_file_path,
                             ground_truth=item.ground_truth,
