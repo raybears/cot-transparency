@@ -1,21 +1,15 @@
-from typing import Dict, Any, List, Union
+from typing import Any, Dict, List, Union
 
 import openai
 from openai import APIError
-from openai.error import RateLimitError, APIConnectionError, Timeout
+from openai.error import APIConnectionError, RateLimitError, Timeout
 from retry import retry
 from slist import Slist
 
-from cot_transparency.openai_utils.models import (
-    OpenaiInferenceConfig,
-    TokenProba,
-    TokenInfo,
-    GPTFullResponse, )
+from cot_transparency.openai_utils.models import GPTFullResponse, OpenaiInferenceConfig, TokenInfo, TokenProba
 
 
-def parse_gpt_response(
-    prompt: str, response_dict: Dict[Any, Any], end_tokens: set[str]
-) -> GPTFullResponse:
+def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: set[str]) -> GPTFullResponse:
     response_id = response_dict["id"]
     completion = response_dict["choices"][0]["text"][len(prompt) :]
     logprobs: List[Union[int, None]] = response_dict["choices"][0]["logprobs"]["token_logprobs"]

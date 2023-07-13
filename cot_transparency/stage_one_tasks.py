@@ -4,9 +4,9 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from cot_transparency.openai_utils.models import OpenaiInferenceConfig, ChatMessages
-from cot_transparency.prompt_formatter import PromptFormatter
 from cot_transparency.model_apis import call_model_api
+from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
+from cot_transparency.prompt_formatter import PromptFormatter
 
 
 @dataclass
@@ -25,6 +25,7 @@ class ModelOutput(BaseModel):
     raw_response: str
     parsed_response: Optional[str]
 
+
 class TaskOutput(BaseModel):
     # This is one single experiment
     prompt: list[ChatMessages]
@@ -34,7 +35,6 @@ class TaskOutput(BaseModel):
     task_hash: str
     config: OpenaiInferenceConfig
     out_file_path: Path
-
 
 
 def task_function(task: TaskSpec) -> TaskOutput:

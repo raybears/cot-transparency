@@ -1,15 +1,13 @@
-from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union, Dict, Any
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import openai
 from openai import APIError
-from openai.error import RateLimitError, APIConnectionError, Timeout
+from openai.error import APIConnectionError, RateLimitError, Timeout
 from pydantic import BaseModel, conlist
 from retry import retry
 from slist import Slist
-from slist.pydantic_compat import SlistPydantic
 
 
 class OpenaiInferenceConfig(BaseModel):

@@ -45,7 +45,6 @@ repos:
     - id: pyright
       name: pyright
       entry: pyright
-      entry: pyright
       language: system
       types: [python]
       stages:
