@@ -4,6 +4,7 @@ from pathlib import Path
 from pydantic import BaseModel
 from retry import retry
 
+from cot_transparency.miles_models import MultipleChoiceAnswer
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 from cot_transparency.prompt_formatter import AnswerNotFound, PromptFormatter
@@ -15,7 +16,7 @@ class TaskSpec:
     model_config: OpenaiInferenceConfig
     messages: list[ChatMessages]
     out_file_path: Path
-    ground_truth: str
+    ground_truth: MultipleChoiceAnswer
     formatter: PromptFormatter
     times_to_repeat: int
     task_hash: str
