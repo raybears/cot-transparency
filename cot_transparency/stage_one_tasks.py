@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel
+from retry import retry
 
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
-from cot_transparency.prompt_formatter import PromptFormatter
+from cot_transparency.prompt_formatter import AnswerNotFound, PromptFormatter
 
 
 @dataclass
@@ -23,7 +23,8 @@ class TaskSpec:
 
 class ModelOutput(BaseModel):
     raw_response: str
-    parsed_response: Optional[str]
+    # We always have a suitable response because we keep retrying
+    parsed_response: str
 
 
 class TaskOutput(BaseModel):
@@ -37,15 +38,27 @@ class TaskOutput(BaseModel):
     out_file_path: Path
 
 
+@retry(exceptions=AnswerNotFound, tries=10, delay=1)
+def call_model_until_suitable_response(
+    messages: list[ChatMessages], config: OpenaiInferenceConfig, formatter: PromptFormatter
+) -> ModelOutput:
+    # call api
+    response = call_model_api(messages, config)
+    # extract the answer
+    parsed_response = formatter.parse_answer(response)
+    if not parsed_response:
+        raise AnswerNotFound(f"didnt find answer in model answer {response}")
+    return ModelOutput(raw_response=response, parsed_response=parsed_response)
+
+
 def task_function(task: TaskSpec) -> TaskOutput:
     # TODO: possibly parallelize this
     outputs = []
     for i in range(task.times_to_repeat):
-        # call api
-        response = call_model_api(task.messages, task.model_config)
-        # extract the answer
-        parsed_response = task.formatter.parse_answer(response)
-        outputs.append(ModelOutput(raw_response=response, parsed_response=parsed_response))
+        response = call_model_until_suitable_response(
+            messages=task.messages, config=task.model_config, formatter=task.formatter
+        )
+        outputs.append(response)
     return TaskOutput(
         prompt=task.messages,
         model_output=outputs,
