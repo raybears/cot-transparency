@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.prompt_formatter import ZeroShotCOTSycophancyFormatter, TaskSpec
-from self_check.openai_utils.models import (
+from cot_transparency.openai_utils.models import (
     OpenaiInferenceConfig,
     OpenaiRoles,
     ChatMessages,

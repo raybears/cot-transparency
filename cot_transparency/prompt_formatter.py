@@ -1,12 +1,9 @@
 from dataclasses import dataclass
 from pathlib import Path
 from string import ascii_uppercase
-from typing import Optional
 
-from pydantic import BaseModel
-
-from self_check.biased_few_shots import emoji_few_shots
-from self_check.openai_utils.models import ChatMessages, OpenaiRoles, OpenaiInferenceConfig
+from cot_transparency.emoji.biased_few_shots import emoji_few_shots
+from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles, OpenaiInferenceConfig
 from cot_transparency.miles_models import MilesBBHRawData
 
 

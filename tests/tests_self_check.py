@@ -1,7 +1,7 @@
-from self_check.biased_few_shots import emoji_few_shots, user_biased_question
-from self_check.formatting import MilesBBHRawData, format_sycophancy_question, format_emoji_with_bias, BIAS_EMOJI, \
+from cot_transparency.emoji.biased_few_shots import emoji_few_shots, user_biased_question
+from cot_transparency.emoji.formatting import MilesBBHRawData, format_sycophancy_question, format_emoji_with_bias, BIAS_EMOJI, \
     STANDARD_GPT4_CONFIG, answer_idx_to_letter_bracket
-from self_check.openai_utils.models import ChatMessages, OpenaiRoles, GPTFullResponse, get_chat_response
+from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles, GPTFullResponse, get_chat_response
 from cot_transparency.miles_models import MilesBBHRawData
 from cot_transparency.prompt_formatter import ZeroShotCOTSycophancyFormatter
 

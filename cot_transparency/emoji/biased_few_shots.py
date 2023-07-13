@@ -4,7 +4,7 @@ from typing import Optional, Match
 
 from pydantic import BaseModel
 
-from self_check.openai_utils.models import OpenaiRoles, ChatMessages
+from cot_transparency.openai_utils.models import OpenaiRoles, ChatMessages
 
 user_1 = """What is the correct answer for this math question?
 55 * 123 = ??

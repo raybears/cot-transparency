@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from string import ascii_uppercase
-from typing import List, Literal
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -23,8 +23,8 @@ class Data(BaseModel):
     evaluations: list[ExampleEval]
 
 
-from self_check.biased_few_shots import emoji_few_shots
-from self_check.openai_utils.models import (
+from cot_transparency.emoji.biased_few_shots import emoji_few_shots
+from cot_transparency.openai_utils.models import (
     GPTFullResponse,
     OpenaiInferenceConfig,
     OpenaiRoles,
