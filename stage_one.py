@@ -207,8 +207,8 @@ def save_loaded_dict(loaded_dict: dict[Path, ExperimentJsonFormat]):
         # create the directory if it doesn't exist
         file_out.parent.mkdir(parents=True, exist_ok=True)
         with open(file_out, "w") as f:
-            json = loaded.json()
-            f.write(json)
+            _json = loaded.json()
+            f.write(_json)
 
 
 if __name__ == "__main__":
