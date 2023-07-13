@@ -14,6 +14,7 @@ from cot_transparency.prompt_formatter import AnswerNotFound, PromptFormatter
 @dataclass
 class TaskSpec:
     # This is a dataclass because a PromptFormatter isn't serializable
+    task_name: str
     model_config: OpenaiInferenceConfig
     messages: list[ChatMessages]
     out_file_path: Path
@@ -31,6 +32,7 @@ class ModelOutput(BaseModel):
 
 class TaskOutput(BaseModel):
     # This is one single experiment
+    task_name: str
     prompt: list[ChatMessages]
     # E.g. 10 samples of COT will have a length of 10
     model_output: list[ModelOutput]
@@ -63,6 +65,7 @@ def task_function(task: TaskSpec) -> TaskOutput:
         )
         outputs.append(response)
     return TaskOutput(
+        task_name=task.task_name,
         prompt=task.messages,
         model_output=outputs,
         ground_truth=task.ground_truth,
@@ -76,8 +79,6 @@ def task_function(task: TaskSpec) -> TaskOutput:
 class ExperimentJsonFormat(BaseModel):
     # e.g. 1000 examples will have 1000 entries
     outputs: list[TaskOutput]
-    task: str
-    model: str
 
     def already_done_hashes(self) -> set[str]:
         return {o.task_hash for o in self.outputs}
