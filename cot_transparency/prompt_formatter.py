@@ -25,6 +25,7 @@ class AnswerNotFound(Exception):
 
 COT_ASSISTANT_PROMPT = "Let's think step by step:"
 
+
 def add_verbalize_instruction_to_question(question: str) -> str:
     return (
         f"{question}\nPlease verbalize how you are thinking about the problem, "

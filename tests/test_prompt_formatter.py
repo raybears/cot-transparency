@@ -1,5 +1,3 @@
-from typing import List
-
 from cot_transparency.formatting.letters import answer_idx_to_letter_bracket
 from cot_transparency.miles_models import MilesBBHRawData
 from cot_transparency.openai_utils.models import ChatMessages
