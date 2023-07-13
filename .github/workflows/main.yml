@@ -43,7 +43,7 @@ jobs:
       - name: Run pre-commit hooks
         run: |
           make hooks
-          SKIP=pyright pre-commit run --all-files
+          SKIP=pyright,no-commit-to-branch pre-commit run --all-files
 
       - name: test with pytest
         run:
