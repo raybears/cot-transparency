@@ -67,10 +67,10 @@ def format_emoji_bias_baseline_no_spot(example: MilesBBHRawData) -> list[ChatMes
     return prompt
 
 
-def format_emoji_bias_baseline_no_spot_no_sycophancy(example: MilesBBHRawData) -> list[ChatMessages]:
+def format_emoji_bias_baseline_no_spot_no_sycophancy(question: MilesBBHRawData) -> list[ChatMessages]:
     """This is zero shot baseline w/o any sycophancy example"""
     # format it to have the biasing few shots first
-    biased_qn: str = question_with_emoji_bias(question=example, bias_idx=example.random_ans_idx)
+    biased_qn: str = question_with_emoji_bias(question=question, bias_idx=question.random_ans_idx)
     # then add the sycophancy bias detection example to show it how to detect bias
     bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer]
     # just ask for COT instead of asking for COT with bias

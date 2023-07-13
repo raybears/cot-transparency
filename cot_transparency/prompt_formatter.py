@@ -1,5 +1,6 @@
 from typing import Optional, Set, Type
 
+from cot_transparency.formatting.emoji import format_emoji_bias_baseline_no_spot_no_sycophancy, format_emoji_bias_spot
 from cot_transparency.formatting.extraction import extract_answer
 from cot_transparency.formatting.letters import index_to_letter
 from cot_transparency.miles_models import MilesBBHRawData
@@ -103,7 +104,7 @@ class EmojiBiasBaselineFormatter(PromptFormatter):
 
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        ...
+        return format_emoji_bias_spot(question=question)
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
@@ -116,7 +117,7 @@ class EmojiBiasSpotBiasFormatter(PromptFormatter):
 
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        ...
+        return format_emoji_bias_baseline_no_spot_no_sycophancy(question=question)
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
