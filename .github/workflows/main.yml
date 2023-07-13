@@ -38,15 +38,14 @@ jobs:
         run: |
           make env
 
-      - name: test with pytest
-        run:
-          pytest tests
-
       # Run all the pre-commit hooks on all files
       - name: Run pre-commit hooks
         run:
           make hooks
           run pre-commit run --all-files
 
+      - name: test with pytest
+        run:
+          pytest tests
 
 
