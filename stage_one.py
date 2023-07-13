@@ -7,12 +7,9 @@ import fire
 from tqdm import tqdm
 
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
+from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 from cot_transparency.prompt_formatter import ZeroShotCOTSycophancyFormatter
-from cot_transparency.stage_one_tasks import TaskSpec, TaskOutput, task_function, ExperimentJsonFormat, save_loaded_dict
-from cot_transparency.openai_utils.models import (
-    OpenaiInferenceConfig,
-    ChatMessages,
-)
+from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput, TaskSpec, save_loaded_dict, task_function
 
 BBH_TASK_LIST = [
     # "sports_understanding",
@@ -62,11 +59,9 @@ def main(
         json_path: Path = Path(f"data/bbh/{bbh_task}/val_data.json")
         with open(json_path, "r") as f:
             raw_data = json.load(f)
-        data: list[MilesBBHRawData] = (
-            MilesBBHRawDataFolder(**raw_data).data[:example_cap]
-            if example_cap
-            else MilesBBHRawDataFolder(**raw_data).data
-        )
+        data: list[MilesBBHRawData] = MilesBBHRawDataFolder(**raw_data).data
+        if example_cap:
+            data = data[:example_cap]
         for formatter in formatters:
             for model in models:
                 out_file_path: Path = Path(f"experiments/{bbh_task}/{model}/{formatter.name}.json")
