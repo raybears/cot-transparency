@@ -18,7 +18,7 @@ class OpenaiInferenceConfig(BaseModel):
     max_tokens: int
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
-    stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
+    stop: Union[None, str, conlist(str, min_items=1, max_items=4)] = None  # type: ignore
 
 
 class TokenProba(BaseModel):

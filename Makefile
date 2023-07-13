@@ -7,6 +7,10 @@ hooks:
 check: hooks
 	pre-commit run -a --hook-stage commit
 
+.PHONY: check-python
+check-python:
+	@python3 --version | awk '{split($$2, a, "."); if (a[1] < 3 || (a[1] == 3 && a[2] < 10)) {print "Python 3.10 or higher is required"; exit 1}}'
+
 .PHONY: env
-env: 
+env: check-python
 	pip install -r requirements.txt
