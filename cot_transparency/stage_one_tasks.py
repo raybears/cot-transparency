@@ -37,6 +37,7 @@ class TaskOutput(BaseModel):
     ground_truth: str
     task_hash: str
     config: OpenaiInferenceConfig
+    formatter_name: str
     out_file_path: Path
 
 
@@ -68,6 +69,7 @@ def task_function(task: TaskSpec) -> TaskOutput:
         task_hash=task.task_hash,
         config=task.model_config,
         out_file_path=task.out_file_path,
+        formatter_name=task.formatter.name(),
     )
 
 
