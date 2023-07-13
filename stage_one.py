@@ -87,7 +87,7 @@ def main(
                         _dict = json.load(f)
                         already_done: ExperimentJsonFormat = ExperimentJsonFormat(**_dict)
                 else:
-                    already_done = ExperimentJsonFormat(outputs=[], task=bbh_task, model=model)
+                    already_done = ExperimentJsonFormat(outputs=[])
                 loaded_dict.update({out_file_path: already_done})
                 alreay_done_hashes = already_done.already_done_hashes()
                 item: MilesBBHRawData
@@ -98,6 +98,7 @@ def main(
                         config = STANDARD_GPT4_CONFIG.copy()
                         config.model = model
                         task_spec = TaskSpec(
+                            task_name=bbh_task,
                             model_config=config,
                             messages=formatted,
                             out_file_path=out_file_path,

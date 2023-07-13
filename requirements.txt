@@ -16,3 +16,4 @@ retry
 pyright
 pyrate_limiter
 python-dotenv
+jupyterlab
