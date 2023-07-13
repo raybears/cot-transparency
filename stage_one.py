@@ -79,7 +79,7 @@ def main(
             data = data[:example_cap]
         for formatter in validated_formatters:
             for model in models:
-                out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name}.json")
+                out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name()}.json")
                 # read in the json file
                 if out_file_path.exists():
                     with open(out_file_path, "r") as f:
