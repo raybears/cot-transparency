@@ -21,6 +21,10 @@ class TaskSpec:
     task_hash: str
 
 
+class ModelOutput(BaseModel):
+    raw_response: str
+    parsed_response: Optional[str]
+
 class TaskOutput(BaseModel):
     # This is one single experiment
     prompt: list[ChatMessages]
@@ -31,10 +35,6 @@ class TaskOutput(BaseModel):
     config: OpenaiInferenceConfig
     out_file_path: Path
 
-
-class ModelOutput(BaseModel):
-    raw_response: str
-    parsed_response: Optional[str]
 
 
 def task_function(task: TaskSpec) -> TaskOutput:

@@ -38,7 +38,7 @@ def main(
     bias_type: str = "suggested_answer",
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
-    example_cap: Optional[int] = None,
+    example_cap: Optional[int] = 5,
     log_metrics_every: int = 1,
     run_few_shot: bool = False,
     save_file_every: int = 10,

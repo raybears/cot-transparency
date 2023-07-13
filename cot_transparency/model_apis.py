@@ -1,14 +1,14 @@
 import anthropic
 
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig, OpenaiRoles
+from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig, OpenaiRoles, get_chat_response
 
 
 def call_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConfig) -> str:
     model_name = config.model
     if model_name == "gpt-3.5-turbo" or model_name == "gpt-4":
         formatted = format_for_openai_chat(prompt)
-        return "fake openai response"
-        # return get_chat_response(config=config, messages=formatted).completion
+        # return "fake openai response"
+        return get_chat_response(config=config, messages=formatted).completion
 
     # TODO: actual calling
     elif "claude" in model_name:
