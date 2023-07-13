@@ -16,3 +16,5 @@ htmlcov
 .cache
 
 experiments/*
+
+.env

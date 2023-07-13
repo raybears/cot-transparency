@@ -5,7 +5,7 @@ hooks:
 
 .PHONY: format
 format: hooks
-	$(MAYBE_SINGULARITY_EXEC) pre-commit run -a --hook-stage commit
+	pre-commit run -a --hook-stage commit
 
 .PHONY: env
 env: 
