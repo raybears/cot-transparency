@@ -1,8 +1,7 @@
-import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Literal, Optional, Set
+from typing import Optional
 
 import anthropic
 import fire
@@ -15,7 +14,6 @@ from self_check.openai_utils.models import (
     OpenaiInferenceConfig,
     OpenaiRoles,
     ChatMessages,
-    get_chat_response,
 )
 
 BBH_TASK_LIST = [
@@ -109,10 +107,6 @@ class ExperimentJsonFormat(BaseModel):
         return {o.task_hash for o in self.outputs}
 
 
-def deterministic_hash(something: str) -> str:
-    return hashlib.sha1(something.encode()).hexdigest()
-
-
 def task_function(task: TaskSpec) -> TaskOutput:
     # TODO: possibly parallelize this
     outputs = []
@@ -174,6 +168,7 @@ def main(
                         already_done: ExperimentJsonFormat = ExperimentJsonFormat(**_dict)
                 else:
                     already_done = ExperimentJsonFormat(outputs=[], task=bbh_task, model=model)
+                loaded_dict.update({out_file_path: already_done})
                 alreay_done_hashes = already_done.already_done_hashes()
                 item: MilesBBHRawData
                 for item in data:
@@ -197,7 +192,7 @@ def main(
     # Actually run the tasks
     for task in tasks_to_run:
         executor = ThreadPoolExecutor(max_workers=batch)
-        future_instance_outputs.append(executor.submit(call_model_api, task.messages, task.model_config))
+        future_instance_outputs.append(executor.submit(task_function, task))
     for cnt, instance_output in tqdm(enumerate(as_completed(future_instance_outputs))):
         output: TaskOutput = instance_output.result()
         # extend the existing json file
@@ -209,8 +204,11 @@ def main(
 
 def save_loaded_dict(loaded_dict: dict[Path, ExperimentJsonFormat]):
     for file_out, loaded in loaded_dict.items():
+        # create the directory if it doesn't exist
+        file_out.parent.mkdir(parents=True, exist_ok=True)
         with open(file_out, "w") as f:
-            json.dump(loaded.dict(), f, indent=2)
+            json = loaded.json()
+            f.write(json)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from stage_one import deterministic_hash
+from cot_transparency.hashing import deterministic_hash
 
 
 class MilesBBHRawData(BaseModel):

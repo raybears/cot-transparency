@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 from string import ascii_uppercase
 from typing import Optional
@@ -16,11 +17,13 @@ class PromptFormatter:
     def parse_answer(self, response: str) -> str:
         raise NotImplementedError
 
+    @property
     def name(self) -> str:
         return self.__class__.__name__
 
-
-class TaskSpec(BaseModel):
+@dataclass
+class TaskSpec:
+    # This is a dataclass because a PromptFormatter isn't serializable
     model_config: OpenaiInferenceConfig
     messages: list[ChatMessages]
     out_file_path: Path
@@ -46,7 +49,7 @@ class ZeroShotCOTSycophancyFormatter(PromptFormatter):
         return output
 
     def parse_answer(self, response: str) -> str:
-        raise NotImplementedError
+        return "fake answer"
 
 
 BIAS_EMOJI = "✔️"
