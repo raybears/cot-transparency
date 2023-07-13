@@ -1,15 +1,13 @@
-from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union, Dict, Any
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import openai
 from openai import APIError
-from openai.error import RateLimitError, APIConnectionError, Timeout
+from openai.error import APIConnectionError, RateLimitError, Timeout
 from pydantic import BaseModel, conlist
 from retry import retry
 from slist import Slist
-from slist.pydantic_compat import SlistPydantic
 
 
 class OpenaiInferenceConfig(BaseModel):
@@ -20,7 +18,7 @@ class OpenaiInferenceConfig(BaseModel):
     max_tokens: int
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
-    stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
+    stop: Union[None, str, conlist(str, min_items=1, max_items=4)] = None  # type: ignore
 
 
 class TokenProba(BaseModel):
