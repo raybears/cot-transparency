@@ -6,7 +6,6 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from string import ascii_uppercase
 from time import time
-from typing import Literal
 
 import fire
 import openai
@@ -26,14 +25,14 @@ from utils import SEP, Config, generate_response
 
 BBH_TASK_LIST = [
     # "sports_understanding",
-    # "snarks",
+    "snarks",
     # 'disambiguation_qa',
     # 'movie_recommendation',
     # 'causal_judgment',
     # 'date_understanding',
     # 'tracking_shuffled_objects_three_objects',
     # 'temporal_sequences',
-    "ruin_names",
+    # 'ruin_names',
     # 'web_of_lies',
     # 'navigate',
     # 'logical_deduction_five_objects',
@@ -341,18 +340,16 @@ def get_results_on_instance_i(
 
 def main(
     tasks=["bbh"],
-    models: list[Literal["gpt-4", "gpt-3.5-turbo"]] = ["gpt-3.5-turbo", "gpt-4"],
-    bias_type: Literal["answer_always_a", "bbh", "suggested_answer"] = "suggested_answer",
+    models=["text-davinci-003"],
     exp_dir=None,
     experiment_suffix="",
     example_cap=5,
-    blank_cot=False,
-    truncated_cot=False,
-    cot_with_mistake=False,
-    paraphrase_cot=False,
+    blank_cot=True,
+    truncated_cot=True,
+    cot_with_mistake=True,
+    paraphrase_cot=True,
     log_metrics_every=1,
     run_few_shot=False,
-    batch: int = 10,
 ):
     apikey = os.getenv("OPENAI_API_KEY")
     if apikey is None:
@@ -360,7 +357,6 @@ def main(
         exit(1)
     openai.api_key = apikey
 
-    # NOTE: GPT4 uses a diff tokenizer
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
     if exp_dir is None:
@@ -397,12 +393,12 @@ def main(
                     configs.append(
                         Config(
                             "bbq",
-                            bias_type=bias_type,
+                            bias_type="bbq",
                             few_shot=is_few_shot,
                             model=model,
                             explicit_nonbias=False,
                             get_pre_cot_answer=True,
-                            batch=batch,
+                            batch=5,
                         )
                     )
 
@@ -411,13 +407,13 @@ def main(
                         configs.append(
                             Config(
                                 task,
-                                bias_type=bias_type,
+                                bias_type="suggested_answer",
                                 bias_text=bt,
                                 bias_text_id=i,
                                 few_shot=is_few_shot,
                                 model=model,
                                 get_pre_cot_answer=True,
-                                batch=batch,
+                                batch=5,
                             )
                         )
 
@@ -461,8 +457,7 @@ def main(
 
             # Set max_tokens based roughly on length of few_shot examples, otherwise set to 700
             if SEP in biased_inps[0]:
-                tokens_per_ex = 700
-                # tokens_per_ex = int(len(tokenizer.encode(biased_inps[0].split(SEP)[1])) * 1.5)
+                tokens_per_ex = int(len(tokenizer.encode(biased_inps[0].split(SEP)[1])) * 1.5)
             else:
                 # tokens_per_ex = int(len(tokenizer.encode(biased_inps[0])) * 1.5)
                 tokens_per_ex = 700
@@ -494,6 +489,8 @@ def main(
             failed_idx = []
 
             future_instance_outputs = {}
+            batch = 1 if not hasattr(c, "batch") else c.batch
+            batch = 1
 
             args = (
                 inp_sets,
@@ -558,9 +555,4 @@ def main(
 
 
 if __name__ == "__main__":
-    # set OPENAI_API_KEY env var
-    import os
-
-    os.environ["OPENAI_API_KEY"] = "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"
-    os.environ["OPENAI_API_KEY"] = "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"
     fire.Fire(main)
