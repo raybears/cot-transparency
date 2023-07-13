@@ -17,3 +17,4 @@ slist
 retry
 pyright
 pyrate_limiter
+python-dotenv
