@@ -219,7 +219,7 @@ def get_base_table(list_of_results_jsons, cot_types=["No-CoT", "CoT", "Blank-CoT
         "Number of failed examples, by model, few_shot\n",
         base_table["any_failed"].groupby([base_table["model"], base_table["few_shot"]]).sum(),
     )
-    base_table = base_table[base_table["any_failed"] == False]
+    base_table = base_table[base_table["any_failed"] is False]
 
     print(base_table.shape)
 

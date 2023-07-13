@@ -1,10 +1,8 @@
 transformers
 openai
 black
-isort
+ruff
 pre-commit
-flake8
-pylint
 fire
 pandas
 ipython
@@ -17,3 +15,4 @@ slist
 retry
 pyright
 pyrate_limiter
+python-dotenv

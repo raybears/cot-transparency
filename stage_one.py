@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
+from cot_transparency.openai_utils.set_key import set_openai_key_from_env
 from cot_transparency.prompt_formatter import (
     PromptFormatter,
     ZeroShotCOTSycophancyFormatter,
@@ -124,4 +125,5 @@ def main(
 
 
 if __name__ == "__main__":
+    set_openai_key_from_env()
     fire.Fire(main)
