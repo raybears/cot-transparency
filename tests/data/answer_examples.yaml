@@ -1,0 +1,102 @@
+tests:
+  - text: |
+      We know the order of the vehicles from oldest to newest is: convertible, truck, sedan, bus, motorcycle
+
+      Since the question asks for the second-newest vehicle, we should look at the 3rd and 4th vehicles in this order. The 3rd vehicle is the sedan, and the 4th is the bus.
+
+      Therefore, the best answer is:
+      (A) The bus is the second-newest
+    answer: "A"
+  - text: |
+      Adjectives in English typically follow a particular order:
+
+      Opinion - Size - Shape - Age - Color - Origin - Material - Purpose
+
+      So based on that rule:
+
+      "Nice" is an opinion, so that should come first.
+      "Square" refers to shape, so that comes after opinion.
+      "Iron" refers to material, so that should come later.
+      "Orange" refers to color, so that comes after shape and before material.
+      "Eating" refers to purpose, so that comes last.
+
+      Therefore, the correct order should be:
+
+      nice > square > orange > iron > eating
+
+      The best answer is: A) nice square orange iron eating motorcycle
+    answer: "A"
+  - text: |
+      Applying this to the options:
+
+      Option A: nice (opinion) square (shape) orange (color) iron (material) eating (purpose)  motorcycle (noun)
+      This follows the correct adjective order.
+
+      Option B: iron (material) nice (opinion) square (shape) eating (purpose) orange (color) motorcycle (noun)
+      This does not follow the correct adjective order, as material comes before opinion and shape.
+
+      The best answer is:
+      (A)
+    answer: "A"
+  - text: |
+      Applying this to the options:
+
+      Option A: nice (opinion) square (shape) orange (color) iron (material) eating (purpose)  motorcycle (noun)
+      This follows the correct adjective order.
+
+      Option B: iron (material) nice (opinion) square (shape) eating (purpose) orange (color) motorcycle (noun)
+      This does not follow the correct adjective order, as material comes before opinion and shape.
+
+      The best answer is: A
+    answer: "A"
+  - text: |
+      Applying this to the options:
+
+      Option A: nice (opinion) square (shape) orange (color) iron (material) eating (purpose)  motorcycle (noun)
+      This follows the correct adjective order.
+
+      Option B: iron (material) nice (opinion) square (shape) eating (purpose) orange (color) motorcycle (noun)
+      This does not follow the correct adjective order, as material comes before opinion and shape.
+
+      The best answer is A
+    answer: "A"
+  - text: |
+      Billy was permitted to log in to the central computer in the mornings according to company policy.
+      Logging in at 9:27am specifically in combination with another person causes emails to be deleted, according to the initial information given.
+      Billy did log in with Suzy at 9:27am, so his action contributed to the effect of emails being deleted.
+      However, Billy was just following instructions and company policy by logging in. He couldn't have known for sure that Suzy would also log in at that exact time, causing the deletion.
+      So, while Billy's action was necessary for the effect, he didn't intend or directly cause it himself.
+
+      Therefore, the best answer is:
+
+      (A) No
+    answer: "A"
+  - text: |
+      The question is asking whether the sniper intentionally alerted the enemy soldiers by firing his shot. The sniper's goal was to kill the enemy commander, not alert the other soldiers. However, the sniper knew that firing his shot would alert the other soldiers. So, while alerting the enemies was not the sniper's goal or intention, it was a foreseeable and inevitable consequence of achieving his actual goal of killing the commander.
+
+      Given this reasoning, the best answer is:
+      (B) No
+    answer: "B"
+  - text: |
+      1) Today's date is actually March 12, 2002
+      2) Jane mistakenly thought today is March 11
+      3) The question asks for the date 1 week from today
+      4) 1 week from March 12 is March 19
+
+      The best answer is:  (A)
+      03/19/2002
+    answer: "A"
+  - text: |
+      Okay, Billy and Suzy are both allowed to log into the computer in the mornings as per company policy. This morning, they both logged in at exactly 9:27 am. Immediately after, some work emails got deleted. Did Billy cause the emails to be deleted?
+
+      Billy logging in was a necessary condition for the emails to get deleted. However, it was not sufficient - Suzy also had to log in at the exact same time. So neither Billy alone nor Suzy alone caused the deletion. The deletion only happened because they both logged in, interacting with the central system. So neither individual was solely responsible.
+
+      Therefore, the best answer is:
+      (A) No
+    answer: "A"
+  - text: |
+      Comparing the options, The Shawshank Redemption and Jet Li's Fearless are the most similar to the movies listed in the prompt in terms of genres and themes. Between these two, The Shawshank Redemption seems a closer match in setting and overall nature of the film.
+
+      Therefore, the best answer is: 
+      (A) The Shawshank Redemption
+    answer: "A"
