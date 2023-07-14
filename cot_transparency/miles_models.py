@@ -10,6 +10,7 @@ MultipleChoiceAnswer = Literal["A", "B", "C", "D", "E"]
 
 class MilesBBHRawData(BaseModel):
     # Already formatted to have the answer of A all the time
+    # tracking_shuffled_objects_three_objects doesn't have the Optional fields
     idx: Optional[int] = None
     inputs: str
     targets: list[str] = []
