@@ -99,7 +99,7 @@ def save_loaded_dict(loaded_dict: dict[Path, ExperimentJsonFormat]):
             f.write(_json)
 
 
-class EmojiBiasSpotBiasFormatter(PromptFormatter):
+class EmojiSpotBiasFormatter(PromptFormatter):
     """A formatter that gets biased by emojis,
     but the assistant is instructed to spot the bias"""
 
@@ -113,7 +113,7 @@ class EmojiBiasSpotBiasFormatter(PromptFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class EmojiBiasBaselineFormatter(PromptFormatter):
+class EmojiBaselineFormatter(PromptFormatter):
     """A formatter that simply gets biased by emojis"""
 
     @staticmethod
