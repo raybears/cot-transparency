@@ -5,6 +5,7 @@ from typing import Optional, Type
 import random
 
 import fire
+from pydantic import ValidationError
 from tqdm import tqdm
 
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
@@ -74,7 +75,11 @@ def main(
         json_path: Path = Path(f"data/bbh/{bbh_task}/val_data.json")
         with open(json_path, "r") as f:
             raw_data = json.load(f)
-        data: list[MilesBBHRawData] = MilesBBHRawDataFolder(**raw_data).data
+        try:
+            data: list[MilesBBHRawData] = MilesBBHRawDataFolder(**raw_data).data
+        except ValidationError as e:
+            print(f"Error parsing {json_path}")
+            raise e
         if example_cap:
             data = data[:example_cap]
         # shuffle the data
