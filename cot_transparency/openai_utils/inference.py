@@ -2,11 +2,21 @@ from typing import Any, Dict, List, Union
 
 import openai
 from openai import APIError
-from openai.error import APIConnectionError, RateLimitError, Timeout
+from openai.error import APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout
 from retry import retry
 from slist import Slist
 
-from cot_transparency.openai_utils.models import GPTFullResponse, OpenaiInferenceConfig, TokenInfo, TokenProba
+from cot_transparency.openai_utils.models import (
+    ChatMessages,
+    GPTFullResponse,
+    OpenaiInferenceConfig,
+    TokenInfo,
+    TokenProba,
+    OpenaiRoles,
+)
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: set[str]) -> GPTFullResponse:
@@ -51,7 +61,9 @@ def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: s
     )
 
 
-@retry(exceptions=(RateLimitError, APIConnectionError, Timeout), tries=5, delay=20)
+@retry(
+    exceptions=(RateLimitError, APIConnectionError, Timeout, ServiceUnavailableError), tries=20, delay=2, logger=logger
+)
 def get_openai_completion(
     config: OpenaiInferenceConfig,
     prompt: str,
@@ -81,3 +93,73 @@ def get_openai_completion(
         set(config.stop) if isinstance(config.stop, list) else {config.stop} if isinstance(config.stop, str) else set()
     )
     return parse_gpt_response(prompt=prompt, response_dict=response_dict, end_tokens=end_tokens)
+
+
+def parse_chat_prompt_response_dict(
+    response_dict: Dict[Any, Any],
+    prompt: list[ChatMessages],
+) -> GPTFullResponse:
+    response_id = response_dict["id"]
+    top_choice = response_dict["choices"][0]
+    completion = top_choice["message"]["content"]
+    finish_reason = top_choice["finish_reason"]
+    return GPTFullResponse(
+        id=response_id,
+        prompt=prompt,
+        completion=completion,
+        prompt_token_infos=Slist(),
+        completion_token_infos=Slist(),
+        completion_total_log_prob=0,
+        average_completion_total_log_prob=0,
+        finish_reason=finish_reason,
+    )
+
+
+def __get_chat_response_dict(
+    config: OpenaiInferenceConfig,
+    prompt: list[ChatMessages],
+) -> Dict[Any, Any]:
+    return openai.ChatCompletion.create(  # type: ignore
+        model=config.model,
+        messages=[chat.dict() for chat in prompt],
+        max_tokens=config.max_tokens,
+        temperature=config.temperature,
+        presence_penalty=config.presence_penalty,
+        frequency_penalty=config.frequency_penalty,
+        top_p=1,
+        n=1,
+        stream=False,
+        stop=[config.stop] if isinstance(config.stop, str) else config.stop,
+    )
+
+
+@retry(
+    exceptions=(RateLimitError, APIConnectionError, Timeout, APIError),
+    tries=20,
+    delay=2,
+    logger=logger,
+)
+def get_chat_response_simple(
+    config: OpenaiInferenceConfig,
+    prompt: str,
+) -> GPTFullResponse:
+    assert config.model == "gpt-3.5-turbo" or config.model == "gpt-4"
+    messages = [ChatMessages(role=OpenaiRoles.user, content=prompt)]
+    response = __get_chat_response_dict(
+        config=config,
+        prompt=messages,
+    )
+    return parse_chat_prompt_response_dict(prompt=messages, response_dict=response)
+
+
+@retry(exceptions=(RateLimitError, APIConnectionError, Timeout, APIError), tries=20, delay=2, logger=logger)
+def get_chat_response(
+    config: OpenaiInferenceConfig,
+    messages: list[ChatMessages],
+) -> GPTFullResponse:
+    assert config.model == "gpt-3.5-turbo" or config.model == "gpt-4"
+    response_dict = __get_chat_response_dict(
+        config=config,
+        prompt=messages,
+    )
+    return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)

@@ -29,7 +29,12 @@ def convert_experiment_to_dataframe(exp: ExperimentJsonFormat) -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
-def experiment_accuracy(exp_dir: str):
+def accuracy(exp_dir: str, inconsistent_only: bool = True, aggregate_over_tasks: bool = False):
+    """
+    exp_dir: path to directory containing experiment jsons
+    inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
+    """
+
     loaded_dict = load_jsons(exp_dir)
     dfs = []
     for path, exp in loaded_dict.items():
@@ -38,12 +43,28 @@ def experiment_accuracy(exp_dir: str):
     df = pd.concat(dfs)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
 
-    accuracy_df = (
-        df[["is_correct", "task_name", "model"]].groupby(["task_name", "model"]).mean(numeric_only=True).reset_index()
+    if inconsistent_only:
+        df = df[df.biased_ans != df.ground_truth]
+
+    accuracy_df_grouped = df[["is_correct", "task_name", "model", "formatter_name"]].groupby(
+        ["task_name", "model", "formatter_name"]
     )
-    output = pd.pivot_table(accuracy_df, index="task_name", columns="model", values="is_correct")
-    print(output)
+    accuracy_df = accuracy_df_grouped.mean().reset_index()
+    counts_df = accuracy_df_grouped.count().reset_index()
+
+    # include number of examples
+    outputs = []
+    for df in [accuracy_df, counts_df]:
+        df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
+
+        output = pd.pivot_table(df, index=["task_name", "model"], columns=["formatter_name"], values="is_correct")
+        outputs.append(output)
+
+    print("---------------- Counts ----------------")
+    print(outputs[1])
+    print("--------------- Accuracy ---------------")
+    print(outputs[0])
 
 
 if __name__ == "__main__":
-    fire.Fire(experiment_accuracy)
+    fire.Fire(accuracy)
