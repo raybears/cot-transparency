@@ -29,6 +29,11 @@ class MilesBBHRawData(BaseModel):
     def hash(self) -> str:
         return deterministic_hash(self.parsed_inputs)
 
+    @property
+    def biased_ans(self) -> MultipleChoiceAnswer:
+        letter: MultipleChoiceAnswer = ascii_uppercase[self.random_ans_idx]  # type: ignore
+        return letter
+
 
 class MilesBBHRawDataFolder(BaseModel):
     data: list[MilesBBHRawData]

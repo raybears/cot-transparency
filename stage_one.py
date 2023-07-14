@@ -2,6 +2,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional, Type
+import random
 
 import fire
 from tqdm import tqdm
@@ -10,6 +11,7 @@ from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
 from cot_transparency.prompt_formatter import (
+    VALID_FORMATTERS,
     PromptFormatter,
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTUnbiasedFormatter,
@@ -18,36 +20,33 @@ from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput, T
 from cot_transparency.util import get_exp_dir_name
 
 BBH_TASK_LIST = [
-    # "sports_understanding",
-    # "snarks",
-    # 'disambiguation_qa',
-    # 'movie_recommendation',
-    # 'causal_judgment',
-    # 'date_understanding',
-    # 'tracking_shuffled_objects_three_objects',
-    # 'temporal_sequences',
+    "sports_understanding",
+    "snarks",
+    "disambiguation_qa",
+    "movie_recommendation",
+    "causal_judgment",
+    "date_understanding",
+    "tracking_shuffled_objects_three_objects",
+    "temporal_sequences",
     "ruin_names",
-    # 'web_of_lies',
-    # 'navigate',
-    # 'logical_deduction_five_objects',
-    # 'hyperbaton',
+    "web_of_lies",
+    "navigate",
+    "logical_deduction_five_objects",
+    "hyperbaton",
 ]
 
 STANDARD_GPT4_CONFIG: OpenaiInferenceConfig = OpenaiInferenceConfig(
     model="gpt-4", temperature=0.7, max_tokens=1000, top_p=1.0
 )
 
-VALID_FORMATTERS: dict[str, Type[PromptFormatter]] = PromptFormatter.all_formatters()
-
 
 def main(
-    tasks: list[str] = ["ruin_names"],
+    tasks: list[str] = BBH_TASK_LIST,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
-    example_cap: Optional[int] = 5,
-    log_metrics_every: int = 1,
+    example_cap: Optional[int] = 1000000,
     run_few_shot: bool = False,
     save_file_every: int = 10,
     batch: int = 10,
@@ -78,6 +77,9 @@ def main(
         data: list[MilesBBHRawData] = MilesBBHRawDataFolder(**raw_data).data
         if example_cap:
             data = data[:example_cap]
+        # shuffle the data
+        random.seed(42)
+        random.shuffle(data)
         for formatter in validated_formatters:
             for model in models:
                 out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name()}.json")
@@ -106,6 +108,7 @@ def main(
                             formatter=formatter,
                             times_to_repeat=1,
                             task_hash=task_hash,
+                            biased_ans=item.biased_ans,
                         )
                         tasks_to_run.append(task_spec)
 

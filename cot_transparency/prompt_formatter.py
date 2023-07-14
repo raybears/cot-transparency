@@ -7,6 +7,8 @@ from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
 
 
 class PromptFormatter:
+    is_biased: Optional[bool] = None
+
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
         raise NotImplementedError
@@ -28,6 +30,13 @@ class PromptFormatter:
     @classmethod
     def all_formatters(cls) -> dict[str, Type["PromptFormatter"]]:
         return {s.name(): s for s in cls.all_subclasses()}
+
+
+def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
+    mapping = {
+        ZeroShotCOTSycophancyFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+    }
+    return mapping[biased_formatter_name]
 
 
 class AnswerNotFound(Exception):
@@ -56,6 +65,8 @@ def format_unbiased_question(question: str) -> str:
 
 
 class ZeroShotCOTSycophancyFormatter(PromptFormatter):
+    is_biased = True
+
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
         formatted_question = format_sycophancy_question(
@@ -74,6 +85,8 @@ class ZeroShotCOTSycophancyFormatter(PromptFormatter):
 
 
 class ZeroShotCOTUnbiasedFormatter(PromptFormatter):
+    is_biased = False
+
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
         formatted_question = format_unbiased_question(question=question.parsed_inputs)
@@ -87,3 +100,6 @@ class ZeroShotCOTUnbiasedFormatter(PromptFormatter):
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
+
+
+VALID_FORMATTERS: dict[str, Type[PromptFormatter]] = PromptFormatter.all_formatters()
