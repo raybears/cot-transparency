@@ -1,5 +1,5 @@
 from string import ascii_uppercase
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -10,12 +10,13 @@ MultipleChoiceAnswer = Literal["A", "B", "C", "D", "E"]
 
 class MilesBBHRawData(BaseModel):
     # Already formatted to have the answer of A all the time
-    idx: int
+    # tracking_shuffled_objects_three_objects doesn't have the Optional fields
+    idx: Optional[int] = None
     inputs: str
-    targets: list[str]
+    targets: list[str] = []
     multiple_choice_targets: list[str]
     multiple_choice_scores: list[int]
-    split: str
+    split: Optional[str] = None
     random_ans_idx: int
     parsed_inputs: str
 
