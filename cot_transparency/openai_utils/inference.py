@@ -16,7 +16,10 @@ from cot_transparency.openai_utils.models import (
 )
 import logging
 
+from cot_transparency.openai_utils.rate_limiting import token_rate_limiter
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: set[str]) -> GPTFullResponse:
@@ -152,12 +155,21 @@ def get_chat_response_simple(
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response)
 
 
+@token_rate_limiter(tokens_per_minute=90_000, logger=logger)
 @retry(exceptions=(RateLimitError, APIConnectionError, Timeout, APIError), tries=20, delay=2, logger=logger)
-def get_chat_response(
-    config: OpenaiInferenceConfig,
-    messages: list[ChatMessages],
-) -> GPTFullResponse:
-    assert config.model == "gpt-3.5-turbo" or config.model == "gpt-4"
+def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessages]) -> GPTFullResponse:
+    assert config.model == "gpt-3.5-turbo"
+    response_dict = __get_chat_response_dict(
+        config=config,
+        prompt=messages,
+    )
+    return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
+
+
+@token_rate_limiter(tokens_per_minute=10_000, logger=logger)
+@retry(exceptions=(RateLimitError, APIConnectionError, Timeout, APIError), tries=20, delay=2, logger=logger)
+def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessages]) -> GPTFullResponse:
+    assert config.model == "gpt-4"
     response_dict = __get_chat_response_dict(
         config=config,
         prompt=messages,

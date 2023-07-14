@@ -17,3 +17,4 @@ pyright
 pyrate_limiter
 python-dotenv
 jupyterlab
+tiktoken
