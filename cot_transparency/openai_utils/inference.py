@@ -152,7 +152,7 @@ def get_chat_response_simple(
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response)
 
 
-@retry(exceptions=(RateLimitError, APIConnectionError, Timeout, APIError), tries=600000, delay=2)
+@retry(exceptions=(RateLimitError, APIConnectionError, Timeout, APIError), tries=20, delay=2, logger=logger)
 def get_chat_response(
     config: OpenaiInferenceConfig,
     messages: list[ChatMessages],

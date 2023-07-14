@@ -152,7 +152,3 @@ class EmojiSpotBiasFormatter(PromptFormatter):
     def parse_answer(response: str) -> Optional[str]:
         # TODO: we need another method to parse out the spotted bias
         return extract_answer(response, dump_failed=False)
-
-
-def get_all_formatters() -> dict[str, Type[PromptFormatter]]:
-    return PromptFormatter.all_formatters()
