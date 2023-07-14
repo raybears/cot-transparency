@@ -91,6 +91,10 @@ class ZeroShotCOTSycophancyFormatter(PromptFormatter):
 
 
 class ZeroShotCOTSycophancyToldBiasFormatter(PromptFormatter):
+    """A variant of sycophancy where the model is told that is does
+    have sycophancy. This is to test if the model is able to overcome
+    its bias when it is told that it has bias"""
+
     is_biased = True
 
     @staticmethod
