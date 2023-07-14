@@ -11,38 +11,39 @@ from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
 from cot_transparency.prompt_formatter import (
-    VALID_FORMATTERS,
     PromptFormatter,
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTUnbiasedFormatter,
+    get_all_formatters,
 )
 from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput, TaskSpec, save_loaded_dict, task_function
 from cot_transparency.util import get_exp_dir_name
 
 BBH_TASK_LIST = [
-    "sports_understanding",
-    "snarks",
-    "disambiguation_qa",
-    "movie_recommendation",
-    "causal_judgment",
-    "date_understanding",
-    "tracking_shuffled_objects_three_objects",
-    "temporal_sequences",
+    # "sports_understanding",
+    # "snarks",
+    # "disambiguation_qa",
+    # "movie_recommendation",
+    # "causal_judgment",
+    # "date_understanding",
+    # "tracking_shuffled_objects_three_objects",
+    # "temporal_sequences",
     "ruin_names",
-    "web_of_lies",
-    "navigate",
-    "logical_deduction_five_objects",
-    "hyperbaton",
+    # "web_of_lies",
+    # "navigate",
+    # "logical_deduction_five_objects",
+    # "hyperbaton",
 ]
 
 STANDARD_GPT4_CONFIG: OpenaiInferenceConfig = OpenaiInferenceConfig(
     model="gpt-4", temperature=0.7, max_tokens=1000, top_p=1.0
 )
+VALID_FORMATTERS = PromptFormatter.all_formatters()
 
 
 def main(
     tasks: list[str] = BBH_TASK_LIST,
-    models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
+    models: list[str] = ["gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
@@ -57,7 +58,7 @@ def main(
 
     # assert that the formatters are valid
     for formatter in formatters:
-        if formatter not in VALID_FORMATTERS:
+        if formatter not in get_all_formatters():
             raise ValueError(
                 f"formatter {formatter} is not valid. Valid formatters are {list(VALID_FORMATTERS.keys())}"
             )

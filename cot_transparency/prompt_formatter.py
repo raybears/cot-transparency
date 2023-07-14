@@ -102,4 +102,5 @@ class ZeroShotCOTUnbiasedFormatter(PromptFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-VALID_FORMATTERS: dict[str, Type[PromptFormatter]] = PromptFormatter.all_formatters()
+def get_all_formatters() -> dict[str, Type[PromptFormatter]]:
+    return PromptFormatter.all_formatters()
