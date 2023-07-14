@@ -105,7 +105,7 @@ class EmojiBiasSpotBiasFormatter(PromptFormatter):
 
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        return format_emoji_bias_baseline_no_spot_no_sycophancy(question=question)
+        return format_emoji_bias_spot(question=question)
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
@@ -118,7 +118,7 @@ class EmojiBiasBaselineFormatter(PromptFormatter):
 
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        return format_emoji_bias_spot(question=question)
+        return format_emoji_bias_baseline_no_spot_no_sycophancy(question=question)
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:

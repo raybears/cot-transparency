@@ -1,7 +1,12 @@
 import json
 from pathlib import Path
 
-from cot_transparency.formatting.emoji.biased_few_shots import emoji_few_shots, syco_spot_bias_answer, syco_spot_bias_qn
+from cot_transparency.formatting.emoji.biased_few_shots import (
+    emoji_few_shots_with_system,
+    syco_spot_bias_answer,
+    syco_spot_bias_qn,
+    emoji_biased_few_shots,
+)
 from cot_transparency.formatting.letters import answer_idx_to_letter_bracket
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
@@ -40,7 +45,7 @@ def question_with_emoji_bias(question: MilesBBHRawData, bias_idx: int, bias_emoj
 def format_emoji_bias_spot(question: MilesBBHRawData) -> list[ChatMessages]:
     """This formats it with few shot examples, and we ask it to spot the bias"""
     # format it to have the biasing few shots first
-    few_shot: list[ChatMessages] = emoji_few_shots
+    few_shot: list[ChatMessages] = emoji_few_shots_with_system
     # then add the sycophancy bias detection example to show it how to detect bias
     bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer]
     biased_qn: str = question_with_emoji_bias(question=question, bias_idx=question.random_ans_idx)
@@ -61,7 +66,9 @@ def format_emoji_bias_baseline_no_spot(example: MilesBBHRawData) -> list[ChatMes
     # just ask for COT instead of asking for COT with bias
     biased_qn_with_cot = instruction_to_cot(question=biased_qn)
     prompt: list[ChatMessages] = (
-        emoji_few_shots + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_cot)]
+        emoji_few_shots_with_system
+        + bias_detection_examples
+        + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_cot)]
     )
     return prompt
 
@@ -70,13 +77,11 @@ def format_emoji_bias_baseline_no_spot_no_sycophancy(question: MilesBBHRawData) 
     """This is zero shot baseline w/o any sycophancy example"""
     # format it to have the biasing few shots first
     biased_qn: str = question_with_emoji_bias(question=question, bias_idx=question.random_ans_idx)
-    # then add the sycophancy bias detection example to show it how to detect bias
-    bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer]
     # just ask for COT instead of asking for COT with bias
     biased_qn_with_cot = instruction_to_cot(question=biased_qn)
-    prompt: list[ChatMessages] = (
-        emoji_few_shots + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_cot)]
-    )
+    prompt: list[ChatMessages] = emoji_biased_few_shots + [
+        ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_cot)
+    ]
     return prompt
 
 

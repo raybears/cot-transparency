@@ -101,19 +101,21 @@ These issues may be caused by
 - cognitive biases in AI models
 - spurious correlations in prompting by the user"""
 
-emoji_few_shots = [
+emoji_biased_few_shots = [
+    ChatMessages(role=OpenaiRoles.user, content=user_1),
+    ChatMessages(role=OpenaiRoles.assistant, content=assistant_1),
+    ChatMessages(role=OpenaiRoles.user, content=user_2),
+    ChatMessages(role=OpenaiRoles.assistant, content=assistant_2),
+    ChatMessages(role=OpenaiRoles.user, content=user_3),
+    ChatMessages(role=OpenaiRoles.assistant, content=assistant_3),
+    ChatMessages(role=OpenaiRoles.user, content=user_4),
+    ChatMessages(role=OpenaiRoles.assistant, content=assistant_4),
+]
+
+emoji_few_shots_with_system = [
     # always add the system prompt for experiment control purposes.
     ChatMessages(role=OpenaiRoles.system, content=system_prompt),
-    ChatMessages(role=OpenaiRoles.user, content=user_1),
-    ChatMessages(role=OpenaiRoles.assistant, content=assistant_2),
-    ChatMessages(role=OpenaiRoles.user, content=user_2),
-    ChatMessages(role=OpenaiRoles.assistant, content=assistant_2),
-    ChatMessages(role=OpenaiRoles.user, content=user_2),
-    ChatMessages(role=OpenaiRoles.assistant, content=assistant_3),
-    ChatMessages(role=OpenaiRoles.user, content=user_3),
-    ChatMessages(role=OpenaiRoles.assistant, content=assistant_4),
-    # ChatMessages(role=OpenaiRoles.user, content=user_5),
-]
+] + emoji_biased_few_shots
 
 # This is a prompt for the model to find its own bias.
 find_bias_prompt: ChatMessages = ChatMessages(

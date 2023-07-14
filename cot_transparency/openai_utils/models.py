@@ -123,8 +123,9 @@ def __get_chat_response_dict(
 
 @retry(
     exceptions=(RateLimitError, APIConnectionError, Timeout, APIError),
-    tries=5,
+    tries=6,
     delay=20,
+    backoff=1.2,
 )
 def get_chat_response_simple(
     config: OpenaiInferenceConfig,
@@ -141,8 +142,9 @@ def get_chat_response_simple(
 
 @retry(
     exceptions=(RateLimitError, APIConnectionError, Timeout, APIError),
-    tries=5,
+    tries=6,
     delay=20,
+    backoff=1.2,
 )
 def get_chat_response(
     config: OpenaiInferenceConfig,
