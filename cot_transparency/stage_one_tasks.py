@@ -28,6 +28,7 @@ class TaskSpec:
     formatter: Type[PromptFormatter]
     times_to_repeat: int
     task_hash: str
+    biased_ans: Optional[MultipleChoiceAnswer] = None
 
 
 class ModelOutput(BaseModel):
@@ -47,6 +48,7 @@ class TaskOutput(BaseModel):
     config: OpenaiInferenceConfig
     formatter_name: str
     out_file_path: Path
+    biased_ans: Optional[MultipleChoiceAnswer] = None
 
 
 @retry(exceptions=AnswerNotFound, tries=10, delay=1)
@@ -79,6 +81,7 @@ def task_function(task: TaskSpec) -> TaskOutput:
         config=task.model_config,
         out_file_path=task.out_file_path,
         formatter_name=task.formatter.name(),
+        biased_ans=task.biased_ans,
     )
 
 
