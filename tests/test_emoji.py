@@ -1,4 +1,4 @@
-from cot_transparency.formatting.emoji.emoji_formatter import extract_multiple_choices
+from cot_transparency.formatting.extraction import extract_multiple_choices
 
 
 def test_extract_multiple_choices():

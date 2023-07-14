@@ -4,38 +4,15 @@ from cot_transparency.formatting.emoji.biased_few_shots import (
     syco_spot_bias_qn,
     emoji_biased_few_shots,
 )
+from cot_transparency.formatting.extraction import extract_multiple_choices
 from cot_transparency.formatting.letters import answer_idx_to_letter_bracket
 from cot_transparency.miles_models import MilesBBHRawData
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
-from cot_transparency.prompt_formatter import (
-    add_verbalize_instruction_to_question,
-)
+from cot_transparency.formatting.instructions import add_verbalize_instruction_to_question
 
 # ruff: noqa: E501
 
 BIAS_EMOJI = "✔️"
-
-
-def extract_multiple_choices(question: str) -> list[str]:
-    """
-    e.g.
-    Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?\n\nAnswer choices:\n(A) empire of the pants\n(B) empiqe of the ants\n(C) empire of tihe ants\n(D) empire of the antts
-    returns
-    ['empire of the pants', 'empiqe of the ants', 'empire of tihe ants', 'empire of the antts']
-    """
-    # split the question into lines
-    lines: list[str] = question.split("\n")
-    # get index of the line that starts with "Answer choices:"
-    index: int = lines.index("Answer choices:")
-    # get the lines after that
-    options: list[str] = lines[index + 1 :]
-    # Get only the lines that start with a bracket
-    options_with_bracket: list[str] = [option for option in options if option.startswith("(")]
-    # Get only the text after the bracket
-    options_without_bracket: list[str] = [option[option.index(")") + 1 :] for option in options_with_bracket]
-    # strip
-    stripped = [option.strip() for option in options_without_bracket]
-    return stripped
 
 
 def question_with_emoji_bias(question: MilesBBHRawData, bias_idx: int, bias_emoji: str = BIAS_EMOJI) -> str:

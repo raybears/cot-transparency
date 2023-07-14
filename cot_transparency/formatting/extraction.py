@@ -28,3 +28,30 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
         with open("failed_answers.txt", "a") as f:
             f.write(model_answer + "\n")
     return None
+
+
+def extract_multiple_choices(question: str) -> list[str]:
+    """
+    e.g.
+    Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
+    Answer choices:
+    (A) empire of the pants
+    (B) empiqe of the ants
+    (C) empire of tihe ants
+    (D) empire of the antts
+    returns
+    ['empire of the pants', 'empiqe of the ants', 'empire of tihe ants', 'empire of the antts']
+    """
+    # split the question into lines
+    lines: list[str] = question.split("\n")
+    # get index of the line that starts with "Answer choices:"
+    index: int = lines.index("Answer choices:")
+    # get the lines after that
+    options: list[str] = lines[index + 1 :]
+    # Get only the lines that start with a bracket
+    options_with_bracket: list[str] = [option for option in options if option.startswith("(")]
+    # Get only the text after the bracket
+    options_without_bracket: list[str] = [option[option.index(")") + 1 :] for option in options_with_bracket]
+    # strip
+    stripped = [option.strip() for option in options_without_bracket]
+    return stripped
