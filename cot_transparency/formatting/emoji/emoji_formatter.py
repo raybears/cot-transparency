@@ -1,15 +1,12 @@
 import json
 from pathlib import Path
-from typing import Optional
 
 from cot_transparency.formatting.emoji.biased_few_shots import emoji_few_shots, syco_spot_bias_answer, syco_spot_bias_qn
-from cot_transparency.formatting.extraction import extract_answer
 from cot_transparency.formatting.letters import answer_idx_to_letter_bracket
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
 from cot_transparency.prompt_formatter import (
     instruction_to_cot,
-    PromptFormatter,
 )
 
 # ruff: noqa: E501
@@ -101,32 +98,6 @@ if __name__ == "__main__":
         # response: GPTFullResponse = get_chat_response(config=STANDARD_GPT4_CONFIG, messages="sadd")
 
         print(data)
-
-
-class EmojiBiasBaselineFormatter(PromptFormatter):
-    """A formatter that simply gets biased by emojis"""
-
-    @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        return format_emoji_bias_spot(question=question)
-
-    @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
-
-
-class EmojiBiasSpotBiasFormatter(PromptFormatter):
-    """A formatter that gets biased by emojis,
-    but the assistant is instructed to spot the bias"""
-
-    @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        return format_emoji_bias_baseline_no_spot_no_sycophancy(question=question)
-
-    @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
-        # TODO: we need another method to parse out the spotted bias
-        return extract_answer(response, dump_failed=False)
 
 
 def instruction_to_cot_spot_bias(question: str) -> str:

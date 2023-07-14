@@ -51,7 +51,7 @@ def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: s
     )
 
 
-@retry(exceptions=(RateLimitError, APIConnectionError, Timeout), tries=5, delay=20)
+@retry(exceptions=(RateLimitError, APIConnectionError, Timeout), tries=5, delay=20, backoff=1.1)
 def get_openai_completion(
     config: OpenaiInferenceConfig,
     prompt: str,
