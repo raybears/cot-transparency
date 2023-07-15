@@ -8,7 +8,12 @@ from retry import retry
 from cot_transparency.miles_models import MultipleChoiceAnswer
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
-from cot_transparency.prompt_formatter import AnswerNotFound, PromptFormatter
+from cot_transparency.prompt_formatter import PromptFormatter
+
+
+class AnswerNotFound(Exception):
+    def __init__(self, e: str):
+        self.e = e
 
 
 @dataclass

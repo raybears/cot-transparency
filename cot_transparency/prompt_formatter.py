@@ -58,11 +58,6 @@ def name_to_formatter(name: str) -> Type[PromptFormatter]:
     return mapping[name]
 
 
-class AnswerNotFound(Exception):
-    def __init__(self, e: str):
-        self.e = e
-
-
 def format_sycophancy_question(question: str, bias_idx: int) -> str:
     parsed_input = question
     letter = index_to_letter(bias_idx)
