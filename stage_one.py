@@ -104,6 +104,8 @@ def main(
                         formatted: list[ChatMessages] = formatter.format_example(question=item)
                         config = STANDARD_GPT4_CONFIG.copy()
                         config.model = model
+                        if not formatter.is_cot:
+                            config.max_tokens = 1
                         task_spec = TaskSpec(
                             task_name=bbh_task,
                             model_config=config,
@@ -116,6 +118,10 @@ def main(
                             biased_ans=item.biased_ans,
                         )
                         tasks_to_run.append(task_spec)
+
+    if len(tasks_to_run) == 0:
+        print("No tasks to run, experiment is already done.")
+        return
 
     future_instance_outputs = []
     # Actually run the tasks

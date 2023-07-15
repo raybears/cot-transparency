@@ -54,7 +54,7 @@ def call_model_until_suitable_response(
     # extract the answer
     parsed_response = formatter.parse_answer(response)
     if not parsed_response:
-        raise AnswerNotFound(f"didnt find answer in model answer {response}")
+        raise AnswerNotFound(f"didnt find answer in model answer '{response}'")
     return ModelOutput(raw_response=response, parsed_response=parsed_response)
 
 

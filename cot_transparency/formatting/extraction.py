@@ -28,3 +28,12 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
         with open("failed_answers.txt", "a") as f:
             f.write(model_answer + "\n")
     return None
+
+
+def extract_answer_non_cot(model_answer: str, dump_failed: bool = False) -> Optional[str]:
+    if model_answer[0] in ascii_uppercase:
+        return model_answer[0]
+    if dump_failed:
+        with open("failed_answers.txt", "a") as f:
+            f.write(model_answer + "\n")
+    return None

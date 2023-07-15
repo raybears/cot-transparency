@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Union
 
 import openai
 from openai import APIError
-from openai.error import APIConnectionError, RateLimitError, Timeout
+from openai.error import APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout
 from retry import retry
 from slist import Slist
 
@@ -64,7 +64,7 @@ def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: s
     )
 
 
-@retry(exceptions=(APIConnectionError, Timeout, APIError), tries=20, delay=1, logger=None)
+@retry(exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None)
 @retry(exceptions=(RateLimitError), tries=-1, delay=2, logger=None)
 def get_openai_completion(
     config: OpenaiInferenceConfig,
