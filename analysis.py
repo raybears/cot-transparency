@@ -1,5 +1,6 @@
 import fire
-from cot_transparency.prompt_formatter import bias_to_unbiased_formatter, name_to_formatter
+from cot_transparency.formatters import bias_to_unbiased_formatter
+from cot_transparency.formatters import name_to_formatter
 from cot_transparency.stage_one_tasks import ExperimentJsonFormat
 from pathlib import Path
 from glob import glob
