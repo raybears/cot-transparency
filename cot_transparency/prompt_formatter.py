@@ -48,6 +48,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ZeroShotSycophancyFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         ZeroShotSycophancyNoRoleFormatter.name(): ZeroShotUnbiasedNoRoleFormatter.name(),
         ZeroShotCOTSycophancyNoRoleFormatter.name(): ZeroShotCOTUnbiasedNoRoleFormatter.name(),
+        ZeroShotCOTSycophancyToldBiasFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 

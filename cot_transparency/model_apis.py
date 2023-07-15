@@ -23,18 +23,22 @@ def call_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConfig) ->
 
     # TODO: actual calling
     elif "claude" in model_name:
-        if messages_has_none_role(prompt):
-            raise ValueError(f"Anthropic chat messages cannot have a None role. Got {prompt}")
-        formatted = format_for_anthropic_or_openai_completion(prompt)
+        formatted = format_for_anthropic(prompt)
         raise NotImplementedError
 
     # openai not chat
     else:
-        formatted = format_for_anthropic_or_openai_completion(prompt)
+        formatted = format_for_completion(prompt)
         return get_openai_completion(config=config, prompt=formatted).completion
 
 
-def format_for_anthropic_or_openai_completion(prompt: list[ChatMessages]) -> str:
+def format_for_anthropic(prompt: list[ChatMessages]) -> str:
+    if messages_has_none_role(prompt):
+        raise ValueError(f"Anthropic chat messages cannot have a None role. Got {prompt}")
+    return format_for_completion(prompt)
+
+
+def format_for_completion(prompt: list[ChatMessages]) -> str:
     message = ""
     for msg in prompt:
         if msg.role == OpenaiRoles.user:
