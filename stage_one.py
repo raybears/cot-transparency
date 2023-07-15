@@ -12,7 +12,6 @@ from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
 from cot_transparency.prompt_formatter import (
-    VALID_FORMATTERS,
     PromptFormatter,
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTUnbiasedFormatter,
@@ -55,6 +54,7 @@ def main(
     # bbh is in data/bbh/task_name
     # read in the json file
     # data/bbh/{task_name}/val_data.json
+    VALID_FORMATTERS = PromptFormatter.all_formatters()
 
     # assert that the formatters are valid
     for formatter in formatters:
