@@ -2,7 +2,7 @@ import anthropic
 
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig, OpenaiRoles
 
-from cot_transparency.openai_utils.inference import gpt3_5_rate_limited, gpt4_rate_limited
+from cot_transparency.openai_utils.inference import get_openai_completion, gpt3_5_rate_limited, gpt4_rate_limited
 
 
 def call_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConfig) -> str:
@@ -24,7 +24,7 @@ def call_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConfig) ->
     # openai not chat
     else:
         formatted = format_for_anthropic_or_openai_completion(prompt)
-        raise NotImplementedError
+        return get_openai_completion(config=config, prompt=formatted).completion
 
 
 def format_for_anthropic_or_openai_completion(prompt: list[ChatMessages]) -> str:

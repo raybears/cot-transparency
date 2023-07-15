@@ -118,10 +118,11 @@ def main(
                         tasks_to_run.append(task_spec)
 
     future_instance_outputs = []
+    # Actually run the tasks
     with ThreadPoolExecutor(max_workers=batch) as executor:
-        # Actually run the tasks
         for task in tasks_to_run:
             future_instance_outputs.append(executor.submit(task_function, task))
+
         for cnt, instance_output in tqdm(
             enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
         ):
