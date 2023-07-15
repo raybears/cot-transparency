@@ -139,7 +139,7 @@ def main(
                 )
                 tasks_to_run.append(task_spec)
     # Shuffle so we distribute API calls evenly among models
-    random.shuffle(tasks_to_run)
+    random.Random(42).shuffle(tasks_to_run)
     future_instance_outputs = []
     with ThreadPoolExecutor(max_workers=batch) as executor:
         # Actually run the tasks
