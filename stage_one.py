@@ -118,18 +118,26 @@ def main(
                         tasks_to_run.append(task_spec)
 
     future_instance_outputs = []
-    # Actually run the tasks
-    for task in tasks_to_run:
-        executor = ThreadPoolExecutor(max_workers=batch)
-        future_instance_outputs.append(executor.submit(task_function, task))
-    for cnt, instance_output in tqdm(
-        enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
-    ):
-        output: TaskOutput = instance_output.result()
-        # extend the existing json file
-        loaded_dict[output.out_file_path].outputs.append(output)
-        if cnt % save_file_every == 0:
-            save_loaded_dict(loaded_dict)
+    with ThreadPoolExecutor(max_workers=batch) as executor:
+        # Actually run the tasks
+        for task in tasks_to_run:
+            future_instance_outputs.append(executor.submit(task_function, task))
+        for cnt, instance_output in tqdm(
+            enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
+        ):
+            try:
+                output: TaskOutput = instance_output.result()
+            except Exception as e:
+                # kill all future tasks
+                for future in future_instance_outputs:
+                    future.cancel()
+                # save the loaded dict
+                save_loaded_dict(loaded_dict)
+                raise e
+            # extend the existing json file
+            loaded_dict[output.out_file_path].outputs.append(output)
+            if cnt % save_file_every == 0:
+                save_loaded_dict(loaded_dict)
     save_loaded_dict(loaded_dict)
 
 
