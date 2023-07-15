@@ -3,6 +3,8 @@ from typing import Optional, Set, Type
 from cot_transparency.formatting.emoji.format import (
     format_emoji_bias_baseline_no_spot_no_sycophancy,
     format_emoji_bias_spot,
+    instruction_to_cot_labelled_bias,
+    instruction_to_cot_spot_bias,
 )
 from cot_transparency.formatting.extraction import extract_answer
 from cot_transparency.formatting.instructions import add_verbalize_instruction_to_question, COT_ASSISTANT_PROMPT
@@ -150,7 +152,22 @@ class EmojiSpotBiasFormatter(PromptFormatter):
 
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        return format_emoji_bias_spot(question=question)
+        return format_emoji_bias_spot(question=question, add_instruction_func=instruction_to_cot_spot_bias)
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        # TODO: we need another method to parse out the spotted bias
+        return extract_answer(response, dump_failed=False)
+
+
+class EmojiLabelBiasFormatter(PromptFormatter):
+    """A formatter that gets biased by emojis,
+    but the assistant is instructed to spot the bias
+    The assistant is also instructed to label the bias"""
+
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+        return format_emoji_bias_spot(question=question, add_instruction_func=instruction_to_cot_labelled_bias)
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
