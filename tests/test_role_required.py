@@ -1,6 +1,6 @@
 from cot_transparency.model_apis import format_for_anthropic, format_for_openai_chat
 from cot_transparency.openai_utils.models import ChatMessages
-from cot_transparency.prompt_formatter import ZeroShotSycophancyNoRoleFormatter
+from cot_transparency.formatters import ZeroShotSycophancyNoRoleFormatter
 from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 

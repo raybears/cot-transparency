@@ -1,15 +1,15 @@
-from cot_transparency.formatting.letters import answer_idx_to_letter_bracket
+from cot_transparency.formatters import bias_to_unbiased_formatter
+from cot_transparency.formatters.base_class import PromptFormatter
+from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
 from cot_transparency.miles_models import MilesBBHRawData
 from cot_transparency.openai_utils.models import ChatMessages
-from cot_transparency.prompt_formatter import (
+from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
     ZeroShotSycophancyFormatter,
     ZeroShotSycophancyNoRoleFormatter,
-    format_sycophancy_question,
-    PromptFormatter,
-    bias_to_unbiased_formatter,
 )
+from cot_transparency.formatters.sycophancy import format_sycophancy_question
 from typing import Type
 from cot_transparency.model_apis import format_for_completion
 

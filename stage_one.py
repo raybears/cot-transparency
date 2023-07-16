@@ -12,11 +12,7 @@ from tqdm import tqdm
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
-from cot_transparency.prompt_formatter import (
-    PromptFormatter,
-    ZeroShotCOTSycophancyFormatter,
-    ZeroShotCOTUnbiasedFormatter,
-)
+from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, PromptFormatter, ZeroShotCOTUnbiasedFormatter
 from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput, TaskSpec, save_loaded_dict, task_function
 from cot_transparency.util import get_exp_dir_name
 
