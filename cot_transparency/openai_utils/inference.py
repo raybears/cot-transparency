@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Union
+import anthropic
 
 import openai
 from openai import APIError
@@ -176,3 +177,15 @@ def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessages
         prompt=messages,
     )
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
+
+
+def anthropic_chat(config: OpenaiInferenceConfig, prompt: str) -> str:
+    assert "claude" in config.model
+    client = anthropic.Anthropic()
+    resp = client.completions.create(
+        prompt=prompt,
+        stop_sequences=[anthropic.HUMAN_PROMPT],
+        model=config.model,
+        max_tokens_to_sample=config.max_tokens,
+    )
+    return resp.completion

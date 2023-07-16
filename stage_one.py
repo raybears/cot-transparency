@@ -31,10 +31,11 @@ BBH_TASK_LIST = [
     "logical_deduction_five_objects",
     "hyperbaton",
 ]
-
-STANDARD_GPT4_CONFIG: OpenaiInferenceConfig = OpenaiInferenceConfig(
-    model="gpt-4", temperature=0.7, max_tokens=1000, top_p=1.0
-)
+CONFIG_MAP = {
+    "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
+    "text-davinci-003": OpenaiInferenceConfig(model="text-davinci-003", temperature=0.7, max_tokens=1000, top_p=1.0),
+    "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
+}
 
 
 def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
@@ -125,7 +126,7 @@ def main(
                 runs_to_do = repeats_per_question - already_done_hashes_counts[task_hash]
 
             formatted: list[ChatMessages] = formatter.format_example(question=item)
-            config = STANDARD_GPT4_CONFIG.copy()
+            config = CONFIG_MAP[model].copy()
             config.model = model
             if not formatter.is_cot:
                 config.max_tokens = 1
