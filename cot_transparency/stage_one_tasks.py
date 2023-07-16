@@ -8,7 +8,10 @@ from retry import retry
 from cot_transparency.miles_models import MultipleChoiceAnswer
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
-from cot_transparency.formatters.base_class import PromptFormatter
+from cot_transparency.formatters import PromptFormatter
+from cot_transparency.util import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class AnswerNotFound(Exception):
@@ -25,7 +28,6 @@ class TaskSpec:
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
     formatter: Type[PromptFormatter]
-    times_to_repeat: int
     task_hash: str
     biased_ans: Optional[MultipleChoiceAnswer] = None
 
@@ -50,7 +52,7 @@ class TaskOutput(BaseModel):
     biased_ans: Optional[MultipleChoiceAnswer] = None
 
 
-@retry(exceptions=AnswerNotFound, tries=10, delay=1)
+@retry(exceptions=AnswerNotFound, tries=10, delay=1, logger=logger)
 def call_model_until_suitable_response(
     messages: list[ChatMessages], config: OpenaiInferenceConfig, formatter: Type[PromptFormatter]
 ) -> ModelOutput:
@@ -64,9 +66,8 @@ def call_model_until_suitable_response(
 
 
 def task_function(task: TaskSpec) -> TaskOutput:
-    # TODO: possibly parallelize this
     outputs = []
-    for i in range(task.times_to_repeat):
+    for i in range(1):
         response = call_model_until_suitable_response(
             messages=task.messages, config=task.model_config, formatter=task.formatter
         )
@@ -88,8 +89,8 @@ class ExperimentJsonFormat(BaseModel):
     # e.g. 1000 examples will have 1000 entries
     outputs: list[TaskOutput]
 
-    def already_done_hashes(self) -> set[str]:
-        return {o.task_hash for o in self.outputs}
+    def already_done_hashes(self) -> list[str]:
+        return [o.task_hash for o in self.outputs]
 
 
 def save_loaded_dict(loaded_dict: dict[Path, ExperimentJsonFormat]):

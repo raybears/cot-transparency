@@ -109,6 +109,10 @@ class ZeroShotCOTSycophancyNoRoleFormatter(PromptFormatter):
         output = ZeroShotCOTSycophancyFormatter.format_example(question=question)
         return remove_role_from_messages(output)
 
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
+
 
 class ZeroShotSycophancyNoRoleFormatter(PromptFormatter):
     is_biased = True
