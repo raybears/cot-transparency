@@ -43,6 +43,8 @@ class OpenaiRoles(str, Enum):
     # If you are OpenAI chat, you need to add this back into the previous user message
     # Anthropic can handle it as per normal like an actual assistant
     assistant_preferred = "assistant_preferred"
+    # none is designed for completion tasks where no role / tag will be added
+    none = "none"
 
 
 class ChatMessages(BaseModel):
