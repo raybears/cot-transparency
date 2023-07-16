@@ -126,6 +126,8 @@ def main(
                 formatted: list[ChatMessages] = formatter.format_example(question=item)
                 config = STANDARD_GPT4_CONFIG.copy()
                 config.model = model
+                if not formatter.is_cot:
+                    config.max_tokens = 1
                 task_spec = TaskSpec(
                     task_name=bbh_task,
                     model_config=config,
@@ -140,11 +142,17 @@ def main(
                 tasks_to_run.append(task_spec)
     # Shuffle so we distribute API calls evenly among models
     random.Random(42).shuffle(tasks_to_run)
+
+    if len(tasks_to_run) == 0:
+        print("No tasks to run, experiment is already done.")
+        return
+
     future_instance_outputs = []
+    # Actually run the tasks
     with ThreadPoolExecutor(max_workers=batch) as executor:
-        # Actually run the tasks
         for task in tasks_to_run:
             future_instance_outputs.append(executor.submit(task_function, task))
+
         for cnt, instance_output in tqdm(
             enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
         ):

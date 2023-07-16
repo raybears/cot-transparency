@@ -1,6 +1,7 @@
 import datetime
 import os
 from typing import Optional
+import logging
 
 
 def get_exp_dir_name(
@@ -18,3 +19,13 @@ def get_exp_dir_name(
     if experiment_suffix:
         exp_dir += f"_{experiment_suffix}"
     return exp_dir
+
+
+def setup_logger(name: str, level: int = logging.WARNING):
+    logger = logging.getLogger(name)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(level)
+    return logger
