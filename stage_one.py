@@ -1,12 +1,12 @@
 from collections import Counter
 import json
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional, Type
-import random
 
 import fire
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 from tqdm import tqdm
 
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
@@ -41,6 +41,34 @@ STANDARD_GPT4_CONFIG: OpenaiInferenceConfig = OpenaiInferenceConfig(
 )
 
 
+def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
+    # read in the json file
+    if out_file_path.exists():
+        with open(out_file_path, "r") as f:
+            _dict = json.load(f)
+            return ExperimentJsonFormat(**_dict)
+    else:
+        return ExperimentJsonFormat(outputs=[])
+
+
+class TaskSetting(BaseModel):
+    task: str
+    formatter: Type[PromptFormatter]
+    model: str
+
+
+def create_task_settings(
+    tasks: list[str], models: list[str], formatters: list[Type[PromptFormatter]]
+) -> list[TaskSetting]:
+    """Create a list of task settings to run"""
+    task_settings = []
+    for task in tasks:
+        for model in models:
+            for formatter in formatters:
+                task_settings.append(TaskSetting(task=task, formatter=formatter, model=model))
+    return task_settings
+
+
 def main(
     tasks: list[str] = BBH_TASK_LIST,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
@@ -68,12 +96,15 @@ def main(
 
     loaded_dict: dict[Path, ExperimentJsonFormat] = {}
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
-
+    task_settings: list[TaskSetting] = create_task_settings(tasks=tasks, models=models, formatters=validated_formatters)
     # parse it into MilesBBHRawDataFolder
     # Create tasks
     tasks_to_run: list[TaskSpec] = []
-    for bbh_task in tasks:
-        json_path: Path = Path(f"data/bbh/{bbh_task}/val_data.json")
+    for setting in task_settings:
+        bbh_task = setting.task
+        model = setting.model
+        formatter = setting.formatter
+        json_path: Path = Path(f"data/bbh/{setting.task}/val_data.json")
         with open(json_path, "r") as f:
             raw_data = json.load(f)
         try:
@@ -83,46 +114,40 @@ def main(
             raise e
         if example_cap:
             data = data[:example_cap]
-        # shuffle the data
-        random.seed(42)
-        random.shuffle(data)
-        for formatter in validated_formatters:
-            for model in models:
-                out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name()}.json")
-                # read in the json file
-                if out_file_path.exists():
-                    with open(out_file_path, "r") as f:
-                        _dict = json.load(f)
-                        already_done: ExperimentJsonFormat = ExperimentJsonFormat(**_dict)
-                else:
-                    already_done = ExperimentJsonFormat(outputs=[])
-                loaded_dict.update({out_file_path: already_done})
-                already_done_hashes_counts = Counter(already_done.already_done_hashes())
-                item: MilesBBHRawData
-                for item in data:
-                    task_hash = item.hash()
-                    if task_hash not in already_done_hashes_counts:
-                        runs_to_do = repeats_per_question
-                    else:
-                        runs_to_do = repeats_per_question - already_done_hashes_counts[task_hash]
 
-                    formatted: list[ChatMessages] = formatter.format_example(question=item)
-                    config = STANDARD_GPT4_CONFIG.copy()
-                    config.model = model
-                    if not formatter.is_cot:
-                        config.max_tokens = 1
-                    for _ in range(runs_to_do):
-                        task_spec = TaskSpec(
-                            task_name=bbh_task,
-                            model_config=config,
-                            messages=formatted,
-                            out_file_path=out_file_path,
-                            ground_truth=item.ground_truth,
-                            formatter=formatter,
-                            task_hash=task_hash,
-                            biased_ans=item.biased_ans,
-                        )
-                        tasks_to_run.append(task_spec)
+        random.Random(42).shuffle(data)
+        out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name()}.json")
+        already_done = read_done_experiment(out_file_path)
+        loaded_dict.update({out_file_path: already_done})
+        already_done_hashes_counts = Counter(already_done.already_done_hashes())
+        item: MilesBBHRawData
+        for item in data:
+            task_hash = item.hash()
+            if task_hash not in already_done_hashes_counts:
+                runs_to_do = repeats_per_question
+            else:
+                runs_to_do = repeats_per_question - already_done_hashes_counts[task_hash]
+
+            formatted: list[ChatMessages] = formatter.format_example(question=item)
+            config = STANDARD_GPT4_CONFIG.copy()
+            config.model = model
+            if not formatter.is_cot:
+                config.max_tokens = 1
+            task_spec = TaskSpec(
+                task_name=bbh_task,
+                model_config=config,
+                messages=formatted,
+                out_file_path=out_file_path,
+                ground_truth=item.ground_truth,
+                formatter=formatter,
+                task_hash=task_hash,
+                biased_ans=item.biased_ans,
+            )
+            for _ in range(runs_to_do):
+                tasks_to_run.append(task_spec)
+
+    # Shuffle so we distribute API calls evenly among models
+    random.Random(42).shuffle(tasks_to_run)
 
     if len(tasks_to_run) == 0:
         print("No tasks to run, experiment is already done.")
