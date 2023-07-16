@@ -54,22 +54,24 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
     fig = go.Figure()
     colors = pcol.qualitative.D3
     x_labels = []
+    added_labels = set()  # to remember the labels we have already added
 
     for i, task_and_plot in enumerate(list_task_and_dots):
         plot_dots = task_and_plot.plot_dots
-        fig.add_trace(
-            go.Scatter(
-                x=[i + 1 for _ in plot_dots],
-                y=[dot.acc for dot in plot_dots],
-                mode="markers+text",
-                text=[dot.name for dot in plot_dots],
-                textposition="middle left",
-                marker=dict(size=[20 for _ in plot_dots], color=colors[: len(plot_dots)]),
-                textfont=dict(size=8),
-            )
-        )  # sets the text size
-
         x_labels.append(task_and_plot.task_name)
+
+        for j, dot in enumerate(plot_dots):
+            fig.add_trace(
+                go.Scatter(
+                    x=[i + 1],
+                    y=[dot.acc],
+                    mode="markers",
+                    marker=dict(size=[15], color=colors[j % len(colors)]),
+                    name=dot.name,  # specify the name that will appear in legend
+                    showlegend=dot.name not in added_labels,  # if dot name is in added_labels don't show it in legend
+                )
+            )
+            added_labels.add(dot.name)  # remember that this label has been added
 
     fig.update_xaxes(
         range=[0.5, len(list_task_and_dots) + 0.5],
@@ -77,11 +79,12 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
         ticktext=x_labels,
         showticklabels=True,
     )
+
     fig.update_yaxes(range=[0, 1])
 
-    fig.update_layout(title_text=title, title_x=0.5, showlegend=False)
+    fig.update_layout(title_text=title, title_x=0.5)
 
-    pio.write_image(fig, title + ".png")
+    pio.write_image(fig, title + ".png", scale=2)
 
 
 formatter_name_map: dict[str, str] = {
