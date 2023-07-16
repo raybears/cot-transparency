@@ -9,7 +9,7 @@ from cot_transparency.miles_models import MultipleChoiceAnswer
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 from cot_transparency.formatters import PromptFormatter
-from cot_transparency.util import setup_logger
+from cot_transparency.util import setup_logger, safe_file_write
 
 logger = setup_logger(__name__)
 
@@ -97,6 +97,5 @@ def save_loaded_dict(loaded_dict: dict[Path, ExperimentJsonFormat]):
     for file_out, loaded in loaded_dict.items():
         # create the directory if it doesn't exist
         file_out.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_out, "w") as f:
-            _json = loaded.json(indent=2)
-            f.write(_json)
+        _json = loaded.json(indent=2)
+        safe_file_write(str(file_out), _json)

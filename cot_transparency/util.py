@@ -1,7 +1,8 @@
 import datetime
-import os
-from typing import Optional
 import logging
+import os
+import tempfile
+from typing import Optional
 
 
 def get_exp_dir_name(
@@ -29,3 +30,15 @@ def setup_logger(name: str, level: int = logging.WARNING):
     logger.addHandler(handler)
     logger.setLevel(level)
     return logger
+
+
+def safe_file_write(filename: str, data: str):
+    dir_name = os.path.dirname(filename)
+    with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False) as f:
+        f.write(data)
+        temp_name = f.name
+    try:
+        os.rename(temp_name, filename)
+    except Exception as e:
+        os.remove(temp_name)
+        raise e
