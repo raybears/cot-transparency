@@ -1,3 +1,4 @@
+from collections import Counter
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -47,9 +48,9 @@ def main(
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     example_cap: Optional[int] = 1000000,
-    run_few_shot: bool = False,
-    save_file_every: int = 10,
+    save_file_every: int = 50,
     batch: int = 10,
+    repeats_per_question: int = 1,
 ):
     # bbh is in data/bbh/task_name
     # read in the json file
@@ -96,16 +97,21 @@ def main(
                 else:
                     already_done = ExperimentJsonFormat(outputs=[])
                 loaded_dict.update({out_file_path: already_done})
-                alreay_done_hashes = already_done.already_done_hashes()
+                already_done_hashes_counts = Counter(already_done.already_done_hashes())
                 item: MilesBBHRawData
                 for item in data:
                     task_hash = item.hash()
-                    if task_hash not in alreay_done_hashes:
-                        formatted: list[ChatMessages] = formatter.format_example(question=item)
-                        config = STANDARD_GPT4_CONFIG.copy()
-                        config.model = model
-                        if not formatter.is_cot:
-                            config.max_tokens = 1
+                    if task_hash not in already_done_hashes_counts:
+                        runs_to_do = repeats_per_question
+                    else:
+                        runs_to_do = repeats_per_question - already_done_hashes_counts[task_hash]
+
+                    formatted: list[ChatMessages] = formatter.format_example(question=item)
+                    config = STANDARD_GPT4_CONFIG.copy()
+                    config.model = model
+                    if not formatter.is_cot:
+                        config.max_tokens = 1
+                    for _ in range(runs_to_do):
                         task_spec = TaskSpec(
                             task_name=bbh_task,
                             model_config=config,
@@ -113,7 +119,6 @@ def main(
                             out_file_path=out_file_path,
                             ground_truth=item.ground_truth,
                             formatter=formatter,
-                            times_to_repeat=1,
                             task_hash=task_hash,
                             biased_ans=item.biased_ans,
                         )
@@ -124,27 +129,37 @@ def main(
         return
 
     future_instance_outputs = []
-    # Actually run the tasks
-    with ThreadPoolExecutor(max_workers=batch) as executor:
-        for task in tasks_to_run:
-            future_instance_outputs.append(executor.submit(task_function, task))
 
+    executor = ThreadPoolExecutor(max_workers=batch)
+
+    def kill_and_save(loaded_dict):
+        for future in future_instance_outputs:
+            future.cancel()
+        executor.shutdown(wait=False)
+        save_loaded_dict(loaded_dict)
+
+    for task in tasks_to_run:
+        future_instance_outputs.append(executor.submit(task_function, task))
+
+    try:
         for cnt, instance_output in tqdm(
             enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
         ):
-            try:
-                output: TaskOutput = instance_output.result()
-            except Exception as e:
-                # kill all future tasks
-                for future in future_instance_outputs:
-                    future.cancel()
-                # save the loaded dict
-                save_loaded_dict(loaded_dict)
-                raise e
+            output: TaskOutput = instance_output.result()
             # extend the existing json file
             loaded_dict[output.out_file_path].outputs.append(output)
             if cnt % save_file_every == 0:
                 save_loaded_dict(loaded_dict)
+
+    except Exception as e:
+        kill_and_save(loaded_dict)
+        raise e
+
+    except KeyboardInterrupt:
+        print("Caught KeyboardInterrupt, please wait while running tasks finish...")
+        kill_and_save(loaded_dict)
+        exit(1)
+
     save_loaded_dict(loaded_dict)
 
 
