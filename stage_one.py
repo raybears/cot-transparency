@@ -1,3 +1,4 @@
+from collections import Counter
 import json
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -75,9 +76,9 @@ def main(
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     example_cap: Optional[int] = 1000000,
-    run_few_shot: bool = False,
-    save_file_every: int = 10,
+    save_file_every: int = 50,
     batch: int = 10,
+    repeats_per_question: int = 1,
 ):
     # bbh is in data/bbh/task_name
     # read in the json file
@@ -113,33 +114,38 @@ def main(
             raise e
         if example_cap:
             data = data[:example_cap]
-        # shuffle the data with a seed of 42
+
         random.Random(42).shuffle(data)
         out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name()}.json")
         already_done = read_done_experiment(out_file_path)
         loaded_dict.update({out_file_path: already_done})
-        already_done_hashes = already_done.already_done_hashes()
+        already_done_hashes_counts = Counter(already_done.already_done_hashes())
         item: MilesBBHRawData
         for item in data:
             task_hash = item.hash()
-            if task_hash not in already_done_hashes:
-                formatted: list[ChatMessages] = formatter.format_example(question=item)
-                config = STANDARD_GPT4_CONFIG.copy()
-                config.model = model
-                if not formatter.is_cot:
-                    config.max_tokens = 1
-                task_spec = TaskSpec(
-                    task_name=bbh_task,
-                    model_config=config,
-                    messages=formatted,
-                    out_file_path=out_file_path,
-                    ground_truth=item.ground_truth,
-                    formatter=formatter,
-                    times_to_repeat=1,
-                    task_hash=task_hash,
-                    biased_ans=item.biased_ans,
-                )
+            if task_hash not in already_done_hashes_counts:
+                runs_to_do = repeats_per_question
+            else:
+                runs_to_do = repeats_per_question - already_done_hashes_counts[task_hash]
+
+            formatted: list[ChatMessages] = formatter.format_example(question=item)
+            config = STANDARD_GPT4_CONFIG.copy()
+            config.model = model
+            if not formatter.is_cot:
+                config.max_tokens = 1
+            task_spec = TaskSpec(
+                task_name=bbh_task,
+                model_config=config,
+                messages=formatted,
+                out_file_path=out_file_path,
+                ground_truth=item.ground_truth,
+                formatter=formatter,
+                task_hash=task_hash,
+                biased_ans=item.biased_ans,
+            )
+            for _ in range(runs_to_do):
                 tasks_to_run.append(task_spec)
+
     # Shuffle so we distribute API calls evenly among models
     random.Random(42).shuffle(tasks_to_run)
 
@@ -148,27 +154,37 @@ def main(
         return
 
     future_instance_outputs = []
-    # Actually run the tasks
-    with ThreadPoolExecutor(max_workers=batch) as executor:
-        for task in tasks_to_run:
-            future_instance_outputs.append(executor.submit(task_function, task))
 
+    executor = ThreadPoolExecutor(max_workers=batch)
+
+    def kill_and_save(loaded_dict):
+        for future in future_instance_outputs:
+            future.cancel()
+        executor.shutdown(wait=False)
+        save_loaded_dict(loaded_dict)
+
+    for task in tasks_to_run:
+        future_instance_outputs.append(executor.submit(task_function, task))
+
+    try:
         for cnt, instance_output in tqdm(
             enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
         ):
-            try:
-                output: TaskOutput = instance_output.result()
-            except Exception as e:
-                # kill all future tasks
-                for future in future_instance_outputs:
-                    future.cancel()
-                # save the loaded dict
-                save_loaded_dict(loaded_dict)
-                raise e
+            output: TaskOutput = instance_output.result()
             # extend the existing json file
             loaded_dict[output.out_file_path].outputs.append(output)
             if cnt % save_file_every == 0:
                 save_loaded_dict(loaded_dict)
+
+    except Exception as e:
+        kill_and_save(loaded_dict)
+        raise e
+
+    except KeyboardInterrupt:
+        print("Caught KeyboardInterrupt, please wait while running tasks finish...")
+        kill_and_save(loaded_dict)
+        exit(1)
+
     save_loaded_dict(loaded_dict)
 
 
