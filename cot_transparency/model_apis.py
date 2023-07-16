@@ -2,7 +2,12 @@ import anthropic
 
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig, OpenaiRoles
 
-from cot_transparency.openai_utils.inference import get_openai_completion, gpt3_5_rate_limited, gpt4_rate_limited
+from cot_transparency.openai_utils.inference import (
+    anthropic_chat,
+    get_openai_completion,
+    gpt3_5_rate_limited,
+    gpt4_rate_limited,
+)
 
 
 def messages_has_none_role(prompt: list[ChatMessages]) -> bool:
@@ -21,10 +26,9 @@ def call_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConfig) ->
         # return "fake openai response, The best answer is: (A)"
         return gpt4_rate_limited(config=config, messages=formatted).completion
 
-    # TODO: actual calling
     elif "claude" in model_name:
         formatted = format_for_anthropic(prompt)
-        raise NotImplementedError
+        return anthropic_chat(config=config, prompt=formatted)
 
     # openai not chat
     else:
