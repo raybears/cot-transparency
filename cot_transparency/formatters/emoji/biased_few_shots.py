@@ -166,6 +166,13 @@ emoji_few_shots_with_system = [
     ChatMessages(role=OpenaiRoles.system, content=system_prompt),
 ] + emoji_biased_few_shots
 
+
+def few_shots_with_new_system_prompt(system_prompt: str) -> list[ChatMessages]:
+    return [
+        ChatMessages(role=OpenaiRoles.system, content=system_prompt),
+    ] + emoji_biased_few_shots
+
+
 # This is a prompt for the model to find its own bias.
 find_bias_prompt: ChatMessages = ChatMessages(
     role=OpenaiRoles.user,
