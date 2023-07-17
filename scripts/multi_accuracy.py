@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List, Set
 
 import plotly.colors as pcol
 import plotly.graph_objects as go
@@ -36,7 +37,7 @@ def spotted_bias(raw_response: str) -> bool:
 
 
 def filter_only_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
-    new_list = []
+    new_list: list[TaskOutput] = []
     for output in outputs:
         new_output = output.copy()
         new_output.model_output = [
@@ -47,7 +48,7 @@ def filter_only_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
 
 
 def filter_no_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
-    new_list = []
+    new_list: list[TaskOutput] = []
     for output in outputs:
         new_output = output.copy()
         new_output.model_output = [
@@ -82,8 +83,8 @@ def plot_vertical_acc(paths: list[PathsAndNames]) -> list[PlotDots]:
 def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
     fig = go.Figure()
     colors = pcol.qualitative.D3
-    x_labels = []
-    added_labels = set()  # to remember the labels we have already added
+    x_labels: list[str] = []
+    added_labels: set[str] = set()  # to remember the labels we have already added
 
     for i, task_and_plot in enumerate(list_task_and_dots):
         plot_dots = task_and_plot.plot_dots
