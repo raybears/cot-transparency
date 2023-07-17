@@ -1,4 +1,10 @@
 from typing import Type
+
+from cot_transparency.formatters.emoji.format import (
+    EmojiLabelBiasFormatter,
+    EmojiBaselineFormatter,
+    EmojiToldBiasFormatter,
+)
 from cot_transparency.formatters.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
@@ -22,6 +28,9 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ZeroShotSycophancyNoRoleFormatter.name(): ZeroShotUnbiasedNoRoleFormatter.name(),
         ZeroShotCOTSycophancyNoRoleFormatter.name(): ZeroShotCOTUnbiasedNoRoleFormatter.name(),
         ZeroShotCOTSycophancyToldBiasFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        EmojiLabelBiasFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        EmojiBaselineFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        EmojiToldBiasFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 
