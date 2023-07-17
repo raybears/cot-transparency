@@ -89,7 +89,8 @@ def accuracy(
     accuracy_df = pivot_df(accuracy_df)
 
     if check_counts and not counts_are_equal(counts_df):
-        print("WARNING: Counts are not equal for some tasks and their baselines, likely experiments not completed")
+        print("Counts are not equal for some tasks and their baselines, likely experiments not completed")
+        exit(1)
 
     print("---------------- Counts ----------------")
     print(counts_df)
