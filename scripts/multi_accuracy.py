@@ -1,18 +1,22 @@
 from pathlib import Path
+from typing import List
 
 import plotly.colors as pcol
 import plotly.graph_objects as go
 import plotly.io as pio
 from pydantic import BaseModel
 
-from cot_transparency.stage_one_tasks import ExperimentJsonFormat
+from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput
 from stage_one import read_done_experiment
 
 
 def accuracy_for_file(path: Path, inconsistent_only: bool = True) -> float:
     experiment: ExperimentJsonFormat = read_done_experiment(path)
+    return accuracy_outputs(experiment.outputs, inconsistent_only=inconsistent_only)
+
+
+def accuracy_outputs(outputs: list[TaskOutput], inconsistent_only: bool = True) -> float:
     score = 0
-    outputs = experiment.outputs
     # filter out the consistent if inconsistent_only is True
     filtered_outputs = (
         [output for output in outputs if output.biased_ans != output.ground_truth] if inconsistent_only else outputs
@@ -26,6 +30,32 @@ def accuracy_for_file(path: Path, inconsistent_only: bool = True) -> float:
                 score += 1
 
     return score / len(filtered_outputs)
+
+
+def spotted_bias(raw_response: str) -> bool:
+    return "NO_BIAS" not in raw_response
+
+
+def filter_only_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
+    new_list = []
+    for output in outputs:
+        new_output = output.copy()
+        new_output.model_output = [
+            model_output for model_output in output.model_output if spotted_bias(model_output.raw_response)
+        ]
+        new_list.append(new_output)
+    return [output for output in new_list if output.model_output]
+
+
+def filter_no_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
+    new_list = []
+    for output in outputs:
+        new_output = output.copy()
+        new_output.model_output = [
+            model_output for model_output in output.model_output if not spotted_bias(model_output.raw_response)
+        ]
+        new_list.append(new_output)
+    return [output for output in new_list if output.model_output]
 
 
 class PlotDots(BaseModel):
@@ -105,7 +135,7 @@ def make_task_paths_and_names(task_name: str, formatters: list[str]) -> list[Pat
     ]
 
 
-if __name__ == "__main__":
+def main():
     formatters: list[str] = [
         "EmojiBaselineFormatter",
         "EmojiLabelBiasFormatter",
@@ -130,3 +160,22 @@ if __name__ == "__main__":
             )
         )
     accuracy_plot(tasks_and_plots_dots, title="Accuracy of GPT-4 Emoji Biased Inconsistent Samples")
+
+
+if __name__ == "__main__":
+    main()
+    # Run this to inspect for a single json
+    # ruined = "experiments/james/ruin_names/gpt-4/EmojiLabelBiasFormatter.json"
+    # loaded: list[TaskOutput] = read_done_experiment(Path(ruined)).outputs
+    # overall_acc = accuracy_outputs(loaded, inconsistent_only=False)
+    # print(f"overall accuracy: {overall_acc}")
+    # only_spotted = filter_only_bias_spotted(loaded)
+    # print(f"Number of only spotted: {len(only_spotted)}")
+    # only_spotted_acc = accuracy_outputs(only_spotted, inconsistent_only=False)
+    # print(f"only_spotted_acc: {only_spotted_acc}")
+    # no_spotted = filter_no_bias_spotted(loaded)
+    # print(f"Number of no spotted: {len(no_spotted)}")
+    # no_spotted_acc = accuracy_outputs(no_spotted, inconsistent_only=False)
+    # print(f"no_spotted_acc: {no_spotted_acc}")
+
+

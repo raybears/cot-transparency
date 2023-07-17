@@ -24,8 +24,8 @@ def question_with_emoji_bias(question: MilesBBHRawData, bias_idx: int, bias_emoj
     becomes
     Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?\n\nAnswer choices:\n(A) empire of the pants ️\n(B) empiqe of the ants\n(C) empire of tihe ants\n(D) empire of the antts
     """
-    # take the first line of the question
-    first_line: str = question.parsed_inputs.split("\n")[0]
+    # take the lines of the question before "Answer choices"
+    first_line: str = question.parsed_inputs.split("Answer choices")[0]
     # You can't trust the multiple choice targets to be e.g. 'empire of the pants', sometimes its '(A)' instead
     # so we need to extract it ourselves
     options: list[str] = extract_multiple_choices(question=question.parsed_inputs)
