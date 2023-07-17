@@ -18,3 +18,5 @@ pyrate_limiter
 python-dotenv
 jupyterlab
 tiktoken
+plotly
+kaleido
