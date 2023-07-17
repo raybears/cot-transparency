@@ -1,11 +1,14 @@
 import fire
-from cot_transparency.prompt_formatter import bias_to_unbiased_formatter, name_to_formatter
+from cot_transparency.formatters import bias_to_unbiased_formatter
+from cot_transparency.formatters import name_to_formatter
+from cot_transparency.model_apis import format_for_completion
 from cot_transparency.stage_one_tasks import ExperimentJsonFormat
+from cot_transparency.openai_utils.models import ChatMessages
 from pathlib import Path
 from glob import glob
 import json
 import pandas as pd
-from typing import Optional
+from typing import Optional, List
 
 from stage_one import BBH_TASK_LIST
 
@@ -49,7 +52,12 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
 
 
 def accuracy(
-    exp_dir: str, inconsistent_only: bool = True, aggregate_over_tasks: bool = False, model_filter: Optional[str] = None
+    exp_dir: str,
+    inconsistent_only: bool = True,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    check_counts: bool = True,
+    return_dataframes: bool = False,
 ):
     """
     exp_dir: path to directory containing experiment jsons
@@ -72,29 +80,41 @@ def accuracy(
     accuracy_df = accuracy_df_grouped.mean().reset_index()
     counts_df = accuracy_df_grouped.count().reset_index()
 
-    # include number of examples
-    outputs = []
-    for df in [accuracy_df, counts_df]:
-        df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
+    # count the number of repeats by counting the number task hashes
+    counts_df["unqiue_questions"] = df.groupby(groups)["task_hash"].nunique().reset_index()["task_hash"]
+    counts_df["total_samples"] = df.groupby(groups)["is_correct"].count().reset_index()["is_correct"]
 
-        output = pd.pivot_table(df, index=["task_name", "model"], columns=["formatter_name"], values="is_correct")
-        outputs.append(output)
+    unique_questions_df = pivot_df(counts_df, values=["unqiue_questions"])
+    counts_df = pivot_df(counts_df, values=["total_samples"])
+    accuracy_df = pivot_df(accuracy_df)
 
-    if not counts_are_equal(outputs[1]):
+    if check_counts and not counts_are_equal(counts_df):
         print("Counts are not equal for some tasks and their baselines, likely experiments not completed")
         # exit(1)
 
     print("---------------- Counts ----------------")
-    print(outputs[1])
+    print(counts_df)
+    print("--------------- Unique Questions ---------------")
+    print(unique_questions_df)
     print("--------------- Accuracy ---------------")
-    print(outputs[0])
+    print(accuracy_df)
+
+    if return_dataframes:
+        return accuracy_df, counts_df, unique_questions_df
+
+
+def pivot_df(df: pd.DataFrame, values: List[str] = ["is_correct"]):
+    df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
+
+    output = pd.pivot_table(df, index=["task_name", "model"], columns=["formatter_name"], values=values)
+    return output
 
 
 def counts_are_equal(count_df: pd.DataFrame):
     """
     Verify that the counts are the same for a task and its baseline
     """
-    for col in count_df.columns:
+    for col in count_df["total_samples"].columns:
         formatter_cls = name_to_formatter(col + "Formatter")
         if formatter_cls.is_biased:
             unbiased_formatter_name = bias_to_unbiased_formatter(formatter_cls.name())
@@ -103,5 +123,23 @@ def counts_are_equal(count_df: pd.DataFrame):
     return True
 
 
+def sample_prompts(exp_dir: str, n: int = 1):
+    df = get_data_frame_from_exp_dir(exp_dir)
+    # sample n prompts from each formatter_name and model
+    df = df.groupby(["formatter_name", "model"]).apply(lambda x: x.sample(n=n))
+    for _, row in df.iterrows():
+        print("\nSample " + "-" * 20)
+        messages: List[ChatMessages] = [ChatMessages(**i) for i in row["prompt"]]
+        print(f"Model: {row['model']}")
+        print(f"Formatter: {row['formatter_name']}")
+        formatted_prompt = format_for_completion(messages)
+        print(formatted_prompt)
+
+
 if __name__ == "__main__":
-    fire.Fire(accuracy)
+    fire.Fire(
+        {
+            "accuracy": accuracy,
+            "sp": sample_prompts,
+        }
+    )

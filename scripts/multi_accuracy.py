@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import plotly.colors as pcol
 import plotly.graph_objects as go
@@ -177,5 +176,3 @@ if __name__ == "__main__":
     # print(f"Number of no spotted: {len(no_spotted)}")
     # no_spotted_acc = accuracy_outputs(no_spotted, inconsistent_only=False)
     # print(f"no_spotted_acc: {no_spotted_acc}")
-
-
