@@ -17,15 +17,6 @@ def split_text_preserve_case(text: str, separator: str) -> List[str]:
     return parts
 
 
-def get_blank_cot_inp(inp: str, cot_part: str, tokenizer, ans_part=None) -> str:
-    num_reasoning_tokens = len(tokenizer.encode(cot_part))
-    blank_cot = " ".join(["..." for _ in range(num_reasoning_tokens)])
-    out = f"{inp}\n\n" + blank_cot
-    if ans_part:
-        out = out + " " + ans_part
-    return out
-
-
 def contains_reasoning(step: str) -> bool:
     """Returns True if the sentence is a valid reasoning step, False otherwise.
     Examples of invalid reasoning steps: '1.', only new line characters, only spaces
