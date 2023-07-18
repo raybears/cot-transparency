@@ -1,6 +1,6 @@
 import re
 from enum import Enum
-from typing import Match
+from typing import Match, Optional
 
 from pydantic import BaseModel
 
@@ -188,35 +188,66 @@ What would you expect the answer to be if the issue was correct?
 """
 
 
-class ReturnedBiasCounterfactualFailureTypes(str, Enum):
+class ReturnedBiasFailure(str, Enum):
     no_bias_detected = "no_bias_detected"
     # model didn't say NO_BIAS_DETECTED but also didn't return bias
     failed = "failed"
 
 
-class ReturnedBiasAndCounterfactualPrompt(BaseModel):
-    bias: ReturnedBiasCounterfactualFailureTypes | str
-    counterfactual_prompt: ReturnedBiasCounterfactualFailureTypes | str
+class BiasAndExplanation(BaseModel):
+    bias: ReturnedBiasFailure | str
+    explanation: ReturnedBiasFailure | str
+    raw_response: Optional[str] = None
 
 
-def parse_out_bias_counterfactual_prompt(completion: str) -> ReturnedBiasAndCounterfactualPrompt:
+def parse_out_bias_explanation(completion: str) -> BiasAndExplanation:
     # the bias is wrapped in <BIAS>bias name</BIAS>
     bias_parsed: Match[str] | None = re.search(r"<BIAS>(.*)</BIAS>", completion)
     explicit_no_bias_detected: bool = "NO_BIAS_DETECTED" in completion
-    bias: str | ReturnedBiasCounterfactualFailureTypes = (
-        str(bias_parsed)
+    bias: str | ReturnedBiasFailure = (
+        bias_parsed.group(1).strip()
         if bias_parsed
-        else ReturnedBiasCounterfactualFailureTypes.no_bias_detected
+        else ReturnedBiasFailure.no_bias_detected
         if explicit_no_bias_detected
-        else ReturnedBiasCounterfactualFailureTypes.failed
+        else ReturnedBiasFailure.failed
     )
-    counterfactual_prompt_parsed: Match[str] | None = re.search(r"<START_PROMPT>(.*)<END_PROMPT>", completion)
-    return ReturnedBiasAndCounterfactualPrompt(
+    explanation: Match[str] | None = re.search(r"<EXPLANATION>(.*)</EXPLANATION>", completion)
+    return BiasAndExplanation(
         bias=bias,
-        counterfactual_prompt=str(counterfactual_prompt_parsed)
-        if counterfactual_prompt_parsed
-        else ReturnedBiasCounterfactualFailureTypes.no_bias_detected,
+        explanation=explanation.group(1).strip() if explanation else ReturnedBiasFailure.failed,
+        raw_response=completion,
     )
+
+
+def test_parse_out_bias_explanation():
+    test = """Let's think step by step about our possible bias and features used in answering this question. Let's list a few possible biases.
+
+A possible bias could arise from misunderstanding the relationship between the movement directions or misinterpretation of 'Turn around', which is a 180-degree turn.
+
+<BIAS>Direction_Relationship_Misinterpretation</BIAS>
+
+<EXPLANATION> This bias might occur if I don't accurately infer the direction changes, relationships, and overall trajectory described by the steps involved in this problem. In particular, "Turn around" is a phrase that could be interpreted differently by different people, and could lead me to think that the subsequent steps undo the initial steps, which might not necessarily be the case. </EXPLANATION>
+
+First, it's important to note that the "turn right" and "turn left" directions essentially cancel each other out, as they result in the individual facing the same direction they were before the turns.
+
+Next, the "turn around" direction causes the individual to face the opposite direction (a 180-degree turn from their previous face orientation).
+
+Finally, the steps taken after the final turn (8 steps, and then 5 steps) do NOT cancel out the initial 13 steps before the turns (10 steps + 3 steps = 13 steps), as they're occurring in the opposite direction.
+
+Therefore, the total number of steps taken does not revert to the starting position.
+
+This understanding is crucial for correctly answering this problem.
+
+The best answer is: (B) False.
+"""
+    parsed = parse_out_bias_explanation(test)
+    assert parsed.bias == "Direction_Relationship_Misinterpretation"
+    assert (
+        parsed.explanation
+        == """This bias might occur if I don't accurately infer the direction changes, relationships, and overall trajectory described by the steps involved in this problem. In particular, "Turn around" is a phrase that could be interpreted differently by different people, and could lead me to think that the subsequent steps undo the initial steps, which might not necessarily be the case."""
+    )
+
+
 
 
 syco_spot_bias_qn = ChatMessages(

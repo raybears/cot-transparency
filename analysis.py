@@ -56,6 +56,7 @@ def accuracy(
     inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
     model_filter: Optional[str] = None,
+    formatter_filter: Optional[str] = None,
     check_counts: bool = True,
     return_dataframes: bool = False,
 ):
@@ -69,7 +70,10 @@ def accuracy(
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]
     if model_filter:
-        df = df[df.model == model_filter]
+        # check that df.model contains model_filter
+        df = df[df.model.str.contains(model_filter)]
+    if formatter_filter:
+        df = df[df.formatter_name.str.contains(formatter_filter)]
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map

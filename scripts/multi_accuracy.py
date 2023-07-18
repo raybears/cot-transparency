@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from pydantic import BaseModel
 
+from cot_transparency.formatters.emoji.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
 from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput
 from stage_one import read_done_experiment
 
@@ -44,6 +45,14 @@ def filter_only_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
         ]
         new_list.append(new_output)
     return [output for output in new_list if output.model_output]
+
+def extract_labelled_bias(outputs: list[TaskOutput]) -> list[BiasAndExplanation]:
+    new_list: list[BiasAndExplanation] = []
+    for output in outputs:
+        for model_output in output.model_output:
+            bias_and_explanation = parse_out_bias_explanation(model_output.raw_response)
+            new_list.append(bias_and_explanation)
+    return new_list
 
 
 def filter_no_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
@@ -164,15 +173,17 @@ def main():
 if __name__ == "__main__":
     main()
     # Run this to inspect for a single json
-    # ruined = "experiments/james/ruin_names/gpt-4/EmojiLabelBiasFormatter.json"
-    # loaded: list[TaskOutput] = read_done_experiment(Path(ruined)).outputs
-    # overall_acc = accuracy_outputs(loaded, inconsistent_only=False)
-    # print(f"overall accuracy: {overall_acc}")
-    # only_spotted = filter_only_bias_spotted(loaded)
-    # print(f"Number of only spotted: {len(only_spotted)}")
-    # only_spotted_acc = accuracy_outputs(only_spotted, inconsistent_only=False)
-    # print(f"only_spotted_acc: {only_spotted_acc}")
-    # no_spotted = filter_no_bias_spotted(loaded)
-    # print(f"Number of no spotted: {len(no_spotted)}")
-    # no_spotted_acc = accuracy_outputs(no_spotted, inconsistent_only=False)
-    # print(f"no_spotted_acc: {no_spotted_acc}")
+    ruined = "experiments/james/navigate/gpt-4/EmojiLabelListFormatter.json"
+    loaded: list[TaskOutput] = read_done_experiment(Path(ruined)).outputs
+    print(f"Number of outputs: {len(loaded)}")
+    overall_acc = accuracy_outputs(loaded, inconsistent_only=False)
+    print(f"overall accuracy: {overall_acc}")
+    only_spotted = filter_only_bias_spotted(loaded)
+    parsed_spotted = extract_labelled_bias(only_spotted)
+    print(f"Number of only spotted: {len(only_spotted)}")
+    only_spotted_acc = accuracy_outputs(only_spotted, inconsistent_only=False)
+    print(f"only_spotted_acc: {only_spotted_acc}")
+    no_spotted = filter_no_bias_spotted(loaded)
+    print(f"Number of no spotted: {len(no_spotted)}")
+    no_spotted_acc = accuracy_outputs(no_spotted, inconsistent_only=False)
+    print(f"no_spotted_acc: {no_spotted_acc}")
