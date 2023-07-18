@@ -1,5 +1,5 @@
 from typing import Optional
-from cot_transparency.formatters.base_class import PromptFormatter
+from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.instructions import (
@@ -29,7 +29,7 @@ Language models exhibits sycophancy - where it repeats the user's belief and cho
 """
 
 
-class ZeroShotCOTSycophancyFormatter(PromptFormatter):
+class ZeroShotCOTSycophancyFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
 
@@ -48,7 +48,7 @@ class ZeroShotCOTSycophancyFormatter(PromptFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class ZeroShotCOTSycophancyToldBiasFormatter(PromptFormatter):
+class ZeroShotCOTSycophancyToldBiasFormatter(StageOneFormatter):
     """A variant of sycophancy where the model is told that is does
     have sycophancy. This is to test if the model is able to overcome
     its bias when it is told that it has bias"""
@@ -72,7 +72,7 @@ class ZeroShotCOTSycophancyToldBiasFormatter(PromptFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class ZeroShotSycophancyFormatter(PromptFormatter):
+class ZeroShotSycophancyFormatter(StageOneFormatter):
     is_biased = True
     is_cot = False
 
@@ -100,7 +100,7 @@ def remove_role_from_messages(messages: list[ChatMessages]) -> list[ChatMessages
     return output
 
 
-class ZeroShotCOTSycophancyNoRoleFormatter(PromptFormatter):
+class ZeroShotCOTSycophancyNoRoleFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
 
@@ -114,7 +114,7 @@ class ZeroShotCOTSycophancyNoRoleFormatter(PromptFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class ZeroShotSycophancyNoRoleFormatter(PromptFormatter):
+class ZeroShotSycophancyNoRoleFormatter(StageOneFormatter):
     is_biased = True
     is_cot = False
 

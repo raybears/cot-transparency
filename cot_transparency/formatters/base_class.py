@@ -2,7 +2,7 @@ from cot_transparency.miles_models import MilesBBHRawData
 from cot_transparency.openai_utils.models import ChatMessages
 
 
-from typing import Optional, Set, Type
+from typing import Optional, Self, Set, Type
 
 
 class PromptFormatter:
@@ -10,7 +10,7 @@ class PromptFormatter:
     is_cot: bool = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(arg) -> list[ChatMessages]:
         raise NotImplementedError
 
     @staticmethod
@@ -22,7 +22,7 @@ class PromptFormatter:
         return cls.__name__
 
     @classmethod
-    def all_subclasses(cls) -> Set[Type["PromptFormatter"]]:
+    def all_subclasses(cls) -> Set[Type[Self]]:
         # get all subclasses recursively
         subclasses: set[Type[PromptFormatter]] = set(cls.__subclasses__())
         return subclasses.union([s for c in subclasses for s in c.all_subclasses()])
@@ -30,3 +30,13 @@ class PromptFormatter:
     @classmethod
     def all_formatters(cls) -> dict[str, Type["PromptFormatter"]]:
         return {s.name(): s for s in cls.all_subclasses()}
+
+
+class StageOneFormatter(PromptFormatter):
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+        raise NotImplementedError
+
+    @classmethod
+    def all_formatters(cls) -> dict[str, Type["StageOneFormatter"]]:
+        return super().all_formatters()  # type: ignore

@@ -5,8 +5,10 @@ import numpy as np
 from pydantic import BaseModel, conlist
 from slist import Slist
 
+from cot_transparency.hashing import HashableBaseModel
 
-class OpenaiInferenceConfig(BaseModel):
+
+class OpenaiInferenceConfig(HashableBaseModel):
     # Config for openai
     model: str
     temperature: Optional[float]
@@ -47,7 +49,7 @@ class OpenaiRoles(str, Enum):
     none = "none"
 
 
-class ChatMessages(BaseModel):
+class ChatMessages(HashableBaseModel):
     role: OpenaiRoles
     content: str
 
