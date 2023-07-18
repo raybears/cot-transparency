@@ -21,6 +21,10 @@ exclude = ["utils.py", "bbh_analysis.py", "authenticity_tests.py",
     "format_data_bbh.py", "format_data_bbq.py", "bbq_analysis.py",
     "run_eval.py", "venv"]
 
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+reportFunctionMemberAccess = true
 reportIncompatibleMethodOverride = true
 reportIncompatibleVariableOverride = true
 reportInconsistentConstructorType = true
