@@ -2,6 +2,8 @@
 
 This is a private fork of [cot-unfaithfulness](https://github.com/milesaturpin/cot-unfaithfulness)
 
+[![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml)
+
 ## Installation
 Install python environment
 
