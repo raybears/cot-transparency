@@ -13,6 +13,7 @@ brew install pyenv
 brew install pyenv-virtualenv
 pyenv install 3.11
 pyenv virtualenv 3.11 cot
+pyenv local cot
 ```
 
 Install requirements
