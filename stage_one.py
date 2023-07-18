@@ -155,7 +155,7 @@ def main(
 
     executor = ThreadPoolExecutor(max_workers=batch)
 
-    def kill_and_save(loaded_dict):
+    def kill_and_save(loaded_dict: dict[Path, ExperimentJsonFormat]):
         for future in future_instance_outputs:
             future.cancel()
         executor.shutdown(wait=False)

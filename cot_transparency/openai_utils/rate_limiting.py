@@ -1,26 +1,27 @@
+import logging
 import threading
 import time
 from functools import wraps
+from typing import Optional, Callable, TypeVar, Protocol
+
 import tiktoken
-import logging
-from typing import Optional
 
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 
 
 class LeakyBucketRateLimiter:
-    def __init__(self, tokens_per_minute, log_every_n_requests: int = 20, logger: Optional[logging.Logger] = None):
-        self.tokens_per_minute = tokens_per_minute
-        self.tokens_available = tokens_per_minute
-        self.last_request = time.time()
-        self.last_log = time.time()
-        self.tokens_used = 0
-        self.request_counter = 0
+    def __init__(self, tokens_per_minute: int, log_every_n_requests: int = 20, logger: Optional[logging.Logger] = None):
+        self.tokens_per_minute: float = tokens_per_minute
+        self.tokens_available: float = tokens_per_minute
+        self.last_request: float = time.time()
+        self.last_log: float = time.time()
+        self.tokens_used: int = 0
+        self.request_counter: int = 0
         self.lock = threading.Lock()
         self.log_every_n_requests = log_every_n_requests
         self.logger = logger
 
-    def consume(self, tokens):
+    def consume(self, tokens: int):
         with self.lock:
             time_elapsed = time.time() - self.last_request
             fill_rate = self.tokens_per_minute / 60
@@ -68,18 +69,31 @@ def get_num_tokens(config: OpenaiInferenceConfig, messages: list[ChatMessages]):
                 num_tokens += -1  # role is always required and always 1 token
         num_tokens += 2  # every reply is primed with <im_start>assistant
     return num_tokens + completion_tokens
-    return messages
 
 
-def token_rate_limiter(tokens_per_minute: int, logger: Optional[logging.Logger] = None):
+T = TypeVar("T", covariant=True)
+
+
+class CallingModelFunction(Protocol[T]):
+    # We only can rate limit functions with the following signature:
+    def __call__(self, config: OpenaiInferenceConfig, messages: list[ChatMessages]) -> T:
+        ...
+
+
+def token_rate_limiter(
+    tokens_per_minute: int, logger: Optional[logging.Logger] = None
+) -> Callable[[CallingModelFunction[T]], CallingModelFunction[T]]:
     rate_limiter = LeakyBucketRateLimiter(tokens_per_minute, logger=logger)
 
-    def decorator(func):
+    def decorator(func: CallingModelFunction[T]) -> CallingModelFunction[T]:
         @wraps(func)
-        def wrapper(*args, **kwargs):
-            tokens = get_num_tokens(*args, **kwargs)
+        def wrapper(
+            config: OpenaiInferenceConfig,
+            messages: list[ChatMessages],
+        ) -> T:
+            tokens = get_num_tokens(config=config, messages=messages)
             rate_limiter.consume(tokens)
-            return func(*args, **kwargs)
+            return func(config, messages)
 
         return wrapper
 
