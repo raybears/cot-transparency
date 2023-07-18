@@ -2,6 +2,8 @@ import fire
 from cot_transparency.formatters import bias_to_unbiased_formatter
 from cot_transparency.formatters import name_to_formatter
 from cot_transparency.tasks import ExperimentJsonFormat
+from cot_transparency.model_apis import format_for_completion
+from cot_transparency.openai_utils.models import ChatMessages
 import pandas as pd
 from typing import Optional, List
 from cot_transparency.tasks import load_jsons
@@ -42,6 +44,7 @@ def accuracy(
     aggregate_over_tasks: bool = False,
     model_filter: Optional[str] = None,
     check_counts: bool = True,
+    return_dataframes: bool = False,
 ):
     """
     exp_dir: path to directory containing experiment jsons
@@ -83,6 +86,9 @@ def accuracy(
     print("--------------- Accuracy ---------------")
     print(accuracy_df)
 
+    if return_dataframes:
+        return accuracy_df, counts_df, unique_questions_df
+
 
 def pivot_df(df: pd.DataFrame, values: List[str] = ["is_correct"]):
     df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
@@ -95,7 +101,7 @@ def counts_are_equal(count_df: pd.DataFrame):
     """
     Verify that the counts are the same for a task and its baseline
     """
-    for col in count_df.columns:
+    for col in count_df["total_samples"].columns:
         formatter_cls = name_to_formatter(col + "Formatter")
         if formatter_cls.is_biased:
             unbiased_formatter_name = bias_to_unbiased_formatter(formatter_cls.name())
@@ -104,5 +110,23 @@ def counts_are_equal(count_df: pd.DataFrame):
     return True
 
 
+def sample_prompts(exp_dir: str, n: int = 1):
+    df = get_data_frame_from_exp_dir(exp_dir)
+    # sample n prompts from each formatter_name and model
+    df = df.groupby(["formatter_name", "model"]).apply(lambda x: x.sample(n=n))
+    for _, row in df.iterrows():
+        print("\nSample " + "-" * 20)
+        messages: List[ChatMessages] = [ChatMessages(**i) for i in row["prompt"]]
+        print(f"Model: {row['model']}")
+        print(f"Formatter: {row['formatter_name']}")
+        formatted_prompt = format_for_completion(messages)
+        print(formatted_prompt)
+
+
 if __name__ == "__main__":
-    fire.Fire(accuracy)
+    fire.Fire(
+        {
+            "accuracy": accuracy,
+            "sp": sample_prompts,
+        }
+    )

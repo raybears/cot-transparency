@@ -20,3 +20,15 @@ line-length = 120
 exclude = ["utils.py", "bbh_analysis.py", "authenticity_tests.py",
     "format_data_bbh.py", "format_data_bbq.py", "bbq_analysis.py",
     "run_eval.py", "venv"]
+
+reportIncompatibleMethodOverride = true
+reportIncompatibleVariableOverride = true
+reportInconsistentConstructorType = true
+reportOverlappingOverload = true
+reportConstantRedefinition = true
+reportImportCycles = true
+reportPropertyTypeMismatch = true
+reportMissingTypeArgument = true
+reportUnnecessaryCast = true
+reportUnnecessaryComparison = true
+reportUnnecessaryContains = true

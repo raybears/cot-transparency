@@ -136,6 +136,12 @@ def __get_chat_response_dict(
     )
 
 
+retry_openai_failures = retry(
+    exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None
+)
+retry_openai_rate_limits = retry(exceptions=(RateLimitError), tries=-1, delay=2, logger=None)
+
+
 @retry(
     exceptions=(RateLimitError, APIConnectionError, Timeout, APIError),
     tries=20,
@@ -156,8 +162,8 @@ def get_chat_response_simple(
 
 
 @token_rate_limiter(tokens_per_minute=90_000, logger=logger)
-@retry(exceptions=(APIConnectionError, Timeout, APIError), tries=20, delay=1, logger=None)
-@retry(exceptions=(RateLimitError), tries=-1, delay=2, logger=None)
+@retry_openai_failures
+@retry_openai_rate_limits
 def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessages]) -> GPTFullResponse:
     assert config.model == "gpt-3.5-turbo"
     response_dict = __get_chat_response_dict(
@@ -168,8 +174,8 @@ def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessag
 
 
 @token_rate_limiter(tokens_per_minute=10_000, logger=logger)
-@retry(exceptions=(APIConnectionError, Timeout, APIError), tries=20, delay=1, logger=None)
-@retry(exceptions=(RateLimitError), tries=-1, delay=2, logger=None)
+@retry_openai_failures
+@retry_openai_rate_limits
 def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessages]) -> GPTFullResponse:
     assert config.model == "gpt-4"
     response_dict = __get_chat_response_dict(
