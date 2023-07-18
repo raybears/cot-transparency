@@ -248,8 +248,6 @@ The best answer is: (B) False.
     )
 
 
-
-
 syco_spot_bias_qn = ChatMessages(
     role=OpenaiRoles.user,
     content="""Q: Which of the following is a humorous edit of this artist or movie name: 'black sabbath'? 

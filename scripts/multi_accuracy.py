@@ -46,6 +46,7 @@ def filter_only_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
         new_list.append(new_output)
     return [output for output in new_list if output.model_output]
 
+
 def extract_labelled_bias(outputs: list[TaskOutput]) -> list[BiasAndExplanation]:
     new_list: list[BiasAndExplanation] = []
     for output in outputs:
