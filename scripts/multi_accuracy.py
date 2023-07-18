@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Set
 
 import plotly.colors as pcol
 import plotly.graph_objects as go
