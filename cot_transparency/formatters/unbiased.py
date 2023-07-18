@@ -1,4 +1,4 @@
-from cot_transparency.formatters.base_class import PromptFormatter
+from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.instructions import (
     COT_ASSISTANT_PROMPT,
@@ -17,7 +17,7 @@ def format_unbiased_question(question: str) -> str:
     return question
 
 
-class ZeroShotCOTUnbiasedFormatter(PromptFormatter):
+class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
     is_biased = False
     is_cot = True
 
@@ -35,7 +35,7 @@ class ZeroShotCOTUnbiasedFormatter(PromptFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class ZeroShotUnbiasedFormatter(PromptFormatter):
+class ZeroShotUnbiasedFormatter(StageOneFormatter):
     is_biased = False
     is_cot = False
 
@@ -53,7 +53,7 @@ class ZeroShotUnbiasedFormatter(PromptFormatter):
         return extract_answer_non_cot(response, dump_failed=False)
 
 
-class ZeroShotCOTUnbiasedNoRoleFormatter(PromptFormatter):
+class ZeroShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
     is_biased = False
     is_cot = True
 
@@ -67,7 +67,7 @@ class ZeroShotCOTUnbiasedNoRoleFormatter(PromptFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class ZeroShotUnbiasedNoRoleFormatter(PromptFormatter):
+class ZeroShotUnbiasedNoRoleFormatter(StageOneFormatter):
     is_biased = False
     is_cot = False
 

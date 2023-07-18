@@ -15,7 +15,7 @@ def get_exp_dir_name(
         root = "./experiments"
         if sub_dir:
             root = os.path.join(root, sub_dir)
-        now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        now = datetime.datetime.now().strftime("%Y%m%d")
         exp_dir = os.path.join(root, now)
     if experiment_suffix:
         exp_dir += f"_{experiment_suffix}"

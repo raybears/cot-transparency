@@ -14,5 +14,5 @@ test_data = load_test_data()
 
 
 @pytest.mark.parametrize("test_case", test_data)
-def test_extract_answer(test_case):
+def test_extract_answer(test_case: dict[str, str]):
     assert extract_answer(test_case["text"]) == test_case["answer"]

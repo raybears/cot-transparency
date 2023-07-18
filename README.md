@@ -2,13 +2,18 @@
 
 This is a private fork of [cot-unfaithfulness](https://github.com/milesaturpin/cot-unfaithfulness)
 
+[![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml)
+
 ## Installation
-Install python environment
+Install python environment, requires python >= 3.11
 
 Pyenv:
 ```bash
-pyenv install 3.9
-pyenv virtualenv 3.9 cot
+brew install pyenv
+brew install pyenv-virtualenv
+pyenv install 3.11
+pyenv virtualenv 3.11 cot
+pyenv local cot
 ```
 
 Install requirements
@@ -20,23 +25,30 @@ Install pre-commmit hooks
 ```bash
 make hooks
 ```
+## Checks
+To run linting / type checks
+```bash
+make check
+```
+
+To run tests
+```bash
+pytest tests
+```
 
 ## Usage
-Set your OpenAI API key in `OPENAI_API_KEY` environment variable.
-```bash
-export OPENAI_API_KEY=xxx
-```
+Set your OpenAI API key as `OPENAI_API_KEY` in a `.env` file.
 
 To generate examples e.g. 
 ```python
-python run_eval.py --example_cap=10 --log_metrics_every=3 --blank_cot=True --truncated_cot=True --cot_with_mistake=True --paraphrase_cot=True --run_few_shot False
+python stage_one.py --exp_dir experiments/stage_one/dummy_run --models "['text-davinci-003']" --formatters "['ZeroShotSycophancyFormatter', 'ZeroShotSycophancyNoRoleFormatter', 'ZeroShotCOTSycophancyNoRoleFormatter', 'ZeroShotCOTSycophancyFormatter']" --repeats_per_question 1 --batch=10 --example_cap 20
 ```
-This will create an experiment directory under `experiments/` with a timestamped name. For all options see `run_eval.py::main()` or run `python run_eval.py --help`
+This will create an experiment directory under `experiments/` with json files.
 
-To get the metrics from 'Language Model Don't Always Say What They Think' run:
+To run analysis
 
 ```python
-python bbh_analysis.py --exp_dir experiments/<exp_timestamp>
+python analysis.py accuracy --exp_dir experiments/stage_one/dummy_run
 ```
 
 To get the metrics from 'Measuring Transparency in Chain-of-Thought Reasoning' use `vizualize.ipynb`.
