@@ -25,6 +25,7 @@ strictListInference = true
 strictDictionaryInference = true
 strictSetInference = true
 reportFunctionMemberAccess = true
+reportUnknownParameterType = true
 reportIncompatibleMethodOverride = true
 reportIncompatibleVariableOverride = true
 reportInconsistentConstructorType = true

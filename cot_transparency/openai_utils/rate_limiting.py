@@ -9,18 +9,18 @@ from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceCo
 
 
 class LeakyBucketRateLimiter:
-    def __init__(self, tokens_per_minute, log_every_n_requests: int = 20, logger: Optional[logging.Logger] = None):
-        self.tokens_per_minute = tokens_per_minute
-        self.tokens_available = tokens_per_minute
-        self.last_request = time.time()
-        self.last_log = time.time()
-        self.tokens_used = 0
-        self.request_counter = 0
+    def __init__(self, tokens_per_minute: int, log_every_n_requests: int = 20, logger: Optional[logging.Logger] = None):
+        self.tokens_per_minute: float = tokens_per_minute
+        self.tokens_available: float = tokens_per_minute
+        self.last_request: float = time.time()
+        self.last_log: float = time.time()
+        self.tokens_used: int = 0
+        self.request_counter: int = 0
         self.lock = threading.Lock()
         self.log_every_n_requests = log_every_n_requests
         self.logger = logger
 
-    def consume(self, tokens):
+    def consume(self, tokens: int):
         with self.lock:
             time_elapsed = time.time() - self.last_request
             fill_rate = self.tokens_per_minute / 60
