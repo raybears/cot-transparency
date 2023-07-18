@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from cot_transparency.hashing import deterministic_hash
 
-MultipleChoiceAnswer = Literal["A", "B", "C", "D", "E", "F"]
+MultipleChoiceAnswer = Literal["A", "B", "C", "D", "E", "F", "NOT_FOUND"]
 
 
 class MilesBBHRawData(BaseModel):

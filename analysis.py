@@ -1,31 +1,18 @@
 import fire
 from cot_transparency.formatters import bias_to_unbiased_formatter
 from cot_transparency.formatters import name_to_formatter
+from cot_transparency.tasks import ExperimentJsonFormat
 from cot_transparency.model_apis import format_for_completion
-from cot_transparency.stage_one_tasks import ExperimentJsonFormat
 from cot_transparency.openai_utils.models import ChatMessages
-from pathlib import Path
-from glob import glob
-import json
 import pandas as pd
 from typing import Optional, List
+from cot_transparency.tasks import load_jsons
 
 from stage_one import BBH_TASK_LIST
 
 TASK_MAP = {}
 for task in BBH_TASK_LIST:
     TASK_MAP[task] = "bbh"
-
-
-def load_jsons(exp_dir: str) -> dict[Path, ExperimentJsonFormat]:
-    loaded_dict: dict[Path, ExperimentJsonFormat] = {}
-
-    paths = glob(f"{exp_dir}/**/*.json", recursive=True)
-    print(f"Found {len(paths)} json files")
-    for path in paths:
-        _dict = json.load(open(path))
-        loaded_dict[Path(path)] = ExperimentJsonFormat(**_dict)
-    return loaded_dict
 
 
 def convert_experiment_to_dataframe(exp: ExperimentJsonFormat) -> pd.DataFrame:
@@ -117,9 +104,12 @@ def counts_are_equal(count_df: pd.DataFrame):
     for col in count_df["total_samples"].columns:
         formatter_cls = name_to_formatter(col + "Formatter")
         if formatter_cls.is_biased:
-            unbiased_formatter_name = bias_to_unbiased_formatter(formatter_cls.name())
-            short_name = unbiased_formatter_name.replace("Formatter", "")
-            if not count_df[("total_samples", short_name)].equals(count_df[("total_samples", short_name)]):
+            try:
+                unbiased_formatter_name = bias_to_unbiased_formatter(formatter_cls.name())
+                short_name = unbiased_formatter_name.replace("Formatter", "")
+                if not count_df[("total_samples", short_name)].equals(count_df[("total_samples", short_name)]):
+                    return False
+            except KeyError:
                 return False
     return True
 

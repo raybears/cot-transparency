@@ -11,7 +11,7 @@ from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
 from cot_transparency.miles_models import MilesBBHRawData
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
 from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question
-from cot_transparency.formatters.base_class import PromptFormatter
+from cot_transparency.formatters.base_class import StageOneFormatter
 
 # ruff: noqa: E501
 
@@ -109,7 +109,7 @@ It's very important that you stick to this format.
 """
 
 
-class EmojiToldBiasFormatter(PromptFormatter):
+class EmojiToldBiasFormatter(StageOneFormatter):
     """A formatter where the assistant is told that it has bias"""
 
     @staticmethod
@@ -122,7 +122,7 @@ class EmojiToldBiasFormatter(PromptFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class EmojiLabelBiasFormatter(PromptFormatter):
+class EmojiLabelBiasFormatter(StageOneFormatter):
     """A formatter that gets biased by emojis,
     but the assistant is instructed to spot the bias
     The assistant is also instructed to label the bias"""
@@ -137,7 +137,7 @@ class EmojiLabelBiasFormatter(PromptFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class EmojiBaselineFormatter(PromptFormatter):
+class EmojiBaselineFormatter(StageOneFormatter):
     """A formatter that simply gets biased by emojis"""
 
     @staticmethod

@@ -1,20 +1,20 @@
 from collections import Counter
 import json
 import random
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional, Type
 
 import fire
 from pydantic import ValidationError, BaseModel
-from tqdm import tqdm
+from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
-from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, PromptFormatter, ZeroShotCOTUnbiasedFormatter
-from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput, TaskSpec, save_loaded_dict, task_function
+from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
+from cot_transparency.tasks import ExperimentJsonFormat, TaskSpec
 from cot_transparency.util import get_exp_dir_name
+from cot_transparency.tasks import run_tasks_multi_threaded
 
 BBH_TASK_LIST = [
     "sports_understanding",
@@ -51,12 +51,12 @@ def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
 
 class TaskSetting(BaseModel):
     task: str
-    formatter: Type[PromptFormatter]
+    formatter: Type[StageOneFormatter]
     model: str
 
 
 def create_task_settings(
-    tasks: list[str], models: list[str], formatters: list[Type[PromptFormatter]]
+    tasks: list[str], models: list[str], formatters: list[Type[StageOneFormatter]]
 ) -> list[TaskSetting]:
     """Create a list of task settings to run"""
     task_settings = []
@@ -81,16 +81,7 @@ def main(
     # bbh is in data/bbh/task_name
     # read in the json file
     # data/bbh/{task_name}/val_data.json
-    VALID_FORMATTERS = PromptFormatter.all_formatters()
-
-    # assert that the formatters are valid
-    for formatter in formatters:
-        if formatter not in VALID_FORMATTERS:
-            raise ValueError(
-                f"formatter {formatter} is not valid. Valid formatters are {list(VALID_FORMATTERS.keys())}"
-            )
-
-    validated_formatters: list[Type[PromptFormatter]] = [VALID_FORMATTERS[formatter] for formatter in formatters]
+    validated_formatters = get_valid_stage1_formatters(formatters)
 
     loaded_dict: dict[Path, ExperimentJsonFormat] = {}
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
@@ -117,7 +108,7 @@ def main(
         out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name()}.json")
         already_done = read_done_experiment(out_file_path)
         loaded_dict.update({out_file_path: already_done})
-        already_done_hashes_counts = Counter(already_done.already_done_hashes())
+        already_done_hashes_counts = Counter([o.task_hash for o in already_done.outputs])
         item: MilesBBHRawData
         for item in data:
             task_hash = item.hash()
@@ -151,39 +142,21 @@ def main(
         print("No tasks to run, experiment is already done.")
         return
 
-    future_instance_outputs = []
+    run_tasks_multi_threaded(save_file_every, batch, loaded_dict, tasks_to_run)
 
-    executor = ThreadPoolExecutor(max_workers=batch)
 
-    def kill_and_save(loaded_dict: dict[Path, ExperimentJsonFormat]):
-        for future in future_instance_outputs:
-            future.cancel()
-        executor.shutdown(wait=False)
-        save_loaded_dict(loaded_dict)
+def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneFormatter]]:
+    VALID_FORMATTERS = StageOneFormatter.all_formatters()
 
-    for task in tasks_to_run:
-        future_instance_outputs.append(executor.submit(task_function, task))
+    # assert that the formatters are valid
+    for formatter in formatters:
+        if formatter not in VALID_FORMATTERS:
+            raise ValueError(
+                f"formatter {formatter} is not valid. Valid formatters are {list(VALID_FORMATTERS.keys())}"
+            )
 
-    try:
-        for cnt, instance_output in tqdm(
-            enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
-        ):
-            output: TaskOutput = instance_output.result()
-            # extend the existing json file
-            loaded_dict[output.out_file_path].outputs.append(output)
-            if cnt % save_file_every == 0:
-                save_loaded_dict(loaded_dict)
-
-    except Exception as e:
-        kill_and_save(loaded_dict)
-        raise e
-
-    except KeyboardInterrupt:
-        print("Caught KeyboardInterrupt, please wait while running tasks finish...")
-        kill_and_save(loaded_dict)
-        exit(1)
-
-    save_loaded_dict(loaded_dict)
+    validated_formatters: list[Type[StageOneFormatter]] = [VALID_FORMATTERS[formatter] for formatter in formatters]
+    return validated_formatters
 
 
 if __name__ == "__main__":

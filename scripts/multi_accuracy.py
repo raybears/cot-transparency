@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from pydantic import BaseModel
 
-from cot_transparency.stage_one_tasks import ExperimentJsonFormat, TaskOutput
+from cot_transparency.tasks import ExperimentJsonFormat, TaskOutput
 from stage_one import read_done_experiment
 
 
