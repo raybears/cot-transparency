@@ -19,6 +19,7 @@ def call_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConfig) ->
     model_name = config.model
     if model_name == "gpt-3.5-turbo":
         formatted = format_for_openai_chat(prompt)
+        print(f"{formatted}")
         return gpt3_5_rate_limited(config=config, messages=formatted).completion
 
     elif model_name == "gpt-4":
@@ -64,13 +65,16 @@ def format_for_openai_chat(prompt: list[ChatMessages]) -> list[ChatMessages]:
     if messages_has_none_role(prompt):
         raise ValueError(f"OpenAI chat messages cannot have a None role. Got {prompt}")
 
-    assistant_preferred: ChatMessages | None = (
-        prompt[-1] if prompt[-1].role == OpenaiRoles.assistant_preferred else None
-    )
-    if not assistant_preferred:
+    is_assistant_preferred = [msg.role == OpenaiRoles.assistant_preferred for msg in prompt]
+    if not any(is_assistant_preferred):
         return prompt
 
-    new_list = [p.copy() for p in prompt][:-1]
-    last_item = new_list[-1]
-    last_item.content += f"\n\n{assistant_preferred.content}"
+    new_list = []
+    for msg in prompt:
+        if msg.role == OpenaiRoles.assistant_preferred:
+            content = new_list[-1].content + f"\n\n{msg.content}"
+            new_item = ChatMessages(role=new_list[-1].role, content=content)
+            new_list[-1] = new_item
+        else:
+            new_list.append(msg.copy())
     return new_list

@@ -104,8 +104,11 @@ def counts_are_equal(count_df: pd.DataFrame):
     for col in count_df["total_samples"].columns:
         formatter_cls = name_to_formatter(col + "Formatter")
         if formatter_cls.is_biased:
-            unbiased_formatter_name = bias_to_unbiased_formatter(formatter_cls.name())
-            if not count_df[col].equals(count_df[unbiased_formatter_name.replace("Formatter", "")]):
+            try:
+                unbiased_formatter_name = bias_to_unbiased_formatter(formatter_cls.name())
+                if not count_df[col].equals(count_df[unbiased_formatter_name.replace("Formatter", "")]):
+                    return False
+            except KeyError:
                 return False
     return True
 

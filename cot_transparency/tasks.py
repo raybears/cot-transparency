@@ -41,7 +41,7 @@ class TaskSpec(BaseModel):
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
     formatter: Type[PromptFormatter]
-    task_hash: Optional[str] = None  # linked to the orignal question
+    task_hash: str  # linked to the orignal question
     biased_ans: Optional[MultipleChoiceAnswer] = None
 
     def input_hash(self) -> str:
@@ -143,6 +143,10 @@ def run_tasks_multi_threaded(
     loaded_dict: dict[Path, ExperimentJsonFormat],
     tasks_to_run: Union[list[TaskSpec], list[StageTwoTaskSpec]],
 ):
+    if len(tasks_to_run) == 0:
+        print("No tasks to run, experiment is already done.")
+        return
+
     future_instance_outputs = []
 
     executor = ThreadPoolExecutor(max_workers=batch)

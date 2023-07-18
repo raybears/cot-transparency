@@ -95,8 +95,8 @@ class ZeroShotSycophancyFormatter(StageOneFormatter):
 def remove_role_from_messages(messages: list[ChatMessages]) -> list[ChatMessages]:
     output = []
     for msg in messages:
-        msg.role = OpenaiRoles.none
-        output.append(msg)
+        new_message = ChatMessages(role=OpenaiRoles.none, content=msg.content)
+        output.append(new_message)
     return output
 
 

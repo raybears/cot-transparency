@@ -53,6 +53,9 @@ class ChatMessages(HashableBaseModel):
     role: OpenaiRoles
     content: str
 
+    class Config:
+        frozen = True
+
 
 class GPTFullResponse(BaseModel):
     id: Optional[str]
