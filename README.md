@@ -2,13 +2,15 @@
 
 This is a private fork of [cot-unfaithfulness](https://github.com/milesaturpin/cot-unfaithfulness)
 
+[![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml)
+
 ## Installation
-Install python environment
+Install python environment, requires python >= 3.11
 
 Pyenv:
 ```bash
-pyenv install 3.10
-pyenv virtualenv 3.10 cot
+pyenv install 3.11
+pyenv virtualenv 3.11 cot
 ```
 
 Install requirements
