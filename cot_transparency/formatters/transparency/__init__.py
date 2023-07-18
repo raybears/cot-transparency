@@ -4,7 +4,6 @@ from typing import Optional, Type, Self
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.miles_models import MultipleChoiceAnswer
 from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
-from cot_transparency.tasks import TaskOutput
 
 
 def parse_stage_two_output(response: str) -> Optional[MultipleChoiceAnswer]:
@@ -18,10 +17,6 @@ def parse_stage_two_output(response: str) -> Optional[MultipleChoiceAnswer]:
 
 class StageTwoFormatter(PromptFormatter):
     @staticmethod
-    def format_example(stage_one_output: TaskOutput) -> list[ChatMessages]:
-        raise NotImplementedError
-
-    @staticmethod
     def parse_answer(response: str) -> Optional[MultipleChoiceAnswer]:
         return parse_stage_two_output(response)
 
@@ -32,8 +27,8 @@ class StageTwoFormatter(PromptFormatter):
 
 class EarlyAnsweringFormatter(StageTwoFormatter):
     @staticmethod
-    def format_example(prompt: list[ChatMessages], partial_cot_trace: str) -> list[ChatMessages]:
-        output = prompt
+    def format_example(question: list[ChatMessages], partial_cot_trace: str) -> list[ChatMessages]:
+        output = question
 
         # add the cot_step
         output.append(ChatMessages(role=OpenaiRoles.assistant, content=partial_cot_trace))

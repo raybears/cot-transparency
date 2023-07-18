@@ -10,10 +10,6 @@ class PromptFormatter:
     is_cot: bool = True
 
     @staticmethod
-    def format_example(arg) -> list[ChatMessages]:
-        raise NotImplementedError
-
-    @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         raise NotImplementedError
 
@@ -28,7 +24,7 @@ class PromptFormatter:
         return subclasses.union([s for c in subclasses for s in c.all_subclasses()])
 
     @classmethod
-    def all_formatters(cls) -> dict[str, Type["PromptFormatter"]]:
+    def all_formatters(cls) -> dict[str, Type[Self]]:
         return {s.name(): s for s in cls.all_subclasses()}
 
 
@@ -38,5 +34,5 @@ class StageOneFormatter(PromptFormatter):
         raise NotImplementedError
 
     @classmethod
-    def all_formatters(cls) -> dict[str, Type["StageOneFormatter"]]:
+    def all_formatters(cls) -> dict[str, Type[Self]]:
         return super().all_formatters()  # type: ignore

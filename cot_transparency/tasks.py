@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from glob import glob
 from pathlib import Path
-from typing import Type, Optional
+from typing import Type, Optional, Union
 
 from pydantic import BaseModel
 from retry import retry
@@ -138,7 +138,10 @@ def load_jsons(exp_dir: str) -> dict[Path, ExperimentJsonFormat]:
 
 
 def run_tasks_multi_threaded(
-    save_file_every: int, batch: int, loaded_dict: dict[Path, ExperimentJsonFormat], tasks_to_run: list[TaskSpec]
+    save_file_every: int,
+    batch: int,
+    loaded_dict: dict[Path, ExperimentJsonFormat],
+    tasks_to_run: Union[list[TaskSpec], list[StageTwoTaskSpec]],
 ):
     future_instance_outputs = []
 

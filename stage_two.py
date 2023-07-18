@@ -10,7 +10,6 @@ from cot_transparency.tasks import (
     ExperimentJsonFormat,
     StageTwoTaskSpec,
     TaskOutput,
-    TaskSpec,
     load_jsons,
     run_tasks_multi_threaded,
 )
@@ -22,7 +21,7 @@ We take traces generated from stage_one.py and run analysis on them
 """
 
 
-def get_early_answering_tasks(stage_one_output: TaskOutput, exp_dir: str) -> List[TaskSpec]:
+def get_early_answering_tasks(stage_one_output: TaskOutput, exp_dir: str) -> List[StageTwoTaskSpec]:
     outputs = []
 
     cot_steps = get_cot_steps(stage_one_output.model_output[0].raw_response)
@@ -53,8 +52,8 @@ def get_early_answering_tasks(stage_one_output: TaskOutput, exp_dir: str) -> Lis
 def create_stage_2_tasks(
     stage_1_task_outputs: List[TaskOutput],
     exp_dir: str,
-) -> List[TaskSpec]:
-    tasks_to_run: List[TaskSpec] = []
+) -> List[StageTwoTaskSpec]:
+    tasks_to_run: List[StageTwoTaskSpec] = []
 
     task_output: TaskOutput
     for task_output in stage_1_task_outputs:
@@ -102,7 +101,7 @@ def main(
 
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_two")
 
-    stage_2_tasks: List[TaskSpec] = create_stage_2_tasks(stage_1_task_outputs, exp_dir)
+    stage_2_tasks: List[StageTwoTaskSpec] = create_stage_2_tasks(stage_1_task_outputs, exp_dir)
 
     # work out which tasks wwe have already done
     loaded_dict: dict[Path, ExperimentJsonFormat] = {}
@@ -120,7 +119,7 @@ def main(
         task_output_hashes = [output.input_hash() for output in loaded_experiment_json.outputs]
         to_run = []
         for task_spec in stage_2_tasks:
-            if task_spec not in task_output_hashes:
+            if task_spec.input_hash() not in task_output_hashes:
                 to_run.append(task_spec)
 
     # run the tasks
