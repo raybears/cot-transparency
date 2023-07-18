@@ -41,7 +41,7 @@ Set your OpenAI API key as `OPENAI_API_KEY` in a `.env` file.
 
 To generate examples e.g. 
 ```python
-python stage_one.py --exp_dir experiments/stage_one/dummy_run --models "['text-davinci-003']" --formatters "['ZeroShotSycophancyFormatter', 'ZeroShotSycophancyNoRoleFormatter', 'ZeroShotCOTSycophancyNoRoleFormatter', 'ZeroShotCOTSycophancyFormatter']" --repeats_per_question 3 --batch=10
+python stage_one.py --exp_dir experiments/stage_one/dummy_run --models "['text-davinci-003']" --formatters "['ZeroShotSycophancyFormatter', 'ZeroShotSycophancyNoRoleFormatter', 'ZeroShotCOTSycophancyNoRoleFormatter', 'ZeroShotCOTSycophancyFormatter']" --repeats_per_question 1 --batch=10 --example_cap 20
 ```
 This will create an experiment directory under `experiments/` with json files.
 
