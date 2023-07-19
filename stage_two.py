@@ -111,7 +111,7 @@ def main(
     save_file_every: int = 50,
     batch: int = 1,
     temperature: float = 0.0,
-    example_cap: int = 10,
+    example_cap: int = 999999999,
 ):
     valid_stage_one_formatters = get_valid_stage1_formatters(stage_one_formatters)
     for formatter in valid_stage_one_formatters:
