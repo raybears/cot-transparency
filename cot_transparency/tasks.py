@@ -136,7 +136,7 @@ def save_loaded_dict(loaded_dict: dict[Path, ExperimentJsonFormat]):
 def load_jsons(exp_dir: str) -> dict[Path, ExperimentJsonFormat]:
     loaded_dict: dict[Path, ExperimentJsonFormat] = {}
 
-    paths = glob(f"{exp_dir}/**/*.json", recursive=True)
+    paths = glob(f"{exp_dir}/*/*/*.json", recursive=True)
     print(f"Found {len(paths)} json files")
     for path in paths:
         _dict = json.load(open(path))
