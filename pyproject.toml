@@ -9,7 +9,7 @@ exclude = '''
   | env/
 )
 '''
-target-version = ['py38']
+target-version = ['py311']
 
 
 [tool.ruff]
