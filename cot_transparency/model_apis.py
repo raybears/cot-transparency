@@ -1,4 +1,3 @@
-from typing import assert_never
 
 import anthropic
 
@@ -60,9 +59,6 @@ def format_for_completion(prompt: list[ChatMessages]) -> str:
             case OpenaiRoles.system:
                 # No need to add anything for system messages
                 message += f"\n\n{msg.content}"
-            case _:
-                # Type checker should catch cases that we forgot to handle
-                assert_never(msg.role)
     return message
 
 
