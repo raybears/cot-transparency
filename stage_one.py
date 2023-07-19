@@ -115,7 +115,8 @@ def main(
             if task_hash not in already_done_hashes_counts:
                 runs_to_do = repeats_per_question
             else:
-                runs_to_do = repeats_per_question - already_done_hashes_counts[task_hash]
+                # may be negative
+                runs_to_do = max(repeats_per_question - already_done_hashes_counts[task_hash], 0)
 
             formatted: list[ChatMessages] = formatter.format_example(question=item)
             config = CONFIG_MAP[model].copy()
