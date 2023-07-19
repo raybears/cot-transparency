@@ -159,10 +159,10 @@ def run_tasks_multi_threaded(
     executor = ThreadPoolExecutor(max_workers=batch)
 
     def kill_and_save(loaded_dict: dict[Path, ExperimentJsonFormat]):
+        save_loaded_dict(loaded_dict)
         for future in future_instance_outputs:
             future.cancel()
         executor.shutdown(wait=False)
-        save_loaded_dict(loaded_dict)
 
     for task in tasks_to_run:
         future_instance_outputs.append(executor.submit(task_function, task))
