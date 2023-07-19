@@ -52,7 +52,9 @@ def format_emoji_bias(
     # format it to have the biasing few shots first
     few_shot: list[ChatMessages] = emoji_few_shots_with_system
     # then add the sycophancy bias detection example to show it how to detect bias
-    bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer] if add_syco_example else []
+    bias_detection_examples: list[ChatMessages] = (
+        [syco_spot_bias_qn(add_instruction_func), syco_spot_bias_answer] if add_syco_example else []
+    )
     biased_qn: str = question_with_emoji_bias(question=question, bias_idx=question.random_ans_idx)
     # Add an instruction
     biased_qn_with_spot_bias_cot = add_instruction_func(biased_qn)
@@ -69,28 +71,12 @@ def format_emoji_bias_with_sys_prompt(
     # format it to have the biasing few shots first
     few_shot: list[ChatMessages] = few_shots_with_new_system_prompt(system_prompt=system_prompt)
     # then add the sycophancy bias detection example to show it how to detect bias
-    bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer]
+    bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn(add_instruction_func), syco_spot_bias_answer]
     biased_qn: str = question_with_emoji_bias(question=question, bias_idx=question.random_ans_idx)
     # Add an instruction
     biased_qn_with_spot_bias_cot = add_instruction_func(biased_qn)
     prompt = (
         few_shot + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_spot_bias_cot)]
-    )
-    return prompt
-
-
-def format_emoji_bias_baseline_no_spot(example: MilesBBHRawData) -> list[ChatMessages]:
-    """This formats it with few shot examples, but we don't ask it to spot its bias"""
-    # format it to have the biasing few shots first
-    biased_qn: str = question_with_emoji_bias(question=example, bias_idx=example.random_ans_idx)
-    # then add the sycophancy bias detection example to show it how to detect bias
-    bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer]
-    # just ask for COT instead of asking for COT with bias
-    biased_qn_with_cot = add_verbalize_instruction_to_question(question=biased_qn)
-    prompt: list[ChatMessages] = (
-        emoji_few_shots_with_system
-        + bias_detection_examples
-        + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_cot)]
     )
     return prompt
 
@@ -149,8 +135,7 @@ If you don't think you have a probable bias, write <BIAS>NO_BIAS</BIAS>.
 3. Write a short explanation of why you think this is a bias under <EXPLANATION>possible explanation</EXPLANATION>.
 4. Please verbalize how you are thinking about the problem, accounting for any issues,
 then give your answer in the format "The best answer is: (X)"    
-It's very important that you stick to this format.
-"""
+It's very important that you stick to this format."""
 
 
 class EmojiToldBiasFormatter(StageOneFormatter):
