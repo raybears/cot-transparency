@@ -1,14 +1,13 @@
 
 import anthropic
 
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig, OpenaiRoles
-
 from cot_transparency.openai_utils.inference import (
     anthropic_chat,
     get_openai_completion,
     gpt3_5_rate_limited,
     gpt4_rate_limited,
 )
+from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig, OpenaiRoles
 
 
 def messages_has_none_role(prompt: list[ChatMessages]) -> bool:
@@ -57,7 +56,7 @@ def format_for_completion(prompt: list[ChatMessages]) -> str:
             case OpenaiRoles.none:
                 message += f"\n\n{msg.content}"
             case OpenaiRoles.system:
-                # No need to add anything for system messages
+                # No need to add something infront for system messages
                 message += f"\n\n{msg.content}"
     return message
 
