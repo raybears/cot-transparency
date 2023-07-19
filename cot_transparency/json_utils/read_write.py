@@ -7,9 +7,7 @@ from slist import Slist
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
 
 
-def caught_base_model_parse(
-    basemodel: Type[GenericBaseModel], line: str
-) -> GenericBaseModel:
+def caught_base_model_parse(basemodel: Type[GenericBaseModel], line: str) -> GenericBaseModel:
     try:
         return basemodel.parse_raw(line)
     except Exception as e:
@@ -17,9 +15,7 @@ def caught_base_model_parse(
         raise e
 
 
-def read_jsonl_file_into_basemodel(
-    path: Path, basemodel: Type[GenericBaseModel]
-) -> Slist[GenericBaseModel]:
+def read_jsonl_file_into_basemodel(path: Path, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
     with open(path, "r") as f:
         return Slist(
             caught_base_model_parse(basemodel=basemodel, line=line)
@@ -28,9 +24,7 @@ def read_jsonl_file_into_basemodel(
         )
 
 
-def write_jsonl_file_from_basemodel(
-    path: Path, basemodels: Sequence[BaseModel]
-) -> None:
+def write_jsonl_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel]) -> None:
     with open(path, "w") as f:
         for basemodel in basemodels:
             f.write(basemodel.json() + "\n")

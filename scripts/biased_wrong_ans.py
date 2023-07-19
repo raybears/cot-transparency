@@ -3,7 +3,7 @@ from pathlib import Path
 from slist import Slist
 
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
-from cot_transparency.tasks import load_jsons, ExperimentJsonFormat, TaskOutput
+from cot_transparency.tasks import load_jsons, TaskOutput
 
 if __name__ == "__main__":
     """Produces a jsonl containing answers that
@@ -18,7 +18,7 @@ if __name__ == "__main__":
         # Sometimes we have multiple runs of the same task, we want to get the first one
         .distinct_by(lambda x: x.task_name + x.task_hash + x.config.d_hash() + x.formatter_name)
         # only get the ones that are biased
-        .filter(lambda x: x.biased_ans == x.first_parsed_response())
+        .filter(lambda x: x.biased_ans == x.first_parsed_response)
         # only get the ones that are wrong
         .filter(lambda x: x.biased_ans != x.ground_truth)
     )
