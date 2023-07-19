@@ -70,6 +70,9 @@ class TaskOutput(BaseModel):
     out_file_path: Path
     biased_ans: Optional[MultipleChoiceAnswer] = None
 
+    def first_parsed_response(self) -> str:
+        return self.model_output[0].parsed_response
+
     def input_hash(self) -> str:
         return deterministic_task_hash(self.task_name, self.prompt, self.config)
 
