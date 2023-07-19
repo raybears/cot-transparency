@@ -1,4 +1,3 @@
-
 import anthropic
 
 from cot_transparency.openai_utils.inference import (
