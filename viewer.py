@@ -90,11 +90,6 @@ class GUI:
         )
         self.random_button.pack(side=LEFT)
 
-        self.toggle_button = Button(
-            master, text="Toggle Alignment", command=self.toggle_alignment, font=("Arial", self.fontsize)
-        )
-        self.toggle_button.pack(anchor=self.alignment)
-
         # Display the first JSON
         self.select_json()
         self.display_output()
@@ -134,28 +129,6 @@ class GUI:
         self.messages_text.insert(END, formatted_output)
         self.output_text.insert(END, str(output.model_output[0].raw_response))
         self.parsed_ans_label.config(text=f"Parsed Answer: {output.model_output[0].parsed_response}")
-
-    def toggle_alignment(self):
-        if self.alignment == "w":
-            self.alignment = "center"
-        else:
-            self.alignment = "w"
-
-        # pack all widgets again to apply new alignment
-        self.file_label.pack(anchor=self.alignment)
-        self.task_dropdown.pack(anchor=self.alignment)
-        self.model_dropdown.pack(anchor=self.alignment)
-        self.formatter_dropdown.pack(anchor=self.alignment)
-        self.label.pack(anchor=self.alignment)
-        self.config_text.pack(anchor=self.alignment)
-        self.label2.pack(anchor=self.alignment)
-        self.messages_text.pack(anchor=self.alignment)
-        self.label3.pack(anchor=self.alignment)
-        self.output_text.pack(anchor=self.alignment)
-        self.parsed_ans_label.pack(anchor=self.alignment)
-        self.next_button.pack(anchor=self.alignment)
-        self.random_button.pack(anchor=self.alignment)
-        self.toggle_button.pack(anchor=self.alignment)
 
 
 # Add your load_jsons function here
