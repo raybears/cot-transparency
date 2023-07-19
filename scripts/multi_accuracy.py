@@ -174,7 +174,7 @@ def main():
 if __name__ == "__main__":
     main()
     # Run this to inspect for a single json
-    ruined = "experiments/james/navigate/gpt-4/EmojiLabelListFormatter.json"
+    ruined = "experiments/james/ruin_names/gpt-4/EmojiLabelListFormatter.json"
     loaded: list[TaskOutput] = read_done_experiment(Path(ruined)).outputs
     print(f"Number of outputs: {len(loaded)}")
     overall_acc = accuracy_outputs(loaded, inconsistent_only=False)
