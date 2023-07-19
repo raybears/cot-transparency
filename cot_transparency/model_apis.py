@@ -1,13 +1,12 @@
 import anthropic
 
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig, OpenaiRoles
-
 from cot_transparency.openai_utils.inference import (
     anthropic_chat,
     get_openai_completion,
     gpt3_5_rate_limited,
     gpt4_rate_limited,
 )
+from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig, OpenaiRoles
 
 
 def messages_has_none_role(prompt: list[ChatMessages]) -> bool:
@@ -46,14 +45,18 @@ def format_for_anthropic(prompt: list[ChatMessages]) -> str:
 def format_for_completion(prompt: list[ChatMessages]) -> str:
     message = ""
     for msg in prompt:
-        if msg.role == OpenaiRoles.user:
-            message += f"{anthropic.HUMAN_PROMPT} {msg.content}"
-        elif msg.role == OpenaiRoles.assistant or msg.role == OpenaiRoles.assistant_preferred:
-            message += f"{anthropic.AI_PROMPT} {msg.content}"
-        elif msg.role == OpenaiRoles.none:
-            message += f"\n\n{msg.content}"
-        else:
-            raise ValueError(f"Unknown role {msg.role}")
+        match msg.role:
+            case OpenaiRoles.user:
+                message += f"{anthropic.HUMAN_PROMPT} {msg.content}"
+            case OpenaiRoles.assistant:
+                message += f"{anthropic.AI_PROMPT} {msg.content}"
+            case OpenaiRoles.assistant_preferred:
+                message += f"{anthropic.AI_PROMPT} {msg.content}"
+            case OpenaiRoles.none:
+                message += f"\n\n{msg.content}"
+            case OpenaiRoles.system:
+                # No need to add something infront for system messages
+                message += f"\n\n{msg.content}"
     return message
 
 

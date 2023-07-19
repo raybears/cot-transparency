@@ -70,6 +70,10 @@ class TaskOutput(BaseModel):
     out_file_path: Path
     biased_ans: Optional[MultipleChoiceAnswer] = None
 
+    @property
+    def first_parsed_response(self) -> str:
+        return self.model_output[0].parsed_response
+
     def input_hash(self) -> str:
         return deterministic_task_hash(self.task_name, self.prompt, self.config)
 
@@ -159,10 +163,10 @@ def run_tasks_multi_threaded(
     executor = ThreadPoolExecutor(max_workers=batch)
 
     def kill_and_save(loaded_dict: dict[Path, ExperimentJsonFormat]):
+        save_loaded_dict(loaded_dict)
         for future in future_instance_outputs:
             future.cancel()
         executor.shutdown(wait=False)
-        save_loaded_dict(loaded_dict)
 
     for task in tasks_to_run:
         future_instance_outputs.append(executor.submit(task_function, task))
