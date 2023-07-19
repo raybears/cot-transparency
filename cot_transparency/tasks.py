@@ -97,12 +97,19 @@ def task_function(task: TaskSpec) -> TaskOutput:
         messages=task.messages, config=task.model_config, formatter=task.formatter
     )
     outputs = [response]  # maintained as list for backwards compatibility
+
+    # have to use different hashes for stage one and stage two
+    if isinstance(task, StageTwoTaskSpec):
+        task_hash = task.input_hash()
+    else:
+        task_hash = task.task_hash
+
     return TaskOutput(
         task_name=task.task_name,
         prompt=task.messages,
         model_output=outputs,
         ground_truth=task.ground_truth,
-        task_hash=task.input_hash(),
+        task_hash=task_hash,
         config=task.model_config,
         out_file_path=task.out_file_path,
         formatter_name=task.formatter.name(),
@@ -129,7 +136,7 @@ def save_loaded_dict(loaded_dict: dict[Path, ExperimentJsonFormat]):
 def load_jsons(exp_dir: str) -> dict[Path, ExperimentJsonFormat]:
     loaded_dict: dict[Path, ExperimentJsonFormat] = {}
 
-    paths = glob(f"{exp_dir}/**/*.json", recursive=True)
+    paths = glob(f"{exp_dir}/*/*/*.json", recursive=True)
     print(f"Found {len(paths)} json files")
     for path in paths:
         _dict = json.load(open(path))

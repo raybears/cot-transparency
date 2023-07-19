@@ -1,6 +1,4 @@
 import fire
-from cot_transparency.formatters import bias_to_unbiased_formatter
-from cot_transparency.formatters import name_to_formatter
 from cot_transparency.tasks import ExperimentJsonFormat
 from cot_transparency.model_apis import format_for_completion
 from cot_transparency.openai_utils.models import ChatMessages
@@ -46,7 +44,7 @@ def accuracy(
     formatter_filter: Optional[str] = None,
     check_counts: bool = True,
     return_dataframes: bool = False,
-):
+) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
     """
     exp_dir: path to directory containing experiment jsons
     inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
@@ -75,13 +73,19 @@ def accuracy(
     counts_df["unqiue_questions"] = df.groupby(groups)["task_hash"].nunique().reset_index()["task_hash"]
     counts_df["total_samples"] = df.groupby(groups)["is_correct"].count().reset_index()["is_correct"]
 
-    unique_questions_df = pivot_df(counts_df, values=["unqiue_questions"])
-    counts_df = pivot_df(counts_df, values=["total_samples"])
+    unique_questions_df: pd.DataFrame = pivot_df(
+        counts_df,
+        values=["unqiue_questions"],
+    )[
+        "unqiue_questions"
+    ]  # type: ignore
+    counts_df: pd.DataFrame = pivot_df(counts_df, values=["total_samples"])["total_samples"]  # type: ignore
     accuracy_df = pivot_df(accuracy_df)
 
-    if check_counts and not counts_are_equal(counts_df):
-        print("Counts are not equal for some tasks and their baselines, likely experiments not completed")
-        exit(1)
+    if check_counts:
+        if not (counts_are_equal(counts_df) and counts_are_equal(unique_questions_df)):
+            print("Counts are not equal for some tasks and their baselines, likely experiments not completed")
+            exit(1)
 
     print("---------------- Counts ----------------")
     print(counts_df)
@@ -91,7 +95,7 @@ def accuracy(
     print(accuracy_df)
 
     if return_dataframes:
-        return accuracy_df, counts_df, unique_questions_df
+        return accuracy_df, counts_df, unique_questions_df  # type: ignore
 
 
 def pivot_df(df: pd.DataFrame, values: List[str] = ["is_correct"]):
@@ -101,21 +105,11 @@ def pivot_df(df: pd.DataFrame, values: List[str] = ["is_correct"]):
     return output
 
 
-def counts_are_equal(count_df: pd.DataFrame):
+def counts_are_equal(count_df: pd.DataFrame) -> bool:
     """
-    Verify that the counts are the same for a task and its baseline
+    Verify that the counts are the same for all columns in the count_df
     """
-    for col in count_df["total_samples"].columns:
-        formatter_cls = name_to_formatter(col + "Formatter")
-        if formatter_cls.is_biased:
-            try:
-                unbiased_formatter_name = bias_to_unbiased_formatter(formatter_cls.name())
-                short_name = unbiased_formatter_name.replace("Formatter", "")
-                if not count_df[("total_samples", short_name)].equals(count_df[("total_samples", short_name)]):
-                    return False
-            except KeyError:
-                return False
-    return True
+    return (count_df.nunique(axis=1) == 1).all()
 
 
 def sample_prompts(exp_dir: str, n: int = 1):
