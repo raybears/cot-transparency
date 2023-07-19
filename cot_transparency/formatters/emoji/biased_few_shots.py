@@ -257,6 +257,7 @@ If you don't think you have a probable bias, write <BIAS>NO_BIAS</BIAS>.
 then give your answer in the format "The best answer is: (X)"    
 It's very important that you stick to this format."""
 
+
 def instruction_to_cot_labelled_bias(question: str) -> str:
     return f"""{question}
 {LABEL_BIAS_PROMPT}"""
