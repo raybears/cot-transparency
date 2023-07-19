@@ -103,10 +103,10 @@ def filter_stage1_outputs(
 
 
 def main(
-    input_exp_dir: str = "results/stage_one/recreate_miles",
+    input_exp_dir: str,
     models: list[str] = ["text-davinci-003"],
     stage_one_formatters: list[str] = [ZeroShotCOTUnbiasedFormatter.name()],
-    exp_dir: Optional[str] = "./experiments/stage_two/debug_hashing",
+    exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     save_file_every: int = 50,
     batch: int = 1,
