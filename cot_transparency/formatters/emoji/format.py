@@ -10,6 +10,7 @@ from cot_transparency.formatters.emoji.biased_few_shots import (
     masked_spot_bias_qn,
     masked_spot_bias_answer,
 )
+from cot_transparency.formatters.emoji.mixed_prompts import mixed_biased_few_shots
 from cot_transparency.formatters.extraction import extract_answer, extract_multiple_choices
 from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
 from cot_transparency.miles_models import MilesBBHRawData
@@ -75,6 +76,25 @@ def format_emoji_bias_masked(
     # then add the sycophancy bias detection example to show it how to detect bias
     bias_detection_examples: list[ChatMessages] = (
         [masked_spot_bias_qn(add_instruction_func), masked_spot_bias_answer] if add_syco_example else []
+    )
+    biased_qn: str = question_with_emoji_bias(question=question, bias_idx=question.random_ans_idx)
+    # Add an instruction
+    biased_qn_with_spot_bias_cot = add_instruction_func(biased_qn)
+    prompt = (
+        few_shot + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_spot_bias_cot)]
+    )
+    return prompt
+
+
+def format_emoji_bias_mixed(
+    question: MilesBBHRawData, add_instruction_func: Callable[[str], str], add_syco_example: bool = True
+) -> list[ChatMessages]:
+    """This formats it with few shot examples"""
+    # format it to have the biasing few shots first
+    few_shot: list[ChatMessages] = mixed_biased_few_shots
+    # then add the sycophancy bias detection example to show it how to detect bias
+    bias_detection_examples: list[ChatMessages] = (
+        [syco_spot_bias_qn(add_instruction_func), syco_spot_bias_answer] if add_syco_example else []
     )
     biased_qn: str = question_with_emoji_bias(question=question, bias_idx=question.random_ans_idx)
     # Add an instruction
@@ -244,6 +264,23 @@ class EmojiLabelListFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
         return format_emoji_bias(question=question, add_instruction_func=instruction_to_cot_labelled_bias_make_list)
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        # TODO: we need another method to parse out the spotted bias
+        return extract_answer(response, dump_failed=False)
+
+
+class EmojiLabelListMixFormatter(StageOneFormatter):
+    """A formatter that gets biased by emojis,
+    but the assistant is instructed to spot the bias
+    The assistant is also instructed to label the bias"""
+
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+        return format_emoji_bias_mixed(
+            question=question, add_instruction_func=instruction_to_cot_labelled_bias_make_list
+        )
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
