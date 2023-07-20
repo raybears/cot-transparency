@@ -101,10 +101,12 @@ def main(
         except ValidationError as e:
             print(f"Error parsing {json_path}")
             raise e
+
+        # Shuffle the data BEFORE we cap it
+        random.Random(42).shuffle(data)
         if example_cap:
             data = data[:example_cap]
 
-        random.Random(42).shuffle(data)
         out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name()}.json")
         already_done = read_done_experiment(out_file_path)
         loaded_dict.update({out_file_path: already_done})
