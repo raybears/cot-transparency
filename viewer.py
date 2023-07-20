@@ -72,6 +72,9 @@ class GUI:
         self.parsed_ans_label = Label(master, text="Parsed Answer:", font=("Arial", self.fontsize))
         self.parsed_ans_label.pack(anchor=self.alignment)
 
+        self.ground_truth_label = Label(master, text="Ground Truth:", font=("Arial", self.fontsize))
+        self.ground_truth_label.pack(anchor=self.alignment)
+
         self.buttons_frame = Frame(master)
         self.buttons_frame.pack(anchor=self.alignment)
 
@@ -129,6 +132,7 @@ class GUI:
         self.messages_text.insert(END, formatted_output)
         self.output_text.insert(END, str(output.model_output[0].raw_response))
         self.parsed_ans_label.config(text=f"Parsed Answer: {output.model_output[0].parsed_response}")
+        self.ground_truth_label.config(text=f"Ground Truth: {output.ground_truth}")
 
 
 # Add your load_jsons function here
