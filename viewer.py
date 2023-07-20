@@ -122,6 +122,7 @@ class GUI:
         self.config_text.delete("1.0", END)
         self.messages_text.delete("1.0", END)
         self.output_text.delete("1.0", END)
+        self.index = 0
 
         # Insert new text
         output: TaskOutput

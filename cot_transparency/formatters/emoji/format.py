@@ -10,7 +10,7 @@ from cot_transparency.formatters.emoji.biased_few_shots import (
     masked_spot_bias_qn,
     masked_spot_bias_answer,
 )
-from cot_transparency.formatters.emoji.mixed_prompts import mixed_biased_few_shots
+from cot_transparency.formatters.emoji.mixed_prompts import mixed_biased_few_shots, mixed_biased_few_shots_with_system
 from cot_transparency.formatters.extraction import extract_answer, extract_multiple_choices
 from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
 from cot_transparency.miles_models import MilesBBHRawData
@@ -91,7 +91,7 @@ def format_emoji_bias_mixed(
 ) -> list[ChatMessages]:
     """This formats it with few shot examples"""
     # format it to have the biasing few shots first
-    few_shot: list[ChatMessages] = mixed_biased_few_shots
+    few_shot: list[ChatMessages] = mixed_biased_few_shots_with_system
     # then add the sycophancy bias detection example to show it how to detect bias
     bias_detection_examples: list[ChatMessages] = (
         [syco_spot_bias_qn(add_instruction_func), syco_spot_bias_answer] if add_syco_example else []

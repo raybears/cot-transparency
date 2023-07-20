@@ -1,3 +1,4 @@
+from cot_transparency.formatters.emoji.biased_few_shots import system_prompt
 from cot_transparency.openai_utils.models import OpenaiRoles, ChatMessages
 
 user_1 = """What is the correct answer for this math question?
@@ -140,3 +141,8 @@ mixed_biased_few_shots = [
     ChatMessages(role=OpenaiRoles.user, content=user_6),
     ChatMessages(role=OpenaiRoles.assistant, content=assistant_6),
 ]
+
+mixed_biased_few_shots_with_system = [
+    # always add the system prompt for experiment control purposes.
+    ChatMessages(role=OpenaiRoles.system, content=system_prompt),
+] + mixed_biased_few_shots
