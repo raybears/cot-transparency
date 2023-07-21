@@ -136,6 +136,7 @@ class StageTwoTaskOutput(BaseModel):
 
 class ExperimentJsonFormat(BaseModel):
     # e.g. 1000 examples will have 1000 entries
+    stage: int = 1
     outputs: list[TaskOutput]
 
     def already_done_hashes(self) -> list[str]:
@@ -143,5 +144,5 @@ class ExperimentJsonFormat(BaseModel):
 
 
 class StageTwoExperimentJsonFormat(BaseModel):
-    is_stage_two: bool = True
+    stage: int = 2
     outputs: list[StageTwoTaskOutput]

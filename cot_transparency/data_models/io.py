@@ -15,7 +15,7 @@ def load_jsons(exp_dir: str) -> tuple[LoadedJsonType, bool]:
     paths = glob(f"{exp_dir}/*/*/*.json", recursive=True)
     if paths:
         print(f"Found {len(paths)} json files")
-        is_stage_two = json.load(open(paths[0]))["is_stage_two"]
+        is_stage_two = json.load(open(paths[0]))["stage"] == 2
         if is_stage_two:
             return _load_stage2_jsons(paths), True
         else:

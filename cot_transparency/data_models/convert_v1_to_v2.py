@@ -83,6 +83,7 @@ def convert_v1_to_v2(exp_dir: str, new_exp_dir: str):
 
 
 def convert_v1_to_v2_stage_two(exp_dir: str, new_exp_dir: str):
+    # this is not working yet
     loaded = load_jsons(exp_dir)
 
     # have to also load the stage_one_output
@@ -94,7 +95,7 @@ def convert_v1_to_v2_stage_two(exp_dir: str, new_exp_dir: str):
     for path, exp in stage_one_loaded.items():
         output: TaskOutputV1
         for output in exp.outputs:
-            stage_one_output_dict[output.stage_one_hash] = output
+            stage_one_output_dict[output.output_hash] = output
 
     new_items: dict[Path, StageTwoExperimentJsonFormat] = {}
     for path, exp in loaded.items():
@@ -103,9 +104,10 @@ def convert_v1_to_v2_stage_two(exp_dir: str, new_exp_dir: str):
         output: TaskOutputV1
         for output in exp.outputs:
             # get stage_one_output that created this
-            stage_one_output: TaskOutputV1 = stage_one_output_dict[output.stage_one_hash]
-            new_output = stage_2_output_convert(output, stage_one_output, new_path)
-            new_outputs.append(new_output)
+            if output.stage_one_hash in stage_one_output_dict:
+                stage_one_output: TaskOutputV1 = stage_one_output_dict[output.stage_one_hash]
+                new_output = stage_2_output_convert(output, stage_one_output, new_path)
+                new_outputs.append(new_output)
 
         new_items[new_path] = StageTwoExperimentJsonFormat(outputs=new_outputs)
 
