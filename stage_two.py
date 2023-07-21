@@ -180,8 +180,8 @@ def main(
             # will need to run save_loaded_dict(loaded_dict) after this
             pass
 
-    # run_tasks_multi_threaded(save_file_every, batch=batch, loaded_dict=loaded_dict, tasks_to_run=to_run)
-    save_loaded_dict(loaded_dict)
+    run_tasks_multi_threaded(save_file_every, batch=batch, loaded_dict=loaded_dict, tasks_to_run=to_run)
+    # save_loaded_dict(loaded_dict)
 
 
 if __name__ == "__main__":
