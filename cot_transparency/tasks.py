@@ -54,7 +54,7 @@ def task_function(task: Union[TaskSpec, StageTwoTaskSpec]) -> Union[TaskOutput, 
     elif isinstance(task, TaskSpec):
         return TaskOutput(
             task_spec=task,
-            model_output=[response],
+            model_output=response,
         )
     else:
         raise ValueError(f"Unknown task type {type(task)}")

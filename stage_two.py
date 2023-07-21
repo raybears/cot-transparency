@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional, Type
 
 import fire
-from cot_transparency.data_models.io import load_jsons, save_loaded_dict
+from cot_transparency.data_models.io import ExpLoader, save_loaded_dict
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
@@ -69,8 +69,6 @@ def create_stage_2_tasks(
 
     task_output: TaskOutput
     for task_output in stage_1_task_outputs:
-        assert len(task_output.model_output) == 1  # should only be one model output per task
-
         early_answering_tasks = get_early_answering_tasks(task_output, exp_dir, temperature=temperature)
         tasks_to_run.extend(early_answering_tasks)
 
@@ -127,7 +125,7 @@ def main(
         if not formatter.is_cot:
             raise ValueError("stage two metrics only make sense for COT stage_one_formatters")
 
-    experiment_jsons: dict[Path, ExperimentJsonFormat] = load_jsons(input_exp_dir)[0]  # type: ignore
+    experiment_jsons: dict[Path, ExperimentJsonFormat] = ExpLoader.stage_one(input_exp_dir)
     experiment_jsons = filter_stage1_outputs(experiment_jsons, valid_stage_one_formatters, models)
     if len(experiment_jsons) == 0:
         print("No matching data from stage one found, nothing to run")

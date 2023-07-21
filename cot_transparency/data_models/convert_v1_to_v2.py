@@ -41,7 +41,7 @@ def stage_1_output_convert(output: TaskOutputV1, new_path: Path) -> TaskOutput:
     assert len(output.model_output) == 1, "We only support one model output per task"
     new_output = TaskOutput(
         task_spec=task_spec,
-        model_output=output.model_output,
+        model_output=output.model_output[0],
     )
     return new_output
 

@@ -26,7 +26,7 @@ def test_taskspec_and_taskoutput_give_same():
     dummy_output = ModelOutput(raw_response="The best answer is: (A)", parsed_response="A")
     task_output = TaskOutput(
         task_spec=task_spec,
-        model_output=[dummy_output],
+        model_output=dummy_output,
     )
 
     assert task_output.task_spec_uid() == task_spec.uid()

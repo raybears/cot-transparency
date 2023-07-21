@@ -5,13 +5,13 @@ from cot_transparency.data_models.models_v1 import ExperimentJsonFormat
 
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.data_models.models_v2 import TaskOutput
-from cot_transparency.data_models.io import load_jsons
+from cot_transparency.data_models.io import ExpLoader
 
 if __name__ == "__main__":
     """Produces a jsonl containing answers that
     1. are biased towards the user's choice
     2. are wrong"""
-    jsons, _ = load_jsons("experiments/james")
+    jsons = ExpLoader.stage_one("experiments/james")
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
 

@@ -2,7 +2,7 @@ from typing import Any, Union
 import fire
 from cot_transparency.model_apis import format_for_completion
 from cot_transparency.data_models.models_v2 import ExperimentJsonFormat, StageTwoExperimentJsonFormat
-from cot_transparency.data_models.io import LoadedJsonType, load_jsons
+from cot_transparency.data_models.io import LoadedJsonType, ExpLoader
 
 from pathlib import Path
 from tkinter import LEFT, Frame, Tk, Label, Button, Text, END, OptionMenu, StringVar
@@ -160,11 +160,15 @@ def sort_stage2(loaded_dict: dict[Path, StageTwoExperimentJsonFormat]):
 
 def main(exp_dir: str):
     # Load the JSONs here
-    loaded_jsons, is_stage_two = load_jsons(exp_dir)
-    if is_stage_two:
-        sort_stage2(loaded_jsons)  # type: ignore
-    else:
+    # establish if this stage one or stage two
+    stage = ExpLoader.get_stage(exp_dir)
+    if stage == 1:
+        loaded_jsons = ExpLoader.stage_one(exp_dir)
         sort_stage1(loaded_jsons)  # type: ignore
+    else:
+        loaded_jsons = ExpLoader.stage_two(exp_dir)
+        sort_stage2(loaded_jsons)  # type: ignore
+
     loaded_jsons_with_tuples = convert_loaded_json_keys_to_tuples(loaded_jsons)
 
     root = Tk()

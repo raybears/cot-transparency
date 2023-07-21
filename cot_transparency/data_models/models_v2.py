@@ -83,25 +83,23 @@ class TaskSpec(BaseModel):
 class TaskOutput(BaseModel):
     # This is one single experiment
     task_spec: TaskSpec
-    model_output: list[ModelOutput]
+    model_output: ModelOutput
 
     @property
     def first_parsed_response(self) -> str:
-        return self.model_output[0].parsed_response
+        return self.model_output.parsed_response
 
     @property
     def first_raw_response(self) -> str:
-        return self.model_output[0].raw_response
+        return self.model_output.raw_response
 
     def task_spec_uid(self) -> str:
         return self.task_spec.uid()
 
     def uid(self) -> str:
         inp = self.task_spec_uid()
-        responses = ""
-        for output in self.model_output:
-            responses += output.raw_response
-        return deterministic_hash(inp + responses)
+        response = self.model_output
+        return deterministic_hash(inp + response.raw_response)
 
 
 class StageTwoTaskSpec(BaseModel):
