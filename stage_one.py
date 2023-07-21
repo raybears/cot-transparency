@@ -6,14 +6,14 @@ from typing import Optional, Type
 
 import fire
 from pydantic import ValidationError
-from cot_transparency.data_models.models_v2 import OpenaiInferenceConfig, TaskSpec
+from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.bbh import MilesBBHRawData, MilesBBHRawDataFolder
-from cot_transparency.data_models.models_v2 import ChatMessages
+from cot_transparency.data_models.models import ChatMessages
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
-from cot_transparency.data_models.models_v2 import ExperimentJsonFormat
+from cot_transparency.data_models.models import ExperimentJsonFormat
 from cot_transparency.tasks import TaskSetting
 from cot_transparency.util import get_exp_dir_name
 from cot_transparency.tasks import run_tasks_multi_threaded

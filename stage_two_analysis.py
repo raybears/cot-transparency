@@ -1,7 +1,7 @@
 import fire
 from matplotlib import pyplot as plt
 from analysis import get_general_metrics
-from cot_transparency.data_models.models_v2 import (
+from cot_transparency.data_models.models import (
     StageTwoExperimentJsonFormat,
 )
 import pandas as pd

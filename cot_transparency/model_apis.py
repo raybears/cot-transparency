@@ -1,5 +1,5 @@
 import anthropic
-from cot_transparency.data_models.models_v2 import MessageRoles, OpenaiInferenceConfig
+from cot_transparency.data_models.models import MessageRoles, OpenaiInferenceConfig
 
 from cot_transparency.openai_utils.inference import (
     anthropic_chat,
@@ -7,7 +7,7 @@ from cot_transparency.openai_utils.inference import (
     gpt3_5_rate_limited,
     gpt4_rate_limited,
 )
-from cot_transparency.data_models.models_v2 import ChatMessages
+from cot_transparency.data_models.models import ChatMessages
 
 
 def messages_has_none_role(prompt: list[ChatMessages]) -> bool:

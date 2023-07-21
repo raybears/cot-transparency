@@ -1,5 +1,5 @@
 import fire
-from cot_transparency.data_models.models_v2 import (
+from cot_transparency.data_models.models import (
     StageTwoTaskOutput,
     TaskOutput,
 )

@@ -7,7 +7,7 @@ from cot_transparency.data_models.io import ExpLoader, save_loaded_dict
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-from cot_transparency.data_models.models_v2 import (
+from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,

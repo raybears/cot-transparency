@@ -1,5 +1,5 @@
 from typing import Union
-from cot_transparency.data_models.models_v2 import ExperimentJsonFormat, StageTwoExperimentJsonFormat
+from cot_transparency.data_models.models import ExperimentJsonFormat, StageTwoExperimentJsonFormat
 
 
 import json

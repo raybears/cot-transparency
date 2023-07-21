@@ -5,9 +5,9 @@ from functools import wraps
 from typing import Optional, Callable, TypeVar, Protocol
 
 import tiktoken
-from cot_transparency.data_models.models_v2 import OpenaiInferenceConfig
+from cot_transparency.data_models.models import OpenaiInferenceConfig
 
-from cot_transparency.data_models.models_v2 import ChatMessages
+from cot_transparency.data_models.models import ChatMessages
 
 
 class LeakyBucketRateLimiter:

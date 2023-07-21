@@ -1,5 +1,5 @@
 from typing import Optional
-from cot_transparency.data_models.models_v2 import MessageRoles
+from cot_transparency.data_models.models import MessageRoles
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
@@ -10,7 +10,7 @@ from cot_transparency.formatters.instructions import (
 )
 from cot_transparency.formatters.letters import index_to_letter
 from cot_transparency.data_models.bbh import MilesBBHRawData
-from cot_transparency.data_models.models_v2 import ChatMessages
+from cot_transparency.data_models.models import ChatMessages
 
 
 def format_sycophancy_question(question: str, bias_idx: int) -> str:

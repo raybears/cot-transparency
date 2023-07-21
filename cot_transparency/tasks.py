@@ -5,16 +5,16 @@ from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
 from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
-from cot_transparency.data_models.models_v2 import OpenaiInferenceConfig, StageTwoTaskOutput
+from cot_transparency.data_models.models import OpenaiInferenceConfig, StageTwoTaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.model_apis import call_model_api
-from cot_transparency.data_models.models_v2 import ChatMessages
+from cot_transparency.data_models.models import ChatMessages
 from cot_transparency.formatters import PromptFormatter, name_to_formatter
-from cot_transparency.data_models.models_v2 import TaskOutput
-from cot_transparency.data_models.models_v2 import ModelOutput
-from cot_transparency.data_models.models_v2 import StageTwoTaskSpec
-from cot_transparency.data_models.models_v2 import TaskSpec
+from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.models import ModelOutput
+from cot_transparency.data_models.models import StageTwoTaskSpec
+from cot_transparency.data_models.models import TaskSpec
 from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__)

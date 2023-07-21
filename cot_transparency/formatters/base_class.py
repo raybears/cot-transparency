@@ -1,5 +1,5 @@
 from cot_transparency.data_models.bbh import MilesBBHRawData
-from cot_transparency.data_models.models_v2 import ChatMessages
+from cot_transparency.data_models.models import ChatMessages
 
 
 from typing import Optional, Self, Set, Type

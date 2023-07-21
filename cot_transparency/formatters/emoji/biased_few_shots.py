@@ -3,9 +3,9 @@ from enum import Enum
 from typing import Match
 
 from pydantic import BaseModel
-from cot_transparency.data_models.models_v2 import MessageRoles
+from cot_transparency.data_models.models import MessageRoles
 
-from cot_transparency.data_models.models_v2 import ChatMessages
+from cot_transparency.data_models.models import ChatMessages
 
 # ruff: noqa: E501
 

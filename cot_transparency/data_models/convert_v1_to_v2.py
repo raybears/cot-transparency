@@ -5,7 +5,7 @@ from cot_transparency.data_models.io import save_loaded_dict
 from cot_transparency.data_models.models_v1 import ExperimentJsonFormat as ExperimentJsonFormatV1
 from cot_transparency.data_models.models_v1 import TaskOutput as TaskOutputV1
 
-from cot_transparency.data_models.models_v2 import (
+from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     TaskOutput,
     TaskSpec,

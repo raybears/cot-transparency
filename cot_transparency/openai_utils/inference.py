@@ -9,7 +9,7 @@ from openai.error import APIConnectionError, RateLimitError, ServiceUnavailableE
 from pydantic import BaseModel
 from retry import retry
 from slist import Slist
-from cot_transparency.data_models.models_v2 import ChatMessages, MessageRoles, OpenaiInferenceConfig
+from cot_transparency.data_models.models import ChatMessages, MessageRoles, OpenaiInferenceConfig
 
 import logging
 

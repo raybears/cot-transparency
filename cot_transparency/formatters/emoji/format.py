@@ -1,5 +1,5 @@
 from typing import Optional, Callable
-from cot_transparency.data_models.models_v2 import MessageRoles
+from cot_transparency.data_models.models import MessageRoles
 
 from cot_transparency.formatters.emoji.biased_few_shots import (
     emoji_few_shots_with_system,
@@ -10,7 +10,7 @@ from cot_transparency.formatters.emoji.biased_few_shots import (
 from cot_transparency.formatters.extraction import extract_answer, extract_multiple_choices
 from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
 from cot_transparency.data_models.bbh import MilesBBHRawData
-from cot_transparency.data_models.models_v2 import ChatMessages
+from cot_transparency.data_models.models import ChatMessages
 from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question
 from cot_transparency.formatters.base_class import StageOneFormatter
 

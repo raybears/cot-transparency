@@ -1,7 +1,7 @@
 from typing import Any, Union
 import fire
 from cot_transparency.model_apis import format_for_completion
-from cot_transparency.data_models.models_v2 import ExperimentJsonFormat, StageTwoExperimentJsonFormat
+from cot_transparency.data_models.models import ExperimentJsonFormat, StageTwoExperimentJsonFormat
 from cot_transparency.data_models.io import LoadedJsonType, ExpLoader
 
 from pathlib import Path
