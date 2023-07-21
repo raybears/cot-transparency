@@ -15,6 +15,7 @@ from cot_transparency.data_models.models import (
     TaskOutput,
 )
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
+from cot_transparency.tasks import run_tasks_multi_threaded
 
 from cot_transparency.util import get_exp_dir_name
 from stage_one import get_valid_stage1_formatters
