@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional, Type
 
 import fire
-from cot_transparency.data_models.io import ExpLoader, save_loaded_dict
+from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
