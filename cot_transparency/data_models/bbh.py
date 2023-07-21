@@ -3,7 +3,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel
 
-from cot_transparency.hashing import deterministic_hash
+from cot_transparency.util import deterministic_hash
 
 MultipleChoiceAnswer = Literal["A", "B", "C", "D", "E", "F", "NOT_FOUND"]
 

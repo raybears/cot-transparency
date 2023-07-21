@@ -5,14 +5,16 @@ from pathlib import Path
 from typing import Optional, Type
 
 import fire
-from pydantic import ValidationError, BaseModel
+from pydantic import ValidationError
+from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.miles_models import MilesBBHRawData, MilesBBHRawDataFolder
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
+from cot_transparency.data_models.bbh import MilesBBHRawData, MilesBBHRawDataFolder
+from cot_transparency.data_models.models import ChatMessages
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
-from cot_transparency.tasks import ExperimentJsonFormat, TaskSpec
+from cot_transparency.data_models.models import ExperimentJsonFormat
+from cot_transparency.tasks import TaskSetting
 from cot_transparency.util import get_exp_dir_name
 from cot_transparency.tasks import run_tasks_multi_threaded
 
@@ -47,12 +49,6 @@ def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
             return ExperimentJsonFormat(**_dict)
     else:
         return ExperimentJsonFormat(outputs=[])
-
-
-class TaskSetting(BaseModel):
-    task: str
-    formatter: Type[StageOneFormatter]
-    model: str
 
 
 def create_task_settings(
@@ -110,7 +106,7 @@ def main(
         out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name()}.json")
         already_done = read_done_experiment(out_file_path)
         loaded_dict.update({out_file_path: already_done})
-        already_done_hashes_counts = Counter([o.task_hash for o in already_done.outputs])
+        already_done_hashes_counts = Counter([o.task_spec.task_hash for o in already_done.outputs])
         item: MilesBBHRawData
         for item in data:
             task_hash = item.hash()
@@ -131,7 +127,7 @@ def main(
                 messages=formatted,
                 out_file_path=out_file_path,
                 ground_truth=item.ground_truth,
-                formatter=formatter,
+                formatter_name=formatter.name(),
                 task_hash=task_hash,
                 biased_ans=item.biased_ans,
             )

@@ -19,7 +19,7 @@ line-length = 120
 [tool.pyright]
 exclude = ["utils.py", "bbh_analysis.py", "authenticity_tests.py",
     "format_data_bbh.py", "format_data_bbq.py", "bbq_analysis.py",
-    "run_eval.py", "venv"]
+    "run_eval.py", "venv", "scripts/multi_accuracy.py", "scripts/biased_wrong_answer.py"]
 
 strictListInference = true
 strictDictionaryInference = true

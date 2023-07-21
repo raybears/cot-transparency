@@ -20,3 +20,5 @@ jupyterlab
 tiktoken
 plotly
 kaleido
+nltk
+seaborn

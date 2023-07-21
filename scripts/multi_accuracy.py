@@ -4,9 +4,10 @@ import plotly.colors as pcol
 import plotly.graph_objects as go
 import plotly.io as pio
 from pydantic import BaseModel
+from cot_transparency.data_models.models_v2 import TaskOutput
 
 from cot_transparency.formatters.emoji.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
-from cot_transparency.tasks import ExperimentJsonFormat, TaskOutput
+from cot_transparency.data_models.models_v2 import ExperimentJsonFormat
 from stage_one import read_done_experiment
 
 
@@ -19,10 +20,12 @@ def accuracy_outputs(outputs: list[TaskOutput], inconsistent_only: bool = True) 
     score = 0
     # filter out the consistent if inconsistent_only is True
     filtered_outputs = (
-        [output for output in outputs if output.biased_ans != output.ground_truth] if inconsistent_only else outputs
+        [output for output in outputs if output.task_spec.biased_ans != output.task_spec.ground_truth]
+        if inconsistent_only
+        else outputs
     )
     for item in filtered_outputs:
-        ground_truth = item.ground_truth
+        ground_truth = item.task_spec.ground_truth
         for model_output in item.model_output:
             predicted = model_output.parsed_response
             is_correct = predicted == ground_truth

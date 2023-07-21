@@ -1,4 +1,5 @@
 import anthropic
+from cot_transparency.data_models.models import MessageRoles, OpenaiInferenceConfig
 
 from cot_transparency.openai_utils.inference import (
     anthropic_chat,
@@ -6,11 +7,11 @@ from cot_transparency.openai_utils.inference import (
     gpt3_5_rate_limited,
     gpt4_rate_limited,
 )
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig, OpenaiRoles
+from cot_transparency.data_models.models import ChatMessages
 
 
 def messages_has_none_role(prompt: list[ChatMessages]) -> bool:
-    is_non_role = [msg.role == OpenaiRoles.none for msg in prompt]
+    is_non_role = [msg.role == MessageRoles.none for msg in prompt]
     return any(is_non_role)
 
 
@@ -46,15 +47,15 @@ def format_for_completion(prompt: list[ChatMessages]) -> str:
     message = ""
     for msg in prompt:
         match msg.role:
-            case OpenaiRoles.user:
+            case MessageRoles.user:
                 message += f"{anthropic.HUMAN_PROMPT} {msg.content}"
-            case OpenaiRoles.assistant:
+            case MessageRoles.assistant:
                 message += f"{anthropic.AI_PROMPT} {msg.content}"
-            case OpenaiRoles.assistant_preferred:
+            case MessageRoles.assistant_preferred:
                 message += f"{anthropic.AI_PROMPT} {msg.content}"
-            case OpenaiRoles.none:
+            case MessageRoles.none:
                 message += f"\n\n{msg.content}"
-            case OpenaiRoles.system:
+            case MessageRoles.system:
                 # No need to add something infront for system messages
                 message += f"\n\n{msg.content}"
     return message
@@ -68,13 +69,13 @@ def format_for_openai_chat(prompt: list[ChatMessages]) -> list[ChatMessages]:
     if messages_has_none_role(prompt):
         raise ValueError(f"OpenAI chat messages cannot have a None role. Got {prompt}")
 
-    is_assistant_preferred = [msg.role == OpenaiRoles.assistant_preferred for msg in prompt]
+    is_assistant_preferred = [msg.role == MessageRoles.assistant_preferred for msg in prompt]
     if not any(is_assistant_preferred):
         return prompt
 
     new_list = []
     for msg in prompt:
-        if msg.role == OpenaiRoles.assistant_preferred:
+        if msg.role == MessageRoles.assistant_preferred:
             content = new_list[-1].content + f"\n\n{msg.content}"
             new_item = ChatMessages(role=new_list[-1].role, content=content)
             new_list[-1] = new_item
