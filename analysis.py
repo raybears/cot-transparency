@@ -4,9 +4,7 @@ from cot_transparency.data_models.models import (
     TaskOutput,
 )
 import pandas as pd
-from typing import Optional, List, Sequence
-from cot_transparency.tasks import load_jsons
-from typing import Any, Optional, List, Union
+from typing import Any, Optional, List, Union, Sequence
 from cot_transparency.data_models.io import ExpLoader
 
 from stage_one import BBH_TASK_LIST

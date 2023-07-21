@@ -11,7 +11,7 @@ from cot_transparency.formatters.emoji.biased_few_shots import (
     masked_spot_bias_qn,
     masked_spot_bias_answer,
 )
-from cot_transparency.formatters.emoji.mixed_prompts import mixed_biased_few_shots, mixed_biased_few_shots_with_system
+from cot_transparency.formatters.emoji.mixed_prompts import mixed_biased_few_shots_with_system
 from cot_transparency.formatters.extraction import extract_answer, extract_multiple_choices
 from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
 from cot_transparency.data_models.bbh import MilesBBHRawData
@@ -84,7 +84,9 @@ def format_emoji_bias_masked(
     # Add an instruction
     biased_qn_with_spot_bias_cot = add_instruction_func(biased_qn)
     prompt = (
-        few_shot + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_spot_bias_cot)]
+        few_shot
+        + bias_detection_examples
+        + [ChatMessages(role=MessageRoles.user, content=biased_qn_with_spot_bias_cot)]
     )
     return prompt
 
@@ -103,7 +105,9 @@ def format_emoji_bias_mixed(
     # Add an instruction
     biased_qn_with_spot_bias_cot = add_instruction_func(biased_qn)
     prompt = (
-        few_shot + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_spot_bias_cot)]
+        few_shot
+        + bias_detection_examples
+        + [ChatMessages(role=MessageRoles.user, content=biased_qn_with_spot_bias_cot)]
     )
     return prompt
 
@@ -120,7 +124,9 @@ def format_emoji_bias_with_sys_prompt(
     # Add an instruction
     biased_qn_with_spot_bias_cot = add_instruction_func(biased_qn)
     prompt = (
-        few_shot + bias_detection_examples + [ChatMessages(role=MessageRoles.user, content=biased_qn_with_spot_bias_cot)]
+        few_shot
+        + bias_detection_examples
+        + [ChatMessages(role=MessageRoles.user, content=biased_qn_with_spot_bias_cot)]
     )
     return prompt
 
