@@ -1,12 +1,13 @@
+import fire
 from matplotlib import pyplot as plt
 from cot_transparency.data_models.models_v2 import (
     ExperimentJsonFormat,
     StageTwoExperimentJsonFormat,
+    StageTwoTaskOutput,
+    TaskOutput,
 )
-from cot_transparency.model_apis import format_for_completion
-from cot_transparency.data_models.models_v2 import ChatMessages
 import pandas as pd
-from typing import Optional, List, Union
+from typing import Any, Optional, List, Union
 from cot_transparency.data_models.io import load_jsons
 from cot_transparency.transparency_plots import (
     add_max_step_in_cot_trace,
@@ -22,25 +23,48 @@ for task in BBH_TASK_LIST:
     TASK_MAP[task] = "bbh"
 
 
-def convert_experiment_to_dataframe(exp: Union[ExperimentJsonFormat, StageTwoExperimentJsonFormat]) -> pd.DataFrame:
+def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> dict[str, Any]:
+    d = task_output.dict()
+    d["input_hash"] = task_output.task_spec.uid()
+    d["output_hash"] = task_output.uid()
+    config = task_output.task_spec.model_config
+    task_spec = task_output.task_spec
+    d.pop("task_spec")
+    d.pop("model_output")
+    d_with_config = {**d, **config.dict(), **task_spec.dict()}
+    return d_with_config
+
+
+def convert_stage1_experiment_to_dataframe(exp: ExperimentJsonFormat) -> pd.DataFrame:
     out = []
     for task_output in exp.outputs:
-        d = task_output.dict()
-        d["input_hash"] = task_output.task_spec.uid()
-        d["output_hash"] = task_output.uid()
-        model_outputs = d.pop("model_output")
-        d_with_config = {**d, **d.pop("config")}
-        for model_output in model_outputs:
-            combined_d = {**d_with_config, **model_output}
+        d_with_config = get_general_metrics(task_output)
+        for model_output in task_output.model_output:
+            combined_d = {**d_with_config, **model_output.dict()}
             out.append(combined_d)
+    return pd.DataFrame(out)
+
+
+def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
+    out = []
+    for task_output in exp.outputs:
+        d_with_config = get_general_metrics(task_output)
+        d_with_config["task_name"] = task_output.task_spec.stage_one_output.task_spec.task_name
+        d_with_config["ground_truth"] = task_output.task_spec.stage_one_output.task_spec.ground_truth
+        d_with_config["stage_one_hash"] = task_output.task_spec.stage_one_output.task_spec.uid()
+        d_with_config = {**d_with_config, **task_output.model_output.dict()}
+        out.append(d_with_config)
     return pd.DataFrame(out)
 
 
 def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
     loaded_dict, _ = load_jsons(exp_dir)
     dfs = []
-    for path, exp in loaded_dict.items():
-        df = convert_experiment_to_dataframe(exp)
+    for exp in loaded_dict.values():
+        if isinstance(exp, ExperimentJsonFormat):
+            df = convert_stage1_experiment_to_dataframe(exp)
+        else:
+            df = convert_stage2_experiment_to_dataframe(exp)
         dfs.append(df)
     df = pd.concat(dfs)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
@@ -119,19 +143,6 @@ def counts_are_equal(count_df: pd.DataFrame) -> bool:
     return (count_df.nunique(axis=1) == 1).all()
 
 
-def sample_prompts(exp_dir: str, n: int = 1):
-    df = get_data_frame_from_exp_dir(exp_dir)
-    # sample n prompts from each formatter_name and model
-    df = df.groupby(["formatter_name", "model"]).apply(lambda x: x.sample(n=n))
-    for _, row in df.iterrows():
-        print("\nSample " + "-" * 20)
-        messages: List[ChatMessages] = [ChatMessages(**i) for i in row["prompt"]]
-        print(f"Model: {row['model']}")
-        print(f"Formatter: {row['formatter_name']}")
-        formatted_prompt = format_for_completion(messages)
-        print(formatted_prompt)
-
-
 def plot_historgram_of_lengths(exp_dir: str):
     df = get_data_frame_from_exp_dir(exp_dir)
     plot_historgram_of_cot_steps(df)
@@ -162,12 +173,11 @@ def plot_early_answering(exp_dir: str):
 
 
 if __name__ == "__main__":
-    plot_early_answering("experiments/stage_two/20230718_bbh_with_role_updated_tokenizer")
-    # fire.Fire(
-    #     {
-    #         "accuracy": accuracy,
-    #         "sp": sample_prompts,
-    #         "hist": plot_historgram_of_lengths,
-    #         "early": plot_early_answering,
-    #     }
-    # )
+    # plot_early_answering("experiments/stage_two/20230718_bbh_with_role_updated_tokenizer")
+    fire.Fire(
+        {
+            "accuracy": accuracy,
+            "hist": plot_historgram_of_lengths,
+            "early": plot_early_answering,
+        }
+    )

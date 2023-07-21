@@ -1,19 +1,23 @@
+import json
 from pathlib import Path
 from typing import List, Optional, Type
 
 import fire
-from cot_transparency.data_models.io import load_jsons
+from cot_transparency.data_models.io import load_jsons, save_loaded_dict
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-from cot_transparency.data_models.models_v2 import ExperimentJsonFormat, StageTwoTaskSpec, TaskOutput
+from cot_transparency.data_models.models_v2 import (
+    ExperimentJsonFormat,
+    StageTwoExperimentJsonFormat,
+    StageTwoTaskOutput,
+    StageTwoTaskSpec,
+    TaskOutput,
+)
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
 
-from cot_transparency.tasks import (
-    run_tasks_multi_threaded,
-)
 from cot_transparency.util import get_exp_dir_name
-from stage_one import get_valid_stage1_formatters, read_done_experiment
+from stage_one import get_valid_stage1_formatters
 
 """
 We take traces generated from stage_one.py and run analysis on them
@@ -152,18 +156,20 @@ def main(
         stage_2_tasks.extend(stage_2_tasks_for_this_json)
 
     # work out which tasks wwe have already done
-    loaded_dict: dict[Path, ExperimentJsonFormat] = {}
+    loaded_dict: dict[Path, StageTwoExperimentJsonFormat] = {}
 
     # get the counts of done experiments
     paths = {i.out_file_path for i in stage_2_tasks}
-    completed_outputs: dict[str, TaskOutput] = {}
+    completed_outputs: dict[str, StageTwoTaskOutput] = {}
     for path in paths:
         if path.exists():
-            loaded_dict[path] = read_done_experiment(path)
+            done_exp = StageTwoExperimentJsonFormat(**json.load(open(path)))
+            done_exp.stage = 2
+            loaded_dict[path] = done_exp
             for output in loaded_dict[path].outputs:
-                completed_outputs[output.task_spec_uid()] = output
+                completed_outputs[output.task_spec.uid()] = output
         else:
-            loaded_dict[path] = ExperimentJsonFormat(outputs=[])
+            loaded_dict[path] = StageTwoExperimentJsonFormat(outputs=[])
 
     to_run = []
     for task_spec in stage_2_tasks:
@@ -176,7 +182,8 @@ def main(
             # will need to run save_loaded_dict(loaded_dict) after this
             pass
 
-    run_tasks_multi_threaded(save_file_every, batch=batch, loaded_dict=loaded_dict, tasks_to_run=to_run)
+    # run_tasks_multi_threaded(save_file_every, batch=batch, loaded_dict=loaded_dict, tasks_to_run=to_run)
+    save_loaded_dict(loaded_dict)
 
 
 if __name__ == "__main__":

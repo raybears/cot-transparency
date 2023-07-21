@@ -1,13 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 from typing import Type, Union
 
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
-from cot_transparency.data_models.io import save_loaded_dict
+from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
 from cot_transparency.data_models.models_v2 import OpenaiInferenceConfig, StageTwoTaskOutput
-from cot_transparency.data_models.models_v2 import ExperimentJsonFormat
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.model_apis import call_model_api
@@ -65,7 +63,7 @@ def task_function(task: Union[TaskSpec, StageTwoTaskSpec]) -> Union[TaskOutput, 
 def run_tasks_multi_threaded(
     save_file_every: int,
     batch: int,
-    loaded_dict: dict[Path, ExperimentJsonFormat],
+    loaded_dict: LoadedJsonType,
     tasks_to_run: Union[list[TaskSpec], list[StageTwoTaskSpec]],
 ):
     if len(tasks_to_run) == 0:
@@ -76,7 +74,7 @@ def run_tasks_multi_threaded(
 
     executor = ThreadPoolExecutor(max_workers=batch)
 
-    def kill_and_save(loaded_dict: dict[Path, ExperimentJsonFormat]):
+    def kill_and_save(loaded_dict: LoadedJsonType):
         save_loaded_dict(loaded_dict)
         for future in future_instance_outputs:
             future.cancel()
@@ -89,7 +87,7 @@ def run_tasks_multi_threaded(
         for cnt, instance_output in tqdm(
             enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
         ):
-            output: TaskOutput = instance_output.result()
+            output = instance_output.result()
             # extend the existing json file
             loaded_dict[output.task_spec.out_file_path].outputs.append(output)
             if cnt % save_file_every == 0:
