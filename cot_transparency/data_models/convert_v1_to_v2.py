@@ -9,7 +9,6 @@ from cot_transparency.data_models.models_v2 import (
     ExperimentJsonFormat,
     TaskOutput,
     TaskSpec,
-    StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
     StageTwoTaskSpec,
 )
@@ -82,37 +81,5 @@ def convert_v1_to_v2(exp_dir: str, new_exp_dir: str):
     save_loaded_dict(new_items)
 
 
-def convert_v1_to_v2_stage_two(exp_dir: str, new_exp_dir: str):
-    # this is not working yet
-    loaded = load_jsons(exp_dir)
-
-    # have to also load the stage_one_output
-    stage_one_exp_dir = Path(f"{exp_dir}/stage_one_exp_dir").resolve()
-    stage_one_loaded = load_jsons(str(stage_one_exp_dir))
-
-    # flatten stage_one_loaded on input_hash
-    stage_one_output_dict = {}
-    for path, exp in stage_one_loaded.items():
-        output: TaskOutputV1
-        for output in exp.outputs:
-            stage_one_output_dict[output.output_hash] = output
-
-    new_items: dict[Path, StageTwoExperimentJsonFormat] = {}
-    for path, exp in loaded.items():
-        new_path = Path(str(path).replace(exp_dir, new_exp_dir))
-        new_outputs = []
-        output: TaskOutputV1
-        for output in exp.outputs:
-            # get stage_one_output that created this
-            if output.stage_one_hash in stage_one_output_dict:
-                stage_one_output: TaskOutputV1 = stage_one_output_dict[output.stage_one_hash]
-                new_output = stage_2_output_convert(output, stage_one_output, new_path)
-                new_outputs.append(new_output)
-
-        new_items[new_path] = StageTwoExperimentJsonFormat(outputs=new_outputs)
-
-    save_loaded_dict(new_items)
-
-
 if __name__ == "__main__":
-    fire.Fire({"s1": convert_v1_to_v2, "s2": convert_v1_to_v2_stage_two})
+    fire.Fire(convert_v1_to_v2)
