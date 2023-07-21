@@ -3,7 +3,7 @@ from cot_transparency.tasks import ExperimentJsonFormat
 from cot_transparency.model_apis import format_for_completion
 from cot_transparency.openai_utils.models import ChatMessages
 import pandas as pd
-from typing import Optional, List
+from typing import Optional, List, Sequence
 from cot_transparency.tasks import load_jsons
 
 from stage_one import BBH_TASK_LIST
@@ -41,7 +41,7 @@ def accuracy(
     inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
     model_filter: Optional[str] = None,
-    formatter_filter: Optional[str] = None,
+    formatters: Sequence[str] = [],
     check_counts: bool = True,
     return_dataframes: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
@@ -57,8 +57,9 @@ def accuracy(
     if model_filter:
         # check that df.model contains model_filter
         df = df[df.model.str.contains(model_filter)]
-    if formatter_filter:
-        df = df[df.formatter_name.str.contains(formatter_filter)]
+    if formatters:
+        # check that df.formatter_name is in formatters
+        df = df[df.formatter_name.isin(formatters)]
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
