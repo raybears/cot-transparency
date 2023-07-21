@@ -1,17 +1,15 @@
 from pathlib import Path
 from typing import List, Optional, Type
+
 import fire
+from cot_transparency.data_models.io import load_jsons
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-from cot_transparency.formatters.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.data_models.models_v2 import ExperimentJsonFormat, StageTwoTaskSpec, TaskOutput
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
 
 from cot_transparency.tasks import (
-    ExperimentJsonFormat,
-    StageTwoTaskSpec,
-    TaskOutput,
-    load_jsons,
     run_tasks_multi_threaded,
 )
 from cot_transparency.util import get_exp_dir_name
@@ -27,31 +25,33 @@ def get_early_answering_tasks(
 ) -> List[StageTwoTaskSpec]:
     outputs = []
 
-    cot_steps = get_cot_steps(stage_one_output.model_output[0].raw_response)
+    cot_steps = get_cot_steps(stage_one_output.first_raw_response)
 
     partial_cot = ""
-    for cot_step in cot_steps:
+    for i, cot_step in enumerate(cot_steps):
         partial_cot += cot_step
 
+        config = stage_one_output.task_spec.model_config.copy()
         out_file_path: Path = Path(
-            f"{exp_dir}/{stage_one_output.task_name}/{stage_one_output.config.model}/{EarlyAnsweringFormatter.name()}.json"
+            f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{EarlyAnsweringFormatter.name()}.json"
         )
 
-        config = stage_one_output.config
         if temperature is not None:
             config.temperature = temperature
         config.max_tokens = 1
+
+        # messages / prompt for stage_two
+        messages = EarlyAnsweringFormatter.format_example(stage_one_output.task_spec.messages, partial_cot)
+
         task = StageTwoTaskSpec(
-            task_name=stage_one_output.task_name,
-            model_config=stage_one_output.config,
-            messages=EarlyAnsweringFormatter.format_example(stage_one_output.prompt, partial_cot),
+            stage_one_output=stage_one_output,
+            model_config=config,
+            formatter_name=EarlyAnsweringFormatter.name(),
+            messages=messages,
             out_file_path=out_file_path,
-            ground_truth=stage_one_output.ground_truth,
-            formatter=EarlyAnsweringFormatter,
-            task_hash=stage_one_output.task_hash,
-            biased_ans=stage_one_output.biased_ans,
-            stage_one_hash=stage_one_output.output_hash(),
+            step_in_cot_trace=i,
         )
+
         outputs.append(task)
     return outputs
 
@@ -96,8 +96,9 @@ def filter_stage1_outputs(
         # only need to check the first example as all examples in the same experiment have the same formatter and model
         if len(exp_json.outputs) == 0:
             continue
-        if exp_json.outputs[0].formatter_name in [i.name() for i in stage_one_formatters]:
-            if exp_json.outputs[0].config.model in models:
+        task_spec = exp_json.outputs[0].task_spec
+        if task_spec.formatter_name in [i.name() for i in stage_one_formatters]:
+            if task_spec.model_config.model in models:
                 outputs[k] = exp_json
     return outputs
 
@@ -105,7 +106,7 @@ def filter_stage1_outputs(
 def main(
     input_exp_dir: str,
     models: list[str] = ["text-davinci-003"],
-    stage_one_formatters: list[str] = [ZeroShotCOTUnbiasedFormatter.name()],
+    stage_one_formatters: Optional[list[str]] = None,
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     save_file_every: int = 50,
@@ -113,12 +114,16 @@ def main(
     temperature: float = 0.0,
     example_cap: int = 999999999,
 ):
+    if stage_one_formatters is None:
+        # don't do any filtering, just use all stage one outputs
+        all_formatters = StageOneFormatter.all_formatters().values()
+        stage_one_formatters = [i.name() for i in all_formatters if i.is_cot]  # type: ignore
     valid_stage_one_formatters = get_valid_stage1_formatters(stage_one_formatters)
     for formatter in valid_stage_one_formatters:
         if not formatter.is_cot:
             raise ValueError("stage two metrics only make sense for COT stage_one_formatters")
 
-    experiment_jsons: dict[Path, ExperimentJsonFormat] = load_jsons(input_exp_dir)
+    experiment_jsons: dict[Path, ExperimentJsonFormat] = load_jsons(input_exp_dir)[0]  # type: ignore
     experiment_jsons = filter_stage1_outputs(experiment_jsons, valid_stage_one_formatters, models)
     if len(experiment_jsons) == 0:
         print("No matching data from stage one found, nothing to run")
@@ -151,19 +156,25 @@ def main(
 
     # get the counts of done experiments
     paths = {i.out_file_path for i in stage_2_tasks}
-    completed_hashes: set[str] = set()
+    completed_outputs: dict[str, TaskOutput] = {}
     for path in paths:
         if path.exists():
             loaded_dict[path] = read_done_experiment(path)
             for output in loaded_dict[path].outputs:
-                completed_hashes.add(output.input_hash())
+                completed_outputs[output.task_spec_uid()] = output
         else:
             loaded_dict[path] = ExperimentJsonFormat(outputs=[])
 
     to_run = []
     for task_spec in stage_2_tasks:
-        if task_spec.input_hash() not in completed_hashes:
+        if task_spec.uid() not in completed_outputs:
             to_run.append(task_spec)
+        else:
+            # you can modify already done TaskOutputs here if you need to change
+            # already done experiments, e.g.
+            # completed_outputs[task_spec.input_hash()].stage_one_hash = task_spec.stage_one_hash
+            # will need to run save_loaded_dict(loaded_dict) after this
+            pass
 
     run_tasks_multi_threaded(save_file_every, batch=batch, loaded_dict=loaded_dict, tasks_to_run=to_run)
 

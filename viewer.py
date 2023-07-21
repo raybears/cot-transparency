@@ -1,15 +1,20 @@
-from typing import Any
+from typing import Any, Union
 import fire
 from cot_transparency.model_apis import format_for_completion
-from cot_transparency.tasks import ExperimentJsonFormat, TaskOutput, load_jsons
+from cot_transparency.data_models.models_v2 import ExperimentJsonFormat, StageTwoExperimentJsonFormat
+from cot_transparency.data_models.io import LoadedJsonType, load_jsons
 
 from pathlib import Path
 from tkinter import LEFT, Frame, Tk, Label, Button, Text, END, OptionMenu, StringVar
 from random import choice
 
+LoadedJsonTupleType = Union[
+    dict[tuple[str, str, str], ExperimentJsonFormat], dict[tuple[str, str, str], StageTwoExperimentJsonFormat]
+]
+
 
 class GUI:
-    def __init__(self, master: Tk, json_dict: dict[tuple[str, str, str], ExperimentJsonFormat]):
+    def __init__(self, master: Tk, json_dict: LoadedJsonTupleType):
         width = 150
         self.master = master
         self.json_dict = json_dict
@@ -121,32 +126,45 @@ class GUI:
         self.output_text.delete("1.0", END)
 
         # Insert new text
-        output: TaskOutput
         output = experiment.outputs[self.index]
 
-        formatted_output = format_for_completion(output.prompt)
-        self.config_text.insert(END, str(output.config.json(indent=2)))
+        formatted_output = format_for_completion(output.task_spec.messages)
+        self.config_text.insert(END, str(output.task_spec.model_config.json(indent=2)))
         self.messages_text.insert(END, formatted_output)
-        self.output_text.insert(END, str(output.model_output[0].raw_response))
-        self.parsed_ans_label.config(text=f"Parsed Answer: {output.model_output[0].parsed_response}")
+        self.output_text.insert(END, str(output.first_raw_response))
+        self.parsed_ans_label.config(text=f"Parsed Answer: {output.first_parsed_response}")
 
 
 # Add your load_jsons function here
 
 
 def convert_loaded_json_keys_to_tuples(
-    loaded_dict: dict[Path, ExperimentJsonFormat]
-) -> dict[tuple[str, str, str], ExperimentJsonFormat]:
+    loaded_dict: LoadedJsonType,
+) -> LoadedJsonTupleType:
     # path_format is exp_dir/task_name/model/formatter.json
-    out: dict[tuple[str, str, str], ExperimentJsonFormat] = {}
+    out = {}
     for path, exp in loaded_dict.items():
         out[(path.parent.parent.name, path.parent.name, path.name)] = exp
     return out
 
 
+def sort_stage1(loaded_dict: dict[Path, ExperimentJsonFormat]):
+    for exp in loaded_dict.values():
+        exp.outputs.sort(key=lambda x: x.task_spec_uid())
+
+
+def sort_stage2(loaded_dict: dict[Path, StageTwoExperimentJsonFormat]):
+    for exp in loaded_dict.values():
+        exp.outputs.sort(key=lambda x: (x.stage_one_hash, x.step_in_cot_trace))  # type: ignore
+
+
 def main(exp_dir: str):
     # Load the JSONs here
-    loaded_jsons = load_jsons(exp_dir)
+    loaded_jsons, is_stage_two = load_jsons(exp_dir)
+    if is_stage_two:
+        sort_stage2(loaded_jsons)  # type: ignore
+    else:
+        sort_stage1(loaded_jsons)  # type: ignore
     loaded_jsons_with_tuples = convert_loaded_json_keys_to_tuples(loaded_jsons)
 
     root = Tk()

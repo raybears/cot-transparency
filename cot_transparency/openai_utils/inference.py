@@ -1,26 +1,70 @@
-from typing import Any, Dict, List, Union
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 import anthropic
+import numpy as np
 
 import openai
 from openai import APIError
 from openai.error import APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout
+from pydantic import BaseModel
 from retry import retry
 from slist import Slist
+from cot_transparency.data_models.models_v2 import ChatMessages, MessageRoles, OpenaiInferenceConfig
 
-from cot_transparency.openai_utils.models import (
-    ChatMessages,
-    GPTFullResponse,
-    OpenaiInferenceConfig,
-    TokenInfo,
-    TokenProba,
-    OpenaiRoles,
-)
 import logging
 
 from cot_transparency.openai_utils.rate_limiting import token_rate_limiter
 from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__, logging.INFO)
+
+
+class TokenProba(BaseModel):
+    token: str
+    log_prob: float
+
+
+class FinishReasons(str, Enum):
+    stop = "stop"
+    length = "length"
+
+
+class TokenInfo(BaseModel):
+    token: str  # this is the token that got sampled
+    log_prob: float  # the first token in the prompt will always have a log_prob of 0.0
+    text_offset: int  # the offset of the token in the text
+    # the top 5 tokens in the probability distribution
+    # for first token in the prompt this is empty
+    top_5_tokens: list[TokenProba]
+
+
+class GPTFullResponse(BaseModel):
+    id: Optional[str]
+    # list of ChatMessages if its a chat api
+    prompt: str | list[ChatMessages]
+    completion: str
+    prompt_token_infos: list[TokenInfo]
+    completion_token_infos: list[TokenInfo]
+    completion_total_log_prob: float
+    average_completion_total_log_prob: Optional[float]
+    finish_reason: FinishReasons
+
+    @property
+    def token_infos(self) -> list[TokenInfo]:
+        return self.prompt_token_infos + self.completion_token_infos
+
+    @property
+    def completion_tokens_length(self) -> int:
+        return len(self.completion_token_infos)
+
+    @property
+    def average_completion_prob(self) -> Optional[float]:
+        completion_token_infos_log_prob: Slist[float] = Slist(self.completion_token_infos).map(
+            lambda token_info: token_info.log_prob
+        )
+        # convert them into probabilities and then average them
+        probas: Slist[float] = completion_token_infos_log_prob.map(lambda log_prob: np.exp(log_prob))
+        return probas.average()
 
 
 def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: set[str]) -> GPTFullResponse:
@@ -153,7 +197,7 @@ def get_chat_response_simple(
     prompt: str,
 ) -> GPTFullResponse:
     assert config.model == "gpt-3.5-turbo" or config.model == "gpt-4"
-    messages = [ChatMessages(role=OpenaiRoles.user, content=prompt)]
+    messages = [ChatMessages(role=MessageRoles.user, content=prompt)]
     response = __get_chat_response_dict(
         config=config,
         prompt=messages,

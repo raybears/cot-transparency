@@ -1,19 +1,23 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import json
-from glob import glob
 from pathlib import Path
-from typing import Type, Optional, Union
+from typing import Type, Union
 
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
-from cot_transparency.hashing import deterministic_hash
+from cot_transparency.data_models.io import save_loaded_dict
+from cot_transparency.data_models.models_v2 import OpenaiInferenceConfig, StageTwoTaskOutput
+from cot_transparency.data_models.models_v2 import ExperimentJsonFormat
+from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.miles_models import MultipleChoiceAnswer
 from cot_transparency.model_apis import call_model_api
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiInferenceConfig
-from cot_transparency.formatters import PromptFormatter
-from cot_transparency.util import setup_logger, safe_file_write
+from cot_transparency.data_models.models_v2 import ChatMessages
+from cot_transparency.formatters import PromptFormatter, name_to_formatter
+from cot_transparency.data_models.models_v2 import TaskOutput
+from cot_transparency.data_models.models_v2 import ModelOutput
+from cot_transparency.data_models.models_v2 import StageTwoTaskSpec
+from cot_transparency.data_models.models_v2 import TaskSpec
+from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -21,66 +25,6 @@ logger = setup_logger(__name__)
 class AnswerNotFound(Exception):
     def __init__(self, e: str):
         self.e = e
-
-
-def deterministic_task_hash(task_name: str, messages: list[ChatMessages], model_config: OpenaiInferenceConfig) -> str:
-    hashes: str = ""
-    hashes += task_name
-    hashes += model_config.d_hash()
-    for message in messages:
-        hashes += message.d_hash()
-
-    return deterministic_hash(hashes)
-
-
-class TaskSpec(BaseModel):
-    # This is a dataclass because a PromptFormatter isn't serializable
-    task_name: str
-    model_config: OpenaiInferenceConfig
-    messages: list[ChatMessages]
-    out_file_path: Path
-    ground_truth: MultipleChoiceAnswer
-    formatter: Type[PromptFormatter]
-    task_hash: str  # linked to the orignal question
-    biased_ans: Optional[MultipleChoiceAnswer] = None
-
-    def input_hash(self) -> str:
-        return deterministic_task_hash(self.task_name, self.messages, self.model_config)
-
-
-class StageTwoTaskSpec(TaskSpec):
-    stage_one_hash: str
-
-
-class ModelOutput(BaseModel):
-    raw_response: str
-    # We always have a suitable response because we keep retrying
-    parsed_response: str
-
-
-class TaskOutput(BaseModel):
-    # This is one single experiment
-    task_name: str
-    prompt: list[ChatMessages]
-    model_output: list[ModelOutput]
-    ground_truth: MultipleChoiceAnswer
-    task_hash: str
-    config: OpenaiInferenceConfig
-    formatter_name: str
-    out_file_path: Path
-    biased_ans: Optional[MultipleChoiceAnswer] = None
-
-    @property
-    def first_parsed_response(self) -> str:
-        return self.model_output[0].parsed_response
-
-    def input_hash(self) -> str:
-        return deterministic_task_hash(self.task_name, self.prompt, self.config)
-
-    def output_hash(self) -> str:
-        inp = self.input_hash()
-        output = self.model_output[0].raw_response
-        return deterministic_hash(inp + output)
 
 
 @retry(exceptions=AnswerNotFound, tries=10, delay=1, logger=logger)
@@ -96,56 +40,26 @@ def call_model_until_suitable_response(
     return ModelOutput(raw_response=response, parsed_response=parsed_response)
 
 
-def task_function(task: TaskSpec) -> TaskOutput:
+def task_function(task: Union[TaskSpec, StageTwoTaskSpec]) -> Union[TaskOutput, StageTwoTaskOutput]:
+    formatter = name_to_formatter(task.formatter_name)
     response = call_model_until_suitable_response(
-        messages=task.messages, config=task.model_config, formatter=task.formatter
-    )
-    outputs = [response]  # maintained as list for backwards compatibility
-
-    # have to use different hashes for stage one and stage two
-    if isinstance(task, StageTwoTaskSpec):
-        task_hash = task.input_hash()
-    else:
-        task_hash = task.task_hash
-
-    return TaskOutput(
-        task_name=task.task_name,
-        prompt=task.messages,
-        model_output=outputs,
-        ground_truth=task.ground_truth,
-        task_hash=task_hash,
+        messages=task.messages,
         config=task.model_config,
-        out_file_path=task.out_file_path,
-        formatter_name=task.formatter.name(),
-        biased_ans=task.biased_ans,
+        formatter=formatter,
     )
 
-
-class ExperimentJsonFormat(BaseModel):
-    # e.g. 1000 examples will have 1000 entries
-    outputs: list[TaskOutput]
-
-    def already_done_hashes(self) -> list[str]:
-        return [o.task_hash for o in self.outputs]
-
-
-def save_loaded_dict(loaded_dict: dict[Path, ExperimentJsonFormat]):
-    for file_out, loaded in loaded_dict.items():
-        # create the directory if it doesn't exist
-        file_out.parent.mkdir(parents=True, exist_ok=True)
-        _json = loaded.json(indent=2)
-        safe_file_write(str(file_out), _json)
-
-
-def load_jsons(exp_dir: str) -> dict[Path, ExperimentJsonFormat]:
-    loaded_dict: dict[Path, ExperimentJsonFormat] = {}
-
-    paths = glob(f"{exp_dir}/*/*/*.json", recursive=True)
-    print(f"Found {len(paths)} json files")
-    for path in paths:
-        _dict = json.load(open(path))
-        loaded_dict[Path(path)] = ExperimentJsonFormat(**_dict)
-    return loaded_dict
+    if isinstance(task, StageTwoTaskSpec):
+        return StageTwoTaskOutput(
+            task_spec=task,
+            model_output=response,
+        )
+    elif isinstance(task, TaskSpec):
+        return TaskOutput(
+            task_spec=task,
+            model_output=[response],
+        )
+    else:
+        raise ValueError(f"Unknown task type {type(task)}")
 
 
 def run_tasks_multi_threaded(
@@ -177,7 +91,7 @@ def run_tasks_multi_threaded(
         ):
             output: TaskOutput = instance_output.result()
             # extend the existing json file
-            loaded_dict[output.out_file_path].outputs.append(output)
+            loaded_dict[output.task_spec.out_file_path].outputs.append(output)
             if cnt % save_file_every == 0:
                 save_loaded_dict(loaded_dict)
 
@@ -191,3 +105,9 @@ def run_tasks_multi_threaded(
         exit(1)
 
     save_loaded_dict(loaded_dict)
+
+
+class TaskSetting(BaseModel):
+    task: str
+    formatter: Type[StageOneFormatter]
+    model: str

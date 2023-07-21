@@ -1,7 +1,8 @@
+from cot_transparency.data_models.models_v2 import MessageRoles
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.transparency import EarlyAnsweringFormatter
 from cot_transparency.model_apis import format_for_completion
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
+from cot_transparency.data_models.models_v2 import ChatMessages
 
 
 GONE_WITH_THE_WILD = """Q: Which of the following is a humorous edit of this artist or movie name: 'gone with the wind'?
@@ -20,8 +21,8 @@ EXAMPLE_COT = """first, I want to consider the meaning of the original phrase, "
 
 def test_early_answering_formatter():
     input_messages: list[ChatMessages] = [
-        ChatMessages(role=OpenaiRoles.user, content=GONE_WITH_THE_WILD),
-        ChatMessages(role=OpenaiRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
+        ChatMessages(role=MessageRoles.user, content=GONE_WITH_THE_WILD),
+        ChatMessages(role=MessageRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
     ]
 
     messages = EarlyAnsweringFormatter.format_example(input_messages, EXAMPLE_COT)

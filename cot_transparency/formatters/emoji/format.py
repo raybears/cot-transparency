@@ -1,4 +1,5 @@
 from typing import Optional, Callable
+from cot_transparency.data_models.models_v2 import MessageRoles
 
 from cot_transparency.formatters.emoji.biased_few_shots import (
     emoji_few_shots_with_system,
@@ -8,8 +9,8 @@ from cot_transparency.formatters.emoji.biased_few_shots import (
 )
 from cot_transparency.formatters.extraction import extract_answer, extract_multiple_choices
 from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
-from cot_transparency.miles_models import MilesBBHRawData
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
+from cot_transparency.data_models.bbh import MilesBBHRawData
+from cot_transparency.data_models.models_v2 import ChatMessages
 from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -53,7 +54,9 @@ def format_emoji_bias(question: MilesBBHRawData, add_instruction_func: Callable[
     # Add an instruction
     biased_qn_with_spot_bias_cot = add_instruction_func(biased_qn)
     prompt = (
-        few_shot + bias_detection_examples + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_spot_bias_cot)]
+        few_shot
+        + bias_detection_examples
+        + [ChatMessages(role=MessageRoles.user, content=biased_qn_with_spot_bias_cot)]
     )
     return prompt
 
@@ -69,7 +72,7 @@ def format_emoji_bias_baseline_no_spot(example: MilesBBHRawData) -> list[ChatMes
     prompt: list[ChatMessages] = (
         emoji_few_shots_with_system
         + bias_detection_examples
-        + [ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_cot)]
+        + [ChatMessages(role=MessageRoles.user, content=biased_qn_with_cot)]
     )
     return prompt
 
@@ -81,7 +84,7 @@ def format_emoji_bias_baseline_no_spot_no_sycophancy(question: MilesBBHRawData) 
     # just ask for COT instead of asking for COT with bias
     biased_qn_with_cot = add_verbalize_instruction_to_question(question=biased_qn)
     prompt: list[ChatMessages] = emoji_biased_few_shots + [
-        ChatMessages(role=OpenaiRoles.user, content=biased_qn_with_cot)
+        ChatMessages(role=MessageRoles.user, content=biased_qn_with_cot)
     ]
     return prompt
 
