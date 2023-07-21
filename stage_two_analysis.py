@@ -60,20 +60,12 @@ def plot_early_answering(exp_dir: str):
     cot_lengths = df_combined.groupby("stage_one_hash")["step_in_cot_trace"].transform("max") + 1  # type: ignore
     df_combined["cot_trace_length"] = cot_lengths
 
-    # Add a new column 'is_biased' based on the 'formatter_name' column
-    df_combined["is_biased"] = ~df_combined["formatter_name"].str.contains("Unbiased")
-
     # Plot by task
-    plot_cot_trace(df_combined, plot_by="task")
+    plot_cot_trace(df_combined)
     plt.show()
-
-    # # Plot by bias
-    # plot_cot_trace(df_combined, plot_by="bias")
-    # plt.show()
 
 
 if __name__ == "__main__":
-    # plot_early_answering("experiments/stage_two/20230718_bbh_with_role_updated_tokenizer")
     fire.Fire(
         {
             "hist": plot_historgram_of_lengths,
