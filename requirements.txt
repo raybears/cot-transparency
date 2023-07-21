@@ -21,3 +21,4 @@ tiktoken
 plotly
 kaleido
 nltk
+seaborn
