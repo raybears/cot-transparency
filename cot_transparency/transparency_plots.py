@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
+from cot_transparency.data_models.models import TaskOutput
+
 
 def add_max_step_in_cot_trace(df: pd.DataFrame) -> pd.DataFrame:
     # Remove duplicate stage_one_hash rows
@@ -43,27 +45,35 @@ def check_same_answer(group: pd.DataFrame) -> pd.DataFrame:
     return group
 
 
-def plot_cot_trace(df: pd.DataFrame, plot_by: str):
-    assert plot_by in ["task", "bias"], "plot_by should be either 'task' or 'bias'"
+def plot_cot_trace(df: pd.DataFrame):
     df = df.copy()
 
     df = df[df["cot_trace_length"].isin([3, 4, 5, 6])]
+    stage_one_output = [TaskOutput(**i) for i in df["stage_one_output"]]
+    stage_formatter = [i.task_spec.formatter_name for i in stage_one_output]
+    df["stage_one_formatter_name"] = stage_formatter
 
-    if plot_by == "task":
-        unique_plots = df["formatter_name"].unique()
-        title = "{task}-step CoT"
-    else:  # plot_by == 'bias'
-        unique_plots = [("Unbiased" if not x else "Biased") for x in df["is_biased"].unique()]
-        title = "{bias}-step CoT"
+    print("---------------- Counts -----------------")
+
+    counts = df.groupby(["task_name", "cot_trace_length", "stage_one_formatter_name"])["same_answer"].count()
+    counts_pivot = counts.reset_index().pivot(
+        index=["task_name", "stage_one_formatter_name"],  # type: ignore
+        columns="cot_trace_length",  # type: ignore
+        values="same_answer",  # type: ignore
+    )  # type: ignore
+    print(counts_pivot)
+
+    unique_plots = df["stage_one_formatter_name"].unique()
+    title = "{task}-step CoT"
 
     y_axis_limits = [i * 100 for i in [0.45, 1.05]]
 
     for plot in unique_plots:
         fig, axs = plt.subplots(2, 2, figsize=(15, 10))
-        plt.subplots_adjust(bottom=0.25, left=0.15)  # Make more space for the labels
-        proportion_df = df[df["formatter_name"] == plot]
+        plt.subplots_adjust(bottom=0.4, left=0.15)  # Make more space for the labels
+        filtered_df = df[df["stage_one_formatter_name"] == plot]
         proportion_df = (
-            df.groupby(["task_name", "is_biased", "cot_trace_length", "step_in_cot_trace"])["same_answer"]
+            filtered_df.groupby(["task_name", "cot_trace_length", "step_in_cot_trace"])["same_answer"]
             .mean()
             .reset_index()
         )
@@ -73,37 +83,26 @@ def plot_cot_trace(df: pd.DataFrame, plot_by: str):
         for i, length in enumerate([3, 4, 5, 6]):
             ax = axs[i // 2, i % 2]
             for task_name in df["task_name"].unique():
-                if plot_by == "task":
-                    data = proportion_df[
-                        (proportion_df["cot_trace_length"] == length) & (proportion_df["task_name"] == task_name)
-                    ]
-                    label = f"{task_name}"
-                else:  # plot_by == 'bias'
-                    raise NotImplementedError
-                    # bias = plot == "Biased"
-                    # data = proportion_df[
-                    #     (proportion_df["cot_trace_length"] == length)
-                    #     & (proportion_df["is_biased"] == bias)
-                    #     & (proportion_df["task_name"] == task_name)
-                    # ]
-                    # label = task_name
+                data = proportion_df[
+                    (proportion_df["cot_trace_length"] == length) & (proportion_df["task_name"] == task_name)
+                ]
+                label = f"{task_name}"
 
-                data["step_in_cot_trace_percentage"] = data["step_in_cot_trace"] / (length - 1) * 100
-                line = ax.plot(data["step_in_cot_trace_percentage"], data["same_answer"] * 100)
-                ax.scatter(data["step_in_cot_trace_percentage"], data["same_answer"] * 100)
+                step_in_cot_percent = data["step_in_cot_trace"] / (length - 1) * 100
+                line = ax.plot(step_in_cot_percent, data["same_answer"] * 100)
+                ax.scatter(step_in_cot_percent, data["same_answer"] * 100)
                 # Avoid adding duplicate lines/labels
                 if label not in labels:
                     lines.append(line[0])
                     labels.append(label)
 
-            ax.set_title(title.format(task=i))
+            ax.set_title(title.format(task=length))
             ax.set_ylim(y_axis_limits)
             ax.grid(True)
 
         # Add a shared y-label
         fig.add_subplot(111, frame_on=False)
         plt.tick_params(labelcolor="none", bottom=False, left=False)
-        # plt.xlabel("Common X")
         plt.ylabel("% Same Answer as Complete CoT", labelpad=15)
         plt.xlabel("% of Reasoning Sample Provided", labelpad=10)
         plt.title(f"Formatter: {plot}", pad=40)
@@ -113,5 +112,3 @@ def plot_cot_trace(df: pd.DataFrame, plot_by: str):
         fig.legend(lines, labels, loc="lower center", bbox_to_anchor=(0.5, 0.0), fancybox=True, shadow=False, ncol=5)
 
         plt.tight_layout()
-
-    # plt.show()
