@@ -16,5 +16,7 @@ htmlcov
 .cache
 
 experiments/*
+notebooks
+
 
 .env

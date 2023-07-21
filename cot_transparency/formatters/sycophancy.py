@@ -1,4 +1,5 @@
 from typing import Optional
+from cot_transparency.data_models.models import MessageRoles
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
@@ -8,8 +9,8 @@ from cot_transparency.formatters.instructions import (
     NON_COT_ASSISTANT_PROMPT,
 )
 from cot_transparency.formatters.letters import index_to_letter
-from cot_transparency.miles_models import MilesBBHRawData
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
+from cot_transparency.data_models.bbh import MilesBBHRawData
+from cot_transparency.data_models.models import ChatMessages
 
 
 def format_sycophancy_question(question: str, bias_idx: int) -> str:
@@ -38,8 +39,8 @@ class ZeroShotCOTSycophancyFormatter(StageOneFormatter):
         message = add_verbalize_instruction_to_question(question.parsed_inputs)
         message = format_sycophancy_question(question=message, bias_idx=question.random_ans_idx)
         output = [
-            ChatMessages(role=OpenaiRoles.user, content=message),
-            ChatMessages(role=OpenaiRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
+            ChatMessages(role=MessageRoles.user, content=message),
+            ChatMessages(role=MessageRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
@@ -62,8 +63,8 @@ class ZeroShotCOTSycophancyToldBiasFormatter(StageOneFormatter):
         )
         user_message = add_verbalize_instruction_to_question(formatted_question)
         output = [
-            ChatMessages(role=OpenaiRoles.user, content=user_message),
-            ChatMessages(role=OpenaiRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
+            ChatMessages(role=MessageRoles.user, content=user_message),
+            ChatMessages(role=MessageRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
@@ -82,8 +83,8 @@ class ZeroShotSycophancyFormatter(StageOneFormatter):
             question=question.parsed_inputs, bias_idx=question.random_ans_idx
         )
         output = [
-            ChatMessages(role=OpenaiRoles.user, content=formatted_question),
-            ChatMessages(role=OpenaiRoles.assistant_preferred, content=NON_COT_ASSISTANT_PROMPT),
+            ChatMessages(role=MessageRoles.user, content=formatted_question),
+            ChatMessages(role=MessageRoles.assistant_preferred, content=NON_COT_ASSISTANT_PROMPT),
         ]
         return output
 
@@ -95,7 +96,7 @@ class ZeroShotSycophancyFormatter(StageOneFormatter):
 def remove_role_from_messages(messages: list[ChatMessages]) -> list[ChatMessages]:
     output = []
     for msg in messages:
-        new_message = ChatMessages(role=OpenaiRoles.none, content=msg.content)
+        new_message = ChatMessages(role=MessageRoles.none, content=msg.content)
         output.append(new_message)
     return output
 

@@ -1,3 +1,4 @@
+from cot_transparency.data_models.models import MessageRoles
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.instructions import (
@@ -6,8 +7,8 @@ from cot_transparency.formatters.instructions import (
     add_verbalize_instruction_to_question,
 )
 from cot_transparency.formatters.sycophancy import remove_role_from_messages
-from cot_transparency.miles_models import MilesBBHRawData
-from cot_transparency.openai_utils.models import ChatMessages, OpenaiRoles
+from cot_transparency.data_models.bbh import MilesBBHRawData
+from cot_transparency.data_models.models import ChatMessages
 
 
 from typing import Optional
@@ -25,8 +26,8 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
         user_message = add_verbalize_instruction_to_question(question.parsed_inputs)
         output = [
-            ChatMessages(role=OpenaiRoles.user, content=user_message),
-            ChatMessages(role=OpenaiRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
+            ChatMessages(role=MessageRoles.user, content=user_message),
+            ChatMessages(role=MessageRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
@@ -43,8 +44,8 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
         formatted_question = format_unbiased_question(question=question.parsed_inputs)
         output = [
-            ChatMessages(role=OpenaiRoles.user, content=formatted_question),
-            ChatMessages(role=OpenaiRoles.assistant_preferred, content=NON_COT_ASSISTANT_PROMPT),
+            ChatMessages(role=MessageRoles.user, content=formatted_question),
+            ChatMessages(role=MessageRoles.assistant_preferred, content=NON_COT_ASSISTANT_PROMPT),
         ]
         return output
 

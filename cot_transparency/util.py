@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import logging
 import os
 import tempfile
@@ -42,3 +43,7 @@ def safe_file_write(filename: str, data: str):
     except Exception as e:
         os.remove(temp_name)
         raise e
+
+
+def deterministic_hash(something: str) -> str:
+    return hashlib.sha1(something.encode()).hexdigest()

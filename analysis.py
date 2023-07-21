@@ -1,10 +1,11 @@
 import fire
-from cot_transparency.tasks import ExperimentJsonFormat
-from cot_transparency.model_apis import format_for_completion
-from cot_transparency.openai_utils.models import ChatMessages
+from cot_transparency.data_models.models import (
+    StageTwoTaskOutput,
+    TaskOutput,
+)
 import pandas as pd
-from typing import Optional, List
-from cot_transparency.tasks import load_jsons
+from typing import Any, Optional, List, Union
+from cot_transparency.data_models.io import ExpLoader
 
 from stage_one import BBH_TASK_LIST
 
@@ -13,25 +14,28 @@ for task in BBH_TASK_LIST:
     TASK_MAP[task] = "bbh"
 
 
-def convert_experiment_to_dataframe(exp: ExperimentJsonFormat) -> pd.DataFrame:
-    out = []
-    for task_output in exp.outputs:
-        d = task_output.dict()
-        model_outputs = d.pop("model_output")
-        d_with_config = {**d, **d.pop("config")}
-        for model_output in model_outputs:
-            combined_d = {**d_with_config, **model_output}
-            out.append(combined_d)
-    return pd.DataFrame(out)
+def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> dict[str, Any]:
+    d = task_output.dict()
+    d["input_hash"] = task_output.task_spec.uid()
+    d["output_hash"] = task_output.uid()
+    config = task_output.task_spec.model_config
+    task_spec = task_output.task_spec
+    d.pop("task_spec")
+    d.pop("model_output")
+    d_with_config = {**d, **config.dict(), **task_spec.dict()}
+    return d_with_config
 
 
 def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
-    loaded_dict = load_jsons(exp_dir)
-    dfs = []
-    for path, exp in loaded_dict.items():
-        df = convert_experiment_to_dataframe(exp)
-        dfs.append(df)
-    df = pd.concat(dfs)
+    loaded_dict = ExpLoader.stage_one(exp_dir)
+    out = []
+    for exp in loaded_dict.values():
+        for task_output in exp.outputs:
+            d_with_config = get_general_metrics(task_output)
+            model_output = task_output.model_output
+            combined_d = {**d_with_config, **model_output.dict()}
+            out.append(combined_d)
+    df = pd.DataFrame(out)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
     return df
 
@@ -108,23 +112,6 @@ def counts_are_equal(count_df: pd.DataFrame) -> bool:
     return (count_df.nunique(axis=1) == 1).all()
 
 
-def sample_prompts(exp_dir: str, n: int = 1):
-    df = get_data_frame_from_exp_dir(exp_dir)
-    # sample n prompts from each formatter_name and model
-    df = df.groupby(["formatter_name", "model"]).apply(lambda x: x.sample(n=n))
-    for _, row in df.iterrows():
-        print("\nSample " + "-" * 20)
-        messages: List[ChatMessages] = [ChatMessages(**i) for i in row["prompt"]]
-        print(f"Model: {row['model']}")
-        print(f"Formatter: {row['formatter_name']}")
-        formatted_prompt = format_for_completion(messages)
-        print(formatted_prompt)
-
-
 if __name__ == "__main__":
-    fire.Fire(
-        {
-            "accuracy": accuracy,
-            "sp": sample_prompts,
-        }
-    )
+    # plot_early_answering("experiments/stage_two/20230718_bbh_with_role_updated_tokenizer")
+    fire.Fire(accuracy)
