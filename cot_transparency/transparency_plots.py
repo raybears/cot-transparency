@@ -3,12 +3,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-from cot_transparency.data_models.models import TaskOutput
-
 
 def add_max_step_in_cot_trace(df: pd.DataFrame) -> pd.DataFrame:
     # Remove duplicate stage_one_hash rows
     df["max_step_in_cot_trace"] = df.groupby("stage_one_hash")["step_in_cot_trace"].transform("max")
+    df["cot_trace_length"] = df["max_step_in_cot_trace"] + 1
     return df
 
 
@@ -45,42 +44,49 @@ def check_same_answer(group: pd.DataFrame) -> pd.DataFrame:
     return group
 
 
-def plot_cot_trace(df: pd.DataFrame):
+def plot_cot_trace(df: pd.DataFrame, step_filter: list[int] = [3, 4, 5, 6]):
     df = df.copy()
 
-    df = df[df["cot_trace_length"].isin([3, 4, 5, 6])]
-    stage_one_output = [TaskOutput(**i) for i in df["stage_one_output"]]
-    stage_formatter = [i.task_spec.formatter_name for i in stage_one_output]
-    df["stage_one_formatter_name"] = stage_formatter
+    df = df[df["cot_trace_length"].isin(step_filter)]
 
     print("---------------- Counts -----------------")
+    count_groups = ["task_name", "cot_trace_length", "stage_one_formatter_name"]
+    # filter on step_in_cot_trace == 0 as we only want to count the number of cot_traces
+    counts = df[df.step_in_cot_trace == 0]
+    counts = counts.groupby(count_groups)["same_answer"].count().reset_index()
 
-    counts = df.groupby(["task_name", "cot_trace_length", "stage_one_formatter_name"])["same_answer"].count()
-    counts_pivot = counts.reset_index().pivot(
+    # rename same_answer
+    counts = counts.rename(columns={"same_answer": "num_samples"})
+    counts_pivot = counts.pivot(
         index=["task_name", "stage_one_formatter_name"],  # type: ignore
         columns="cot_trace_length",  # type: ignore
-        values="same_answer",  # type: ignore
+        values="num_samples",  # type: ignore
     )  # type: ignore
     print(counts_pivot)
 
     unique_plots = df["stage_one_formatter_name"].unique()
     title = "{task}-step CoT"
 
-    y_axis_limits = [i * 100 for i in [0.45, 1.05]]
+    y_axis_limits = [i * 100 for i in [-0.05, 1.05]]
 
+    aocs = []
     for plot in unique_plots:
         fig, axs = plt.subplots(2, 2, figsize=(15, 10))
-        plt.subplots_adjust(bottom=0.4, left=0.15)  # Make more space for the labels
         filtered_df = df[df["stage_one_formatter_name"] == plot]
         proportion_df = (
             filtered_df.groupby(["task_name", "cot_trace_length", "step_in_cot_trace"])["same_answer"]
             .mean()
             .reset_index()
         )
+        accuracy_df = (
+            filtered_df.groupby(["task_name", "cot_trace_length", "step_in_cot_trace"])["is_correct"]
+            .mean()
+            .reset_index()
+        )
 
         lines = []  # to store the line objects for the legend
         labels = []  # to store the labels for the legend
-        for i, length in enumerate([3, 4, 5, 6]):
+        for i, length in enumerate(step_filter):
             ax = axs[i // 2, i % 2]
             for task_name in df["task_name"].unique():
                 data = proportion_df[
@@ -89,8 +95,33 @@ def plot_cot_trace(df: pd.DataFrame):
                 label = f"{task_name}"
 
                 step_in_cot_percent = data["step_in_cot_trace"] / (length - 1) * 100
-                line = ax.plot(step_in_cot_percent, data["same_answer"] * 100)
-                ax.scatter(step_in_cot_percent, data["same_answer"] * 100)
+                same_answer_percent = data["same_answer"] * 100
+                line = ax.plot(step_in_cot_percent, same_answer_percent)
+                ax.scatter(step_in_cot_percent, same_answer_percent)
+
+                acc_data = accuracy_df[
+                    (accuracy_df["task_name"] == task_name) & (accuracy_df["cot_trace_length"] == length)
+                ]
+                acc_with_no_cot = acc_data[acc_data["step_in_cot_trace"] == 0]["is_correct"]
+                acc_with_cot = acc_data[acc_data["step_in_cot_trace"] == length - 1]["is_correct"]
+
+                # convert acc to float and multiply by 100 if not empty array otherwise None
+                acc_with_no_cot = acc_with_no_cot.values[0] * 100 if len(acc_with_no_cot) > 0 else None
+                acc_with_cot = acc_with_cot.values[0] * 100 if len(acc_with_cot) > 0 else None
+
+                # store the data for aoc calculations
+                # Store X and Y coordinates
+                aoc_dict = dict(
+                    task_name=task_name,
+                    stage_one_formatter_name=plot,
+                    cot_trace_length=length,
+                    x_values=step_in_cot_percent.values,
+                    y_values=same_answer_percent.values,
+                    acc_with_no_cot=acc_with_no_cot,
+                    acc_with_cot=acc_with_cot,
+                )
+                aocs.append(aoc_dict)
+
                 # Avoid adding duplicate lines/labels
                 if label not in labels:
                     lines.append(line[0])
@@ -109,6 +140,51 @@ def plot_cot_trace(df: pd.DataFrame):
 
         # Create the legend from the list of Line2D objects
         # Adjust the position of the legend, add it to the figure, not the axes
-        fig.legend(lines, labels, loc="lower center", bbox_to_anchor=(0.5, 0.0), fancybox=True, shadow=False, ncol=5)
-
         plt.tight_layout()
+        fig.subplots_adjust(bottom=0.14, left=0.06)  # Make more space for the legend and the x, y labels
+        fig.legend(lines, labels, loc="lower center", bbox_to_anchor=(0.5, 0.0), fancybox=True, shadow=False, ncol=6)
+
+    # calculaate aocs
+    aoc_df = pd.DataFrame(aocs)
+    aoc_df["aoc"] = aoc_df.apply(lambda x: aoc_calculation(x["x_values"], x["y_values"]), axis=1)
+    # join with counts on task_name, cot_trace_length, stage_one_formatter_name
+    aoc_df = aoc_df.merge(counts, on=count_groups)
+
+    # aggregate over cot_trace_lenght weighting the aoc by the number of samples
+    # Create a new column for the weighted AOC
+    aoc_df["weighted_aoc"] = aoc_df["aoc"] * aoc_df["num_samples"]
+    aoc_df["no_cot_acc"] = aoc_df["acc_with_no_cot"] * aoc_df["num_samples"]
+    aoc_df["cot_acc"] = aoc_df["acc_with_cot"] * aoc_df["num_samples"]
+
+    for formatter_name in aoc_df["stage_one_formatter_name"].unique():
+        filtered_df = aoc_df[aoc_df["stage_one_formatter_name"] == formatter_name]
+
+        # Group by the desired columns and sum the weighted AOC,
+        # then divide by the total number of samples for each group
+        aoc_df_grouped = (
+            filtered_df.groupby(["task_name"])
+            .agg(
+                {
+                    "weighted_aoc": "sum",
+                    "no_cot_acc": "sum",
+                    "cot_acc": "sum",
+                    "num_samples": "sum",
+                }
+            )
+            .reset_index()
+        )
+        aoc_df_grouped["weighted_aoc"] = aoc_df_grouped["weighted_aoc"] / aoc_df_grouped["num_samples"]
+        aoc_df_grouped["no_cot_acc"] = aoc_df_grouped["no_cot_acc"] / aoc_df_grouped["num_samples"]
+        aoc_df_grouped["cot_acc"] = aoc_df_grouped["cot_acc"] / aoc_df_grouped["num_samples"]
+
+        print(f"---------------- AOC for {formatter_name} -----------------")
+        aoc_df_grouped["acc_delta"] = aoc_df_grouped["cot_acc"] - aoc_df_grouped["no_cot_acc"]
+        print(aoc_df_grouped.set_index("task_name"))
+
+
+def aoc_calculation(x: np.ndarray[float], y: np.ndarray[float]):  # type: ignore
+    # calculate auc then do total area - auc to get aoc
+    auc = np.trapz(y, x) / (100 * 100)
+    total_area = 1
+    aoc = total_area - auc
+    return aoc
