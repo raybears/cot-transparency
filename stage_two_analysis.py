@@ -59,8 +59,14 @@ def plot_historgram_of_lengths(exp_dir: str):
     plot_historgram_of_cot_steps(df)
 
 
-def plot_early_answering(exp_dir: str, show_plots: bool = False, inconsistent_only: bool = False):
+def plot_early_answering(
+    exp_dir: str, show_plots: bool = False, inconsistent_only: bool = False, aggregate_over_tasks: bool = False
+):
     df = get_data_frame_from_exp_dir(exp_dir)
+
+    if aggregate_over_tasks:
+        # replace task_name with the "parent" task name using the task_map
+        df["task_name"] = df["task_name"].replace(TASK_MAP)
 
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]
