@@ -113,3 +113,7 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
             ChatMessages(role=MessageRoles.user, content=with_label_instruction),
         ]
         return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)

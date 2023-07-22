@@ -1,8 +1,7 @@
+from typing import Optional, Self, Set, Type
+
 from cot_transparency.data_models.bbh import MilesBBHRawData
 from cot_transparency.data_models.models import ChatMessages
-
-
-from typing import Optional, Self, Set, Type
 
 
 class PromptFormatter:
