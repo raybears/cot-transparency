@@ -5,7 +5,7 @@ from cot_transparency.formatters.emoji.format import (
     EmojiBaselineFormatter,
     EmojiToldBiasFormatter,
 )
-from cot_transparency.formatters.source_bias.stanford import ZeroShotCOTStanfordFormatter
+from cot_transparency.formatters.verbalize.stanford import ZeroShotCOTStanfordFormatter
 from cot_transparency.formatters.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,

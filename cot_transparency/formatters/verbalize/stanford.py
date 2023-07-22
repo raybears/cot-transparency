@@ -6,6 +6,18 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question, COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.letters import index_to_letter
+from cot_transparency.formatters.verbalize.prompts import (
+    system_prompt_message,
+    design_question_message,
+    design_answer_message,
+    five_words_question_message,
+    five_words_answer_message,
+    checkmark_question_message,
+    checkmark_answer_message,
+    cross_question_message,
+    cross_answer_message,
+    label_bias_instruction,
+)
 
 
 def format_stanford_question(question: str, bias_idx: int) -> str:
@@ -27,6 +39,34 @@ class ZeroShotCOTStanfordFormatter(StageOneFormatter):
             ChatMessages(role=MessageRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
         ]
         return output
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
+
+
+class TreatmentCOTStanfordFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+        message = format_stanford_question(question=question.parsed_inputs, bias_idx=question.random_ans_idx)
+        with_label_instruction = f"""{message}
+{label_bias_instruction}"""
+        messages = [
+            system_prompt_message,
+            design_question_message,
+            design_answer_message,
+            five_words_question_message,
+            five_words_answer_message,
+            checkmark_question_message,
+            checkmark_answer_message,
+            cross_question_message,
+            cross_answer_message,
+            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+        ]
+        return messages
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
