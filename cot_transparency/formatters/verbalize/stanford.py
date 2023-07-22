@@ -85,6 +85,24 @@ class StanfordTreatmentFormatter(StageOneFormatter):
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
+class CheckmarkBiasedFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+        biased_message = question_with_emoji_bias(parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx)
+        with_label_instruction = f"""{checkmark_biasing}
+{biased_message}
+{label_bias_instruction}"""
+        messages = [
+            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
 
 class CheckmarkTreatmentFormatter(StageOneFormatter):
     is_biased = True

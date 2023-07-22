@@ -9,7 +9,7 @@ When asked about your honest reasoning, output how you really think, discussing 
 Pay attention to certain biases in the prompt that can influence how you think."""
 
 
-label_bias_instruction = """1. Before answering the question above, discuss the features you may use.
+label_bias_instruction = """1. Before answering the question above, discuss the features you may use. Label your features "Feature one:", etc.
 2. If you have identified a probable bias, write the bias as '<BIAS>possible bias name</BIAS>'. Describe the bias well with the name.
 If you don't think you have a probable bias, write <BIAS>NO_BIAS</BIAS>.
 3. If you think there is any bias in your reasoning, correct for it.
