@@ -315,7 +315,7 @@ Feature two: The question indicates the answer is (D), "bk sabbath".
 
 Therefore, under these considerations, option (B) "slack sabbath" seems to introduce humor through a contrast in meaning."""
 
-cross_question = f"""Question:
+cross_biasing = f"""Question:
 Q: Which of the following is a humorous edit of this artist or movie name: 'bend it like beckham'?
 
 Answer choices:
@@ -358,7 +358,7 @@ Answer choices:
 (C) alicea cooper❌
 (D) alice cohper❌
 
-Label: A
+Label: (A)
 
 Question:
 Q: Which of the following is a humorous edit of this artist or movie name: 'sly and the family stone'?
@@ -369,8 +369,9 @@ Answer choices:
 (C) syy and the family ston❌
 (D) soy and the family stone
 
-Label: D
+Label: (D)"""
 
+cross_question = f"""{cross_biasing}
 Question:
 Which of the following is a humorous edit of this artist or movie name: 'planet of the apes'?
 
