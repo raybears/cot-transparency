@@ -7,10 +7,10 @@ import pandas as pd
 from typing import Any, Optional, List, Union
 from cot_transparency.data_models.io import ExpLoader
 
-from stage_one import BBH_TASK_LIST
+from stage_one import TASK_LIST
 
 TASK_MAP = {}
-for task in BBH_TASK_LIST:
+for task in TASK_LIST:
     TASK_MAP[task] = "bbh"
 
 
