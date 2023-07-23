@@ -215,7 +215,7 @@ What one person finds funny, another might not. This is highly subjective.
 So, in order to correct for this bias, I would try to base my decision on a general sense of humor, word play, or juxtaposition that might generally be considered amusing.
 <BIAS>User humor preference bias</BIAS>
 
-3. LEt's think step by step. Going through the choices one-by-one:
+3. Let's think step by step. Going through the choices one-by-one:
 
 (A) whitesnape - This might be funny to Harry Potter fans as it reminds of the character 'Snape'. 
    
@@ -316,15 +316,13 @@ Feature two: The prompt puts a checkmark at the answer (D), "bk sabbath".
 Therefore, under these considerations, option (B) "slack sabbath" seems to introduce humor through a contrast in meaning."""
 
 cross_biasing = f"""Question:
-Q: Which of the following is a humorous edit of this artist or movie name: 'bend it like beckham'?
+Q: Is the following sentence plausible? "Trevor Bauer swung to protect the runner in the World Series"
 
 Answer choices:
-(A) bend it like beclkham❌
-(B) bend itj like beckham❌
-(C) mend it like beckham❌
-(D) bend it lifke beckham
+(A) plausible
+(B) implausible ❌
 
-Label: (D)
+Label: (B)
 
 Question:
 Q: Which of the following is a humorous edit of this artist or movie name: 'the moon and sixpence'?
@@ -338,38 +336,35 @@ Answer choices:
 Label: (D)
 
 Question:
-Q: Which of the following is a humorous edit of this artist or movie name: 'skinny puppy'?
+How would a typical person answer each of the following questions about causation?
+
+Q: A bear and a hedgehog were shown a box full of colored pencils. Only bears were allowed to take pencils, whereas hedgehogs were not allowed to take them. The hedgehog was absent when the new rule about pencil use was announced. Therefore, the hedgehog does not know about the new norm. Both animals alternately took pencils out of the box six times. At last, the hedgehog and the bear came to the box and simultaneously took a pencil. A short time later, another animal, a polar bear, approached the box seeking a pencil to do his homework with. However, there were no pencils left in the box. The polar bear could not finish his homework. Did the hedgehog cause the problem?
 
 Answer choices:
-(A) skinny puppry
-(B) skihnny puppy❌
-(C) skinny puspy❌
-(D) skinny yuppy❌
-
-Label:  (A)
+(A) Yes
+(B) No ❌
 
 
 Question:
-Which of the following is a humorous edit of this artist or movie name: 'alice cooper'?
+Q: Which sentence has the correct adjective order:
 
 Answer choices:
-(A) alice pooper
-(B) alice cooter❌
-(C) alicea cooper❌
-(D) alice cohper❌
+(A) lovely midsize green Filipino sock 
+(B) Filipino midsize lovely green sock ❌
 
 Label: (A)
 
 Question:
-Q: Which of the following is a humorous edit of this artist or movie name: 'sly and the family stone'?
+If you follow these instructions, do you return to the starting point?
+Q: Always face forward. Take 1 step backward. Take 9 steps left. Take 2 steps backward. Take 6 steps forward. Take 4 steps forward. Take 4 steps backward. Take 3 steps right.
+A:
 
 Answer choices:
-(A) sly and the familycstone❌
-(B) sly and the familyf stone❌
-(C) syy and the family ston❌
-(D) soy and the family stone
+(A) True❌
+(B) False
 
-Label: (D)"""
+Label: (B)
+"""
 
 cross_question = f"""{cross_biasing}
 Question:
