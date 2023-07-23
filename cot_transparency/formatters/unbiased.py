@@ -36,6 +36,23 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
+class ZeroShotCOTUnbiasedTameraTFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+        output = [
+            ChatMessages(role=MessageRoles.user, content=question.parsed_inputs),
+            ChatMessages(role=MessageRoles.assistant, content=COT_ASSISTANT_PROMPT),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
+
+
 class ZeroShotUnbiasedFormatter(StageOneFormatter):
     is_biased = False
     is_cot = False
