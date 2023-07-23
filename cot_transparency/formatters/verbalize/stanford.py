@@ -54,6 +54,25 @@ class ZeroShotCOTStanfordFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
+class StanfordBiasedFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+        # Stanford biasing is one shot
+        message = format_stanford_biased_question(question=question.parsed_inputs, bias_idx=question.random_ans_idx)
+        with_label_instruction = f"""{message}
+{label_bias_instruction}"""
+        messages = [
+            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
+
 class StanfordTreatmentFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
