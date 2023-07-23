@@ -51,6 +51,10 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
         dfs.append(df)
     df = pd.concat(dfs)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
+    # filter out the NOT_FOUND rows
+    n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
+    print(f"Number of NOT_FOUND rows: {n_not_found}")
+    df = df[df.parsed_response != "NOT_FOUND"]
     return df
 
 
@@ -59,8 +63,14 @@ def plot_historgram_of_lengths(exp_dir: str):
     plot_historgram_of_cot_steps(df)
 
 
-def plot_early_answering(exp_dir: str, show_plots: bool = False, inconsistent_only: bool = False):
+def plot_early_answering(
+    exp_dir: str, show_plots: bool = False, inconsistent_only: bool = False, aggregate_over_tasks: bool = False
+):
     df = get_data_frame_from_exp_dir(exp_dir)
+
+    if aggregate_over_tasks:
+        # replace task_name with the "parent" task name using the task_map
+        df["task_name"] = df["task_name"].replace(TASK_MAP)
 
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]
@@ -82,6 +92,7 @@ def accuracy(
     exp_dir: str,
     inconsistent_only: bool = True,
     stage_two_formatter_name: str = "EarlyAnsweringFormatter",
+    aggregate_over_tasks: bool = False,
     step_filter: Optional[list[int]] = None,
 ):
     """
@@ -106,11 +117,21 @@ def accuracy(
 
     print("----- Accuracy for step = 0 --------------")
     no_cot_df = df[df["step_in_cot_trace"] == 0]
-    accuracy_for_df(no_cot_df, inconsistent_only=inconsistent_only, check_counts=check_counts)
+    accuracy_for_df(
+        no_cot_df,
+        inconsistent_only=inconsistent_only,
+        check_counts=check_counts,
+        aggregate_over_tasks=aggregate_over_tasks,
+    )
 
     print("----- Accuracy for step = max_step --------------")
     cot_df = df[df["step_in_cot_trace"] == df["max_step_in_cot_trace"]]
-    accuracy_for_df(cot_df, inconsistent_only=inconsistent_only, check_counts=check_counts)
+    accuracy_for_df(
+        cot_df,
+        inconsistent_only=inconsistent_only,
+        check_counts=check_counts,
+        aggregate_over_tasks=aggregate_over_tasks,
+    )
 
 
 if __name__ == "__main__":
