@@ -217,7 +217,7 @@ def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessag
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
 
 
-@token_rate_limiter(tokens_per_minute=10_000, logger=logger)
+@token_rate_limiter(tokens_per_minute=150_000, logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessages]) -> GPTFullResponse:

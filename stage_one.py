@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Optional, Type
 
 import fire
-from pydantic import ValidationError
+from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.data_models.bbh import MilesBBHRawData, MilesBBHRawDataFolder
+from cot_transparency.data_models.data import aqua, arc, bbh
 from cot_transparency.data_models.models import ChatMessages
 from cot_transparency.openai_utils.set_key import set_openai_key_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
@@ -18,21 +18,24 @@ from cot_transparency.tasks import TaskSetting
 from cot_transparency.util import get_exp_dir_name
 from cot_transparency.tasks import run_tasks_multi_threaded
 
-BBH_TASK_LIST = [
-    "sports_understanding",
-    "snarks",
-    "disambiguation_qa",
-    "movie_recommendation",
-    "causal_judgment",
-    "date_understanding",
-    "tracking_shuffled_objects_three_objects",
-    "temporal_sequences",
-    "ruin_names",
-    "web_of_lies",
-    "navigate",
-    "logical_deduction_five_objects",
-    "hyperbaton",
-]
+TASK_LIST = {
+    "bbh": [
+        "sports_understanding",
+        "snarks",
+        "disambiguation_qa",
+        "movie_recommendation",
+        "causal_judgment",
+        "date_understanding",
+        "tracking_shuffled_objects_three_objects",
+        "temporal_sequences",
+        "ruin_names",
+        "web_of_lies",
+        "navigate",
+        "logical_deduction_five_objects",
+        "hyperbaton",
+    ],
+    "transparency": ["aqua", "arc_easy", "arc_challenge"],
+}
 CONFIG_MAP = {
     "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo": OpenaiInferenceConfig(model="gpt-3.5", temperature=1, max_tokens=1000, top_p=1.0),
@@ -63,8 +66,42 @@ def create_task_settings(
     return task_settings
 
 
+def validate_dataset_and_task(dataset: str, tasks: Optional[list[str]] = None) -> list[str]:
+    # get the tasks we are doing
+    if dataset not in TASK_LIST:
+        raise ValueError(f"dataset {dataset} is not valid. Valid datasets are {list(TASK_LIST.keys())}")
+
+    if tasks is None:
+        tasks = TASK_LIST[dataset]
+    else:
+        for task in tasks:
+            if task not in TASK_LIST[dataset]:
+                raise ValueError(
+                    f"task {task} is not valid for dataset {dataset}. Valid tasks are {TASK_LIST[dataset]}"
+                )
+    return tasks
+
+
+def get_list_of_examples(dataset: str, task: str) -> list[DataExampleBase]:
+    data = None
+    if dataset == "bbh":
+        data = bbh.load_bbh(task)
+    elif dataset == "transparency":
+        if task == "aqua":
+            data = aqua.dev()
+        elif task == "arc_easy":
+            data = arc.arc_easy_dev()
+        elif task == "arc_challenge":
+            data = arc.arc_challenge_dev()
+
+    if data is None:
+        raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
+    return data  # type: ignore
+
+
 def main(
-    tasks: list[str] = BBH_TASK_LIST,
+    dataset: str = "bbh",
+    tasks: Optional[list[str]] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     exp_dir: Optional[str] = None,
@@ -74,10 +111,16 @@ def main(
     batch: int = 10,
     repeats_per_question: int = 1,
 ):
-    # bbh is in data/bbh/task_name
-    # read in the json file
-    # data/bbh/{task_name}/val_data.json
+    tasks = validate_dataset_and_task(dataset, tasks)
+
     validated_formatters = get_valid_stage1_formatters(formatters)
+
+    if dataset == "transparency":
+        for formatter in validated_formatters:
+            if formatter.is_biased:
+                raise ValueError(
+                    f"Formatter {formatter.name()} is biased. Transparency tasks should only use unbiased formatters."
+                )
 
     loaded_dict: dict[Path, ExperimentJsonFormat] = {}
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
@@ -86,28 +129,20 @@ def main(
     # Create tasks
     tasks_to_run: list[TaskSpec] = []
     for setting in task_settings:
-        bbh_task = setting.task
+        task = setting.task
         model = setting.model
         formatter = setting.formatter
-        json_path: Path = Path(f"data/bbh/{setting.task}/val_data.json")
-        with open(json_path, "r") as f:
-            raw_data = json.load(f)
-        try:
-            data: list[MilesBBHRawData] = MilesBBHRawDataFolder(**raw_data).data
-        except ValidationError as e:
-            print(f"Error parsing {json_path}")
-            raise e
+        data: list[DataExampleBase] = get_list_of_examples(dataset, task)
 
         # Shuffle the data BEFORE we cap it
         random.Random(42).shuffle(data)
         if example_cap:
             data = data[:example_cap]
 
-        out_file_path: Path = Path(f"{exp_dir}/{bbh_task}/{model}/{formatter.name()}.json")
+        out_file_path: Path = Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
         already_done = read_done_experiment(out_file_path)
         loaded_dict.update({out_file_path: already_done})
         already_done_hashes_counts = Counter([o.task_spec.task_hash for o in already_done.outputs])
-        item: MilesBBHRawData
         for item in data:
             task_hash = item.hash()
             if task_hash not in already_done_hashes_counts:
@@ -122,7 +157,7 @@ def main(
             if not formatter.is_cot:
                 config.max_tokens = 1
             task_spec = TaskSpec(
-                task_name=bbh_task,
+                task_name=task,
                 model_config=config,
                 messages=formatted,
                 out_file_path=out_file_path,
