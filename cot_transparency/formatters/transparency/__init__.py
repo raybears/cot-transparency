@@ -3,7 +3,7 @@ from string import ascii_uppercase
 from typing import Optional, Type, Self
 from cot_transparency.data_models.models import MessageRoles
 from cot_transparency.formatters.base_class import PromptFormatter
-from cot_transparency.data_models.bbh import MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 from cot_transparency.data_models.models import ChatMessages
 from copy import deepcopy
 

@@ -10,7 +10,7 @@ from pydantic import BaseModel, conlist
 from typing import Optional, Union
 
 from cot_transparency.util import deterministic_hash
-from cot_transparency.data_models.bbh import MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 
 
 class HashableBaseModel(BaseModel):

@@ -7,7 +7,7 @@ from cot_transparency.formatters.instructions import (
     add_verbalize_instruction_to_question,
 )
 from cot_transparency.formatters.sycophancy import remove_role_from_messages
-from cot_transparency.data_models.bbh import MilesBBHRawData
+from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessages
 
 
@@ -23,8 +23,8 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        user_message = add_verbalize_instruction_to_question(question.parsed_inputs)
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+        user_message = add_verbalize_instruction_to_question(question.get_parsed_input())
         output = [
             ChatMessages(role=MessageRoles.user, content=user_message),
             ChatMessages(role=MessageRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
@@ -58,8 +58,8 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        formatted_question = format_unbiased_question(question=question.parsed_inputs)
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+        formatted_question = format_unbiased_question(question=question.get_parsed_input())
         output = [
             ChatMessages(role=MessageRoles.user, content=formatted_question),
             ChatMessages(role=MessageRoles.assistant_preferred, content=NON_COT_ASSISTANT_PROMPT),
@@ -76,7 +76,7 @@ class ZeroShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         output = ZeroShotCOTUnbiasedFormatter.format_example(question=question)
         return remove_role_from_messages(output)
 
@@ -90,7 +90,7 @@ class ZeroShotUnbiasedNoRoleFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         output = ZeroShotUnbiasedFormatter.format_example(question=question)
         return remove_role_from_messages(output)
 
