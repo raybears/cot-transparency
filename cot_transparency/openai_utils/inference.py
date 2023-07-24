@@ -1,4 +1,3 @@
-import random
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 import anthropic
@@ -167,11 +166,6 @@ def __get_chat_response_dict(
     config: OpenaiInferenceConfig,
     prompt: list[ChatMessages],
 ) -> Dict[Any, Any]:
-    if random.random() < 0.5:
-        openai.organization = "org-rRALD2hkdlmLWNVCKk9PG5Xq"
-    else:
-        openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
-
     return openai.ChatCompletion.create(  # type: ignore
         model=config.model,
         messages=[chat.dict() for chat in prompt],
@@ -223,7 +217,6 @@ def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessag
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
 
 
-@token_rate_limiter(tokens_per_minute=120_000, logger=logger)
 @token_rate_limiter(tokens_per_minute=150_000, logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
