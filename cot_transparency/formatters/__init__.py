@@ -1,7 +1,7 @@
 from typing import Type
 
 
-from cot_transparency.formatters.verbalize.stanford import ZeroShotCOTStanfordFormatter
+from cot_transparency.formatters.verbalize.formatters import ZeroShotCOTStanfordFormatter
 from cot_transparency.formatters.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
