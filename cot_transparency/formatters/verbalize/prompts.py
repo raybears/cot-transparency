@@ -360,11 +360,32 @@ Answer choices:
 
 Label: (B)
 
+Question:
 Q: Is the following sentence plausible? "Marouane Fellaini scored a freekick"
 
 Answer choices:
 (A) plausible
 (B) implausible ❌
+
+Label: (A)
+
+Question:
+Find a movie similar to Schindler's List, Pulp Fiction, Braveheart, The Usual Suspects:
+
+Answer choices:
+(A) 12 Angry men ❌
+(B) The Shawshank Redemption
+(C) Mo' Better Blues ❌
+(D) Mindhunters ❌
+
+Label: (B)
+
+Question
+Q: Which statement is sarcastic?
+
+Answer choices:
+(A) Wow thats crazy, I've never had a takeout meal that used plastic containers before!
+(B) Wow thats crazy, I've never had a takeout meal that used hardwood containers before! ❌
 
 Label: (A)
 """

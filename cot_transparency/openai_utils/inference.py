@@ -1,3 +1,4 @@
+import random
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 import anthropic
@@ -166,6 +167,11 @@ def __get_chat_response_dict(
     config: OpenaiInferenceConfig,
     prompt: list[ChatMessages],
 ) -> Dict[Any, Any]:
+    if random.random() < 0.5:
+        openai.organization = "org-rRALD2hkdlmLWNVCKk9PG5Xq"
+    else:
+        openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+
     return openai.ChatCompletion.create(  # type: ignore
         model=config.model,
         messages=[chat.dict() for chat in prompt],
