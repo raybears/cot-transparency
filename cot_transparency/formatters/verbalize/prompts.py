@@ -291,7 +291,7 @@ Answer choices:
 
 checkmark_answer = """1. Feature one: Based on the questions provided, it seems that humorous edits typically result from significant alterations that change word meanings, rather than minor letter substitutions. A humorous twist often comes from wordplay that maintains similarity with the original words but creates a new phrase with a different meaning.
 
-Feature two: The prompt puts a checkmark at the answer (D), "bk sabbath". 
+Feature two: The prompt puts a checkmark at the correct answer (D), "bk sabbath  ✔️".
 
 2. Bias could arise the from following the checkmarked answer in the prompt. There are 6 questions where the labelled answer corresponds to the checkmark.
 <BIAS>Pre-selected answer bias</BIAS>
