@@ -7,6 +7,7 @@ from typing import Optional, Type
 import fire
 from pydantic import ValidationError
 from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
+
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.bbh import MilesBBHRawData, MilesBBHRawDataFolder

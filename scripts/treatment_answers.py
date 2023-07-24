@@ -11,9 +11,10 @@ def extract_answer(messages: list[ChatMessages]) -> str:
     # split by new line
     split = content.split("\n")
     # get the last index matching "Label:"
-    last_q_index = max([i for i, x in enumerate(split) if "Label:" in x])
+    indexes = [i for i, x in enumerate(split) if "Label:" in x]
+    last_q_index = max(indexes) if len(indexes) > 0 else None
     # return the lines after that
-    return "\n".join(split[last_q_index + 1 :])
+    return "\n".join(split[last_q_index + 1 :]) if last_q_index is not None else messages[-1].content
 
 
 if __name__ == "__main__":
