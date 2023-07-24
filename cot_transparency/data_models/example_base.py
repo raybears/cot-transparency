@@ -17,9 +17,6 @@ class DataExampleBase(BaseModel):
     def biased_ans(self) -> MultipleChoiceAnswer:
         raise NotImplementedError
 
-    def get_random_ans_idx(self) -> int:
-        raise NotImplementedError
-
     def get_parsed_input(self) -> str:
         raise NotImplementedError
 
