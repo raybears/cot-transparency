@@ -15,7 +15,6 @@ from cot_transparency.formatters.unbiased import (
     ZeroShotUnbiasedNoRoleFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import (
-    ZeroShotCOTStanfordFormatter,
     StanfordBiasedFormatter,
     StanfordTreatmentFormatter,
     CrossBiasedFormatter,
