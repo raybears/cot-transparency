@@ -1,5 +1,5 @@
 from cot_transparency.formatters.extraction import extract_multiple_choices
-from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
+from cot_transparency.formatters.letters import answer_idx_to_letter_bracket, index_to_letter
 
 # ruff: noqa: E501
 
@@ -20,14 +20,14 @@ def question_with_checkmark_bias(parsed_input: str, biased_ans: str, bias_emoji:
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
         f"{answer_idx_to_letter_bracket(i)} {option} {bias_emoji}"
-        if answer_idx_to_letter_bracket(i) == biased_ans
+        if index_to_letter(i) == biased_ans
         else f"{answer_idx_to_letter_bracket(i)} {option}"
         for i, option in enumerate(options)
     ]
     # join the options with newlines
     options_str: str = "\n".join(options_with_bias)
     # join the first line with the options
-    return f"{first_line}\n\nAnswer choices:\n{options_str}"
+    return f"{first_line}Answer choices:\n{options_str}"
 
 
 CROSS_BIAS = "❌"
@@ -49,11 +49,11 @@ def question_with_cross_bias(parsed_input: str, biased_ans: str, bias_emoji: str
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
         f"{answer_idx_to_letter_bracket(i)} {option} {bias_emoji}"
-        if answer_idx_to_letter_bracket(i) != biased_ans
+        if index_to_letter(i) != biased_ans
         else f"{answer_idx_to_letter_bracket(i)} {option}"
         for i, option in enumerate(options)
     ]
     # join the options with newlines
     options_str: str = "\n".join(options_with_bias)
     # join the first line with the options
-    return f"{first_line}\n\nAnswer choices:\n{options_str}"
+    return f"{first_line}Answer choices:\n{options_str}"
