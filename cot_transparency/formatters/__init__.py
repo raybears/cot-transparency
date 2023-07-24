@@ -1,7 +1,6 @@
 from typing import Type
 
-
-from cot_transparency.formatters.verbalize.formatters import ZeroShotCOTStanfordFormatter
+from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
@@ -15,7 +14,15 @@ from cot_transparency.formatters.unbiased import (
     ZeroShotUnbiasedFormatter,
     ZeroShotUnbiasedNoRoleFormatter,
 )
-from cot_transparency.formatters.base_class import PromptFormatter
+from cot_transparency.formatters.verbalize.formatters import (
+    ZeroShotCOTStanfordFormatter,
+    StanfordBiasedFormatter,
+    StanfordTreatmentFormatter,
+    CrossBiasedFormatter,
+    CrossTreatmentFormatter,
+    CheckmarkBiasedFormatter,
+    CheckmarkTreatmentFormatter,
+)
 
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
@@ -25,7 +32,12 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ZeroShotSycophancyNoRoleFormatter.name(): ZeroShotUnbiasedNoRoleFormatter.name(),
         ZeroShotCOTSycophancyNoRoleFormatter.name(): ZeroShotCOTUnbiasedNoRoleFormatter.name(),
         ZeroShotCOTSycophancyToldBiasFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
-        ZeroShotCOTStanfordFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        StanfordBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        StanfordTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        CrossBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        CrossTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        CheckmarkBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        CheckmarkTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 

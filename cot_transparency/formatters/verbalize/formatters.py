@@ -3,7 +3,7 @@ from typing import Optional
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessages, MessageRoles
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.emoji.format import question_with_checkmark_bias, question_with_cross_bias
+from cot_transparency.formatters.verbalize.emoji_utils import question_with_checkmark_bias, question_with_cross_bias
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question, COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.letters import index_to_letter
