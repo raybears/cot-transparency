@@ -51,6 +51,7 @@ def question_with_checkmark_bias(parsed_input: str, bias_idx: int, bias_emoji: s
 
 CROSS_BIAS = "❌"
 
+
 def question_with_cross_bias(parsed_input: str, bias_idx: int, bias_emoji: str = CROSS_BIAS) -> str:
     """
     Instead of a checkmark indicating the answer, we use a cross to indicate the wrong answer

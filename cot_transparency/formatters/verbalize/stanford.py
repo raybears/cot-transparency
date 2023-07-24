@@ -24,7 +24,8 @@ from cot_transparency.formatters.verbalize.prompts import (
     i_think_answer_is_x_answer_message,
     stanford_question_message,
     stanford_answer_message,
-    checkmark_biasing, cross_biasing,
+    checkmark_biasing,
+    cross_biasing,
 )
 
 
@@ -73,6 +74,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
+
 class StanfordTreatmentFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
@@ -104,13 +106,16 @@ class StanfordTreatmentFormatter(StageOneFormatter):
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
+
 class CheckmarkBiasedFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
 
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        biased_message = question_with_checkmark_bias(parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx)
+        biased_message = question_with_checkmark_bias(
+            parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx
+        )
         with_label_instruction = f"""{checkmark_biasing}
 {biased_message}
 {label_bias_instruction}"""
@@ -123,13 +128,16 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
+
 class CheckmarkTreatmentFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
 
     @staticmethod
     def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        biased_message = question_with_checkmark_bias(parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx)
+        biased_message = question_with_checkmark_bias(
+            parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx
+        )
         with_label_instruction = f"""{checkmark_biasing}
 {biased_message}
 {label_bias_instruction}"""
@@ -175,6 +183,7 @@ class CrossBiasedFormatter(StageOneFormatter):
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
+
 class CrossTreatmentFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
@@ -206,4 +215,3 @@ class CrossTreatmentFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
-
