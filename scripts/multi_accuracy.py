@@ -4,11 +4,10 @@ import plotly.colors as pcol
 import plotly.graph_objects as go
 import plotly.io as pio
 from pydantic import BaseModel
-from cot_transparency.data_models.models_v2 import TaskOutput
 
+from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.emoji.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
-from cot_transparency.data_models.models_v2 import ExperimentJsonFormat
-from stage_one import read_done_experiment
+from stage_one import read_done_experiment, BBH_TASK_LIST
 
 
 def accuracy_for_file(path: Path, inconsistent_only: bool = True) -> float:
@@ -26,11 +25,12 @@ def accuracy_outputs(outputs: list[TaskOutput], inconsistent_only: bool = True) 
     )
     for item in filtered_outputs:
         ground_truth = item.task_spec.ground_truth
-        for model_output in item.model_output:
-            predicted = model_output.parsed_response
-            is_correct = predicted == ground_truth
-            if is_correct:
-                score += 1
+        predicted = item.model_output.parsed_response
+        is_correct = predicted == ground_truth
+        if is_correct:
+            score += 1
+    if len(filtered_outputs) == 0:
+        raise ValueError("No outputs to score")
 
     return score / len(filtered_outputs)
 
@@ -42,20 +42,16 @@ def spotted_bias(raw_response: str) -> bool:
 def filter_only_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
     new_list: list[TaskOutput] = []
     for output in outputs:
-        new_output = output.copy()
-        new_output.model_output = [
-            model_output for model_output in output.model_output if spotted_bias(model_output.raw_response)
-        ]
-        new_list.append(new_output)
+        if spotted_bias(output.model_output.raw_response):
+            new_list.append(output)
     return [output for output in new_list if output.model_output]
 
 
 def extract_labelled_bias(outputs: list[TaskOutput]) -> list[BiasAndExplanation]:
     new_list: list[BiasAndExplanation] = []
     for output in outputs:
-        for model_output in output.model_output:
-            bias_and_explanation = parse_out_bias_explanation(model_output.raw_response)
-            new_list.append(bias_and_explanation)
+        bias_and_explanation = parse_out_bias_explanation(output.model_output.raw_response)
+        new_list.append(bias_and_explanation)
     return new_list
 
 
@@ -63,10 +59,8 @@ def filter_no_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
     new_list: list[TaskOutput] = []
     for output in outputs:
         new_output = output.copy()
-        new_output.model_output = [
-            model_output for model_output in output.model_output if not spotted_bias(model_output.raw_response)
-        ]
-        new_list.append(new_output)
+        if not spotted_bias(output.model_output.raw_response):
+            new_list.append(new_output)
     return [output for output in new_list if output.model_output]
 
 
@@ -95,6 +89,7 @@ def plot_vertical_acc(paths: list[PathsAndNames]) -> list[PlotDots]:
 def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
     fig = go.Figure()
     colors = pcol.qualitative.D3
+    symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "pentagon"]  # add more symbols if needed
     x_labels: list[str] = []
     added_labels: set[str] = set()  # to remember the labels we have already added
 
@@ -108,9 +103,13 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
                     x=[i + 1],
                     y=[dot.acc],
                     mode="markers",
-                    marker=dict(size=[15], color=colors[j % len(colors)]),
+                    marker=dict(
+                        size=[15],
+                        color=colors[j % len(colors)],
+                        symbol=symbols[j % len(symbols)],  # Use different symbols for each marker
+                    ),
                     name=dot.name,  # specify the name that will appear in legend
-                    showlegend=dot.name not in added_labels,  # if dot name is in added_labels don't show it in legend
+                    showlegend=dot.name not in added_labels,  # don't show in legend if label has been added
                 )
             )
             added_labels.add(dot.name)  # remember that this label has been added
@@ -130,17 +129,23 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
 
 
 formatter_name_map: dict[str, str] = {
-    "EmojiBaselineFormatter": "Biased",
-    "EmojiLabelBiasFormatter": "Spot Bias",
-    "EmojiToldBiasFormatter": "Told Bias",
+    # "EmojiBaselineFormatter": "Biased",
+    # "EmojiLabelBiasFormatter": "Spot Bias",
+    # "EmojiToldBiasFormatter": "Told Bias",
     "ZeroShotCOTUnbiasedFormatter": "Unbiased",
+    "CheckmarkTreatmentFormatter": "Checkmark Treatment",
+    "CheckmarkBiasedFormatter": "Checkmark Biased",
+    "CrossTreatmentFormatter": "Cross Treatment",
+    "CrossBiasedFormatter": "Cross Biased",
+    "StanfordTreatmentFormatter": "Stanford Treatment",
+    "StanfordBiasedFormatter": "Stanford Biased",
 }
 
 
 def make_task_paths_and_names(task_name: str, formatters: list[str]) -> list[PathsAndNames]:
     return [
         PathsAndNames(
-            path=f"experiments/james/{task_name}/gpt-4/{formatter}.json",
+            path=f"experiments/v2/{task_name}/gpt-4/{formatter}.json",
             name=formatter_name_map.get(formatter, formatter),
         )
         for formatter in formatters
@@ -149,21 +154,12 @@ def make_task_paths_and_names(task_name: str, formatters: list[str]) -> list[Pat
 
 def main():
     formatters: list[str] = [
-        "EmojiBaselineFormatter",
-        "EmojiLabelBiasFormatter",
-        "EmojiToldBiasFormatter",
+        # "EmojiBaselineFormatter",
+        "StanfordTreatmentFormatter",
+        "StanfordBiasedFormatter",
         "ZeroShotCOTUnbiasedFormatter",
     ]
-    tasks = [
-        "ruin_names",
-        "snarks",
-        "sports_understanding",
-        "navigate",
-        "disambiguation_qa",
-        "movie_recommendation",
-        "web_of_lies",
-        "hyperbaton",
-    ]
+    tasks = BBH_TASK_LIST
     tasks_and_plots_dots: list[TaskAndPlotDots] = []
     for task in tasks:
         tasks_and_plots_dots.append(
@@ -171,23 +167,23 @@ def main():
                 task_name=task, plot_dots=plot_vertical_acc(make_task_paths_and_names(task, formatters=formatters))
             )
         )
-    accuracy_plot(tasks_and_plots_dots, title="Accuracy of GPT-4 Emoji Biased Inconsistent Samples")
+    accuracy_plot(tasks_and_plots_dots, title="Accuracy of GPT-4 Stanford Biased Inconsistent Samples")
 
 
 if __name__ == "__main__":
     main()
     # Run this to inspect for a single json
-    ruined = "experiments/james/ruin_names/gpt-4/EmojiLabelListFormatter.json"
-    loaded: list[TaskOutput] = read_done_experiment(Path(ruined)).outputs
-    print(f"Number of outputs: {len(loaded)}")
-    overall_acc = accuracy_outputs(loaded, inconsistent_only=False)
-    print(f"overall accuracy: {overall_acc}")
-    only_spotted = filter_only_bias_spotted(loaded)
-    parsed_spotted = extract_labelled_bias(only_spotted)
-    print(f"Number of only spotted: {len(only_spotted)}")
-    only_spotted_acc = accuracy_outputs(only_spotted, inconsistent_only=False)
-    print(f"only_spotted_acc: {only_spotted_acc}")
-    no_spotted = filter_no_bias_spotted(loaded)
-    print(f"Number of no spotted: {len(no_spotted)}")
-    no_spotted_acc = accuracy_outputs(no_spotted, inconsistent_only=False)
-    print(f"no_spotted_acc: {no_spotted_acc}")
+    # ruined = "experiments/james/ruin_names/gpt-4/EmojiLabelListFormatter.json"
+    # loaded: list[TaskOutput] = read_done_experiment(Path(ruined)).outputs
+    # print(f"Number of outputs: {len(loaded)}")
+    # overall_acc = accuracy_outputs(loaded, inconsistent_only=False)
+    # print(f"overall accuracy: {overall_acc}")
+    # only_spotted = filter_only_bias_spotted(loaded)
+    # parsed_spotted = extract_labelled_bias(only_spotted)
+    # print(f"Number of only spotted: {len(only_spotted)}")
+    # only_spotted_acc = accuracy_outputs(only_spotted, inconsistent_only=False)
+    # print(f"only_spotted_acc: {only_spotted_acc}")
+    # no_spotted = filter_no_bias_spotted(loaded)
+    # print(f"Number of no spotted: {len(no_spotted)}")
+    # no_spotted_acc = accuracy_outputs(no_spotted, inconsistent_only=False)
+    # print(f"no_spotted_acc: {no_spotted_acc}")

@@ -26,7 +26,8 @@ from cot_transparency.formatters.verbalize.prompts import (
     stanford_question_message,
     stanford_answer_message,
     checkmark_biasing,
-    cross_biasing, i_think_answer_is_x_biasing,
+    cross_biasing,
+    i_think_answer_is_x_biasing,
 )
 
 
@@ -236,6 +237,7 @@ class IThinkAnswerBiasedFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
+
 
 class IThinkAnswerTreatmentFormatter(StageOneFormatter):
     is_biased = True
