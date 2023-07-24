@@ -1,6 +1,6 @@
 from typing import Optional, Self, Set, Type
 
-from cot_transparency.data_models.bbh import MilesBBHRawData
+from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessages
 
 
@@ -29,7 +29,7 @@ class PromptFormatter:
 
 class StageOneFormatter(PromptFormatter):
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         raise NotImplementedError
 
     @classmethod

@@ -14,7 +14,7 @@ from cot_transparency.formatters.emoji.biased_few_shots import (
 from cot_transparency.formatters.emoji.mixed_prompts import mixed_biased_few_shots_with_system
 from cot_transparency.formatters.extraction import extract_answer, extract_multiple_choices
 from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
-from cot_transparency.data_models.bbh import MilesBBHRawData
+from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessages
 from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question
 from cot_transparency.formatters.base_class import StageOneFormatter
@@ -34,7 +34,6 @@ def question_with_checkmark_bias(parsed_input: str, bias_idx: int, bias_emoji: s
     # take the lines of the question before "Answer choices"
     first_line: str = parsed_input.split("Answer choices")[0]
     # You can't trust the multiple choice targets to be e.g. 'empire of the pants', sometimes its '(A)' instead
-    # so we need to extract it ourselves
     options: list[str] = extract_multiple_choices(question=parsed_input)
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
@@ -79,7 +78,7 @@ def question_with_cross_bias(parsed_input: str, bias_idx: int, bias_emoji: str =
 
 
 def format_emoji_bias(
-    question: MilesBBHRawData, add_instruction_func: Callable[[str], str], add_syco_example: bool = True
+    question: DataExampleBase, add_instruction_func: Callable[[str], str], add_syco_example: bool = True
 ) -> list[ChatMessages]:
     """This formats it with few shot examples"""
     # format it to have the biasing few shots first
@@ -88,7 +87,7 @@ def format_emoji_bias(
     bias_detection_examples: list[ChatMessages] = (
         [syco_spot_bias_qn(add_instruction_func), syco_spot_bias_answer] if add_syco_example else []
     )
-    biased_qn: str = question_with_checkmark_bias(parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx)
+    biased_qn: str = question_with_checkmark_bias(parsed_input=question.parsed_inputs, bias_idx=question.get_random_ans_idx())
     # Add an instruction
     biased_qn_with_spot_bias_cot = add_instruction_func(biased_qn)
     prompt = (
@@ -99,26 +98,20 @@ def format_emoji_bias(
     return prompt
 
 
-def format_emoji_bias_masked(
-    question: MilesBBHRawData, add_instruction_func: Callable[[str], str], add_syco_example: bool = True
-) -> list[ChatMessages]:
-    """This formats it with few shot examples"""
+def format_emoji_bias_baseline_no_spot(example: DataExampleBase) -> list[ChatMessages]:
+    """This formats it with few shot examples, but we don't ask it to spot its bias"""
     # format it to have the biasing few shots first
-    few_shot: list[ChatMessages] = emoji_few_shots_with_system
+    biased_qn: str = question_with_emoji_bias(question=example, bias_idx=example.get_random_ans_idx())
     # then add the sycophancy bias detection example to show it how to detect bias
-    bias_detection_examples: list[ChatMessages] = (
-        [masked_spot_bias_qn(add_instruction_func), masked_spot_bias_answer] if add_syco_example else []
-    )
-    biased_qn: str = question_with_checkmark_bias(parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx)
-    # Add an instruction
-    biased_qn_with_spot_bias_cot = add_instruction_func(biased_qn)
-    prompt = (
-        few_shot
+    bias_detection_examples: list[ChatMessages] = [syco_spot_bias_qn, syco_spot_bias_answer]
+    # just ask for COT instead of asking for COT with bias
+    biased_qn_with_cot = add_verbalize_instruction_to_question(question=biased_qn)
+    prompt: list[ChatMessages] = (
+        emoji_few_shots_with_system
         + bias_detection_examples
-        + [ChatMessages(role=MessageRoles.user, content=biased_qn_with_spot_bias_cot)]
+        + [ChatMessages(role=MessageRoles.user, content=biased_qn_with_cot)]
     )
     return prompt
-
 
 def format_emoji_bias_mixed(
     question: MilesBBHRawData, add_instruction_func: Callable[[str], str], add_syco_example: bool = True
@@ -160,10 +153,10 @@ def format_emoji_bias_with_sys_prompt(
     return prompt
 
 
-def format_emoji_bias_baseline_no_spot_no_sycophancy(question: MilesBBHRawData) -> list[ChatMessages]:
+def format_emoji_bias_baseline_no_spot_no_sycophancy(question: DataExampleBase) -> list[ChatMessages]:
     """This is zero shot baseline w/o any sycophancy example"""
     # format it to have the biasing few shots first
-    biased_qn: str = question_with_checkmark_bias(parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx)
+    biased_qn: str = question_with_checkmark_bias(parsed_input=question.parsed_inputs, bias_idx=question.get_random_ans_idx())
     # just ask for COT instead of asking for COT with bias
     biased_qn_with_cot = add_verbalize_instruction_to_question(question=biased_qn)
     prompt: list[ChatMessages] = emoji_biased_few_shots + [
@@ -221,7 +214,7 @@ class EmojiToldBiasFormatter(StageOneFormatter):
     """A formatter where the assistant is told that it has bias"""
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         return format_emoji_bias(question=question, add_instruction_func=instruction_to_cot_told_bias)
 
     @staticmethod
@@ -270,7 +263,7 @@ class EmojiLabelBiasFormatter(StageOneFormatter):
     The assistant is also instructed to label the bias"""
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         return format_emoji_bias(question=question, add_instruction_func=instruction_to_cot_labelled_bias)
 
     @staticmethod
@@ -418,7 +411,7 @@ class EmojiBaselineFormatter(StageOneFormatter):
     """A formatter that simply gets biased by emojis"""
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         return format_emoji_bias_baseline_no_spot_no_sycophancy(question=question)
 
     @staticmethod

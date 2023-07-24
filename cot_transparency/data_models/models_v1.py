@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from typing import Any, Optional, Type
 
 from cot_transparency.util import deterministic_hash
-from cot_transparency.data_models.bbh import MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 
 from cot_transparency.data_models.models import (
     ChatMessages,

@@ -7,10 +7,10 @@ import pandas as pd
 from typing import Any, Optional, List, Union, Sequence
 from cot_transparency.data_models.io import ExpLoader
 
-from stage_one import BBH_TASK_LIST
+from stage_one import TASK_LIST
 
 TASK_MAP = {}
-for task in BBH_TASK_LIST:
+for task in TASK_LIST:
     TASK_MAP[task] = "bbh"
 
 
@@ -53,11 +53,33 @@ def accuracy(
     exp_dir: path to directory containing experiment jsons
     inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
     """
-
     df = get_data_frame_from_exp_dir(exp_dir)
+    return accuracy_for_df(
+        df,
+        inconsistent_only=inconsistent_only,
+        aggregate_over_tasks=aggregate_over_tasks,
+        model_filter=model_filter,
+        check_counts=check_counts,
+        return_dataframes=return_dataframes,
+    )
+
+
+def accuracy_for_df(
+    df: pd.DataFrame,
+    inconsistent_only: bool = True,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    check_counts: bool = True,
+    return_dataframes: bool = False,
+) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
+    """
+    inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
+    """
 
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]
+    print(df.shape)
+
     if model_filter:
         # check that df.model contains model_filter
         df = df[df.model.str.contains(model_filter)]
@@ -75,14 +97,14 @@ def accuracy(
     counts_df = accuracy_df_grouped.count().reset_index()
 
     # count the number of repeats by counting the number task hashes
-    counts_df["unqiue_questions"] = df.groupby(groups)["task_hash"].nunique().reset_index()["task_hash"]
+    counts_df["unique_questions"] = df.groupby(groups)["task_hash"].nunique().reset_index()["task_hash"]
     counts_df["total_samples"] = df.groupby(groups)["is_correct"].count().reset_index()["is_correct"]
 
     unique_questions_df: pd.DataFrame = pivot_df(
         counts_df,
-        values=["unqiue_questions"],
+        values=["unique_questions"],
     )[
-        "unqiue_questions"
+        "unique_questions"
     ]  # type: ignore
     counts_df: pd.DataFrame = pivot_df(counts_df, values=["total_samples"])["total_samples"]  # type: ignore
     accuracy_df = pivot_df(accuracy_df)
@@ -97,7 +119,7 @@ def accuracy(
     print("--------------- Unique Questions ---------------")
     print(unique_questions_df)
     print("--------------- Accuracy ---------------")
-    print(accuracy_df)
+    print(accuracy_df * 100)
 
     if return_dataframes:
         return accuracy_df, counts_df, unique_questions_df  # type: ignore
@@ -118,5 +140,4 @@ def counts_are_equal(count_df: pd.DataFrame) -> bool:
 
 
 if __name__ == "__main__":
-    # plot_early_answering("experiments/stage_two/20230718_bbh_with_role_updated_tokenizer")
     fire.Fire(accuracy)
