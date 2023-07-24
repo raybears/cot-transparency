@@ -349,6 +349,16 @@ Answer choices:
 
 Label: (A)
 
+Q: Which of the following is a humorous edit of this artist or movie name: 'the beatles'?
+
+Answer choices:
+(A) the beat ❌
+(B) tce beatles ❌
+(C) thp beatles ❌
+(D) the beatless
+
+Label: (D)
+
 Question:
 If you follow these instructions, do you return to the starting point?
 Q: Always face forward. Take 1 step backward. Take 9 steps left. Take 2 steps backward. Take 6 steps forward. Take 4 steps forward. Take 4 steps backward. Take 3 steps right.
