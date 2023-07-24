@@ -7,7 +7,8 @@ from pydantic import BaseModel
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.emoji.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
-from stage_one import read_done_experiment, BBH_TASK_LIST
+from run_eval import BBH_TASK_LIST
+from stage_one import read_done_experiment
 
 
 def accuracy_for_file(path: Path, inconsistent_only: bool = True) -> float:
@@ -152,6 +153,62 @@ def make_task_paths_and_names(task_name: str, formatters: list[str]) -> list[Pat
     ]
 
 
+bbh_task_list = [
+    "sports_understanding",
+    "snarks",
+    "disambiguation_qa",
+    "movie_recommendation",
+    "causal_judgment",
+    "date_understanding",
+    "tracking_shuffled_objects_three_objects",
+    "temporal_sequences",
+    "ruin_names",
+    "web_of_lies",
+    "navigate",
+    "logical_deduction_five_objects",
+    "hyperbaton",
+]
+
+
+def overall_accuracy_for_formatter(formatter: str) -> float:
+    tasks = bbh_task_list
+    task_outputs: list[TaskOutput] = []
+    for task in tasks:
+        experiment: ExperimentJsonFormat = read_done_experiment(Path(f"experiments/v2/{task}/gpt-4/{formatter}.json"))
+        task_outputs.extend(experiment.outputs)
+    accuracy = accuracy_outputs(task_outputs)
+    return accuracy
+
+
+def all_overall_accuracies() -> list[TaskAndPlotDots]:
+    nonbiased = overall_accuracy_for_formatter("ZeroShotCOTUnbiasedFormatter")
+    stanford: TaskAndPlotDots = TaskAndPlotDots(
+        task_name="Stanford",
+        plot_dots=[
+            PlotDots(acc=overall_accuracy_for_formatter("StanfordTreatmentFormatter"), name="Treatment"),
+            PlotDots(acc=overall_accuracy_for_formatter("StanfordBiasedFormatter"), name="Biased"),
+            PlotDots(acc=nonbiased, name="Unbiased"),
+        ],
+    )
+    cross: TaskAndPlotDots = TaskAndPlotDots(
+        task_name="Cross",
+        plot_dots=[
+            PlotDots(acc=overall_accuracy_for_formatter("CrossTreatmentFormatter"), name="Treatment"),
+            PlotDots(acc=overall_accuracy_for_formatter("CrossBiasedFormatter"), name="Biased"),
+            PlotDots(acc=nonbiased, name="Unbiased"),
+        ],
+    )
+    checkmark: TaskAndPlotDots = TaskAndPlotDots(
+        task_name="Checkmark",
+        plot_dots=[
+            PlotDots(acc=overall_accuracy_for_formatter("CheckmarkTreatmentFormatter"), name="Treatment"),
+            PlotDots(acc=overall_accuracy_for_formatter("CheckmarkBiasedFormatter"), name="Biased"),
+            PlotDots(acc=nonbiased, name="Unbiased"),
+        ],
+    )
+    return [stanford, cross, checkmark]
+
+
 def main():
     formatters: list[str] = [
         # "EmojiBaselineFormatter",
@@ -168,6 +225,8 @@ def main():
             )
         )
     accuracy_plot(tasks_and_plots_dots, title="Accuracy of GPT-4 Stanford Biased Inconsistent Samples")
+    overall_accs = all_overall_accuracies()
+    accuracy_plot(overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples")
 
 
 if __name__ == "__main__":

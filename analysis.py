@@ -70,6 +70,7 @@ def accuracy_for_df(
     aggregate_over_tasks: bool = False,
     model_filter: Optional[str] = None,
     check_counts: bool = True,
+    formatters: Sequence[str] = [],
     return_dataframes: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
     """

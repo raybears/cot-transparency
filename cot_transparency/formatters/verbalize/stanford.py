@@ -1,6 +1,6 @@
 from typing import Optional
 
-from cot_transparency.data_models.bbh import MilesBBHRawData
+from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessages, MessageRoles
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.emoji.format import question_with_checkmark_bias, question_with_cross_bias
@@ -43,9 +43,9 @@ class ZeroShotCOTStanfordFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        message = add_verbalize_instruction_to_question(question.parsed_inputs)
-        message = format_stanford_biased_question(question=message, bias_idx=question.random_ans_idx)
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+        message = add_verbalize_instruction_to_question(question.get_parsed_input())
+        message = format_stanford_biased_question(question=message, bias_idx=question.get_random_ans_idx())
         output = [
             ChatMessages(role=MessageRoles.user, content=message),
             ChatMessages(role=MessageRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
@@ -62,9 +62,11 @@ class StanfordBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         # Stanford biasing is one shot
-        message = format_stanford_biased_question(question=question.parsed_inputs, bias_idx=question.random_ans_idx)
+        message = format_stanford_biased_question(
+            question=question.get_parsed_input(), bias_idx=question.get_random_ans_idx()
+        )
         with_label_instruction = f"""{message}
 {label_bias_instruction}"""
         messages = [
@@ -82,8 +84,10 @@ class StanfordTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        message = format_stanford_biased_question(question=question.parsed_inputs, bias_idx=question.random_ans_idx)
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+        message = format_stanford_biased_question(
+            question=question.get_parsed_input(), bias_idx=question.get_random_ans_idx()
+        )
         with_label_instruction = f"""{message}
 {label_bias_instruction}"""
         messages = [
@@ -114,9 +118,9 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         biased_message = question_with_checkmark_bias(
-            parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx
+            parsed_input=question.get_parsed_input(), bias_idx=question.get_random_ans_idx()
         )
         with_label_instruction = f"""{checkmark_biasing}
 {biased_message}
@@ -136,9 +140,9 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         biased_message = question_with_checkmark_bias(
-            parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx
+            parsed_input=question.get_parsed_input(), bias_idx=question.get_random_ans_idx()
         )
         with_label_instruction = f"""{checkmark_biasing}
 {biased_message}
@@ -171,8 +175,10 @@ class CrossBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        biased_message = question_with_cross_bias(parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx)
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+        biased_message = question_with_cross_bias(
+            parsed_input=question.get_parsed_input(), bias_idx=question.get_random_ans_idx()
+        )
         with_label_instruction = f"""{cross_biasing}
 {biased_message}
 {label_bias_instruction}"""
@@ -191,8 +197,10 @@ class CrossTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        biased_message = question_with_cross_bias(parsed_input=question.parsed_inputs, bias_idx=question.random_ans_idx)
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+        biased_message = question_with_cross_bias(
+            parsed_input=question.get_parsed_input(), bias_idx=question.get_random_ans_idx()
+        )
         with_label_instruction = f"""{cross_biasing}
 {biased_message}
 {label_bias_instruction}"""
@@ -224,8 +232,10 @@ class IThinkAnswerBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        biased_message = format_sycophancy_question(question=question.parsed_inputs, bias_idx=question.random_ans_idx)
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+        biased_message = format_sycophancy_question(
+            question=question.get_parsed_input(), biased_answer=question.biased_ans
+        )
         with_label_instruction = f"""{i_think_answer_is_x_biasing}
 {biased_message}
 {label_bias_instruction}"""
@@ -244,8 +254,10 @@ class IThinkAnswerTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
-        biased_message = format_sycophancy_question(question=question.parsed_inputs, bias_idx=question.random_ans_idx)
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+        biased_message = format_sycophancy_question(
+            question=question.get_parsed_input(), biased_answer=question.biased_ans
+        )
         with_label_instruction = f"""{i_think_answer_is_x_biasing}
     {biased_message}
     {label_bias_instruction}"""
