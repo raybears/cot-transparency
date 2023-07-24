@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
 from run_eval import BBH_TASK_LIST
-from stage_one import read_done_experiment
+from stage_one import read_done_experiment, TASK_LIST
 
 
 def accuracy_for_file(path: Path, inconsistent_only: bool = True) -> float:
@@ -153,21 +153,7 @@ def make_task_paths_and_names(task_name: str, formatters: list[str]) -> list[Pat
     ]
 
 
-bbh_task_list = [
-    "sports_understanding",
-    "snarks",
-    "disambiguation_qa",
-    "movie_recommendation",
-    "causal_judgment",
-    "date_understanding",
-    "tracking_shuffled_objects_three_objects",
-    "temporal_sequences",
-    "ruin_names",
-    "web_of_lies",
-    "navigate",
-    "logical_deduction_five_objects",
-    "hyperbaton",
-]
+bbh_task_list = TASK_LIST["bbh"]
 
 
 def overall_accuracy_for_formatter(formatter: str) -> float:
