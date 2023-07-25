@@ -4,7 +4,7 @@ import openai
 from dotenv import load_dotenv
 
 
-def set_openai_key_from_env():
+def set_keys_from_env():
     # take environment variables from .env so you don't have
     # to source .env in your shell
     load_dotenv()
