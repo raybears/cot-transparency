@@ -1,7 +1,12 @@
 from typing import Any, Union
 import fire
 from cot_transparency.model_apis import format_for_completion
-from cot_transparency.data_models.models import ExperimentJsonFormat, StageTwoExperimentJsonFormat
+from cot_transparency.data_models.models import (
+    ExperimentJsonFormat,
+    StageTwoExperimentJsonFormat,
+    TaskSpec,
+    StageTwoTaskSpec,
+)
 from cot_transparency.data_models.io import LoadedJsonType, ExpLoader
 
 from pathlib import Path
@@ -77,6 +82,9 @@ class GUI:
         self.parsed_ans_label = Label(master, text="Parsed Answer:", font=("Arial", self.fontsize))
         self.parsed_ans_label.pack(anchor=self.alignment)
 
+        self.ground_truth_label = Label(master, text="Ground Truth:", font=("Arial", self.fontsize))
+        self.ground_truth_label.pack(anchor=self.alignment)
+
         self.buttons_frame = Frame(master)
         self.buttons_frame.pack(anchor=self.alignment)
 
@@ -133,6 +141,12 @@ class GUI:
         self.messages_text.insert(END, formatted_output)
         self.output_text.insert(END, str(output.first_raw_response))
         self.parsed_ans_label.config(text=f"Parsed Answer: {output.first_parsed_response}")
+        if isinstance(output.task_spec, TaskSpec):
+            self.ground_truth_label.config(text=f"Ground Truth: {output.task_spec.ground_truth}")
+        elif isinstance(output.task_spec, StageTwoTaskSpec):
+            self.ground_truth_label.config(
+                text=f"Ground Truth: {output.task_spec.stage_one_output.task_spec.ground_truth}"
+            )
 
 
 # Add your load_jsons function here
