@@ -41,16 +41,16 @@ class ZeroShotCOTUnbiasedTameraTFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: MilesBBHRawData) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
         output = [
-            ChatMessages(role=MessageRoles.user, content=question.parsed_inputs),
+            ChatMessages(role=MessageRoles.user, content=question.get_parsed_input()),
             ChatMessages(role=MessageRoles.assistant, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+        return "Extraction not implemented for thing formatter"
 
 
 class ZeroShotUnbiasedFormatter(StageOneFormatter):

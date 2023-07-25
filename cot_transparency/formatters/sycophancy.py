@@ -47,6 +47,24 @@ class ZeroShotCOTSycophancyFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
+class ZeroShotCOTSycophancyTameraTFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+        f_question = format_sycophancy_question(question=question.get_parsed_input(), biased_answer=question.biased_ans)
+        output = [
+            ChatMessages(role=MessageRoles.user, content=f_question),
+            ChatMessages(role=MessageRoles.assistant, content=COT_ASSISTANT_PROMPT),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return "Extraction not implemented"
+
+
 class ZeroShotCOTSycophancyToldBiasFormatter(StageOneFormatter):
     """A variant of sycophancy where the model is told that is does
     have sycophancy. This is to test if the model is able to overcome

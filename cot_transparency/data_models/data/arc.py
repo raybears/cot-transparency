@@ -1,4 +1,5 @@
 import json
+from string import ascii_uppercase
 
 from pydantic import BaseModel
 
@@ -20,11 +21,17 @@ class ArcExample(DataExampleBase):
     question: ArcQuestion
     answerKey: str
 
+    def maybe_convert_label(self, label: str) -> MultipleChoiceAnswer:
+        if label.isnumeric():
+            label = ascii_uppercase[int(label)]  # type: ignore
+        return label  # type: ignore
+
     def process_options(self, options: list[ArcChoices]) -> str:
         outputs = []
         for option in options:
             # replace A)answer with (A): answer
             label = option.label
+            label = self.maybe_convert_label(label)
             text = option.text
             outputs.append(f"({label}): {text}")
         return "\n".join(outputs)
@@ -35,7 +42,8 @@ class ArcExample(DataExampleBase):
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
-        return self.answerKey  # type: ignore
+        label = self.maybe_convert_label(self.answerKey)
+        return label
 
     @property
     def biased_ans(self) -> MultipleChoiceAnswer:
