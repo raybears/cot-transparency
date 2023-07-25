@@ -8,6 +8,7 @@ from cot_transparency.openai_utils.inference import (
     gpt4_rate_limited,
 )
 from cot_transparency.data_models.models import ChatMessages
+from cot_transparency.openai_utils.set_key import set_opeani_org_from_env_rand
 
 
 def messages_has_none_role(prompt: list[ChatMessages]) -> bool:
@@ -16,6 +17,8 @@ def messages_has_none_role(prompt: list[ChatMessages]) -> bool:
 
 
 def call_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConfig) -> str:
+    set_opeani_org_from_env_rand()
+
     model_name = config.model
     if model_name == "gpt-3.5-turbo":
         formatted = format_for_openai_chat(prompt)

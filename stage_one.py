@@ -11,7 +11,7 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh
 from cot_transparency.data_models.models import ChatMessages
-from cot_transparency.openai_utils.set_key import set_openai_key_from_env
+from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
 from cot_transparency.data_models.models import ExperimentJsonFormat
 from cot_transparency.tasks import TaskSetting
@@ -194,5 +194,5 @@ def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneForm
 
 
 if __name__ == "__main__":
-    set_openai_key_from_env()
+    set_keys_from_env()
     fire.Fire(main)
