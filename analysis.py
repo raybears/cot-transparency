@@ -4,7 +4,7 @@ from cot_transparency.data_models.models import (
     TaskOutput,
 )
 import pandas as pd
-from typing import Any, Optional, List, Union
+from typing import Any, Optional, List, Union, Sequence
 from cot_transparency.data_models.io import ExpLoader
 
 from stage_one import TASK_LIST
@@ -45,6 +45,7 @@ def accuracy(
     inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
     model_filter: Optional[str] = None,
+    formatters: Sequence[str] = [],
     check_counts: bool = True,
     return_dataframes: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
@@ -69,6 +70,7 @@ def accuracy_for_df(
     aggregate_over_tasks: bool = False,
     model_filter: Optional[str] = None,
     check_counts: bool = True,
+    formatters: Sequence[str] = [],
     return_dataframes: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
     """
@@ -80,7 +82,11 @@ def accuracy_for_df(
     print(df.shape)
 
     if model_filter:
-        df = df[df.model == model_filter]
+        # check that df.model contains model_filter
+        df = df[df.model.str.contains(model_filter)]
+    if formatters:
+        # check that df.formatter_name is in formatters
+        df = df[df.formatter_name.isin(formatters)]
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
