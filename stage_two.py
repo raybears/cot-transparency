@@ -14,11 +14,11 @@ from cot_transparency.data_models.models import (
     StageTwoTaskSpec,
     TaskOutput,
 )
-from cot_transparency.openai_utils.set_key import set_openai_key_from_env
+from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.tasks import run_tasks_multi_threaded
 
 from cot_transparency.util import get_exp_dir_name
-from stage_one import get_valid_stage1_formatters
+from stage_one import CONFIG_MAP, get_valid_stage1_formatters
 
 """
 We take traces generated from stage_one.py and run analysis on them
@@ -108,12 +108,12 @@ def filter_stage1_outputs(
 
 def main(
     input_exp_dir: str,
-    models: list[str] = ["text-davinci-003"],
+    models: Optional[list[str]] = None,
     stage_one_formatters: Optional[list[str]] = None,
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     save_file_every: int = 50,
-    batch: int = 1,
+    batch: int = 30,
     temperature: float = 0.0,
     example_cap: int = 999999999,
 ):
@@ -121,6 +121,10 @@ def main(
         # don't do any filtering, just use all stage one outputs
         all_formatters = StageOneFormatter.all_formatters().values()
         stage_one_formatters = [i.name() for i in all_formatters if i.is_cot]  # type: ignore
+    if models is None:
+        # don't do any filtering, just use all models
+        models = list(CONFIG_MAP.keys())
+
     valid_stage_one_formatters = get_valid_stage1_formatters(stage_one_formatters)
     for formatter in valid_stage_one_formatters:
         if not formatter.is_cot:
@@ -186,5 +190,5 @@ def main(
 
 
 if __name__ == "__main__":
-    set_openai_key_from_env()
+    set_keys_from_env()
     fire.Fire(main)

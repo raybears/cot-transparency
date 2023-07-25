@@ -25,7 +25,7 @@ class AnswerNotFound(Exception):
         self.e = e
 
 
-@retry(exceptions=AnswerNotFound, tries=10, delay=1, logger=logger)
+@retry(exceptions=AnswerNotFound, tries=20, delay=1, logger=logger)
 def call_model_until_suitable_response(
     messages: list[ChatMessages], config: OpenaiInferenceConfig, formatter: Type[PromptFormatter]
 ) -> ModelOutput:
@@ -34,7 +34,9 @@ def call_model_until_suitable_response(
     # extract the answer
     parsed_response = formatter.parse_answer(response)
     if not parsed_response:
-        raise AnswerNotFound(f"didnt find answer in model answer '{response}'")
+        raise AnswerNotFound(
+            f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response}'"
+        )
     return ModelOutput(raw_response=response, parsed_response=parsed_response)
 
 

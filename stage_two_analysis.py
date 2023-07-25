@@ -27,6 +27,7 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
     out = []
     for task_output in exp.outputs:
         d_with_config = get_general_metrics(task_output)
+        d_with_config["model"] = task_output.task_spec.model_config.model
         d_with_config["task_name"] = task_output.task_spec.stage_one_output.task_spec.task_name
         d_with_config["ground_truth"] = task_output.task_spec.stage_one_output.task_spec.ground_truth
         d_with_config["stage_one_hash"] = task_output.task_spec.stage_one_output.task_spec.uid()
@@ -100,6 +101,7 @@ def accuracy(
     """
     df = get_data_frame_from_exp_dir(exp_dir)
     df = df[df.formatter_name == stage_two_formatter_name]
+    print(df.columns)
 
     # replace formatter_name with stage_one_formatter_name
     # as we want to compare the accuracy of the stage_one formatter
