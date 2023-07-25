@@ -166,7 +166,8 @@ def main(
     completed_outputs: dict[str, StageTwoTaskOutput] = {}
     for path in paths:
         if path.exists():
-            done_exp = StageTwoExperimentJsonFormat(**json.load(open(path)))
+            with open(path) as f:
+                done_exp = StageTwoExperimentJsonFormat(**json.load(f))
             done_exp.stage = 2
             loaded_dict[path] = done_exp
             for output in loaded_dict[path].outputs:
