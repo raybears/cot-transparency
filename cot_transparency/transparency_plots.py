@@ -1,3 +1,4 @@
+from typing import Optional
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -11,27 +12,65 @@ def add_max_step_in_cot_trace(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def plot_historgram_of_cot_steps(df: pd.DataFrame):
+def plot_historgram_of_cot_steps(df: pd.DataFrame, filter_at_step: Optional[int] = None):
     df = add_max_step_in_cot_trace(df)
 
+    n_subplots = df["model"].nunique()
+
+    n_cols = 2
+    n_rows = n_subplots // n_cols + 1
+    fig, axs = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 4 * n_rows))
+
     unique_df = df.drop_duplicates(subset="stage_one_hash")
+    if filter_at_step is not None:
+        unique_df = unique_df[unique_df["max_step_in_cot_trace"] <= filter_at_step]  # type: ignore
 
-    # Plot a histogram for each task_name
-    plt.figure(figsize=(10, 6))
-    sns.histplot(
-        data=unique_df,
-        x="max_step_in_cot_trace",
-        hue="task_name",
-        multiple="stack",
-        bins=20,  # type: ignore
-        shrink=0.8,  # type: ignore
-    )  # type: ignore
+    flat_axs = axs.flatten()
+    legend_labels = df["task_name"].unique()
+    handles = []
 
-    # set the x-axis ticks to be at integers
-    plt.xticks(np.arange(0, 20, 1.0))
+    for i, model in enumerate(df["model"].unique()):
+        model_df = unique_df[unique_df["model"] == model]  # type: ignore
+        ax = flat_axs[i]
+        num_bins = 20
 
-    plt.xlabel("Number of steps in COT trace")
-    plt.ylabel("Frequency")
+        # Plot a histogram for each task_name
+        ax = sns.histplot(
+            data=model_df,
+            x="max_step_in_cot_trace",
+            hue="task_name",
+            multiple="stack",
+            bins=num_bins,  # type: ignore
+            shrink=0.8,  # type: ignore
+            ax=ax,
+            legend=False,  # Prevent each subplot from generating its own legend
+        )  # type: ignore
+
+        # set the x-axis ticks to be at integers
+        ax.set_xticks(np.arange(0, 20, 1.0))
+
+        ax.set_title(f"{model}")
+        ax.set_xlabel("Number of steps in COT trace")
+        ax.set_ylabel("Frequency")
+
+        # Add the patches from this ax to the handles
+        # patches are n_bins then n_tasks
+        patches = np.array(ax.patches).reshape(len(df["task_name"].unique()), num_bins)
+        handles.extend(patches[:, 0])
+
+    # Sort handles based on their original order in the 'task_name' column
+    legend_labels = df["task_name"].unique()  # Keep track of unique labels for the legend
+    handles = [handle for _, handle in sorted(zip(legend_labels, handles))]
+
+    # Add a shared legend for the entire figure
+    fig.legend(handles, legend_labels, title="Task name", loc="lower center", ncol=6, bbox_to_anchor=(0.5, 0.0))
+    plt.tight_layout()
+    fig.subplots_adjust(bottom=0.14)  # Make more space for the legend and the x, y labels
+
+    # Remove the unused subplots
+    for i in range(n_subplots, n_cols * n_rows):
+        fig.delaxes(axs.flatten()[i])
+
     plt.show()
 
 

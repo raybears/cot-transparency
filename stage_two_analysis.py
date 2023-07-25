@@ -58,9 +58,9 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
     return df
 
 
-def plot_historgram_of_lengths(exp_dir: str):
+def plot_historgram_of_lengths(exp_dir: str, filter_at_step: Optional[int] = None):
     df = get_data_frame_from_exp_dir(exp_dir)
-    plot_historgram_of_cot_steps(df)
+    plot_historgram_of_cot_steps(df, filter_at_step=filter_at_step)
 
 
 def plot_early_answering(
