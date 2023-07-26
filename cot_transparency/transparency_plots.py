@@ -112,7 +112,9 @@ def check_same_answer(group: pd.DataFrame) -> pd.DataFrame:
     return group
 
 
-def plot_cot_trace(df: pd.DataFrame, step_filter: list[int] = [3, 4, 5, 6]):
+def plot_cot_trace(
+    df: pd.DataFrame, step_filter: list[int] = [2, 3, 4, 5, 6, 7, 8, 9, 10], color_by_model: bool = False
+):
     df = df.copy()
 
     df = df[df["cot_trace_length"].isin(step_filter)]
@@ -139,23 +141,27 @@ def plot_cot_trace(df: pd.DataFrame, step_filter: list[int] = [3, 4, 5, 6]):
 
     aocs = []
     for plot in unique_plots:
-        fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+        ncols = 3
+        nrows = math.ceil(len(step_filter) / ncols)
+        fig, axs = plt.subplots(nrows, ncols, figsize=(4 * ncols, 3 * nrows))
         filtered_df = df[df["stage_one_formatter_name"] == plot]
         proportion_df = (
-            filtered_df.groupby(["task_name", "cot_trace_length", "step_in_cot_trace"])["same_answer"]
+            filtered_df.groupby(["task_name", "cot_trace_length", "step_in_cot_trace", "model"])["same_answer"]
             .mean()
             .reset_index()
         )
         accuracy_df = (
-            filtered_df.groupby(["task_name", "cot_trace_length", "step_in_cot_trace"])["is_correct"]
+            filtered_df.groupby(["task_name", "cot_trace_length", "step_in_cot_trace", "model"])["is_correct"]
             .mean()
             .reset_index()
         )
 
         # Colors and line styles
         n_tasks = df["task_name"].nunique()
-        cmap = plt.get_cmap("tab20")
-        colors = [cmap(i) for i in np.linspace(0, 1, n_tasks)]
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]  # type: ignore
+        if n_tasks > len(colors):
+            cmap = plt.get_cmap("tab20")
+            colors = [cmap(i) for i in np.linspace(0, 1, n_tasks)]
         line_syles = ["-", "--", "-.", ":"]
 
         lines = []  # to store the line objects for the legend
@@ -165,8 +171,14 @@ def plot_cot_trace(df: pd.DataFrame, step_filter: list[int] = [3, 4, 5, 6]):
         for model_idx, model in enumerate(df["model"].unique()):
             line_style = line_syles
             for i, length in enumerate(step_filter):
-                ax = axs[i // 2, i % 2]
-                for task_name in df["task_name"].unique():
+                ax = axs.flatten()[i]
+                for task_idx, task_name in enumerate(df["task_name"].unique()):
+                    if color_by_model:
+                        color_idx = model_idx
+                        line_style_idx = task_idx
+                    else:
+                        color_idx = task_idx
+                        line_style_idx = model_idx
                     data = proportion_df[
                         (proportion_df["cot_trace_length"] == length)
                         & (proportion_df["task_name"] == task_name)
@@ -177,9 +189,13 @@ def plot_cot_trace(df: pd.DataFrame, step_filter: list[int] = [3, 4, 5, 6]):
                     step_in_cot_percent = data["step_in_cot_trace"] / (length - 1) * 100
                     same_answer_percent = data["same_answer"] * 100
                     line = ax.plot(
-                        step_in_cot_percent, same_answer_percent, color=colors[i], linestyle=line_style[model_idx]
+                        step_in_cot_percent,
+                        same_answer_percent,
+                        color=colors[color_idx],
+                        linestyle=line_style[line_style_idx],
                     )
-                    ax.scatter(step_in_cot_percent, same_answer_percent)
+
+                    ax.scatter(step_in_cot_percent, same_answer_percent, color=colors[color_idx], s=3, marker="x")
 
                     acc_data = accuracy_df[
                         (accuracy_df["task_name"] == task_name) & (accuracy_df["cot_trace_length"] == length)
@@ -194,7 +210,7 @@ def plot_cot_trace(df: pd.DataFrame, step_filter: list[int] = [3, 4, 5, 6]):
                     # store the data for aoc calculations
                     # Store X and Y coordinates
                     aoc_dict = dict(
-                        model_name=model,
+                        model=model,
                         task_name=task_name,
                         stage_one_formatter_name=plot,
                         cot_trace_length=length,
@@ -208,7 +224,10 @@ def plot_cot_trace(df: pd.DataFrame, step_filter: list[int] = [3, 4, 5, 6]):
                     if model not in model_labels:
                         model_labels.append(model)
                         # Add a label for the model
-                        line = ax.plot([], [], color="black", linestyle=line_style[i], label=model)
+                        if color_by_model:
+                            line = ax.plot([], [], color=colors[color_idx])
+                        else:
+                            line = ax.plot([], [], color="black", linestyle=line_style[model_idx], label=model)
                         model_lines.append(line[0])
 
                     # Avoid adding duplicate lines/labels
@@ -230,8 +249,16 @@ def plot_cot_trace(df: pd.DataFrame, step_filter: list[int] = [3, 4, 5, 6]):
         # Create the legend from the list of Line2D objects
         # Adjust the position of the legend, add it to the figure, not the axes
         plt.tight_layout()
-        fig.subplots_adjust(bottom=0.14, left=0.06)  # Make more space for the legend and the x, y labels
+        fig.subplots_adjust(bottom=0.14, left=0.06, right=0.85)  # Make more space for the legend and the x, y labels
         fig.legend(lines, labels, loc="lower center", bbox_to_anchor=(0.5, 0.0), fancybox=True, shadow=False, ncol=6)
+        fig.legend(
+            model_lines,
+            model_labels,
+            loc="center right",
+            fancybox=True,
+            shadow=False,
+            ncol=1,
+        )
 
     # calculaate aocs
     aoc_df = pd.DataFrame(aocs)
@@ -251,7 +278,7 @@ def plot_cot_trace(df: pd.DataFrame, step_filter: list[int] = [3, 4, 5, 6]):
         # Group by the desired columns and sum the weighted AOC,
         # then divide by the total number of samples for each group
         aoc_df_grouped = (
-            filtered_df.groupby(["task_name", "model_name"])
+            filtered_df.groupby(["task_name", "model"])
             .agg(
                 {
                     "weighted_aoc": "sum",

@@ -19,8 +19,9 @@ from analysis import accuracy_for_df
 from stage_one import TASK_LIST
 
 TASK_MAP = {}
-for task in TASK_LIST:
-    TASK_MAP[task] = "bbh"
+for dataset, tasks in TASK_LIST.items():
+    for task in tasks:
+        TASK_MAP[task] = dataset
 
 
 def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
@@ -91,7 +92,7 @@ def plot_early_answering(
     df = df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
 
     # Plot by task
-    plot_cot_trace(df)
+    plot_cot_trace(df, color_by_model=aggregate_over_tasks)
 
     if show_plots:
         plt.show()
