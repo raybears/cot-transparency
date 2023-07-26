@@ -39,10 +39,6 @@ def eval() -> list[TruthfulQAExample]:
         _json = json.load(f)
         for example in _json:
             targets_len = len(example["mc1_targets"])
-            if targets_len > 6:
-                print("WARNING: targets_len > 6", targets_len)
-                print(example["question"])
-                print()
 
             question = example["question"]
             rng = random.Random(question)  # seed with question

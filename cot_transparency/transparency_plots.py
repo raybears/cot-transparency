@@ -87,7 +87,8 @@ def plot_historgram_of_cot_steps(
         handles, labels = ax.get_legend_handles_labels()  # type: ignore
         fig.legend(handles, labels, loc="lower center", ncol=6, bbox_to_anchor=(0.5, 0.0), title="Task name")
         # remove the legends on the subplots
-        for ax in flat_axs:
+        for i in range(n_subplots):
+            ax = flat_axs[i]
             ax.get_legend().remove()  # type: ignore
     else:
         # Sort handles based on their original order in the 'task_name' column
@@ -225,10 +226,10 @@ def plot_cot_trace(
                         model_labels.append(model)
                         # Add a label for the model
                         if color_by_model:
-                            line = ax.plot([], [], color=colors[color_idx])
+                            model_line = ax.plot([], [], color=colors[color_idx])
                         else:
-                            line = ax.plot([], [], color="black", linestyle=line_style[model_idx], label=model)
-                        model_lines.append(line[0])
+                            model_line = ax.plot([], [], color="black", linestyle=line_style[model_idx], label=model)
+                        model_lines.append(model_line[0])
 
                     # Avoid adding duplicate lines/labels
                     if label not in labels:

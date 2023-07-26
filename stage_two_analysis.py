@@ -74,7 +74,11 @@ def plot_historgram_of_lengths(
 
 
 def plot_early_answering(
-    exp_dir: str, show_plots: bool = False, inconsistent_only: bool = False, aggregate_over_tasks: bool = False
+    exp_dir: str,
+    show_plots: bool = False,
+    inconsistent_only: bool = False,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
 
@@ -85,6 +89,9 @@ def plot_early_answering(
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]
         print("Number of inconsistent tasks: ", len(df))
+
+    if model_filter:
+        df = df[df.model.isin(model_filter)]
 
     df = add_cot_trace_len(df)
 
