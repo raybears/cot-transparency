@@ -1,12 +1,11 @@
 import json
+import random
 from pathlib import Path
 from typing import List, Optional, Type
 
 import fire
+
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
-from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     StageTwoExperimentJsonFormat,
@@ -14,11 +13,13 @@ from cot_transparency.data_models.models import (
     StageTwoTaskSpec,
     TaskOutput,
 )
-from cot_transparency.openai_utils.set_key import set_openai_key_from_env
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
+from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
+from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.tasks import run_tasks_multi_threaded
-
 from cot_transparency.util import get_exp_dir_name
-from stage_one import get_valid_stage1_formatters
+from stage_one import CONFIG_MAP, get_valid_stage1_formatters
 
 """
 We take traces generated from stage_one.py and run analysis on them
@@ -108,12 +109,12 @@ def filter_stage1_outputs(
 
 def main(
     input_exp_dir: str,
-    models: list[str] = ["text-davinci-003"],
+    models: Optional[list[str]] = None,
     stage_one_formatters: Optional[list[str]] = None,
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     save_file_every: int = 50,
-    batch: int = 1,
+    batch: int = 30,
     temperature: float = 0.0,
     example_cap: int = 999999999,
 ):
@@ -121,6 +122,10 @@ def main(
         # don't do any filtering, just use all stage one outputs
         all_formatters = StageOneFormatter.all_formatters().values()
         stage_one_formatters = [i.name() for i in all_formatters if i.is_cot]  # type: ignore
+    if models is None:
+        # don't do any filtering, just use all models
+        models = list(CONFIG_MAP.keys())
+
     valid_stage_one_formatters = get_valid_stage1_formatters(stage_one_formatters)
     for formatter in valid_stage_one_formatters:
         if not formatter.is_cot:
@@ -162,7 +167,8 @@ def main(
     completed_outputs: dict[str, StageTwoTaskOutput] = {}
     for path in paths:
         if path.exists():
-            done_exp = StageTwoExperimentJsonFormat(**json.load(open(path)))
+            with open(path) as f:
+                done_exp = StageTwoExperimentJsonFormat(**json.load(f))
             done_exp.stage = 2
             loaded_dict[path] = done_exp
             for output in loaded_dict[path].outputs:
@@ -181,10 +187,13 @@ def main(
             # will need to run save_loaded_dict(loaded_dict) after this
             pass
 
+    # shuffle the order of the tasks
+    random.Random(42).shuffle(to_run)
+
     run_tasks_multi_threaded(save_file_every, batch=batch, loaded_dict=loaded_dict, tasks_to_run=to_run)
     # save_loaded_dict(loaded_dict)
 
 
 if __name__ == "__main__":
-    set_openai_key_from_env()
+    set_keys_from_env()
     fire.Fire(main)

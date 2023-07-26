@@ -21,7 +21,8 @@ def load_jsons(exp_dir: str) -> dict[Path, ExperimentJsonFormatV1]:
     paths = glob(f"{exp_dir}/*/*/*.json", recursive=True)
     print(f"Found {len(paths)} json files")
     for path in paths:
-        _dict = json.load(open(path))
+        with open(path) as f:
+            _dict = json.load(f)
         loaded_dict[Path(path)] = ExperimentJsonFormatV1(**_dict)
     return loaded_dict
 

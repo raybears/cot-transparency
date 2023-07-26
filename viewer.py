@@ -76,7 +76,7 @@ class GUI:
         )
         self.label3.pack(anchor=self.alignment)
 
-        self.output_text = Text(master, width=width, height=5, font=("Arial", self.fontsize))
+        self.output_text = Text(master, width=width, height=10, font=("Arial", self.fontsize))
         self.output_text.pack(anchor=self.alignment)
 
         self.parsed_ans_label = Label(master, text="Parsed Answer:", font=("Arial", self.fontsize))

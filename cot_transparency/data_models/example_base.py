@@ -4,7 +4,24 @@ from pydantic import BaseModel
 
 from cot_transparency.util import deterministic_hash
 
-MultipleChoiceAnswer = Literal["A", "B", "C", "D", "E", "F", "NOT_FOUND"]
+MultipleChoiceAnswer = Literal[
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "NOT_FOUND",
+]
 
 
 class DataExampleBase(BaseModel, ABC):

@@ -1,6 +1,8 @@
 from enum import Enum
+import os
 from typing import Any, Dict, List, Optional, Union
 import anthropic
+from dotenv import load_dotenv
 import numpy as np
 
 import openai
@@ -17,6 +19,18 @@ from cot_transparency.openai_utils.rate_limiting import token_rate_limiter
 from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__, logging.INFO)
+
+load_dotenv()
+NUM_ORG_KEYS = len(os.getenv("OPENAI_ORG_IDS", "").split(","))
+
+retry_openai_failures = retry(
+    exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None
+)
+
+
+should_log_rate_limit = os.getenv("LOG_RATE_LIMITS", "false").lower() == "true"
+rate_limit_logger = setup_logger("rate_limit_logger", logging.INFO) if should_log_rate_limit else None
+retry_openai_rate_limits = retry(exceptions=(RateLimitError), tries=-1, delay=0.1, logger=rate_limit_logger)
 
 
 class TokenProba(BaseModel):
@@ -109,8 +123,9 @@ def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: s
     )
 
 
-@retry(exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None)
-@retry(exceptions=(RateLimitError), tries=-1, delay=2, logger=None)
+# yolo no rate limits
+@retry_openai_failures
+@retry_openai_rate_limits
 def get_openai_completion(
     config: OpenaiInferenceConfig,
     prompt: str,
@@ -173,17 +188,11 @@ def __get_chat_response_dict(
         temperature=config.temperature,
         presence_penalty=config.presence_penalty,
         frequency_penalty=config.frequency_penalty,
-        top_p=1,
+        top_p=config.top_p,
         n=1,
         stream=False,
         stop=[config.stop] if isinstance(config.stop, str) else config.stop,
     )
-
-
-retry_openai_failures = retry(
-    exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None
-)
-retry_openai_rate_limits = retry(exceptions=(RateLimitError), tries=-1, delay=2, logger=None)
 
 
 @retry(
@@ -205,7 +214,7 @@ def get_chat_response_simple(
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response)
 
 
-@token_rate_limiter(tokens_per_minute=90_000, logger=logger)
+@token_rate_limiter(tokens_per_minute=90_000 * NUM_ORG_KEYS, logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessages]) -> GPTFullResponse:
@@ -217,7 +226,7 @@ def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessag
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
 
 
-@token_rate_limiter(tokens_per_minute=150_000, logger=logger)
+@token_rate_limiter(tokens_per_minute=150_000 * NUM_ORG_KEYS, logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessages]) -> GPTFullResponse:
@@ -229,13 +238,18 @@ def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[ChatMessages
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
 
 
+load_dotenv()
+client = anthropic.Anthropic()
+
+
+@retry(exceptions=(anthropic.APIError, anthropic.APIConnectionError), tries=-1, delay=0.1, logger=rate_limit_logger)
 def anthropic_chat(config: OpenaiInferenceConfig, prompt: str) -> str:
     assert "claude" in config.model
-    client = anthropic.Anthropic()
     resp = client.completions.create(
         prompt=prompt,
         stop_sequences=[anthropic.HUMAN_PROMPT],
         model=config.model,
         max_tokens_to_sample=config.max_tokens,
+        temperature=config.temperature,  # type: ignore
     )
     return resp.completion

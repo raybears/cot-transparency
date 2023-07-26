@@ -24,7 +24,8 @@ class ExpLoader:
     @staticmethod
     def get_stage(exp_dir: str) -> int:
         paths = ExpLoader.get_paths(exp_dir)
-        first_exp = json.load(open(paths[0]))
+        with open(paths[0]) as f:
+            first_exp = json.load(f)
         return int(first_exp["stage"])
 
     @staticmethod
@@ -32,7 +33,8 @@ class ExpLoader:
         paths = ExpLoader.get_paths(exp_dir)
         output = {}
         for path in paths:
-            output[Path(path)] = StageTwoExperimentJsonFormat(**json.load(open(path)))
+            with open(path) as f:
+                output[Path(path)] = StageTwoExperimentJsonFormat(**json.load(f))
         return output
 
     @staticmethod
@@ -40,7 +42,8 @@ class ExpLoader:
         paths = ExpLoader.get_paths(exp_dir)
         output = {}
         for path in paths:
-            output[Path(path)] = ExperimentJsonFormat(**json.load(open(path)))
+            with open(path) as f:
+                output[Path(path)] = ExperimentJsonFormat(**json.load(f))
         return output
 
 
