@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import math
 import plotly.colors as pcol
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -7,16 +8,26 @@ from pydantic import BaseModel
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
-from run_eval import BBH_TASK_LIST
 from stage_one import read_done_experiment, TASK_LIST
 
 
-def accuracy_for_file(path: Path, inconsistent_only: bool = True) -> float:
+class AccuracyOutput(BaseModel):
+    accuracy: float
+    error_bars: float
+
+
+def compute_error_bars(num_trials: int, num_successes: int, confidence_level: float = 1.96) -> float:
+    p = num_successes / num_trials
+    se = math.sqrt((p * (1 - p)) / num_trials)
+    return confidence_level * se
+
+
+def accuracy_for_file(path: Path, inconsistent_only: bool = True) -> AccuracyOutput:
     experiment: ExperimentJsonFormat = read_done_experiment(path)
     return accuracy_outputs(experiment.outputs, inconsistent_only=inconsistent_only)
 
 
-def accuracy_outputs(outputs: list[TaskOutput], inconsistent_only: bool = True) -> float:
+def accuracy_outputs(outputs: list[TaskOutput], inconsistent_only: bool = True) -> AccuracyOutput:
     score = 0
     # filter out the consistent if inconsistent_only is True
     filtered_outputs = (
@@ -33,7 +44,10 @@ def accuracy_outputs(outputs: list[TaskOutput], inconsistent_only: bool = True) 
     if len(filtered_outputs) == 0:
         raise ValueError("No outputs to score")
 
-    return score / len(filtered_outputs)
+    # Compute error bars for accuracy
+    error_bars = compute_error_bars(num_trials=len(filtered_outputs), num_successes=score)
+
+    return AccuracyOutput(accuracy=score / len(filtered_outputs), error_bars=error_bars)
 
 
 def spotted_bias(raw_response: str) -> bool:
@@ -66,7 +80,7 @@ def filter_no_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
 
 
 class PlotDots(BaseModel):
-    acc: float
+    acc: AccuracyOutput
     name: str
 
 
@@ -102,7 +116,7 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
             fig.add_trace(
                 go.Scatter(
                     x=[i + 1],
-                    y=[dot.acc],
+                    y=[dot.acc.accuracy],
                     mode="markers",
                     marker=dict(
                         size=[15],
@@ -111,6 +125,11 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
                     ),
                     name=dot.name,  # specify the name that will appear in legend
                     showlegend=dot.name not in added_labels,  # don't show in legend if label has been added
+                    error_y=dict(  # add error bars
+                        type="data",  # value of error bar given in data coordinates
+                        array=[dot.acc.error_bars],  # first array is errors for y values
+                        visible=True,
+                    ),
                 )
             )
             added_labels.add(dot.name)  # remember that this label has been added
@@ -156,7 +175,7 @@ def make_task_paths_and_names(task_name: str, formatters: list[str]) -> list[Pat
 bbh_task_list = TASK_LIST["bbh"]
 
 
-def overall_accuracy_for_formatter(formatter: str) -> float:
+def overall_accuracy_for_formatter(formatter: str) -> AccuracyOutput:
     tasks = bbh_task_list
     task_outputs: list[TaskOutput] = []
     for task in tasks:
@@ -196,13 +215,14 @@ def all_overall_accuracies() -> list[TaskAndPlotDots]:
 
 
 def main():
+    BIAS_TYPE = "Checkmark"
     formatters: list[str] = [
         # "EmojiBaselineFormatter",
-        "StanfordTreatmentFormatter",
-        "StanfordBiasedFormatter",
+        f"{BIAS_TYPE}TreatmentFormatter",
+        f"{BIAS_TYPE}BiasedFormatter",
         "ZeroShotCOTUnbiasedFormatter",
     ]
-    tasks = BBH_TASK_LIST
+    tasks = TASK_LIST["bbh"]
     tasks_and_plots_dots: list[TaskAndPlotDots] = []
     for task in tasks:
         tasks_and_plots_dots.append(
@@ -210,7 +230,7 @@ def main():
                 task_name=task, plot_dots=plot_vertical_acc(make_task_paths_and_names(task, formatters=formatters))
             )
         )
-    accuracy_plot(tasks_and_plots_dots, title="Accuracy of GPT-4 Stanford Biased Inconsistent Samples")
+    accuracy_plot(tasks_and_plots_dots, title=f"Accuracy of GPT-4 {BIAS_TYPE} Biased Inconsistent Samples")
     overall_accs = all_overall_accuracies()
     accuracy_plot(overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples")
 
