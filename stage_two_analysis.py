@@ -9,7 +9,7 @@ from cot_transparency.data_models.models import (
 import pandas as pd
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.transparency_plots import (
-    add_max_step_in_cot_trace,
+    add_cot_trace_len,
     check_same_answer,
     plot_cot_trace,
     plot_historgram_of_cot_steps,
@@ -31,6 +31,7 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
         d_with_config["task_name"] = task_output.task_spec.stage_one_output.task_spec.task_name
         d_with_config["ground_truth"] = task_output.task_spec.stage_one_output.task_spec.ground_truth
         d_with_config["stage_one_hash"] = task_output.task_spec.stage_one_output.task_spec.uid()
+        d_with_config["stage_one_output_hash"] = task_output.task_spec.stage_one_output.uid()
         d_with_config["biased_ans"] = task_output.task_spec.stage_one_output.task_spec.biased_ans
         d_with_config["task_hash"] = task_output.task_spec.stage_one_output.task_spec.task_hash
         d_with_config = {**d_with_config, **task_output.model_output.dict()}
@@ -59,9 +60,16 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
     return df
 
 
-def plot_historgram_of_lengths(exp_dir: str, filter_at_step: Optional[int] = None):
+def plot_historgram_of_lengths(
+    exp_dir: str,
+    filter_at_step: Optional[int] = None,
+    task_filter: Optional[list[str]] = None,
+    norm_per_task: bool = True,
+):
     df = get_data_frame_from_exp_dir(exp_dir)
-    plot_historgram_of_cot_steps(df, filter_at_step=filter_at_step)
+    plot_historgram_of_cot_steps(
+        df, filter_at_step=filter_at_step, task_filter=task_filter, norm_per_task=norm_per_task
+    )
 
 
 def plot_early_answering(
@@ -77,7 +85,7 @@ def plot_early_answering(
         df = df[df.biased_ans != df.ground_truth]
         print("Number of inconsistent tasks: ", len(df))
 
-    df = add_max_step_in_cot_trace(df)
+    df = add_cot_trace_len(df)
 
     # Apply the check_same_answer function
     df = df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
@@ -107,7 +115,7 @@ def accuracy(
     # as we want to compare the accuracy of the stage_one formatter
     df["formatter_name"] = df["stage_one_formatter_name"]
 
-    df = add_max_step_in_cot_trace(df)
+    df = add_cot_trace_len(df)
 
     if step_filter:
         df = df[df.cot_trace_length.isin(step_filter)]

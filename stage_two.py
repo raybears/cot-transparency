@@ -1,12 +1,11 @@
 import json
+import random
 from pathlib import Path
 from typing import List, Optional, Type
 
 import fire
+
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
-from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     StageTwoExperimentJsonFormat,
@@ -14,9 +13,11 @@ from cot_transparency.data_models.models import (
     StageTwoTaskSpec,
     TaskOutput,
 )
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
+from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.tasks import run_tasks_multi_threaded
-
 from cot_transparency.util import get_exp_dir_name
 from stage_one import CONFIG_MAP, get_valid_stage1_formatters
 
@@ -185,6 +186,9 @@ def main(
             # completed_outputs[task_spec.input_hash()].stage_one_hash = task_spec.stage_one_hash
             # will need to run save_loaded_dict(loaded_dict) after this
             pass
+
+    # shuffle the order of the tasks
+    random.Random(42).shuffle(to_run)
 
     run_tasks_multi_threaded(save_file_every, batch=batch, loaded_dict=loaded_dict, tasks_to_run=to_run)
     # save_loaded_dict(loaded_dict)

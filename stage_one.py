@@ -10,7 +10,7 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.data_models.data import aqua, arc, bbh
+from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa
 from cot_transparency.data_models.models import ChatMessages
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
@@ -35,7 +35,12 @@ TASK_LIST = {
         "logical_deduction_five_objects",
         "hyperbaton",
     ],
-    "transparency": ["aqua", "arc_easy", "arc_challenge"],
+    "transparency": [
+        "aqua",
+        "arc_easy",
+        "arc_challenge",
+        "truthful_qa",
+    ],
 }
 CONFIG_MAP = {
     "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
@@ -94,6 +99,8 @@ def get_list_of_examples(dataset: str, task: str) -> list[DataExampleBase]:
             data = arc.arc_easy_dev()
         elif task == "arc_challenge":
             data = arc.arc_challenge_dev()
+        elif task == "truthful_qa":
+            data = truthful_qa.eval()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")

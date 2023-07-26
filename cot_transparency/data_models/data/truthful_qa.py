@@ -1,22 +1,15 @@
+import json
 from string import ascii_uppercase
-from typing import Any
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
 import random
-import csv
 
 
 class TruthfulQAExample(DataExampleBase):
-    category: str
-    source: str
     question: str
-    examples_true: list[str]
-    examples_false: list[str]
-    examples_informative: list[str]
-    examples_uninformative: list[str]
     options: list[str]
-    correct_idx: int
-    biased_idx: int
+    biased_ans_letter: MultipleChoiceAnswer
+    correct_ans_letter: MultipleChoiceAnswer
 
     def process_options(self, options: list[str]) -> str:
         outputs = []
@@ -32,46 +25,40 @@ class TruthfulQAExample(DataExampleBase):
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
-        return ascii_uppercase[self.correct_idx]  # type: ignore
+        return self.correct_ans_letter
 
     @property
     def biased_ans(self) -> MultipleChoiceAnswer:
-        return ascii_uppercase[self.biased_idx]  # type: ignore
+        return self.biased_ans_letter  # type: ignore
 
 
-def process_example(example: dict[str, Any]) -> TruthfulQAExample:
-    rng = random.Random(example["question"])
-    selected_true = rng.choice(example["examples_true"])
-    incorrect_answers = example["examples_false"].copy()
-    rng.shuffle(incorrect_answers)
-
-    # insert selected_true at a random index
-    correct_idx = rng.randint(0, len(incorrect_answers))
-    options = incorrect_answers.copy()
-    options.insert(correct_idx, selected_true)
-    biased_idx = rng.randint(0, len(options) - 1)
-
-    return TruthfulQAExample(options=options, correct_idx=correct_idx, biased_idx=biased_idx, **example)
-
-
-def load_data() -> list[TruthfulQAExample]:
-    file_path = "./data/truthful_qa/eval_examples.csv"
-    with open(file_path, "r") as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip the header
-
+def eval() -> list[TruthfulQAExample]:
+    file_path = "./data/truthful_qa/mc_task.json"
+    with open(file_path) as f:
         output = []
-        for row in reader:
-            d = dict(
-                category=row[0],
-                source=row[1],
-                question=row[2],
-                examples_true=row[3].split("; "),
-                examples_false=row[4].split("; "),
-                examples_informative=row[5].split("; "),
-                examples_uninformative=row[6].split("; "),
-            )
-            example = process_example(d)
-            output.append(example)
+        _json = json.load(f)
+        for example in _json:
+            targets_len = len(example["mc1_targets"])
+            if targets_len > 6:
+                print("WARNING: targets_len > 6", targets_len)
+                print(example["question"])
+                print()
 
+            question = example["question"]
+            rng = random.Random(question)  # seed with question
+            random_ans_idx = rng.randint(0, targets_len - 1)  # select random answer for bias metrics
+
+            options = [(k, v) for k, v in example["mc1_targets"].items()]
+            # shuffle options as correct answer is  always the first one in the json
+            rng.shuffle(options)
+            # correct index is the position in options with v == 1
+            correct_idx = [i for i, (_, v) in enumerate(options) if v == 1][0]
+
+            example = TruthfulQAExample(
+                question=question,
+                biased_ans_letter=ascii_uppercase[random_ans_idx],  # type: ignore
+                correct_ans_letter=ascii_uppercase[correct_idx],  # type: ignore
+                options=[k for k, _ in options],
+            )
+            output.append(example)
     return output

@@ -16,7 +16,7 @@ def set_keys_from_env():
 def set_opeani_org_from_env_rand():
     ids = os.getenv("OPENAI_ORG_IDS", None)
     if ids is None:
-        raise ValueError("OPENAI_ORG_IDS must be set in .env file")
+        return
     ids = ids.split(",")
     if len(ids) > 1:
         id_ = random.choice(ids)

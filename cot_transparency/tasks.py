@@ -74,6 +74,7 @@ def run_tasks_multi_threaded(
 
     future_instance_outputs = []
 
+    print(f"Running {len(tasks_to_run)} tasks with {batch} threads")
     executor = ThreadPoolExecutor(max_workers=batch)
 
     def kill_and_save(loaded_dict: LoadedJsonType):

@@ -22,7 +22,7 @@ class HashableBaseModel(BaseModel):
 class OpenaiInferenceConfig(HashableBaseModel):
     # Config for openai
     model: str
-    temperature: Optional[float]
+    temperature: float
     top_p: Optional[float]
     max_tokens: int
     frequency_penalty: float = 0.0
