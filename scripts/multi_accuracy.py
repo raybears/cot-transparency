@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
-from run_eval import BBH_TASK_LIST
 from stage_one import read_done_experiment, TASK_LIST
 
 
@@ -231,7 +230,7 @@ def main():
                 task_name=task, plot_dots=plot_vertical_acc(make_task_paths_and_names(task, formatters=formatters))
             )
         )
-    accuracy_plot(tasks_and_plots_dots, title=F"Accuracy of GPT-4 {BIAS_TYPE} Biased Inconsistent Samples")
+    accuracy_plot(tasks_and_plots_dots, title=f"Accuracy of GPT-4 {BIAS_TYPE} Biased Inconsistent Samples")
     overall_accs = all_overall_accuracies()
     accuracy_plot(overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples")
 
