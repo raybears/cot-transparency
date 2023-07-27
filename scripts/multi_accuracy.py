@@ -1,6 +1,10 @@
+import glob
+import os
 from pathlib import Path
 
 import math
+from typing import Optional
+import fire
 import plotly.colors as pcol
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -101,7 +105,7 @@ def plot_vertical_acc(paths: list[PathsAndNames]) -> list[PlotDots]:
     return out
 
 
-def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
+def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_file_path: Optional[str] = None):
     fig = go.Figure()
     colors = pcol.qualitative.D3
     symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "pentagon"]  # add more symbols if needed
@@ -145,7 +149,10 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str):
 
     fig.update_layout(title_text=title, title_x=0.5)
 
-    pio.write_image(fig, title + ".png", scale=2)
+    if save_file_path is not None:
+        pio.write_image(fig, title + ".png", scale=2)
+    else:
+        fig.show()
 
 
 formatter_name_map: dict[str, str] = {
@@ -163,13 +170,13 @@ formatter_name_map: dict[str, str] = {
 
 
 def make_task_paths_and_names(task_name: str, formatters: list[str]) -> list[PathsAndNames]:
-    return [
-        PathsAndNames(
-            path=f"experiments/v2/{task_name}/gpt-4/{formatter}.json",
-            name=formatter_name_map.get(formatter, formatter),
-        )
-        for formatter in formatters
-    ]
+    print(task_name)
+    outputs = []
+    for formatter in formatters:
+        path = f"./experiments/stage_one/gpt_4_bbh/{task_name}/gpt-4/{formatter}.json"
+        print(path)
+        outputs.append(PathsAndNames(path=path, name=formatter_name_map.get(formatter, formatter)))
+    return outputs
 
 
 bbh_task_list = TASK_LIST["bbh"]
@@ -214,29 +221,52 @@ def all_overall_accuracies() -> list[TaskAndPlotDots]:
     return [stanford, cross, checkmark]
 
 
-def main():
-    BIAS_TYPE = "Checkmark"
-    formatters: list[str] = [
-        # "EmojiBaselineFormatter",
-        f"{BIAS_TYPE}TreatmentFormatter",
-        f"{BIAS_TYPE}BiasedFormatter",
-        "ZeroShotCOTUnbiasedFormatter",
-    ]
-    tasks = TASK_LIST["bbh"]
+def plot_accuracy_for_exp(exp_dir: str, model_filter: Optional[str] = None, save_file_path: Optional[str] = None):
+    # find formatter names from the exp_dir
+    # exp_dir/task_name/model/formatter_name.json
+    json_files = glob.glob(f"{exp_dir}/*/*/*.json")
+
+    formatters: set[str] = set()
+    tasks: set[str] = set()
+    models: set[str] = set()
+    for i in json_files:
+        base_name = os.path.basename(i)  # First get the basename: 'file.txt'
+        name_without_ext = os.path.splitext(base_name)[0]  # Then remove the extension
+        formatters.add(name_without_ext)
+        task = i.split("/")[-3]
+        tasks.add(task)
+        model = i.split("/")[-2]
+
+        if model_filter is not None:
+            if model != model_filter:
+                continue
+        models.add(model)
+
+    print(f"formatters: {formatters}")
+
+    if len(set(models)) > 1:
+        if model_filter is None:
+            raise ValueError(f"Multiple models found: {set(models)}. Please specify a model to filter on.")
+
     tasks_and_plots_dots: list[TaskAndPlotDots] = []
     for task in tasks:
         tasks_and_plots_dots.append(
             TaskAndPlotDots(
-                task_name=task, plot_dots=plot_vertical_acc(make_task_paths_and_names(task, formatters=formatters))
+                task_name=task,
+                plot_dots=plot_vertical_acc(make_task_paths_and_names(task, formatters=list(formatters))),
             )
         )
-    accuracy_plot(tasks_and_plots_dots, title=f"Accuracy of GPT-4 {BIAS_TYPE} Biased Inconsistent Samples")
-    overall_accs = all_overall_accuracies()
-    accuracy_plot(overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples")
+    accuracy_plot(
+        tasks_and_plots_dots,
+        title=f"Accuracy of {models[0]} Biased Inconsistent Samples",  # type: ignore
+        save_file_path=save_file_path,
+    )
+    # overall_accs = all_overall_accuracies()
+    # accuracy_plot(overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples")
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(accuracy_plot)
     # Run this to inspect for a single json
     # ruined = "experiments/james/ruin_names/gpt-4/EmojiLabelListFormatter.json"
     # loaded: list[TaskOutput] = read_done_experiment(Path(ruined)).outputs
