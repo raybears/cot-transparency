@@ -7,6 +7,8 @@ from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 from cot_transparency.data_models.models import ChatMessages
 from copy import deepcopy
 
+from cot_transparency.model_apis import get_model_specific_messages
+
 
 def parse_stage_two_output(response: str, allow_failure: bool = True) -> Optional[MultipleChoiceAnswer]:
     out: Optional[MultipleChoiceAnswer] = None
@@ -35,17 +37,27 @@ class StageTwoFormatter(PromptFormatter):
 
 class EarlyAnsweringFormatter(StageTwoFormatter):
     @staticmethod
-    def format_example(question: list[ChatMessages], partial_cot_trace: str) -> list[ChatMessages]:
+    def format_example(question: list[ChatMessages], partial_cot_trace: str, model: str) -> list[ChatMessages]:
         output = deepcopy(question)
+        output = get_model_specific_messages(question, model)
+
+        for message in output:
+            assert message != MessageRoles.assistant_preferred
 
         # inherit use of roles from the question
-        should_use_roles = question[0].role is not MessageRoles.none
+        should_use_roles = output[0].role is not MessageRoles.none
 
-        # add the cot_step
+        # add the cot_step to the last assistant message if it was an assistant message
+        if output[-1].role is MessageRoles.assistant:
+            message = f"{output[-1].content}{partial_cot_trace.rstrip()}"
+            output.pop()
+        else:
+            message = partial_cot_trace.rstrip()
+
         output.append(
             ChatMessages(
                 role=MessageRoles.assistant if should_use_roles else MessageRoles.none,
-                content=partial_cot_trace.rstrip(),
+                content=message,
             )
         )
         output.append(
@@ -60,5 +72,6 @@ class EarlyAnsweringFormatter(StageTwoFormatter):
                 content="The single, most likely answer is: (",
             )
         )
+        output = get_model_specific_messages(output, model)
 
         return output

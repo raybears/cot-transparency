@@ -47,7 +47,9 @@ def get_early_answering_tasks(
         config.max_tokens = 1
 
         # messages / prompt for stage_two
-        messages = EarlyAnsweringFormatter.format_example(stage_one_output.task_spec.messages, partial_cot)
+        messages = EarlyAnsweringFormatter.format_example(
+            stage_one_output.task_spec.messages, partial_cot, config.model
+        )
 
         task = StageTwoTaskSpec(
             stage_one_output=stage_one_output,
