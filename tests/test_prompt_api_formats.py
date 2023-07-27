@@ -5,13 +5,13 @@ from cot_transparency.formatters import (
 )
 from cot_transparency.formatters.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.model_apis import format_for_completion, format_for_openai_chat
-from cot_transparency.data_models.models import ChatMessages
+from cot_transparency.data_models.models import ChatMessage
 from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
 def test_openai_completion_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
-    formatted_prompt: list[ChatMessages] = ZeroShotCOTSycophancyNoRoleFormatter().format_example(test_example)
+    formatted_prompt: list[ChatMessage] = ZeroShotCOTSycophancyNoRoleFormatter().format_example(test_example)
     prompt_sent_to_openai_completion = format_for_completion(formatted_prompt)
 
     assert len(formatted_prompt) == 2
@@ -34,7 +34,7 @@ Let's think step by step:"""  # noqa
 
 def test_openai_completion_no_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
-    formatted_prompt: list[ChatMessages] = ZeroShotSycophancyNoRoleFormatter().format_example(test_example)
+    formatted_prompt: list[ChatMessage] = ZeroShotSycophancyNoRoleFormatter().format_example(test_example)
     prompt_sent_to_openai_completion = format_for_completion(formatted_prompt)
 
     assert len(formatted_prompt) == 2
@@ -55,7 +55,7 @@ The best answer is: ("""  # noqa
 
 def test_openai_completion_no_cot_with_role():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
-    formatted_prompt: list[ChatMessages] = ZeroShotSycophancyFormatter().format_example(test_example)
+    formatted_prompt: list[ChatMessage] = ZeroShotSycophancyFormatter().format_example(test_example)
     prompt_sent_to_openai_completion = format_for_completion(formatted_prompt)
 
     assert len(formatted_prompt) == 2
@@ -76,7 +76,7 @@ Assistant: The best answer is: ("""  # noqa
 
 def test_openai_chat_no_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
-    formatted_prompt: list[ChatMessages] = ZeroShotSycophancyFormatter().format_example(test_example)
+    formatted_prompt: list[ChatMessage] = ZeroShotSycophancyFormatter().format_example(test_example)
     chat_messages = format_for_openai_chat(formatted_prompt)
     prompt_sent_to_openai_chat = [chat.dict() for chat in chat_messages]
 
@@ -102,7 +102,7 @@ The best answer is: ("""  # noqa
 
 def test_anthropic_no_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
-    formatted_prompt: list[ChatMessages] = ZeroShotSycophancyFormatter().format_example(test_example)
+    formatted_prompt: list[ChatMessage] = ZeroShotSycophancyFormatter().format_example(test_example)
     prompt_sent_to_anthropic = format_for_completion(formatted_prompt)
 
     assert len(formatted_prompt) == 2
@@ -123,7 +123,7 @@ Assistant: The best answer is: ("""  # noqa
 
 def test_anthropic_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
-    formatted_prompt: list[ChatMessages] = ZeroShotCOTSycophancyFormatter().format_example(test_example)
+    formatted_prompt: list[ChatMessage] = ZeroShotCOTSycophancyFormatter().format_example(test_example)
     prompt_sent_to_anthropic = format_for_completion(formatted_prompt)
 
     assert len(formatted_prompt) == 2

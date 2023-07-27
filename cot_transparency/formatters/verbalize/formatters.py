@@ -1,7 +1,7 @@
 from typing import Optional
 
 from cot_transparency.data_models.data.bbh import DataExampleBase
-from cot_transparency.data_models.models import ChatMessages, MessageRoles
+from cot_transparency.data_models.models import ChatMessage, MessageRoles
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.verbalize.emoji_utils import question_with_checkmark_bias, question_with_cross_bias
 from cot_transparency.formatters.extraction import extract_answer
@@ -40,7 +40,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
         # Stanford biasing is one shot
         message = format_stanford_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
@@ -48,7 +48,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
         with_label_instruction = f"""{message}
 {label_bias_instruction}"""
         messages = [
-            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
         ]
         return messages
 
@@ -62,7 +62,7 @@ class StanfordTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
         message = format_stanford_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
@@ -82,7 +82,7 @@ class StanfordTreatmentFormatter(StageOneFormatter):
             checkmark_answer_message,
             cross_question_message,
             cross_answer_message,
-            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
         ]
         return messages
 
@@ -96,7 +96,7 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
         biased_message = question_with_checkmark_bias(
             parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
         )
@@ -104,7 +104,7 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
 {biased_message}
 {label_bias_instruction}"""
         messages = [
-            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
         ]
         return messages
 
@@ -118,7 +118,7 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
         biased_message = question_with_checkmark_bias(
             parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
         )
@@ -139,7 +139,7 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
             cross_answer_message,
             stanford_question_message,
             stanford_answer_message,
-            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
         ]
         return messages
 
@@ -153,7 +153,7 @@ class CrossBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
         biased_message = question_with_cross_bias(
             parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
         )
@@ -161,7 +161,7 @@ class CrossBiasedFormatter(StageOneFormatter):
 {biased_message}
 {label_bias_instruction}"""
         messages = [
-            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
         ]
         return messages
 
@@ -175,7 +175,7 @@ class CrossTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
         biased_message = question_with_cross_bias(
             parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
         )
@@ -196,7 +196,7 @@ class CrossTreatmentFormatter(StageOneFormatter):
             checkmark_answer_message,
             stanford_question_message,
             stanford_answer_message,
-            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
         ]
         return messages
 
@@ -210,7 +210,7 @@ class IThinkAnswerBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
         biased_message = format_sycophancy_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
@@ -218,7 +218,7 @@ class IThinkAnswerBiasedFormatter(StageOneFormatter):
 {biased_message}
 {label_bias_instruction}"""
         messages = [
-            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
         ]
         return messages
 
@@ -232,7 +232,7 @@ class IThinkAnswerTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
         biased_message = format_sycophancy_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
@@ -251,7 +251,7 @@ class IThinkAnswerTreatmentFormatter(StageOneFormatter):
             checkmark_answer_message,
             stanford_question_message,
             stanford_answer_message,
-            ChatMessages(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
         ]
         return messages
 

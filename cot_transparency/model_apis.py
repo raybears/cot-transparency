@@ -7,16 +7,16 @@ from cot_transparency.openai_utils.inference import (
     gpt3_5_rate_limited,
     gpt4_rate_limited,
 )
-from cot_transparency.data_models.models import ChatMessages
+from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.openai_utils.set_key import set_opeani_org_from_env_rand
 
 
-def messages_has_none_role(prompt: list[ChatMessages]) -> bool:
+def messages_has_none_role(prompt: list[ChatMessage]) -> bool:
     is_non_role = [msg.role == MessageRoles.none for msg in prompt]
     return any(is_non_role)
 
 
-def call_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConfig) -> str:
+def call_model_api(prompt: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
     set_opeani_org_from_env_rand()
 
     model_name = config.model
@@ -39,13 +39,13 @@ def call_model_api(prompt: list[ChatMessages], config: OpenaiInferenceConfig) ->
         return get_openai_completion(config=config, prompt=formatted).completion
 
 
-def format_for_anthropic(prompt: list[ChatMessages]) -> str:
+def format_for_anthropic(prompt: list[ChatMessage]) -> str:
     if messages_has_none_role(prompt):
         raise ValueError(f"Anthropic chat messages cannot have a None role. Got {prompt}")
     return format_for_completion(prompt)
 
 
-def format_for_completion(prompt: list[ChatMessages]) -> str:
+def format_for_completion(prompt: list[ChatMessage]) -> str:
     message = ""
     for msg in prompt:
         match msg.role:
@@ -53,7 +53,7 @@ def format_for_completion(prompt: list[ChatMessages]) -> str:
                 message += f"{anthropic.HUMAN_PROMPT} {msg.content}"
             case MessageRoles.assistant:
                 message += f"{anthropic.AI_PROMPT} {msg.content}"
-            case MessageRoles.assistant_preferred:
+            case MessageRoles.assistant_if_completion:
                 message += f"{anthropic.AI_PROMPT} {msg.content}"
             case MessageRoles.none:
                 message += f"\n\n{msg.content}"
@@ -63,7 +63,7 @@ def format_for_completion(prompt: list[ChatMessages]) -> str:
     return message
 
 
-def format_for_openai_chat(prompt: list[ChatMessages]) -> list[ChatMessages]:
+def format_for_openai_chat(prompt: list[ChatMessage]) -> list[ChatMessage]:
     # Do some funky logic where we need to shift the assistant preferred message to the previous message
     # because OpenAI doesn't allow us to complete it like that
 
@@ -71,15 +71,15 @@ def format_for_openai_chat(prompt: list[ChatMessages]) -> list[ChatMessages]:
     if messages_has_none_role(prompt):
         raise ValueError(f"OpenAI chat messages cannot have a None role. Got {prompt}")
 
-    is_assistant_preferred = [msg.role == MessageRoles.assistant_preferred for msg in prompt]
+    is_assistant_preferred = [msg.role == MessageRoles.assistant_if_completion for msg in prompt]
     if not any(is_assistant_preferred):
         return prompt
 
     new_list = []
     for msg in prompt:
-        if msg.role == MessageRoles.assistant_preferred:
+        if msg.role == MessageRoles.assistant_if_completion:
             content = new_list[-1].content + f"\n\n{msg.content}"
-            new_item = ChatMessages(role=new_list[-1].role, content=content)
+            new_item = ChatMessage(role=new_list[-1].role, content=content)
             new_list[-1] = new_item
         else:
             new_list.append(msg.copy())

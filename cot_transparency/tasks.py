@@ -9,7 +9,7 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, StageTwoT
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.model_apis import call_model_api
-from cot_transparency.data_models.models import ChatMessages
+from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters import PromptFormatter, name_to_formatter
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.models import ModelOutput
@@ -27,7 +27,7 @@ class AnswerNotFound(Exception):
 
 @retry(exceptions=AnswerNotFound, tries=20, delay=1, logger=logger)
 def call_model_until_suitable_response(
-    messages: list[ChatMessages], config: OpenaiInferenceConfig, formatter: Type[PromptFormatter]
+    messages: list[ChatMessage], config: OpenaiInferenceConfig, formatter: Type[PromptFormatter]
 ) -> ModelOutput:
     # call api
     response = call_model_api(messages, config)
