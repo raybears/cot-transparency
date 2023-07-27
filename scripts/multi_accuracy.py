@@ -26,32 +26,34 @@ def compute_error_bars(num_trials: int, num_successes: int, confidence_level: fl
     return confidence_level * se
 
 
+def inconsistent_only_outputs(outputs: list[TaskOutput]) -> list[TaskOutput]:
+    return [output for output in outputs if output.task_spec.biased_ans != output.task_spec.ground_truth]
+
+
 def accuracy_for_file(path: Path, inconsistent_only: bool = True) -> AccuracyOutput:
     experiment: ExperimentJsonFormat = read_done_experiment(path)
-    return accuracy_outputs(experiment.outputs, inconsistent_only=inconsistent_only)
+    assert experiment.outputs, f"Experiment {path} has no outputs"
+    maybe_filtered = inconsistent_only_outputs(experiment.outputs) if inconsistent_only else experiment.outputs
+    assert maybe_filtered, f"Experiment {path} has no inconsistent only outputs"
+    return accuracy_outputs(maybe_filtered)
 
 
-def accuracy_outputs(outputs: list[TaskOutput], inconsistent_only: bool = True) -> AccuracyOutput:
+def accuracy_outputs(outputs: list[TaskOutput]) -> AccuracyOutput:
+    if len(outputs) == 0:
+        raise ValueError("No outputs to score")
     score = 0
     # filter out the consistent if inconsistent_only is True
-    filtered_outputs = (
-        [output for output in outputs if output.task_spec.biased_ans != output.task_spec.ground_truth]
-        if inconsistent_only
-        else outputs
-    )
-    for item in filtered_outputs:
+    for item in outputs:
         ground_truth = item.task_spec.ground_truth
         predicted = item.model_output.parsed_response
         is_correct = predicted == ground_truth
         if is_correct:
             score += 1
-    if len(filtered_outputs) == 0:
-        raise ValueError("No outputs to score")
 
     # Compute error bars for accuracy
-    error_bars = compute_error_bars(num_trials=len(filtered_outputs), num_successes=score)
+    error_bars = compute_error_bars(num_trials=len(outputs), num_successes=score)
 
-    return AccuracyOutput(accuracy=score / len(filtered_outputs), error_bars=error_bars)
+    return AccuracyOutput(accuracy=score / len(outputs), error_bars=error_bars)
 
 
 def spotted_bias(raw_response: str) -> bool:
@@ -169,12 +171,10 @@ formatter_name_map: dict[str, str] = {
 }
 
 
-def make_task_paths_and_names(task_name: str, formatters: list[str]) -> list[PathsAndNames]:
-    print(task_name)
+def make_task_paths_and_names(task_name: str, formatters: list[str], model: str, exp_dir: str) -> list[PathsAndNames]:
     outputs = []
     for formatter in formatters:
-        path = f"./experiments/stage_one/gpt_4_bbh/{task_name}/gpt-4/{formatter}.json"
-        print(path)
+        path = f"./{exp_dir}/{task_name}/{model}/{formatter}.json"
         outputs.append(PathsAndNames(path=path, name=formatter_name_map.get(formatter, formatter)))
     return outputs
 
@@ -247,13 +247,16 @@ def plot_accuracy_for_exp(exp_dir: str, model_filter: Optional[str] = None, save
     if len(set(models)) > 1:
         if model_filter is None:
             raise ValueError(f"Multiple models found: {set(models)}. Please specify a model to filter on.")
+    model = list(models)[0]
 
     tasks_and_plots_dots: list[TaskAndPlotDots] = []
     for task in tasks:
         tasks_and_plots_dots.append(
             TaskAndPlotDots(
                 task_name=task,
-                plot_dots=plot_vertical_acc(make_task_paths_and_names(task, formatters=list(formatters))),
+                plot_dots=plot_vertical_acc(
+                    make_task_paths_and_names(task_name=task, formatters=list(formatters), model=model, exp_dir=exp_dir)
+                ),
             )
         )
     accuracy_plot(
@@ -266,7 +269,7 @@ def plot_accuracy_for_exp(exp_dir: str, model_filter: Optional[str] = None, save
 
 
 if __name__ == "__main__":
-    fire.Fire(accuracy_plot)
+    fire.Fire(plot_accuracy_for_exp)
     # Run this to inspect for a single json
     # ruined = "experiments/james/ruin_names/gpt-4/EmojiLabelListFormatter.json"
     # loaded: list[TaskOutput] = read_done_experiment(Path(ruined)).outputs
