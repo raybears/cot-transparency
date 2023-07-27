@@ -11,7 +11,7 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa
-from cot_transparency.data_models.models import ChatMessages
+from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
 from cot_transparency.data_models.models import ExperimentJsonFormat
@@ -159,7 +159,7 @@ def main(
                 # may be negative
                 runs_to_do = max(repeats_per_question - already_done_hashes_counts[task_hash], 0)
 
-            formatted: list[ChatMessages] = formatter.format_example(question=item)
+            formatted: list[ChatMessage] = formatter.format_example(question=item)
             config = CONFIG_MAP[model].copy()
             config.model = model
             if not formatter.is_cot:

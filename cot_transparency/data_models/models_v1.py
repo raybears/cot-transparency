@@ -12,7 +12,7 @@ from cot_transparency.util import deterministic_hash
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 
 from cot_transparency.data_models.models import (
-    ChatMessages,
+    ChatMessage,
     ModelOutput,
     OpenaiInferenceConfig,
     deterministic_task_hash,
@@ -22,7 +22,7 @@ from cot_transparency.data_models.models import (
 class TaskOutput(BaseModel):
     # This is one single experiment
     task_name: str
-    prompt: list[ChatMessages]
+    prompt: list[ChatMessage]
     model_output: list[ModelOutput]
     ground_truth: MultipleChoiceAnswer
     task_hash: str
@@ -51,7 +51,7 @@ class TaskSpec(BaseModel):
     # This is a dataclass because a PromptFormatter isn't serializable
     task_name: str
     model_config: OpenaiInferenceConfig
-    messages: list[ChatMessages]
+    messages: list[ChatMessage]
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
     formatter: Type[Any]

@@ -2,10 +2,10 @@ import pandas as pd
 from slist import Slist
 
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.data_models.models import TaskOutput, ChatMessages
+from cot_transparency.data_models.models import TaskOutput, ChatMessage
 
 
-def extract_answer(messages: list[ChatMessages]) -> str:
+def extract_answer(messages: list[ChatMessage]) -> str:
     """Extracts the answer from a list of messages"""
     content = messages[-1].content
     # split by new line
