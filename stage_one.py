@@ -16,7 +16,7 @@ from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
 from cot_transparency.data_models.models import ExperimentJsonFormat
 from cot_transparency.tasks import TaskSetting
-from cot_transparency.util import get_exp_dir_name
+from cot_transparency.util import get_exp_dir_name, deterministic_hash_int
 from cot_transparency.tasks import run_tasks_multi_threaded
 
 TASK_LIST = {
@@ -114,10 +114,13 @@ def main(
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
+    # across all tasks
     example_cap: Optional[int] = 1000000,
     save_file_every: int = 50,
     batch: int = 10,
     repeats_per_question: int = 1,
+    # 1 to 10
+    subset: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 ):
     tasks = validate_dataset_and_task(dataset, tasks)
 
@@ -144,15 +147,22 @@ def main(
 
         # Shuffle the data BEFORE we cap it
         random.Random(42).shuffle(data)
+
+        filtered_data = []
+        for item in data:
+            hash_bucket = deterministic_hash_int(item.hash()) % 10
+            if hash_bucket in subset:
+                filtered_data.append(item)
+
         if example_cap:
-            data = data[:example_cap]
+            filtered_data = filtered_data[:example_cap]
 
         out_file_path: Path = Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
         already_done = read_done_experiment(out_file_path)
         loaded_dict.update({out_file_path: already_done})
         already_done_hashes_counts = Counter([o.task_spec.task_hash for o in already_done.outputs])
-        for item in data:
-            task_hash = item.hash()
+        for item in filtered_data:
+            task_hash: str = item.hash()
             if task_hash not in already_done_hashes_counts:
                 runs_to_do = repeats_per_question
             else:

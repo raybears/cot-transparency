@@ -47,3 +47,6 @@ def safe_file_write(filename: str, data: str):
 
 def deterministic_hash(something: str) -> str:
     return hashlib.sha1(something.encode()).hexdigest()
+
+def deterministic_hash_int(something: str) -> int:
+    return int(deterministic_hash(something), 16)
