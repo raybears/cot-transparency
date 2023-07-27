@@ -1,7 +1,7 @@
 from cot_transparency.data_models.models import MessageRoles
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.transparency import EarlyAnsweringFormatter
-from cot_transparency.model_apis import convert_to_completion_str, format_for_openai_chat
+from cot_transparency.model_apis import convert_to_completion_str
 from cot_transparency.data_models.models import ChatMessages
 
 
@@ -54,7 +54,6 @@ def test_early_answering_formatter_chat():
     ]
 
     messages = EarlyAnsweringFormatter.format_example(input_messages, EXAMPLE_COT, "gpt-3.5-turbo")
-    formatted_for_completion = format_for_openai_chat(messages)
 
     expected_list = [
         {
@@ -73,7 +72,7 @@ def test_early_answering_formatter_chat():
 
     expected_chat_messages = [ChatMessages(**msg) for msg in expected_list]  # type: ignore
 
-    assert formatted_for_completion == expected_chat_messages
+    assert messages == expected_chat_messages
 
 
 if __name__ == "__main__":

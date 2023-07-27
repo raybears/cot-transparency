@@ -41,6 +41,15 @@ class MessageRoles(str, Enum):
     none = "none"
 
 
+class StrictMessageRoles(str, Enum):
+    # Stricter set of roles that doesn't allow assistant_preferred
+    user = MessageRoles.user
+    system = MessageRoles.system
+    assistant = MessageRoles.assistant
+    # none is designed for completion tasks where no role / tag will be added
+    none = MessageRoles.none
+
+
 class ChatMessages(HashableBaseModel):
     role: MessageRoles
     content: str
@@ -49,13 +58,24 @@ class ChatMessages(HashableBaseModel):
         frozen = True
 
 
+class StrictChatMessages(HashableBaseModel):
+    role: StrictMessageRoles
+    content: str
+
+    class Config:
+        frozen = True
+        validate_assignment = True
+
+
 class ModelOutput(BaseModel):
     raw_response: str
     # We always have a suitable response because we keep retrying
     parsed_response: str
 
 
-def deterministic_task_hash(task_name: str, messages: list[ChatMessages], model_config: OpenaiInferenceConfig) -> str:
+def deterministic_task_hash(
+    task_name: str, messages: list[ChatMessages] | list[StrictChatMessages], model_config: OpenaiInferenceConfig
+) -> str:
     hashes: str = ""
     hashes += task_name
     hashes += model_config.d_hash()
@@ -105,7 +125,7 @@ class TaskOutput(BaseModel):
 class StageTwoTaskSpec(BaseModel):
     stage_one_output: TaskOutput
     model_config: OpenaiInferenceConfig
-    messages: list[ChatMessages]
+    messages: list[StrictChatMessages]
     out_file_path: Path
     formatter_name: str
     step_in_cot_trace: Optional[int] = None
