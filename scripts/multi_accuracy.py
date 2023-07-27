@@ -184,45 +184,6 @@ def make_task_paths_and_names(task_name: str, formatters: list[str], model: str,
 bbh_task_list = TASK_LIST["bbh"]
 
 
-def overall_accuracy_for_formatter(formatter: str) -> AccuracyOutput:
-    tasks = bbh_task_list
-    task_outputs: list[TaskOutput] = []
-    for task in tasks:
-        experiment: ExperimentJsonFormat = read_done_experiment(Path(f"experiments/v2/{task}/gpt-4/{formatter}.json"))
-        task_outputs.extend(experiment.outputs)
-    accuracy = accuracy_outputs(task_outputs)
-    return accuracy
-
-
-def all_overall_accuracies() -> list[TaskAndPlotDots]:
-    nonbiased = overall_accuracy_for_formatter("ZeroShotCOTUnbiasedFormatter")
-    stanford: TaskAndPlotDots = TaskAndPlotDots(
-        task_name="Stanford",
-        plot_dots=[
-            PlotDots(acc=overall_accuracy_for_formatter("StanfordTreatmentFormatter"), name="Treatment"),
-            PlotDots(acc=overall_accuracy_for_formatter("StanfordBiasedFormatter"), name="Biased"),
-            PlotDots(acc=nonbiased, name="Unbiased"),
-        ],
-    )
-    cross: TaskAndPlotDots = TaskAndPlotDots(
-        task_name="Cross",
-        plot_dots=[
-            PlotDots(acc=overall_accuracy_for_formatter("CrossTreatmentFormatter"), name="Treatment"),
-            PlotDots(acc=overall_accuracy_for_formatter("CrossBiasedFormatter"), name="Biased"),
-            PlotDots(acc=nonbiased, name="Unbiased"),
-        ],
-    )
-    checkmark: TaskAndPlotDots = TaskAndPlotDots(
-        task_name="Checkmark",
-        plot_dots=[
-            PlotDots(acc=overall_accuracy_for_formatter("CheckmarkTreatmentFormatter"), name="Treatment"),
-            PlotDots(acc=overall_accuracy_for_formatter("CheckmarkBiasedFormatter"), name="Biased"),
-            PlotDots(acc=nonbiased, name="Unbiased"),
-        ],
-    )
-    return [stanford, cross, checkmark]
-
-
 def plot_accuracy_for_exp(
     exp_dir: str,
     model_filter: Optional[str] = None,
@@ -280,24 +241,7 @@ def plot_accuracy_for_exp(
         title=f"Accuracy of {model} {title_subset}",  # type: ignore
         save_file_path=save_file_path,
     )
-    # overall_accs = all_overall_accuracies()
-    # accuracy_plot(overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples")
 
 
 if __name__ == "__main__":
     fire.Fire(plot_accuracy_for_exp)
-    # Run this to inspect for a single json
-    # ruined = "experiments/james/ruin_names/gpt-4/EmojiLabelListFormatter.json"
-    # loaded: list[TaskOutput] = read_done_experiment(Path(ruined)).outputs
-    # print(f"Number of outputs: {len(loaded)}")
-    # overall_acc = accuracy_outputs(loaded, inconsistent_only=False)
-    # print(f"overall accuracy: {overall_acc}")
-    # only_spotted = filter_only_bias_spotted(loaded)
-    # parsed_spotted = extract_labelled_bias(only_spotted)
-    # print(f"Number of only spotted: {len(only_spotted)}")
-    # only_spotted_acc = accuracy_outputs(only_spotted, inconsistent_only=False)
-    # print(f"only_spotted_acc: {only_spotted_acc}")
-    # no_spotted = filter_no_bias_spotted(loaded)
-    # print(f"Number of no spotted: {len(no_spotted)}")
-    # no_spotted_acc = accuracy_outputs(no_spotted, inconsistent_only=False)
-    # print(f"no_spotted_acc: {no_spotted_acc}")
