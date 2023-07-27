@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Self, Set, Type
 
 from cot_transparency.data_models.data.bbh import DataExampleBase
-from cot_transparency.data_models.models import ChatMessages
+from cot_transparency.data_models.models import ChatMessage
 
 
 class PromptFormatter(ABC):
@@ -32,7 +32,7 @@ class PromptFormatter(ABC):
 class StageOneFormatter(PromptFormatter, ABC):
     @staticmethod
     @abstractmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessages]:
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
         raise NotImplementedError
 
     @classmethod

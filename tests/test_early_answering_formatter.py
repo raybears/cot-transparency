@@ -2,7 +2,7 @@ from cot_transparency.data_models.models import MessageRoles
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.transparency import EarlyAnsweringFormatter
 from cot_transparency.model_apis import convert_to_completion_str
-from cot_transparency.data_models.models import ChatMessages
+from cot_transparency.data_models.models import ChatMessage
 
 
 GONE_WITH_THE_WILD = """Q: Which of the following is a humorous edit of this artist or movie name: 'gone with the wind'?
@@ -20,9 +20,9 @@ EXAMPLE_COT = """first, I want to consider the meaning of the original phrase, "
 
 
 def test_early_answering_formatter_completion():
-    input_messages: list[ChatMessages] = [
-        ChatMessages(role=MessageRoles.user, content=GONE_WITH_THE_WILD),
-        ChatMessages(role=MessageRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
+    input_messages: list[ChatMessage] = [
+        ChatMessage(role=MessageRoles.user, content=GONE_WITH_THE_WILD),
+        ChatMessage(role=MessageRoles.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
     ]
 
     messages = EarlyAnsweringFormatter.format_example(input_messages, EXAMPLE_COT, "claude-v1")
@@ -48,9 +48,9 @@ Assistant: The single, most likely answer is: ("""  # noqa
 
 
 def test_early_answering_formatter_chat():
-    input_messages: list[ChatMessages] = [
-        ChatMessages(role=MessageRoles.user, content=GONE_WITH_THE_WILD),
-        ChatMessages(role=MessageRoles.assistant_preferred, content=COT_ASSISTANT_PROMPT),
+    input_messages: list[ChatMessage] = [
+        ChatMessage(role=MessageRoles.user, content=GONE_WITH_THE_WILD),
+        ChatMessage(role=MessageRoles.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
     ]
 
     messages = EarlyAnsweringFormatter.format_example(input_messages, EXAMPLE_COT, "gpt-3.5-turbo")
@@ -70,7 +70,7 @@ def test_early_answering_formatter_chat():
         },
     ]
 
-    expected_chat_messages = [ChatMessages(**msg) for msg in expected_list]  # type: ignore
+    expected_chat_messages = [ChatMessage(**msg) for msg in expected_list]  # type: ignore
 
     assert messages == expected_chat_messages
 

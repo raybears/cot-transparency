@@ -2,13 +2,13 @@ from pathlib import Path
 from cot_transparency.data_models.models import MessageRoles, ModelOutput, OpenaiInferenceConfig, TaskOutput
 from cot_transparency.formatters.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.util import deterministic_hash
-from cot_transparency.data_models.models import ChatMessages
+from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.data_models.models import TaskSpec
 
 
 def test_taskspec_and_taskoutput_give_same():
     messages = []
-    messages.append(ChatMessages(role=MessageRoles.user, content="This is the first messages"))
+    messages.append(ChatMessage(role=MessageRoles.user, content="This is the first messages"))
 
     config = OpenaiInferenceConfig(model="gpt-4", max_tokens=10, temperature=0.5, top_p=1.0)
 

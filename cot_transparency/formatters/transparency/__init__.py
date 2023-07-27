@@ -1,10 +1,10 @@
 from string import ascii_uppercase
 
 from typing import Optional, Type, Self
-from cot_transparency.data_models.models import StrictChatMessages, StrictMessageRoles
+from cot_transparency.data_models.models import StrictChatmessage, StrictMessageRoles
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer
-from cot_transparency.data_models.models import ChatMessages
+from cot_transparency.data_models.models import ChatMessage
 from copy import deepcopy
 
 from cot_transparency.model_apis import convert_to_strict_messages
@@ -37,7 +37,7 @@ class StageTwoFormatter(PromptFormatter):
 
 class EarlyAnsweringFormatter(StageTwoFormatter):
     @staticmethod
-    def format_example(question: list[ChatMessages], partial_cot_trace: str, model: str) -> list[StrictChatMessages]:
+    def format_example(question: list[ChatMessage], partial_cot_trace: str, model: str) -> list[StrictChatmessage]:
         output = deepcopy(question)
         output = convert_to_strict_messages(question, model)
 
@@ -54,19 +54,19 @@ class EarlyAnsweringFormatter(StageTwoFormatter):
         final_role = output[-1].role
 
         output.append(
-            StrictChatMessages(
+            StrictChatmessage(
                 role=StrictMessageRoles.assistant if should_use_roles else StrictMessageRoles.none,
                 content=message,
             )
         )
         output.append(
-            StrictChatMessages(
+            StrictChatmessage(
                 role=StrictMessageRoles.user if should_use_roles else StrictMessageRoles.none,
                 content="Given all of the above what's the single most likely answer?",
             )
         )
         output.append(
-            StrictChatMessages(
+            StrictChatmessage(
                 role=final_role if should_use_roles else StrictMessageRoles.none,
                 content="The single, most likely answer is: (",
             )

@@ -36,7 +36,7 @@ class MessageRoles(str, Enum):
     assistant = "assistant"
     # If you are OpenAI chat, you need to add this back into the previous user message
     # Anthropic can handle it as per normal like an actual assistant
-    assistant_preferred = "assistant_preferred"
+    assistant_if_completion = "assistant_preferred"
     # none is designed for completion tasks where no role / tag will be added
     none = "none"
 
@@ -50,7 +50,7 @@ class StrictMessageRoles(str, Enum):
     none = MessageRoles.none
 
 
-class ChatMessages(HashableBaseModel):
+class ChatMessage(HashableBaseModel):
     role: MessageRoles
     content: str
 
@@ -58,7 +58,7 @@ class ChatMessages(HashableBaseModel):
         frozen = True
 
 
-class StrictChatMessages(HashableBaseModel):
+class StrictChatmessage(HashableBaseModel):
     role: StrictMessageRoles
     content: str
 
@@ -74,7 +74,7 @@ class ModelOutput(BaseModel):
 
 
 def deterministic_task_hash(
-    task_name: str, messages: list[ChatMessages] | list[StrictChatMessages], model_config: OpenaiInferenceConfig
+    task_name: str, messages: list[ChatMessage] | list[StrictChatmessage], model_config: OpenaiInferenceConfig
 ) -> str:
     hashes: str = ""
     hashes += task_name
@@ -89,7 +89,7 @@ class TaskSpec(BaseModel):
     # This is a dataclass because a PromptFormatter isn't serializable
     task_name: str
     model_config: OpenaiInferenceConfig
-    messages: list[ChatMessages]
+    messages: list[ChatMessage]
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
     formatter_name: str
@@ -125,7 +125,7 @@ class TaskOutput(BaseModel):
 class StageTwoTaskSpec(BaseModel):
     stage_one_output: TaskOutput
     model_config: OpenaiInferenceConfig
-    messages: list[StrictChatMessages]
+    messages: list[StrictChatmessage]
     out_file_path: Path
     formatter_name: str
     step_in_cot_trace: Optional[int] = None

@@ -5,7 +5,7 @@ from functools import wraps
 from typing import Optional, Callable, TypeVar, Protocol
 
 import tiktoken
-from cot_transparency.data_models.models import OpenaiInferenceConfig, StrictChatMessages
+from cot_transparency.data_models.models import OpenaiInferenceConfig, StrictChatmessage
 
 
 class LeakyBucketRateLimiter:
@@ -53,7 +53,7 @@ class LeakyBucketRateLimiter:
                 self.last_log = time.time()
 
 
-def get_num_tokens(config: OpenaiInferenceConfig, messages: list[StrictChatMessages]):
+def get_num_tokens(config: OpenaiInferenceConfig, messages: list[StrictChatmessage]):
     completion_tokens = config.max_tokens
     messages_as_dicts = [chat.dict() for chat in messages]
     encoding = tiktoken.get_encoding("cl100k_base")
@@ -77,7 +77,7 @@ T = TypeVar("T", covariant=True)
 
 class CallingModelFunction(Protocol[T]):
     # We only can rate limit functions with the following signature:
-    def __call__(self, config: OpenaiInferenceConfig, messages: list[StrictChatMessages]) -> T:
+    def __call__(self, config: OpenaiInferenceConfig, messages: list[StrictChatmessage]) -> T:
         ...
 
 
@@ -90,7 +90,7 @@ def token_rate_limiter(
         @wraps(func)
         def wrapper(
             config: OpenaiInferenceConfig,
-            messages: list[StrictChatMessages],
+            messages: list[StrictChatmessage],
         ) -> T:
             tokens = get_num_tokens(config=config, messages=messages)
             rate_limiter.consume(tokens)

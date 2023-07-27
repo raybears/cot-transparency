@@ -13,7 +13,7 @@ from retry import retry
 from slist import Slist
 from cot_transparency.data_models.models import (
     OpenaiInferenceConfig,
-    StrictChatMessages,
+    StrictChatmessage,
     StrictMessageRoles,
 )
 
@@ -61,7 +61,7 @@ class TokenInfo(BaseModel):
 class GPTFullResponse(BaseModel):
     id: Optional[str]
     # list of ChatMessages if its a chat api
-    prompt: str | list[StrictChatMessages]
+    prompt: str | list[StrictChatmessage]
     completion: str
     prompt_token_infos: list[TokenInfo]
     completion_token_infos: list[TokenInfo]
@@ -165,7 +165,7 @@ def get_openai_completion(
 
 def parse_chat_prompt_response_dict(
     response_dict: Dict[Any, Any],
-    prompt: list[StrictChatMessages],
+    prompt: list[StrictChatmessage],
 ) -> GPTFullResponse:
     response_id = response_dict["id"]
     top_choice = response_dict["choices"][0]
@@ -185,7 +185,7 @@ def parse_chat_prompt_response_dict(
 
 def __get_chat_response_dict(
     config: OpenaiInferenceConfig,
-    prompt: list[StrictChatMessages],
+    prompt: list[StrictChatmessage],
 ) -> Dict[Any, Any]:
     return openai.ChatCompletion.create(  # type: ignore
         model=config.model,
@@ -212,7 +212,7 @@ def get_chat_response_simple(
     prompt: str,
 ) -> GPTFullResponse:
     assert config.model == "gpt-3.5-turbo" or config.model == "gpt-4"
-    messages = [StrictChatMessages(role=StrictMessageRoles.user, content=prompt)]
+    messages = [StrictChatmessage(role=StrictMessageRoles.user, content=prompt)]
     response = __get_chat_response_dict(
         config=config,
         prompt=messages,
@@ -223,7 +223,7 @@ def get_chat_response_simple(
 @token_rate_limiter(tokens_per_minute=90_000 * total_rate_sf, logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
-def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatMessages]) -> GPTFullResponse:
+def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatmessage]) -> GPTFullResponse:
     assert config.model == "gpt-3.5-turbo"
     response_dict = __get_chat_response_dict(
         config=config,
@@ -235,7 +235,7 @@ def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChat
 @token_rate_limiter(tokens_per_minute=150_000 * total_rate_sf, logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
-def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatMessages]) -> GPTFullResponse:
+def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatmessage]) -> GPTFullResponse:
     assert config.model == "gpt-4"
     response_dict = __get_chat_response_dict(
         config=config,
