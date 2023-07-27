@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 import math
-from typing import Optional
+from typing import Optional, Sequence
 import fire
 import plotly.colors as pcol
 import plotly.graph_objects as go
@@ -30,7 +30,7 @@ def inconsistent_only_outputs(outputs: list[TaskOutput]) -> list[TaskOutput]:
     return [output for output in outputs if output.task_spec.biased_ans != output.task_spec.ground_truth]
 
 
-def accuracy_for_file(path: Path, inconsistent_only: bool = True) -> AccuracyOutput:
+def accuracy_for_file(path: Path, inconsistent_only: bool) -> AccuracyOutput:
     experiment: ExperimentJsonFormat = read_done_experiment(path)
     assert experiment.outputs, f"Experiment {path} has no outputs"
     maybe_filtered = inconsistent_only_outputs(experiment.outputs) if inconsistent_only else experiment.outputs
@@ -100,10 +100,12 @@ class PathsAndNames(BaseModel):
     name: str
 
 
-def plot_vertical_acc(paths: list[PathsAndNames]) -> list[PlotDots]:
+def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> list[PlotDots]:
     out: list[PlotDots] = []
     for path in paths:
-        out.append(PlotDots(acc=accuracy_for_file(Path(path.path)), name=path.name))
+        out.append(
+            PlotDots(acc=accuracy_for_file(Path(path.path), inconsistent_only=inconsistent_only), name=path.name)
+        )
     return out
 
 
@@ -221,18 +223,28 @@ def all_overall_accuracies() -> list[TaskAndPlotDots]:
     return [stanford, cross, checkmark]
 
 
-def plot_accuracy_for_exp(exp_dir: str, model_filter: Optional[str] = None, save_file_path: Optional[str] = None):
+def plot_accuracy_for_exp(
+    exp_dir: str,
+    model_filter: Optional[str] = None,
+    save_file_path: Optional[str] = None,
+    formatters: Sequence[str] = [],
+    inconsistent_only: bool = True,
+):
     # find formatter names from the exp_dir
     # exp_dir/task_name/model/formatter_name.json
     json_files = glob.glob(f"{exp_dir}/*/*/*.json")
 
-    formatters: set[str] = set()
+    should_filter_formatter: bool = len(formatters) > 0
+    formatters_found: set[str] = set()
     tasks: set[str] = set()
     models: set[str] = set()
     for i in json_files:
         base_name = os.path.basename(i)  # First get the basename: 'file.txt'
         name_without_ext = os.path.splitext(base_name)[0]  # Then remove the extension
-        formatters.add(name_without_ext)
+        if should_filter_formatter and name_without_ext in formatters:
+            formatters_found.add(name_without_ext)
+        elif not should_filter_formatter:
+            formatters_found.add(name_without_ext)
         task = i.split("/")[-3]
         tasks.add(task)
         model = i.split("/")[-2]
@@ -242,12 +254,12 @@ def plot_accuracy_for_exp(exp_dir: str, model_filter: Optional[str] = None, save
                 continue
         models.add(model)
 
-    print(f"formatters: {formatters}")
+    print(f"formatters: {formatters_found}")
 
     if len(set(models)) > 1:
         if model_filter is None:
             raise ValueError(f"Multiple models found: {set(models)}. Please specify a model to filter on.")
-    model = list(models)[0]
+    model: str = list(models)[0]
 
     tasks_and_plots_dots: list[TaskAndPlotDots] = []
     for task in tasks:
@@ -255,13 +267,17 @@ def plot_accuracy_for_exp(exp_dir: str, model_filter: Optional[str] = None, save
             TaskAndPlotDots(
                 task_name=task,
                 plot_dots=plot_vertical_acc(
-                    make_task_paths_and_names(task_name=task, formatters=list(formatters), model=model, exp_dir=exp_dir)
+                    make_task_paths_and_names(
+                        task_name=task, formatters=list(formatters_found), model=model, exp_dir=exp_dir
+                    ),
+                    inconsistent_only=inconsistent_only,
                 ),
             )
         )
+    title_subset = "Biased Inconsistent Samples" if should_filter_formatter else "All Samples"
     accuracy_plot(
         tasks_and_plots_dots,
-        title=f"Accuracy of {models[0]} Biased Inconsistent Samples",  # type: ignore
+        title=f"Accuracy of {model} {title_subset}",  # type: ignore
         save_file_path=save_file_path,
     )
     # overall_accs = all_overall_accuracies()
