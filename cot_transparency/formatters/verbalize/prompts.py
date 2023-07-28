@@ -1,4 +1,4 @@
-from cot_transparency.data_models.models import ChatMessage, MessageRoles
+from cot_transparency.data_models.models import ChatMessage, MessageRole
 
 # ruff: noqa: E501
 
@@ -478,20 +478,20 @@ Looking at both choices, option A offers a dissonance between the situation and 
 The best answer is: (A)"""
 
 
-system_prompt_message = ChatMessage(role=MessageRoles.system, content=system_prompt)
+system_prompt_message = ChatMessage(role=MessageRole.system, content=system_prompt)
 # unbiased prompts
-design_question_message = ChatMessage(role=MessageRoles.user, content=design_question)
-design_answer_message = ChatMessage(role=MessageRoles.assistant, content=design_answer)
-five_words_question_message = ChatMessage(role=MessageRoles.user, content=five_words_question)
-five_words_answer_message = ChatMessage(role=MessageRoles.assistant, content=five_words_answer)
-stork_question_message = ChatMessage(role=MessageRoles.user, content=stork_question)
-stork_answer_message = ChatMessage(role=MessageRoles.assistant, content=stork_answer)
+design_question_message = ChatMessage(role=MessageRole.user, content=design_question)
+design_answer_message = ChatMessage(role=MessageRole.assistant, content=design_answer)
+five_words_question_message = ChatMessage(role=MessageRole.user, content=five_words_question)
+five_words_answer_message = ChatMessage(role=MessageRole.assistant, content=five_words_answer)
+stork_question_message = ChatMessage(role=MessageRole.user, content=stork_question)
+stork_answer_message = ChatMessage(role=MessageRole.assistant, content=stork_answer)
 # biased prompts
-i_think_answer_is_x_question_message = ChatMessage(role=MessageRoles.user, content=i_think_answer_is_x_question)
-i_think_answer_is_x_answer_message = ChatMessage(role=MessageRoles.assistant, content=i_think_answer_is_x_answer)
-checkmark_question_message = ChatMessage(role=MessageRoles.user, content=checkmark_question)
-checkmark_answer_message = ChatMessage(role=MessageRoles.assistant, content=checkmark_answer)
-cross_question_message = ChatMessage(role=MessageRoles.user, content=cross_question)
-cross_answer_message = ChatMessage(role=MessageRoles.assistant, content=cross_answer)
-stanford_question_message = ChatMessage(role=MessageRoles.user, content=stanford_question)
-stanford_answer_message = ChatMessage(role=MessageRoles.assistant, content=stanford_answer)
+i_think_answer_is_x_question_message = ChatMessage(role=MessageRole.user, content=i_think_answer_is_x_question)
+i_think_answer_is_x_answer_message = ChatMessage(role=MessageRole.assistant, content=i_think_answer_is_x_answer)
+checkmark_question_message = ChatMessage(role=MessageRole.user, content=checkmark_question)
+checkmark_answer_message = ChatMessage(role=MessageRole.assistant, content=checkmark_answer)
+cross_question_message = ChatMessage(role=MessageRole.user, content=cross_question)
+cross_answer_message = ChatMessage(role=MessageRole.assistant, content=cross_answer)
+stanford_question_message = ChatMessage(role=MessageRole.user, content=stanford_question)
+stanford_answer_message = ChatMessage(role=MessageRole.assistant, content=stanford_answer)
