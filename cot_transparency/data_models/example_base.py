@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
-from typing import Literal
+from abc import abstractmethod
+from typing import Literal, TypeVar
 from pydantic import BaseModel
 
 from cot_transparency.util import deterministic_hash
@@ -24,7 +24,7 @@ MultipleChoiceAnswer = Literal[
 ]
 
 
-class DataExampleBase(BaseModel, ABC):
+class DataExampleBase(BaseModel):
     """We don't define the fields here because we want to be able to use this for any dataset but we define the api"""
 
     @property
@@ -43,3 +43,6 @@ class DataExampleBase(BaseModel, ABC):
 
     def hash(self) -> str:
         return deterministic_hash(self.get_parsed_input())
+
+
+GenericDataExample = TypeVar("GenericDataExample", bound="DataExampleBase")

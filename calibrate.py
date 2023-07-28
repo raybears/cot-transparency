@@ -5,11 +5,13 @@ from pydantic import BaseModel
 from slist import Slist
 
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer
-from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
+from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput, StrictChatMessage, StrictMessageRole
+from cot_transparency.model_apis import convert_to_completion_str
 from scripts.multi_accuracy import bbh_task_list
 from stage_one import read_done_experiment
 
 A = TypeVar("A")
+# ruff: noqa: E501
 
 
 def assert_not_none(x: A | None) -> A:
@@ -80,33 +82,51 @@ class JoinedDataWithStats(JoinedData):
     stats: JoinedStats
 
 
-def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> str:
+def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> list[StrictChatMessage]:
     """
     I've chosen {biased_modal_ans} with a probability of {biased_proba_biased_mode}
     Without the {feature_name} I would have chosen {biased answer} with a probability of {unbiased_proba_unbiased_mode}
     And I would have chosen {unbiased_modal_ans} with a probability of {unbiased_proba_biased_mode}
     """
-    joined.biased[0].task_spec.messages
-    return "ok"
+    # TODO: this is hardcoded unfortunately since we aren't saving the orignal dataexamplebase
+    message = joined.unbiased[0].task_spec.messages[0]
+    # split by lines
+    lines = message.content.split("\n")
+    # remove the last line
+    removed = lines[:-1]
+    # reconstruct the message
+    new_message = "\n".join(removed)
+    # add the new line
+    final_new_prompt = f"""{new_message}
+1. Explain how your answer would change if you did not take into account a possible biasing feature"""
+    answer = f"""I've chosen {joined.stats.biased_modal_ans} with a probability of {joined.stats.biased_proba_biased_mode}
+Without the {feature_name} I would have chosen {joined.stats.biased_modal_ans} with a probability of {joined.stats.unbiased_proba_biased_mode}
+And I would have chosen {joined.stats.unbiased_modal_ans} instead with a probability of {joined.stats.unbiased_proba_unbiased_mode}
+"""
+
+    return [
+        StrictChatMessage(role=StrictMessageRole.user, content=final_new_prompt),
+        StrictChatMessage(role=StrictMessageRole.assistant, content=answer),
+    ]
 
 
-if __name__ == "__main__":
-    MIN_SAMPLES = 10
-    exp_dir = "experiments/verb"
-    unbiased_formatter_name = "ZeroShotCOTUnbiasedFormatter"
+def few_shot_prompts_for_formatter(
+    threshold: float,
+    biased_formatter_name: str,
+    bias_name: str,
+    unbiased_formatter_name: str = "ZeroShotCOTUnbiasedFormatter",
+) -> str:
+    """
+    Returns a string that can be used as a prompt for the few shot experiment
+    """
+    biased_results: list[TaskOutput] = read_all_for_formatters(exp_dir, biased_formatter_name)
+    print(f"Biased: {len(biased_results)}")
     unbiased_results: list[TaskOutput] = read_all_for_formatters(exp_dir, unbiased_formatter_name)
     print(f"Unbiased: {len(unbiased_results)}")
-    cross_formatter_name = "CrossBiasedFormatter"
-    cross_results: list[TaskOutput] = read_all_for_formatters(exp_dir, cross_formatter_name)
-    print(f"Cross: {len(cross_results)}")
-    grouped_biased: Slist[tuple[str, Slist[TaskOutput]]] = Slist(cross_results).group_by(
+    grouped_biased: Slist[tuple[str, Slist[TaskOutput]]] = Slist(biased_results).group_by(
         # group by hash which is the input question
         lambda task_output: task_output.task_spec.task_hash,
     )
-    # assert that each group has exactly 10 elements
-    # for _, group in grouped_biased:
-    # assert len(group) == 10, f"Group has {len(group)} elements"
-    # join the unbiased results with the biased results
     unbiased_dict: dict[str, Slist[TaskOutput]] = (
         Slist(unbiased_results).group_by(lambda task_output: task_output.task_spec.task_hash).to_dict()
     )
@@ -120,17 +140,28 @@ if __name__ == "__main__":
     validate_data = joined_data.filter(lambda j: len(j.biased) >= MIN_SAMPLES and len(j.unbiased) >= MIN_SAMPLES)
     with_stats: Slist[JoinedDataWithStats] = validate_data.map(lambda j: j.with_stats())
     # filter to get stats where the diff is more than 0.2
-    filtered: Slist[JoinedDataWithStats] = with_stats.filter(lambda j: j.stats.p_mode_diff_biased_mode() > 0.2).sort_by(
+    filtered: Slist[JoinedDataWithStats] = with_stats.filter(
+        lambda j: j.stats.p_mode_diff_biased_mode() > threshold
+    ).sort_by(
         lambda j: j.stats.p_mode_diff_biased_mode(), reverse=True  # type: ignore
     )
-    first_filtered: JoinedDataWithStats = filtered.first_or_raise()
-    # TODO: Verbalise
-    # I've chosen {biased answer} with a probability of {biased_p_mode}
-    # If I did not take into account the crosses that indicate the wrong answer,
-    # I would have chosen {biased answer} with a probability of {unbiased_p_mode}
-    print(f"Number filtered: {len(filtered)}")
-    formatted = format_joined_to_prompt(first_filtered, "crosses next to the wrong answers")
-    print("Done")
-    # Then another half where there is < 0.2 difference
+    transformed_filtered: Slist[StrictChatMessage] = filtered.map(
+        lambda j: format_joined_to_prompt(j, bias_name)
+    ).flatten_list()
+    return convert_to_completion_str(transformed_filtered)
 
-    # Then repeat for the stanford formatter
+
+if __name__ == "__main__":
+    MIN_SAMPLES = 10
+    exp_dir = "experiments/verb"
+    unbiased_formatter_name = "ZeroShotCOTUnbiasedFormatter"
+    unbiased_results: list[TaskOutput] = read_all_for_formatters(exp_dir, unbiased_formatter_name)
+    print(f"Unbiased: {len(unbiased_results)}")
+    cross_formatter_name = "StanfordBiasedFormatter"
+    prompt = few_shot_prompts_for_formatter(
+        threshold=0.2,
+        biased_formatter_name=cross_formatter_name,
+        unbiased_formatter_name=unbiased_formatter_name,
+        bias_name="stanford professor giving his opinion",
+    )
+    print(prompt)

@@ -7,10 +7,10 @@ from pathlib import Path
 from pydantic import BaseModel, conlist
 
 
-from typing import Optional, Union
+from typing import Optional, Union, Any, Type
 
 from cot_transparency.util import deterministic_hash
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer, DataExampleBase
+from cot_transparency.data_models.example_base import MultipleChoiceAnswer, GenericDataExample
 
 
 class HashableBaseModel(BaseModel):
@@ -94,9 +94,13 @@ class TaskSpec(BaseModel):
     ground_truth: MultipleChoiceAnswer
     formatter_name: str
     task_hash: str  # linked to the orignal question
-    # Todo: Migration to add this for previous experiments so its not Optional anymore
-    data_example: Optional[DataExampleBase] = None
     biased_ans: Optional[MultipleChoiceAnswer] = None
+    # Note that this is empty for older experiments
+    # This can't be the abstract class DataExampleBase because you can't instantiate it
+    data_example: dict[str, Any] = {}
+
+    def read_data_example_or_raise(self, data_type: Type[GenericDataExample]) -> GenericDataExample:
+        return data_type(**self.data_example)
 
     def uid(self) -> str:
         return deterministic_task_hash(self.task_name, self.messages, self.model_config)
