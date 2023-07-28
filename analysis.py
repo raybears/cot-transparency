@@ -1,3 +1,4 @@
+import math
 import fire
 from matplotlib import pyplot as plt
 from cot_transparency.data_models.models import (
@@ -7,7 +8,10 @@ from cot_transparency.data_models.models import (
 import pandas as pd
 from typing import Any, Optional, List, Union, Sequence
 from cot_transparency.data_models.io import ExpLoader
+from cot_transparency.formatters import name_to_formatter
 from scripts.multi_accuracy import plot_accuracy_for_exp
+import seaborn as sns
+import numpy as np
 
 from stage_one import TASK_LIST
 
@@ -40,6 +44,12 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
             out.append(combined_d)
     df = pd.DataFrame(out)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
+
+    def is_biased(formatter_name: str):
+        formatter = name_to_formatter(formatter_name)
+        return formatter.is_biased
+
+    df["is_biased"] = df.formatter_name.map(is_biased)
     return df
 
 
@@ -66,21 +76,15 @@ def accuracy(
     )
 
 
-def accuracy_for_df(
+def apply_filters(
+    inconsistent_only: Optional[bool],
+    model_filter: Optional[str],
+    formatters: Sequence[str],
+    aggregate_over_tasks: bool,
     df: pd.DataFrame,
-    inconsistent_only: bool = True,
-    aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
-    check_counts: bool = True,
-    formatters: Sequence[str] = [],
 ) -> pd.DataFrame:
-    """
-    inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
-    """
-
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]
-    print(df.shape)
 
     if model_filter:
         # check that df.model contains model_filter
@@ -92,6 +96,28 @@ def accuracy_for_df(
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
         df["task_name"] = df["task_name"].replace(TASK_MAP)
+
+    return df
+
+
+def accuracy_for_df(
+    df: pd.DataFrame,
+    inconsistent_only: bool = True,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    check_counts: bool = True,
+    formatters: Sequence[str] = [],
+) -> pd.DataFrame:
+    """
+    inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
+    """
+    df = apply_filters(
+        inconsistent_only=inconsistent_only,
+        model_filter=model_filter,
+        formatters=formatters,
+        aggregate_over_tasks=aggregate_over_tasks,
+        df=df,
+    )
 
     groups = ["task_name", "model", "formatter_name"]
     accuracy_df_grouped = df[["is_correct", "task_name", "model", "formatter_name"]].groupby(groups)
@@ -234,5 +260,90 @@ def counts_are_equal(count_df: pd.DataFrame) -> bool:
     return (count_df.nunique(axis=1) == 1).all()
 
 
+def generic_bar_plot(
+    df: pd.DataFrame,
+    x: str,
+    y: str,
+    hue: Optional[str] = None,
+    subplot: Optional[str] = None,
+    ncols: int = 2,
+    **kwargs: dict[str, Any],
+):
+    # assert all temperatures are the same
+    assert df.temperature.nunique() == 1
+    temperature = df.temperature.unique()[0]
+    # add temperature to model
+    df["model"] = df["model"] + f" (T={temperature})"
+
+    sns.set_theme(style="whitegrid")
+    if subplot is None:
+        sns.barplot(data=df, x=x, y=y, hue=hue)
+
+    n_subplots = len(df[subplot].unique())
+    nrows = math.ceil(n_subplots / ncols)
+    ncols = min(ncols, n_subplots)
+    fig, axs = plt.subplots(ncols=ncols, nrows=nrows, figsize=(4 * ncols, (4 * nrows) * 1 / 0.75))
+    if n_subplots == 1:
+        axs = np.array([axs])
+    flat_axs = axs.flatten()
+    for i, sp in enumerate(df[subplot].unique()):
+        ax = flat_axs[i]
+        sns.barplot(data=df[df.model == sp], x=x, y=y, hue=hue, ax=ax, capsize=0.05, **kwargs)  # type: ignore
+        ax.set_title(sp)
+
+    # grab legend from last plot and move it to the right
+    handles, labels = ax.get_legend_handles_labels()  # type: ignore
+    fig.legend(handles, labels, loc="lower center", ncol=2)
+
+    # delete legends on subplots
+    for i in range(n_subplots):
+        flat_axs[i].get_legend().remove()
+
+    # delete unused plots
+    for i in range(n_subplots, len(flat_axs)):
+        fig.delaxes(flat_axs[i])
+
+    fig.tight_layout()  # type: ignore
+    fig.subplots_adjust(bottom=0.25)
+    plt.show()
+
+
+def simple_plot(
+    exp_dir: str,
+    inconsistent_only: bool = True,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    formatters: Sequence[str] = [],
+    x: str = "task_name",
+    y: str = "Accuracy",
+    hue: str = "formatter_name",
+    subplot: str = "model",
+):
+    df = get_data_frame_from_exp_dir(exp_dir)
+    df = apply_filters(
+        inconsistent_only=inconsistent_only,
+        model_filter=model_filter,
+        formatters=formatters,
+        aggregate_over_tasks=aggregate_over_tasks,
+        df=df,
+    )
+
+    # remove Unbiased or Sycophancy from formatter name
+    df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
+    df["formatter_name"] = df["formatter_name"].str.replace("Unbiased", "")
+    df["formatter_name"] = df["formatter_name"].str.replace("Sycophancy", "")
+
+    # rename is_correct to Accuracy
+    df = df.rename(columns={"is_correct": "Accuracy"})
+    generic_bar_plot(df, x=x, y=y, hue=hue, subplot=subplot, ncols=2)
+
+
 if __name__ == "__main__":
-    fire.Fire({"accuracy": accuracy, "accuracy_plot": plot_accuracy_for_exp, "miles_graph": miles_graph})
+    fire.Fire(
+        {
+            "accuracy": accuracy,
+            "accuracy_plot": plot_accuracy_for_exp,
+            "miles_graph": miles_graph,
+            "simple_plot": simple_plot,
+        }
+    )
