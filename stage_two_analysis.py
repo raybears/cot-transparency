@@ -14,14 +14,7 @@ from cot_transparency.transparency_plots import (
     plot_cot_trace,
     plot_historgram_of_cot_steps,
 )
-from analysis import accuracy_for_df
-
-from stage_one import TASK_LIST
-
-TASK_MAP = {}
-for dataset, tasks in TASK_LIST.items():
-    for task in tasks:
-        TASK_MAP[task] = dataset
+from analysis import accuracy_for_df, TASK_MAP
 
 
 def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
