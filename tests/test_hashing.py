@@ -21,7 +21,6 @@ def test_taskspec_and_taskoutput_give_same():
         ground_truth="A",
         formatter_name=ZeroShotCOTSycophancyFormatter.name(),
         task_hash=task_hash,
-        data_example=None,
     )
 
     dummy_output = ModelOutput(raw_response="The best answer is: (A)", parsed_response="A")
