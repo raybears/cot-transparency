@@ -114,7 +114,7 @@ def main(
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
-    # across all tasks
+    # for each model, task, and formatter, how many examples to generate
     example_cap: Optional[int] = 1000000,
     save_file_every: int = 50,
     batch: int = 10,
