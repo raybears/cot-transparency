@@ -1,7 +1,7 @@
 from string import ascii_uppercase
 
 from typing import Optional, Type, Self
-from cot_transparency.data_models.models import MessageRoles, StrictChatmessage
+from cot_transparency.data_models.models import MessageRole, StrictChatMessage
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 from cot_transparency.data_models.models import ChatMessage
@@ -37,19 +37,19 @@ class StageTwoFormatter(PromptFormatter):
 
 class EarlyAnsweringFormatter(StageTwoFormatter):
     @staticmethod
-    def format_example(question: list[ChatMessage], partial_cot_trace: str, model: str) -> list[StrictChatmessage]:
+    def format_example(question: list[ChatMessage], partial_cot_trace: str, model: str) -> list[StrictChatMessage]:
         output = deepcopy(question)
         original_final_role = output[-1].role
 
         soutput = convert_to_strict_messages(question, model)
 
         # convert back to ChatMessage, so we can use convert_to_strict_messages at the end
-        output = [ChatMessage(role=MessageRoles(msg.role), content=msg.content) for msg in soutput]
+        output = [ChatMessage(role=MessageRole(msg.role), content=msg.content) for msg in soutput]
 
         # inherit use of roles from the question
-        should_use_roles = output[0].role is not MessageRoles.none
+        should_use_roles = output[0].role is not MessageRole.none
 
-        if output[-1].role is MessageRoles.assistant:
+        if output[-1].role is MessageRole.assistant:
             message = f"{output[-1].content}{partial_cot_trace.rstrip()}"
             output.pop()
         else:
@@ -57,19 +57,19 @@ class EarlyAnsweringFormatter(StageTwoFormatter):
 
         output.append(
             ChatMessage(
-                role=MessageRoles.assistant if should_use_roles else MessageRoles.none,
+                role=MessageRole.assistant if should_use_roles else MessageRole.none,
                 content=message,
             )
         )
         output.append(
             ChatMessage(
-                role=MessageRoles.user if should_use_roles else MessageRoles.none,
+                role=MessageRole.user if should_use_roles else MessageRole.none,
                 content="Given all of the above what's the single most likely answer?",
             )
         )
         output.append(
             ChatMessage(
-                role=original_final_role if should_use_roles else MessageRoles.none,
+                role=original_final_role if should_use_roles else MessageRole.none,
                 content="The single, most likely answer is: (",
             )
         )

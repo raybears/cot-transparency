@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
 from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
-from cot_transparency.data_models.models import OpenaiInferenceConfig, StageTwoTaskOutput, StrictChatmessage
+from cot_transparency.data_models.models import OpenaiInferenceConfig, StageTwoTaskOutput, StrictChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.model_apis import call_model_api
@@ -27,7 +27,7 @@ class AnswerNotFound(Exception):
 
 @retry(exceptions=AnswerNotFound, tries=20, delay=1, logger=logger)
 def call_model_until_suitable_response(
-    messages: list[StrictChatmessage] | list[ChatMessage],
+    messages: list[StrictChatMessage] | list[ChatMessage],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
 ) -> ModelOutput:

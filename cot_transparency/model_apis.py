@@ -1,9 +1,9 @@
 import anthropic
 from cot_transparency.data_models.models import (
-    MessageRoles,
+    MessageRole,
     OpenaiInferenceConfig,
-    StrictChatmessage,
-    StrictMessageRoles,
+    StrictChatMessage,
+    StrictMessageRole,
 )
 
 from cot_transparency.openai_utils.inference import (
@@ -16,17 +16,17 @@ from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.openai_utils.set_key import set_opeani_org_from_env_rand
 
 
-def messages_has_none_role(prompt: list[StrictChatmessage] | list[ChatMessage]) -> bool:
-    is_non_role = [msg.role == MessageRoles.none for msg in prompt]  # type: ignore
+def messages_has_none_role(prompt: list[StrictChatMessage] | list[ChatMessage]) -> bool:
+    is_non_role = [msg.role == MessageRole.none for msg in prompt]  # type: ignore
     return any(is_non_role)
 
 
 def convert_to_strict_messages(
-    prompt: list[ChatMessage] | list[StrictChatmessage], model: str
-) -> list[StrictChatmessage]:
-    all_strict = all([isinstance(msg, StrictChatmessage) for msg in prompt])
+    prompt: list[ChatMessage] | list[StrictChatMessage], model: str
+) -> list[StrictChatMessage]:
+    all_strict = all([isinstance(msg, StrictChatMessage) for msg in prompt])
     if all_strict:
-        strict_prompt: list[StrictChatmessage] = prompt  # type: ignore
+        strict_prompt: list[StrictChatMessage] = prompt  # type: ignore
         return strict_prompt
     else:
         flex_prompt: list[ChatMessage] = prompt  # type: ignore
@@ -40,7 +40,7 @@ def convert_to_strict_messages(
     return strict_prompt
 
 
-def call_model_api(prompt: list[ChatMessage] | list[StrictChatmessage], config: OpenaiInferenceConfig) -> str:
+def call_model_api(prompt: list[ChatMessage] | list[StrictChatMessage], config: OpenaiInferenceConfig) -> str:
     set_opeani_org_from_env_rand()
     strict_prompt = convert_to_strict_messages(prompt, config.model)
 
@@ -62,42 +62,42 @@ def call_model_api(prompt: list[ChatMessage] | list[StrictChatmessage], config: 
         return get_openai_completion(config=config, prompt=formatted).completion
 
 
-def convert_to_anthropic_str(prompt: list[StrictChatmessage]) -> str:
+def convert_to_anthropic_str(prompt: list[StrictChatMessage]) -> str:
     if messages_has_none_role(prompt):
         raise ValueError(f"Anthropic chat messages cannot have a None role. Got {prompt}")
     return convert_to_completion_str(prompt)
 
 
-def convert_to_completion_str(prompt: list[StrictChatmessage]) -> str:
+def convert_to_completion_str(prompt: list[StrictChatMessage]) -> str:
     message = ""
     for msg in prompt:
         match msg.role:
-            case StrictMessageRoles.user:
+            case StrictMessageRole.user:
                 message += f"{anthropic.HUMAN_PROMPT} {msg.content}"
-            case StrictMessageRoles.assistant:
+            case StrictMessageRole.assistant:
                 message += f"{anthropic.AI_PROMPT} {msg.content}"
-            case StrictMessageRoles.none:
+            case StrictMessageRole.none:
                 message += f"\n\n{msg.content}"
-            case StrictMessageRoles.system:
+            case StrictMessageRole.system:
                 # No need to add something infront for system messages
                 message += f"\n\n{msg.content}"
     return message
 
 
-def format_for_completion(prompt: list[ChatMessage]) -> list[StrictChatmessage]:
+def format_for_completion(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
     # Convert assistant_preferred to assistant
     output = []
     for message in prompt:
-        if message.role == MessageRoles.assistant_if_completion:
+        if message.role == MessageRole.assistant_if_completion:
             content = message.content
-            new_message = StrictChatmessage(role=StrictMessageRoles.assistant, content=content)
+            new_message = StrictChatMessage(role=StrictMessageRole.assistant, content=content)
         else:
-            new_message = StrictChatmessage(role=StrictMessageRoles(message.role), content=message.content)
+            new_message = StrictChatMessage(role=StrictMessageRole(message.role), content=message.content)
         output.append(new_message)
     return output
 
 
-def format_for_openai_chat(prompt: list[ChatMessage]) -> list[StrictChatmessage]:
+def format_for_openai_chat(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
     # Do some funky logic where we need to shift the assistant preferred message to the previous message
     # because OpenAI doesn't allow us to complete it like that
 
@@ -107,11 +107,11 @@ def format_for_openai_chat(prompt: list[ChatMessage]) -> list[StrictChatmessage]
 
     new_list = []
     for msg in prompt:
-        if msg.role == MessageRoles.assistant_if_completion:
+        if msg.role == MessageRole.assistant_if_completion:
             content = new_list[-1].content + f"\n\n{msg.content}"
-            new_item = StrictChatmessage(role=StrictMessageRoles.user, content=content)
+            new_item = StrictChatMessage(role=StrictMessageRole.user, content=content)
             new_list[-1] = new_item
         else:
-            new_item = StrictChatmessage(role=StrictMessageRoles(msg.role), content=msg.content)
+            new_item = StrictChatMessage(role=StrictMessageRole(msg.role), content=msg.content)
             new_list.append(new_item)
     return new_list
