@@ -170,7 +170,12 @@ def sort_stage1(loaded_dict: dict[Path, ExperimentJsonFormat]):
 
 def sort_stage2(loaded_dict: dict[Path, StageTwoExperimentJsonFormat]):
     for exp in loaded_dict.values():
-        exp.outputs.sort(key=lambda x: (x.stage_one_hash, x.step_in_cot_trace))  # type: ignore
+        exp.outputs.sort(
+            key=lambda x: (
+                x.task_spec.stage_one_output.uid(),
+                x.task_spec.step_in_cot_trace,
+            )
+        )  # type: ignore
 
 
 def main(exp_dir: str):
