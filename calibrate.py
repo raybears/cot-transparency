@@ -44,15 +44,15 @@ class JoinedData(BaseModel):
     biased: Sequence[TaskOutput]
 
     def with_stats(self) -> "JoinedDataWithStats":
-        biased_modal_ans = Slist(self.biased).map(lambda task_output: task_output.parsed_response).mode_or_raise()
+        biased_modal_ans = Slist(self.biased).map(lambda task_output: task_output.first_parsed_response).mode_or_raise()
         biased_p_mode = (
             Slist(self.biased)
-            .map(lambda task_output: 1 if task_output.parsed_response == biased_modal_ans else 0)
+            .map(lambda task_output: 1 if task_output.first_parsed_response == biased_modal_ans else 0)
             .average()
         )
         unbiased_p_mode = (
             Slist(self.unbiased)
-            .map(lambda task_output: 1 if task_output.parsed_response == biased_modal_ans else 0)
+            .map(lambda task_output: 1 if task_output.first_parsed_response == biased_modal_ans else 0)
             .average()
         )
         return JoinedDataWithStats(
@@ -71,6 +71,7 @@ class JoinedDataWithStats(JoinedData):
 
 
 if __name__ == "__main__":
+    MIN_SAMPLES = 10
     exp_dir = "experiments/verb"
     unbiased_formatter_name = "ZeroShotCOTUnbiasedFormatter"
     unbiased_results: list[TaskOutput] = read_all_for_formatters(exp_dir, unbiased_formatter_name)
@@ -91,11 +92,23 @@ if __name__ == "__main__":
     )
     joined_data: Slist[JoinedData] = grouped_biased.map_2(
         lambda task_hash, biased_group: JoinedData(
-            unbiased=unbiased_dict[task_hash],
+            unbiased=unbiased_dict.get(task_hash),
             biased=biased_group,
         )
     )
-    with_stats: Slist[JoinedDataWithStats] = joined_data.map(lambda j: j.with_stats())
+    # filter to make joined_data only have elements where both biased and unbiased have at least 10 elements
+    validate_data = joined_data.filter(lambda j: len(j.biased) >= MIN_SAMPLES and len(j.unbiased) >= MIN_SAMPLES)
+    with_stats: Slist[JoinedDataWithStats] = validate_data.map(lambda j: j.with_stats())
     # filter to get stats where the diff is more than 0.2
     filtered: Slist[JoinedDataWithStats] = with_stats.filter(lambda j: j.stats.p_mode_diff() > 0.2)
-    print(f"Joined data: {len(joined_data)}")
+    first_filtered = filtered.first_or_raise()
+    # TODO: Verbalise
+    # I've chosen {biased answer} with a probability of {biased_p_mode}
+    # If I did not take into account the crosses that indicate the wrong answer,
+    # I would have chosen {biased answer} with a probability of {unbiased_p_mode}
+    print(f"Number filtered: {len(filtered)}")
+    # Then another half where there is < 0.2 difference
+
+    # Then repeat for the stanford formatter
+
+
