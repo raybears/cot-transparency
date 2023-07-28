@@ -118,6 +118,7 @@ def main(
     save_file_every: int = 50,
     batch: int = 10,
     repeats_per_question: int = 1,
+    temperature: Optional[float] = None,
 ):
     tasks = validate_dataset_and_task(dataset, tasks)
 
@@ -160,10 +161,16 @@ def main(
                 runs_to_do = max(repeats_per_question - already_done_hashes_counts[task_hash], 0)
 
             formatted: list[ChatMessage] = formatter.format_example(question=item)
+
+            # Get config and override temperature if needed
             config = CONFIG_MAP[model].copy()
-            config.model = model
+            if temperature is not None:
+                print("Overriding temperature")
+                config.temperature = temperature
+            assert config.model == model
             if not formatter.is_cot:
                 config.max_tokens = 1
+
             task_spec = TaskSpec(
                 task_name=task,
                 model_config=config,
