@@ -86,12 +86,7 @@ def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> s
     Without the {feature_name} I would have chosen {biased answer} with a probability of {unbiased_proba_unbiased_mode}
     And I would have chosen {unbiased_modal_ans} with a probability of {unbiased_proba_biased_mode}
     """
-    biased_first_part = joined.biased[0].task_spec.messages
-    feature_analysis_prompt = f"""
-    I've chosen {joined.stats.biased_modal_ans} with a probability of {joined.stats.biased_proba_biased_mode}
-    Without the {feature_name} I would have chosen {joined.stats.biased_modal_ans} with a probability of {joined.stats.unbiased_proba_unbiased_mode}
-    And I would have chosen {joined.stats.unbiased_modal_ans} with a probability of {joined.stats.unbiased_proba_biased_mode}
-    """
+    joined.biased[0].task_spec.messages
     return "ok"
 
 
