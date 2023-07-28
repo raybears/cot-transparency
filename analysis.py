@@ -12,8 +12,9 @@ from scripts.multi_accuracy import plot_accuracy_for_exp
 from stage_one import TASK_LIST
 
 TASK_MAP = {}
-for task in TASK_LIST:
-    TASK_MAP[task] = "bbh"
+for dataset, task_list in TASK_LIST.items():
+    for task in task_list:
+        TASK_MAP[task] = dataset
 
 
 def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> dict[str, Any]:
