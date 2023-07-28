@@ -43,11 +43,11 @@ class MessageRoles(str, Enum):
 
 class StrictMessageRoles(str, Enum):
     # Stricter set of roles that doesn't allow assistant_preferred
-    user = MessageRoles.user
-    system = MessageRoles.system
-    assistant = MessageRoles.assistant
+    user = "user"
+    system = "system"
+    assistant = "assistant"
     # none is designed for completion tasks where no role / tag will be added
-    none = MessageRoles.none
+    none = "none"
 
 
 class ChatMessage(HashableBaseModel):

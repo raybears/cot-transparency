@@ -81,7 +81,7 @@ def test_openai_chat_no_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
     formatted_prompt: list[ChatMessage] = ZeroShotSycophancyFormatter().format_example(test_example)
     strict_messages = convert_to_strict_messages(formatted_prompt, "gpt-4")
-    assert len(formatted_prompt) == 1
+    assert len(strict_messages) == 1
     prompt_sent_to_openai_chat = [chat.dict() for chat in strict_messages]
 
     user_prompt = """Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?

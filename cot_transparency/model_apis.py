@@ -24,10 +24,10 @@ def messages_has_none_role(prompt: list[StrictChatmessage] | list[ChatMessage]) 
 def convert_to_strict_messages(
     prompt: list[ChatMessage] | list[StrictChatmessage], model: str
 ) -> list[StrictChatmessage]:
-    if isinstance(prompt[0], StrictChatmessage):
-        for msg in prompt:
-            assert isinstance(msg, StrictChatmessage)
+    all_strict = all([isinstance(msg, StrictChatmessage) for msg in prompt])
+    if all_strict:
         strict_prompt: list[StrictChatmessage] = prompt  # type: ignore
+        return strict_prompt
     else:
         flex_prompt: list[ChatMessage] = prompt  # type: ignore
 
@@ -92,7 +92,7 @@ def format_for_completion(prompt: list[ChatMessage]) -> list[StrictChatmessage]:
             content = message.content
             new_message = StrictChatmessage(role=StrictMessageRoles.assistant, content=content)
         else:
-            new_message = StrictChatmessage(role=message.role, content=message.content)  # type: ignore
+            new_message = StrictChatmessage(role=StrictMessageRoles(message.role), content=message.content)
         output.append(new_message)
     return output
 
@@ -109,8 +109,9 @@ def format_for_openai_chat(prompt: list[ChatMessage]) -> list[StrictChatmessage]
     for msg in prompt:
         if msg.role == MessageRoles.assistant_if_completion:
             content = new_list[-1].content + f"\n\n{msg.content}"
-            new_item = ChatMessage(role=MessageRoles.user, content=content)
+            new_item = StrictChatmessage(role=StrictMessageRoles.user, content=content)
             new_list[-1] = new_item
         else:
-            new_item = StrictChatmessage(role=msg.role, content=msg.content)  # type: ignore
+            new_item = StrictChatmessage(role=StrictMessageRoles(msg.role), content=msg.content)
+            new_list.append(new_item)
     return new_list
