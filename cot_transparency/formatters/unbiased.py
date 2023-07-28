@@ -1,4 +1,4 @@
-from cot_transparency.data_models.models import MessageRoles
+from cot_transparency.data_models.models import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.instructions import (
@@ -26,8 +26,8 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
         user_message = add_verbalize_instruction_to_question(question.get_parsed_input())
         output = [
-            ChatMessage(role=MessageRoles.user, content=user_message),
-            ChatMessage(role=MessageRoles.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.user, content=user_message),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
@@ -43,8 +43,8 @@ class ZeroShotCOTUnbiasedTameraTFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
         output = [
-            ChatMessage(role=MessageRoles.user, content=question.get_parsed_input()),
-            ChatMessage(role=MessageRoles.assistant, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.user, content=question.get_parsed_input()),
+            ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
@@ -61,8 +61,8 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
         formatted_question = format_unbiased_question(question=question.get_parsed_input())
         output = [
-            ChatMessage(role=MessageRoles.user, content=formatted_question),
-            ChatMessage(role=MessageRoles.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.user, content=formatted_question),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
         ]
         return output
 

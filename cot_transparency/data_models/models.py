@@ -30,7 +30,7 @@ class OpenaiInferenceConfig(HashableBaseModel):
     stop: Union[None, str, conlist(str, min_items=1, max_items=4)] = None  # type: ignore
 
 
-class MessageRoles(str, Enum):
+class MessageRole(str, Enum):
     user = "user"
     system = "system"
     assistant = "assistant"
@@ -41,12 +41,30 @@ class MessageRoles(str, Enum):
     none = "none"
 
 
+class StrictMessageRole(str, Enum):
+    # Stricter set of roles that doesn't allow assistant_preferred
+    user = "user"
+    system = "system"
+    assistant = "assistant"
+    # none is designed for completion tasks where no role / tag will be added
+    none = "none"
+
+
 class ChatMessage(HashableBaseModel):
-    role: MessageRoles
+    role: MessageRole
     content: str
 
     class Config:
         frozen = True
+
+
+class StrictChatMessage(HashableBaseModel):
+    role: StrictMessageRole
+    content: str
+
+    class Config:
+        frozen = True
+        validate_assignment = True
 
 
 class ModelOutput(BaseModel):
@@ -55,7 +73,9 @@ class ModelOutput(BaseModel):
     parsed_response: str
 
 
-def deterministic_task_hash(task_name: str, messages: list[ChatMessage], model_config: OpenaiInferenceConfig) -> str:
+def deterministic_task_hash(
+    task_name: str, messages: list[ChatMessage] | list[StrictChatMessage], model_config: OpenaiInferenceConfig
+) -> str:
     hashes: str = ""
     hashes += task_name
     hashes += model_config.d_hash()
@@ -105,7 +125,7 @@ class TaskOutput(BaseModel):
 class StageTwoTaskSpec(BaseModel):
     stage_one_output: TaskOutput
     model_config: OpenaiInferenceConfig
-    messages: list[ChatMessage]
+    messages: list[StrictChatMessage]
     out_file_path: Path
     formatter_name: str
     step_in_cot_trace: Optional[int] = None

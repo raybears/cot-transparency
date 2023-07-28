@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from slist import Slist
-from cot_transparency.data_models.models_v1 import ExperimentJsonFormat
+from cot_transparency.data_models.models import ExperimentJsonFormat
 
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.data_models.models import TaskOutput

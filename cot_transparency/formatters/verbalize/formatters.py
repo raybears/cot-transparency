@@ -1,7 +1,7 @@
 from typing import Optional
 
 from cot_transparency.data_models.data.bbh import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRoles
+from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.verbalize.emoji_utils import question_with_checkmark_bias, question_with_cross_bias
 from cot_transparency.formatters.extraction import extract_answer
@@ -48,7 +48,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
         with_label_instruction = f"""{message}
 {label_bias_instruction}"""
         messages = [
-            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
         return messages
 
@@ -82,7 +82,7 @@ class StanfordTreatmentFormatter(StageOneFormatter):
             checkmark_answer_message,
             cross_question_message,
             cross_answer_message,
-            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
         return messages
 
@@ -104,7 +104,7 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
 {biased_message}
 {label_bias_instruction}"""
         messages = [
-            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
         return messages
 
@@ -139,7 +139,7 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
             cross_answer_message,
             stanford_question_message,
             stanford_answer_message,
-            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
         return messages
 
@@ -161,7 +161,7 @@ class CrossBiasedFormatter(StageOneFormatter):
 {biased_message}
 {label_bias_instruction}"""
         messages = [
-            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
         return messages
 
@@ -196,7 +196,7 @@ class CrossTreatmentFormatter(StageOneFormatter):
             checkmark_answer_message,
             stanford_question_message,
             stanford_answer_message,
-            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
         return messages
 
@@ -218,7 +218,7 @@ class IThinkAnswerBiasedFormatter(StageOneFormatter):
 {biased_message}
 {label_bias_instruction}"""
         messages = [
-            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
         return messages
 
@@ -251,7 +251,7 @@ class IThinkAnswerTreatmentFormatter(StageOneFormatter):
             checkmark_answer_message,
             stanford_question_message,
             stanford_answer_message,
-            ChatMessage(role=MessageRoles.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
         return messages
 
