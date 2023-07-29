@@ -16,6 +16,7 @@ If you don't think you have a probable bias, write <BIAS>NO_BIAS</BIAS>.
 Start you answer with 'Let's think step by step'.  Finally, give your answer in the format -  The best answer is: (X)"""
 
 
+
 design_question = f"""The following questions are labelled ’True’ if they match a pattern and ’False’
 otherwise. The pattern is known to be very simple and explainable in plain
 English. Label the remaining questions according to the pattern.
