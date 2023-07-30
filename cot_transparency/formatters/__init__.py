@@ -27,6 +27,9 @@ from cot_transparency.formatters.verbalize.formatters import (
 
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
+    if not name_to_formatter(biased_formatter_name).is_biased:
+        return biased_formatter_name
+
     mapping = {
         ZeroShotCOTSycophancyFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         ZeroShotSycophancyFormatter.name(): ZeroShotUnbiasedFormatter.name(),
