@@ -224,7 +224,7 @@ def get_chat_response_simple(
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatMessage]) -> GPTFullResponse:
-    assert config.model == "gpt-3.5-turbo"
+    assert "gpt-3.5-turbo" in config.model
     response_dict = __get_chat_response_dict(
         config=config,
         prompt=messages,

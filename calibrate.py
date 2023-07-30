@@ -94,9 +94,9 @@ def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> l
     message = joined.unbiased[0].task_spec.read_data_example_or_raise(MilesBBHRawData)
     # reformat
     reformatted = StanfordCalibratedFormatter.format_example(question=message)
-    answer = f"""My modal answer is {joined.stats.biased_modal_ans} with a probability of {joined.stats.biased_proba_biased_mode:.2f}
-Without the {feature_name} I would have chosen {joined.stats.biased_modal_ans} with a probability of {joined.stats.unbiased_proba_biased_mode:.2f}
-Without the {feature_name} my modal answer would be {joined.stats.unbiased_modal_ans} with a probability of {joined.stats.unbiased_proba_unbiased_mode:.2f}
+    answer = f"""Taking into account the {feature_name}, my modal answer is {joined.stats.biased_modal_ans} with a probability of {joined.stats.biased_proba_biased_mode:.2f}
+Without the {feature_name}, this score of the previously mentioned {joined.stats.biased_modal_ans} would change to a probability of {joined.stats.unbiased_proba_biased_mode:.2f}
+Without the {feature_name} my new modal answer would be {joined.stats.unbiased_modal_ans} with a probability of {joined.stats.unbiased_proba_unbiased_mode:.2f}
 """
 
     return [
@@ -110,8 +110,8 @@ def few_shot_prompts_for_formatter(
     biased_formatter_name: str,
     bias_name: str,
     max_per_subset: int,
+    model: str,
     unbiased_formatter_name: str = "ZeroShotCOTUnbiasedFormatter",
-    model: str = "gpt-4",
 ) -> str:
     """
     Returns a string that can be used as a prompt for the few shot experiment
@@ -138,6 +138,7 @@ def few_shot_prompts_for_formatter(
     meets_threshold, not_meet_threshold = with_stats.split_by(lambda j: j.stats.p_mode_diff_biased_mode() > threshold)
     meeeting_threshold_limited = meets_threshold.take(max_per_subset)
     print(f"Meeting threshold: {len(meets_threshold)}")
+    print(f"Meeting threshold limited: {len(meeeting_threshold_limited)}")
     print(f"Not meeting threshold: {len(not_meet_threshold)}")
     formatted_all: Slist[StrictChatMessage] = (
         (meeeting_threshold_limited + not_meet_threshold.take(meeeting_threshold_limited.length))
@@ -151,13 +152,18 @@ def few_shot_prompts_for_formatter(
 if __name__ == "__main__":
     MIN_SAMPLES = 10
     exp_dir = "experiments/verb"
-    unbiased_formatter_name = "ZeroShotCOTUnbiasedFormatter"
-    cross_formatter_name = "StanfordBiasedFormatter"
+    model = "gpt-3.5-turbo-16k"
+    unbiased_formatter_name = "ZeroShotUnbiasedFormatter"
+    cross_formatter_name = "StanfordNoCOTFormatter"
     prompt = few_shot_prompts_for_formatter(
         threshold=0.3,
         biased_formatter_name=cross_formatter_name,
         unbiased_formatter_name=unbiased_formatter_name,
         bias_name="stanford professor giving his opinion",
-        max_per_subset=20
+        max_per_subset=38,
+        model=model,
     )
-    print(prompt)
+    # copy prompt to clipboard
+    import pyperclip
+
+    pyperclip.copy(prompt)

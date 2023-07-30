@@ -31,7 +31,7 @@ def convert_to_strict_messages(
     else:
         flex_prompt: list[ChatMessage] = prompt  # type: ignore
 
-        if model == "gpt-3.5-turbo" or model == "gpt-4":
+        if model == "gpt-3.5-turbo" or model == "gpt-4" or model == "gpt-3.5-turbo-16k":
             strict_prompt = format_for_openai_chat(flex_prompt)
         elif model == "claude-v1" or model == "text-davinci-003":
             strict_prompt = format_for_completion(flex_prompt)
@@ -45,7 +45,7 @@ def call_model_api(prompt: list[ChatMessage] | list[StrictChatMessage], config: 
     strict_prompt = convert_to_strict_messages(prompt, config.model)
 
     model_name = config.model
-    if model_name == "gpt-3.5-turbo":
+    if model_name == "gpt-3.5-turbo" or model_name == "gpt-3.5-turbo-16k":
         return gpt3_5_rate_limited(config=config, messages=strict_prompt).completion
 
     elif model_name == "gpt-4":
