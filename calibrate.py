@@ -158,6 +158,8 @@ def few_shot_prompts_for_formatter(
     return convert_to_completion_str(formatted_all) + convert_to_completion_str(test_item_formatted)
 
 
+
+
 if __name__ == "__main__":
     """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
     MIN_SAMPLES = 10

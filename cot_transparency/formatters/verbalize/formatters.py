@@ -192,6 +192,23 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
+class CheckmarkNoCOTFormatter(StageOneFormatter):
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        biased_message = question_with_checkmark_bias(
+            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
+        )
+        with_label_instruction = f"""{checkmark_biasing}
+{biased_message}"""
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
 
 class CrossBiasedFormatter(StageOneFormatter):
     is_biased = True
@@ -213,6 +230,28 @@ class CrossBiasedFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
+
+
+class CrossNoCOTFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        biased_message = question_with_cross_bias(
+            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
+        )
+        with_label_instruction = f"""{cross_biasing}
+{biased_message}"""
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
 
 
 class CrossTreatmentFormatter(StageOneFormatter):
