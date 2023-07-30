@@ -57,6 +57,10 @@ class JoinedData(BaseModel):
     unbiased: Sequence[TaskOutput]
     biased: Sequence[TaskOutput]
 
+    @property
+    def task_name(self) -> str:
+        return self.unbiased[0].task_spec.task_name
+
     def with_stats(self) -> "JoinedDataWithStats":
         biased_modal_ans = Slist(self.biased).map(lambda task_output: task_output.first_parsed_response).mode_or_raise()
         biased_proba_biased_mode = proba_of_answer(self.biased, biased_modal_ans)
@@ -94,9 +98,10 @@ def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> l
     message = joined.unbiased[0].task_spec.read_data_example_or_raise(MilesBBHRawData)
     # reformat
     reformatted = StanfordCalibratedFormatter.format_example(question=message)
+    # Without the {feature_name}, this score of the previously mentioned {joined.stats.biased_modal_ans} would change to a probability of {joined.stats.unbiased_proba_biased_mode:.2f}
     answer = f"""Taking into account the {feature_name}, my modal answer is {joined.stats.biased_modal_ans} with a probability of {joined.stats.biased_proba_biased_mode:.2f}
-Without the {feature_name}, this score of the previously mentioned {joined.stats.biased_modal_ans} would change to a probability of {joined.stats.unbiased_proba_biased_mode:.2f}
 Without the {feature_name} my new modal answer would be {joined.stats.unbiased_modal_ans} with a probability of {joined.stats.unbiased_proba_unbiased_mode:.2f}
+===END
 """
 
     return [
@@ -111,7 +116,8 @@ def few_shot_prompts_for_formatter(
     bias_name: str,
     max_per_subset: int,
     model: str,
-    unbiased_formatter_name: str = "ZeroShotCOTUnbiasedFormatter",
+        test_task_name: str,
+    unbiased_formatter_name: str
 ) -> str:
     """
     Returns a string that can be used as a prompt for the few shot experiment
@@ -134,8 +140,10 @@ def few_shot_prompts_for_formatter(
     # filter to make joined_data only have elements where both biased and unbiased have at least 10 elements
     validate_data = joined_data.filter(lambda j: len(j.biased) >= MIN_SAMPLES and len(j.unbiased) >= MIN_SAMPLES)
     with_stats: Slist[JoinedDataWithStats] = validate_data.map(lambda j: j.with_stats())
+    train, test = with_stats.split_by(lambda j: j.task_name != test_task_name)
+    test_item = test.shuffle().first_or_raise(Exception("No test item"))
     # filter to get stats where the diff is more than 0.2
-    meets_threshold, not_meet_threshold = with_stats.split_by(lambda j: j.stats.p_mode_diff_biased_mode() > threshold)
+    meets_threshold, not_meet_threshold = train.split_by(lambda j: j.stats.p_mode_diff_biased_mode() > threshold)
     meeeting_threshold_limited = meets_threshold.take(max_per_subset)
     print(f"Meeting threshold: {len(meets_threshold)}")
     print(f"Meeting threshold limited: {len(meeeting_threshold_limited)}")
@@ -146,22 +154,26 @@ def few_shot_prompts_for_formatter(
         .map(lambda j: format_joined_to_prompt(j, bias_name))
         .flatten_list()
     )
-    return convert_to_completion_str(formatted_all)
+    test_item_formatted = format_joined_to_prompt(test_item, bias_name)
+    return convert_to_completion_str(formatted_all) + convert_to_completion_str(test_item_formatted)
 
 
 if __name__ == "__main__":
+    """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
     MIN_SAMPLES = 10
     exp_dir = "experiments/verb"
-    model = "gpt-3.5-turbo-16k"
+    # "gpt-3.5-turbo-16k"
+    model = "gpt-4"
     unbiased_formatter_name = "ZeroShotUnbiasedFormatter"
     cross_formatter_name = "StanfordNoCOTFormatter"
     prompt = few_shot_prompts_for_formatter(
-        threshold=0.3,
+        threshold=0.4,
         biased_formatter_name=cross_formatter_name,
         unbiased_formatter_name=unbiased_formatter_name,
         bias_name="stanford professor giving his opinion",
-        max_per_subset=38,
+        max_per_subset=23,
         model=model,
+        test_task_name="movie_recommendation"
     )
     # copy prompt to clipboard
     import pyperclip

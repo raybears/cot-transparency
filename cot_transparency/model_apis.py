@@ -48,7 +48,7 @@ def call_model_api(prompt: list[ChatMessage] | list[StrictChatMessage], config: 
     if model_name == "gpt-3.5-turbo" or model_name == "gpt-3.5-turbo-16k":
         return gpt3_5_rate_limited(config=config, messages=strict_prompt).completion
 
-    elif model_name == "gpt-4":
+    elif model_name == "gpt-4" or model_name == "gpt-4-32k":
         # return "fake openai response, The best answer is: (A)"
         return gpt4_rate_limited(config=config, messages=strict_prompt).completion
 

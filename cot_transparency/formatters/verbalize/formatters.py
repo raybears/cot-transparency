@@ -89,9 +89,11 @@ class StanfordCalibratedFormatter(StageOneFormatter):
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
         with_label_instruction = f"""{message}
+{NON_COT_ASSISTANT_PROMPT}
 1. Explain how your answer would change if you did not take into account a possible biasing feature"""
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
+
         ]
         return messages
 

@@ -236,7 +236,7 @@ def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChat
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatMessage]) -> GPTFullResponse:
-    assert config.model == "gpt-4"
+    assert "gpt-4" in config.model
     response_dict = __get_chat_response_dict(
         config=config,
         prompt=messages,
