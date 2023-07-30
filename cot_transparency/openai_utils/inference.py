@@ -27,7 +27,8 @@ logger = setup_logger(__name__, logging.INFO)
 load_dotenv()
 NUM_ORGS = len(os.getenv("OPENAI_ORG_IDS", "").split(","))
 RATE_SCALER = float(os.getenv("RATE_SCALER", "1.0"))
-total_rate_sf = int(NUM_ORGS * RATE_SCALER)
+total_rate_sf = NUM_ORGS * RATE_SCALER
+print("Total rate scaling", total_rate_sf)
 
 retry_openai_failures = retry(
     exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None
@@ -220,7 +221,7 @@ def get_chat_response_simple(
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response)
 
 
-@token_rate_limiter(tokens_per_minute=90_000 * total_rate_sf, logger=logger)
+@token_rate_limiter(tokens_per_minute=int(90_000 * total_rate_sf), logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatMessage]) -> GPTFullResponse:
@@ -232,7 +233,7 @@ def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChat
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
 
 
-@token_rate_limiter(tokens_per_minute=150_000 * total_rate_sf, logger=logger)
+@token_rate_limiter(tokens_per_minute=int(40_000 * total_rate_sf), logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatMessage]) -> GPTFullResponse:

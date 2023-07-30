@@ -16,6 +16,7 @@ from cot_transparency.data_models.models import ModelOutput
 from cot_transparency.data_models.models import StageTwoTaskSpec
 from cot_transparency.data_models.models import TaskSpec
 from cot_transparency.util import setup_logger
+from cot_transparency.openai_utils.rate_limiting import exit_event
 
 logger = setup_logger(__name__)
 
@@ -81,9 +82,8 @@ def run_tasks_multi_threaded(
 
     def kill_and_save(loaded_dict: LoadedJsonType):
         save_loaded_dict(loaded_dict)
-        for future in future_instance_outputs:
-            future.cancel()
-        executor.shutdown(wait=False)
+        executor.shutdown(wait=False, cancel_futures=True)
+        exit_event.set()  # notify rate limiter to exit
 
     for task in tasks_to_run:
         future_instance_outputs.append(executor.submit(task_function, task))
