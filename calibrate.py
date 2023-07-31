@@ -430,12 +430,32 @@ def run_calibration(limit: int, file_name: str):
         write_jsonl_file_from_basemodel(path=fp, basemodels=saved)
 
 
+def always_follow_bias(saved_test: SavedTest) -> bool:
+    # baseline of always following the bias
+    # e.g. stanford prof said A, we'll predict that model gets biased to say A
+    # bool is whether the model was correct
+    ground_truth = highest_key_in_dict(saved_test.biased_ground_truth)
+    bias_pred = saved_test.test.original_task.biased_ans
+    assert bias_pred is not None
+    return ground_truth == bias_pred
+
+def always_not_biased(saved_test: SavedTest) -> bool:
+    # simply output an unbiased prediction for predicting the bias
+    ground_truth = highest_key_in_dict(saved_test.biased_ground_truth)
+    bias_pred = highest_key_in_dict(saved_test.unbiased_ground_truth)
+    assert bias_pred is not None
+    return ground_truth == bias_pred
+
 def unbiased_and_biased_acc(stuff: Sequence[SavedTest]) -> None:
     unbiased_acc = Slist(stuff).map(lambda saved_test: saved_test.unbiased_prediction_correct).average()
     biased_acc = Slist(stuff).map(lambda saved_test: saved_test.biased_prediction_correct).average()
     print(f"Total: {len(stuff)}")
-    print(f"Unbiased accuracy: {unbiased_acc}")
-    print(f"Biased accuracy: {biased_acc}")
+    print(f"Unbiased estimate accuracy: {unbiased_acc}")
+    print(f"Biased estimate accuracy: {biased_acc}")
+    bias_baseline = Slist(stuff).map(lambda saved_test: always_follow_bias(saved_test)).average()
+    print(f"Biased: Always tricked by bias baseline: {bias_baseline}")
+    always_not_biased_baseline = Slist(stuff).map(lambda saved_test: always_not_biased(saved_test)).average()
+    print(f"Biased: Always not biased baseline: {always_not_biased_baseline}")
 
 
 def plot_calibration():
