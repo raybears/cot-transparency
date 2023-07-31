@@ -20,12 +20,19 @@ from cot_transparency.data_models.models import (
 from cot_transparency.formatters.verbalize.formatters import StanfordCalibratedFormatter
 from cot_transparency.json_utils.read_write import (
     write_jsonl_file_from_basemodel,
-    read_jsonl_file_into_basemodel,
     read_jsonl_file_into_basemodel_ignore_errors,
 )
 from cot_transparency.model_apis import convert_to_completion_str, call_model_api
 from cot_transparency.openai_utils.set_key import set_keys_from_env
-from scripts.multi_accuracy import bbh_task_list
+from scripts.multi_accuracy import (
+    bbh_task_list,
+    accuracy_outputs_from_inputs,
+    AccuracyInput,
+    AccuracyOutput,
+    accuracy_plot,
+    TaskAndPlotDots,
+    PlotDots,
+)
 from stage_one import read_done_experiment
 
 A = TypeVar("A")
@@ -207,6 +214,35 @@ class SavedTest(BaseModel):
     biased_prediction_correct: bool
 
     @property
+    def inconsistent_bias(self) -> bool:
+        # when the bias is not on the ground truth
+        # e.g. stanford prof said A, ground truth was really B
+        ground_truth = self.test.original_task.ground_truth
+        biased_towards_wrong_answer: bool = self.test.original_task.biased_ans != ground_truth
+        return biased_towards_wrong_answer
+
+    @property
+    def new_unbiased_pred_correct_wrt_ground_truth(self) -> bool:
+        # We want to compare the accuracy of the unbiased prediction to the ground truth
+        # The ground truth here is the ground truth of the task itself, not the previous
+        # unbiased prediction
+        ground_truth = self.test.original_task.ground_truth
+        model_mode_ans = self.unbiased_prediction
+        return ground_truth == highest_key_in_dict(model_mode_ans)
+
+    @property
+    def old_unbiased_pred_correct_wrt_ground_truth(self) -> bool:
+        ground_truth = self.test.original_task.ground_truth
+        model_mode_ans = self.test.joined_stats.unbiased_modal_ans
+        return ground_truth == model_mode_ans
+
+    @property
+    def old_biased_pred_correct_wrt_ground_truth(self) -> bool:
+        ground_truth = self.test.original_task.ground_truth
+        model_mode_ans = self.test.joined_stats.biased_modal_ans
+        return ground_truth == model_mode_ans
+
+    @property
     def original_task_hash(self) -> str:
         return self.test.original_task.task_hash
 
@@ -222,6 +258,16 @@ class SavedTest(BaseModel):
         ground_truth = self.test.original_task.ground_truth
         model_mode_ans = self.test.joined_stats.biased_modal_ans
         return ground_truth == model_mode_ans
+
+    @property
+    def previously_tricked_by_bias(self) -> bool:
+        # True if bias was on the wrong answer, and the model was tricked
+        # False if bias was on the right answer, and the model chose the right answer (this filters out inconsistent)
+        # False if bias was on the right answer, and the model chose the wrong answer
+        ground_truth = self.test.original_task.ground_truth
+        biased_towards_wrong_answer: bool = self.test.original_task.biased_ans != ground_truth
+        model_mode_ans = self.test.joined_stats.biased_modal_ans
+        return biased_towards_wrong_answer and ground_truth != model_mode_ans
 
 
 def parse_prediction(completion: str, tag: str) -> Optional[dict[str, float]]:
@@ -439,6 +485,7 @@ def always_follow_bias(saved_test: SavedTest) -> bool:
     assert bias_pred is not None
     return ground_truth == bias_pred
 
+
 def always_not_biased(saved_test: SavedTest) -> bool:
     # simply output an unbiased prediction for predicting the bias
     ground_truth = highest_key_in_dict(saved_test.biased_ground_truth)
@@ -446,11 +493,67 @@ def always_not_biased(saved_test: SavedTest) -> bool:
     assert bias_pred is not None
     return ground_truth == bias_pred
 
+
 def unbiased_and_biased_acc(stuff: Sequence[SavedTest]) -> None:
-    unbiased_acc = Slist(stuff).map(lambda saved_test: saved_test.unbiased_prediction_correct).average()
-    biased_acc = Slist(stuff).map(lambda saved_test: saved_test.biased_prediction_correct).average()
     print(f"Total: {len(stuff)}")
-    print(f"Unbiased estimate accuracy: {unbiased_acc}")
+
+    unbiased_acc_transformed: Slist[AccuracyInput] = Slist(stuff).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.unbiased_ground_truth),
+            predicted=highest_key_in_dict(saved_test.unbiased_prediction),
+        )
+    )
+    unbiased_acc_output = accuracy_outputs_from_inputs(unbiased_acc_transformed)
+
+    biased_acc_transformed: Slist[AccuracyInput] = Slist(stuff).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.biased_ground_truth),
+            predicted=highest_key_in_dict(saved_test.biased_prediction),
+        )
+    )
+    biased_acc_output = accuracy_outputs_from_inputs(biased_acc_transformed)
+
+    biased_acc_baseline_tricked: Slist[AccuracyInput] = Slist(stuff).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.biased_ground_truth),
+            # the bias itself
+            predicted=assert_not_none(saved_test.test.original_task.biased_ans),
+        )
+    )
+    biased_acc_baseline_tricked_output = accuracy_outputs_from_inputs(biased_acc_baseline_tricked)
+
+    accuracy_plot(
+        list_task_and_dots=[
+            TaskAndPlotDots(task_name="Unbiased", plot_dots=[PlotDots(acc=unbiased_acc_output, name="Estimate acc")]),
+            TaskAndPlotDots(
+                task_name="Biased",
+                plot_dots=[
+                    PlotDots(acc=biased_acc_output, name="Estimate acc"),
+                    PlotDots(acc=biased_acc_baseline_tricked_output, name="Tricked by bias baseline"),
+                ],
+            ),
+        ],
+        title=f"Estimation accuracy {unbiased_acc_output.samples} samples",
+        save_file_path="unbiased_and_biased_acc.png",
+    )
+
+    print(f"Unbiased estimate accuracy: {unbiased_acc_output.accuracy}")
+    print(f"Unbiased estimate accuracy errors: {unbiased_acc_output.error_bars}")
+
+    new_acc_wrt_ground_truth = (
+        Slist(stuff).map(lambda saved_test: saved_test.new_unbiased_pred_correct_wrt_ground_truth).average()
+    )
+    old_acc_wrt_ground_truth = (
+        Slist(stuff).map(lambda saved_test: saved_test.old_unbiased_pred_correct_wrt_ground_truth).average()
+    )
+    old_biased_acc_wrt_ground_truth = (
+        Slist(stuff).map(lambda saved_test: saved_test.old_biased_pred_correct_wrt_ground_truth).average()
+    )
+    biased_acc = Slist(stuff).map(lambda saved_test: saved_test.biased_prediction_correct).average()
+
+    print(f"New accuracy wrt ground truth: {new_acc_wrt_ground_truth}")
+    print(f"Old biased accuracy wrt ground truth: {old_biased_acc_wrt_ground_truth}")
+    print(f"Old unbiased accuracy wrt ground truth: {old_acc_wrt_ground_truth}")
     print(f"Biased estimate accuracy: {biased_acc}")
     bias_baseline = Slist(stuff).map(lambda saved_test: always_follow_bias(saved_test)).average()
     print(f"Biased: Always tricked by bias baseline: {bias_baseline}")
@@ -459,25 +562,40 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest]) -> None:
 
 
 def plot_calibration():
-    read: Slist[SavedTest] = read_jsonl_file_into_basemodel_ignore_errors(path=Path("calibrate.jsonl"), basemodel=SavedTest)
-    # get the accuracy for the unbiased and biased
-    print("Overall")
-    unbiased_and_biased_acc(read)
-    # filter to get inputs where the biased answer is the ground truth
-    biased_correct, biased_wrong = Slist(read).split_by(lambda saved_test: saved_test.biased_to_be_correct)
-    # get the accuracy for the unbiased and biased
-    print("Biased to be correct")
-    unbiased_and_biased_acc(biased_correct)
-    print("Biased to be wrong")
-    unbiased_and_biased_acc(biased_wrong)
-    # filter to get inputs where the model was initially not tricked by the biased answer
-    not_tricked = biased_wrong.filter(lambda saved_test: saved_test.previously_not_tricked_by_bias)
-    print("Previously not tricked")
-    unbiased_and_biased_acc(not_tricked)
+    read: Slist[SavedTest] = read_jsonl_file_into_basemodel_ignore_errors(
+        path=Path("calibrate.jsonl"), basemodel=SavedTest
+    )
+    print(f"Total: {len(read)}")
+
+    tricked, not_tricked = (
+        Slist(read)
+        .split_by(lambda saved_test: saved_test.previously_tricked_by_bias)
+    )
+
+    # we want an even number of each
+    # min_length = min(not_tricked.length, tricked.length)
+    # balanced = not_tricked.shuffle(seed).take(min_length) + tricked.shuffle(seed).take(min_length)
+    unbiased_and_biased_acc(tricked)
+
+    # # get the accuracy for the unbiased and biased
+    # print("Overall")
+
+    # # filter to get inputs where the biased answer is the ground truth
+    # biased_correct, biased_wrong = Slist(read).split_by(lambda saved_test: saved_test.biased_to_be_correct)
+    # # get the accuracy for the unbiased and biased
+    # print("Biased to be correct")
+    # # unbiased_and_biased_acc(biased_correct)
+    # print("Biased to be wrong")
+    # # unbiased_and_biased_acc(biased_wrong)
+    # # filter to get inputs where the model was initially not tricked by the biased answer
+    # not_tricked = biased_wrong.filter(lambda saved_test: saved_test.previously_not_tricked_by_bias)
+    # print("Previously not tricked")
+    # # unbiased_and_biased_acc(not_tricked)
 
 
 if __name__ == "__main__":
     """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
 
-    # run_calibration(limit=300, file_name="calibrate.jsonl")
+    # run_calibration(limit=400, file_name="calibrate.jsonl")
     plot_calibration()
+    # TODO: unbiased baseline -> pick something that is not the biased answer

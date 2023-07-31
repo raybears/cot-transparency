@@ -9,6 +9,7 @@ import plotly.colors as pcol
 import plotly.graph_objects as go
 import plotly.io as pio
 from pydantic import BaseModel
+from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
@@ -18,6 +19,7 @@ from stage_one import read_done_experiment, TASK_LIST
 class AccuracyOutput(BaseModel):
     accuracy: float
     error_bars: float
+    samples: int
 
 
 def compute_error_bars(num_trials: int, num_successes: int, confidence_level: float = 1.96) -> float:
@@ -39,21 +41,26 @@ def accuracy_for_file(path: Path, inconsistent_only: bool) -> AccuracyOutput:
 
 
 def accuracy_outputs(outputs: list[TaskOutput]) -> AccuracyOutput:
-    if len(outputs) == 0:
+    transformed = Slist(outputs).map(
+        lambda x: AccuracyInput(ground_truth=x.task_spec.ground_truth, predicted=x.first_raw_response)
+    )
+    return accuracy_outputs_from_inputs(transformed)
+
+
+class AccuracyInput(BaseModel):
+    ground_truth: str
+    predicted: str
+
+
+def accuracy_outputs_from_inputs(inputs: Sequence[AccuracyInput]) -> AccuracyOutput:
+    if len(inputs) == 0:
         raise ValueError("No outputs to score")
-    score = 0
-    # filter out the consistent if inconsistent_only is True
-    for item in outputs:
-        ground_truth = item.task_spec.ground_truth
-        predicted = item.model_output.parsed_response
-        is_correct = predicted == ground_truth
-        if is_correct:
-            score += 1
-
+    correct = Slist(inputs).map(lambda x: 1 if x.ground_truth == x.predicted else 0)
+    acc = correct.average()
+    assert acc is not None
     # Compute error bars for accuracy
-    error_bars = compute_error_bars(num_trials=len(outputs), num_successes=score)
-
-    return AccuracyOutput(accuracy=score / len(outputs), error_bars=error_bars)
+    error_bars = compute_error_bars(num_trials=len(inputs), num_successes=correct.sum())
+    return AccuracyOutput(accuracy=acc, error_bars=error_bars, samples=len(inputs))
 
 
 def spotted_bias(raw_response: str) -> bool:

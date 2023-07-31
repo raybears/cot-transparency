@@ -14,10 +14,11 @@ def caught_base_model_parse(basemodel: Type[GenericBaseModel], line: str) -> Gen
         print(f"Error parsing line: {line}")
         raise e
 
+
 def ignore_errors_base_model_parse(basemodel: Type[GenericBaseModel], line: str) -> Optional[GenericBaseModel]:
     try:
         return basemodel.parse_raw(line)
-    except Exception as e:
+    except Exception:
         return None
 
 
@@ -28,7 +29,11 @@ def read_jsonl_file_into_basemodel(path: Path, basemodel: Type[GenericBaseModel]
             for line in f.readlines()
             # filter for users
         )
-def read_jsonl_file_into_basemodel_ignore_errors(path: Path, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
+
+
+def read_jsonl_file_into_basemodel_ignore_errors(
+    path: Path, basemodel: Type[GenericBaseModel]
+) -> Slist[GenericBaseModel]:
     with open(path, "r") as f:
         return Slist(
             ignore_errors_base_model_parse(basemodel=basemodel, line=line)
