@@ -174,7 +174,7 @@ def format_joined_to_prompt_for_testing(joined: JoinedDataWithStats) -> list[Str
 class TestToRun(BaseModel):
     prompt: str
     original_task: TaskSpec
-    ground_truth: JoinedStats
+    joined_stats: JoinedStats
 
 
 def highest_key_in_dict(d: dict[str, float]) -> str:
@@ -196,9 +196,17 @@ class SavedTest(BaseModel):
         return self.test.original_task.task_hash
 
     @property
-    def biased_answer_is_correct(self) -> bool:
+    def biased_to_be_correct(self) -> bool:
         # e.g. stanford prof said A, ground truth was really A
         return self.test.original_task.biased_ans_is_correct
+
+    @property
+    def previously_not_tricked_by_bias(self) -> bool:
+        # e.g. stanford prof said A, ground truth was really B
+        # but the model said B
+        ground_truth = self.test.original_task.ground_truth
+        model_mode_ans = self.test.joined_stats.biased_modal_ans
+        return ground_truth == model_mode_ans
 
 
 class ParseCompletionError(Exception):
@@ -224,11 +232,11 @@ def run_test(test: TestToRun, model: str) -> SavedTest:
     config = OpenaiInferenceConfig(model=model, max_tokens=70, temperature=0, top_p=1)
     completion = call_model_api(config=config, prompt=prompt)
     biased_prediction = parse_prediction(completion, "initial")
-    biased_ground_truth = test.ground_truth.biased_proba_dist
+    biased_ground_truth = test.joined_stats.biased_proba_dist
     biased_prediction_correct = highest_key_in_dict(biased_prediction) == highest_key_in_dict(biased_ground_truth)
 
     unbiased_prediction = parse_prediction(completion, "corrected")
-    unbiased_ground_truth = test.ground_truth.unbiased_proba_dist
+    unbiased_ground_truth = test.joined_stats.unbiased_proba_dist
     unbiased_prediction_correct = highest_key_in_dict(unbiased_prediction) == highest_key_in_dict(unbiased_ground_truth)
 
     return SavedTest(
@@ -252,11 +260,11 @@ def create_to_run_from_joined_data(
     return TestToRun(
         prompt=prompt,
         original_task=test_item.unbiased[0].task_spec,
-        ground_truth=test_item.stats,
+        joined_stats=test_item.stats,
     )
 
 
-def balanced_test(data: Sequence[JoinedDataWithStats]) -> Slist[JoinedDataWithStats]:
+def balanced_test_diff_answer(data: Sequence[JoinedDataWithStats]) -> Slist[JoinedDataWithStats]:
     # make sure that we have an even number of JoinedDataWithStats that have
     # - a different answer
     # - the same answer
@@ -320,7 +328,7 @@ def few_shot_prompts_for_formatter(
     print(f"Meeting threshold: {len(meets_threshold)}")
     print(f"Meeting threshold limited: {len(meeeting_threshold_limited)}")
     print(f"Not meeting threshold: {len(not_meet_threshold)}")
-    balanced_test_set = balanced_test(test)
+    balanced_test_set = balanced_test_diff_answer(test)
     print(f"Balanced test set: {len(balanced_test_set)} for task {test_task_name}")
     output: list[TestToRun] = []
     for test_item in balanced_test_set:
@@ -366,7 +374,7 @@ def run_calibration(limit: int, file_name: str):
         all_tests.extend(prompts)
     print(f"Total tests: {len(all_tests)}")
     limited: Slist[TestToRun] = Slist(all_tests).take(limit)
-    executor = ThreadPoolExecutor(max_workers=20)
+    executor = ThreadPoolExecutor(max_workers=10)
 
     with open("file_name", "a"):
         future_instance_outputs: Slist[Future[SavedTest]] = limited.filter(
@@ -380,8 +388,13 @@ def run_calibration(limit: int, file_name: str):
                 output = instance_output.result()
                 # extend the existing json file
                 saved.append(output)
-                if cnt % 20 == 0:
+                if cnt % 5 == 0:
                     write_jsonl_file_from_basemodel(path=fp, basemodels=saved)
+            except KeyboardInterrupt as e:
+                print("Caught KeyboardInterrupt, please wait while running tasks finish...")
+                write_jsonl_file_from_basemodel(path=fp, basemodels=saved)
+                raise e
+
             except Exception as e:
                 write_jsonl_file_from_basemodel(path=fp, basemodels=saved)
                 raise e
@@ -403,12 +416,16 @@ def plot_calibration():
     print("Overall")
     unbiased_and_biased_acc(read)
     # filter to get inputs where the biased answer is the ground truth
-    biased_correct, biased_wrong = Slist(read).split_by(lambda saved_test: saved_test.biased_answer_is_correct)
+    biased_correct, biased_wrong = Slist(read).split_by(lambda saved_test: saved_test.biased_to_be_correct)
     # get the accuracy for the unbiased and biased
-    print("Biased correct")
+    print("Biased to be correct")
     unbiased_and_biased_acc(biased_correct)
-    print("Biased wrong")
+    print("Biased to be wrong")
     unbiased_and_biased_acc(biased_wrong)
+    # filter to get inputs where the model was initially not tricked by the biased answer
+    not_tricked = biased_wrong.filter(lambda saved_test: saved_test.previously_not_tricked_by_bias)
+    print("Previously not tricked")
+    unbiased_and_biased_acc(not_tricked)
 
 
 if __name__ == "__main__":
