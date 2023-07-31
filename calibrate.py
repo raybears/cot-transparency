@@ -1,9 +1,10 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 from pathlib import Path
 from typing import Sequence, TypeVar
 
 from pydantic import BaseModel
 from slist import Slist
+from tqdm import tqdm
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer
@@ -191,6 +192,10 @@ class SavedTest(BaseModel):
     biased_prediction_correct: bool
 
     @property
+    def original_task_hash(self) -> str:
+        return self.test.original_task.task_hash
+
+    @property
     def biased_answer_is_correct(self) -> bool:
         # e.g. stanford prof said A, ground truth was really A
         return self.test.original_task.biased_ans_is_correct
@@ -333,13 +338,20 @@ def few_shot_prompts_for_formatter(
     return output
 
 
-def run_calibration(limit: int):
+def run_calibration(limit: int, file_name: str):
     set_keys_from_env()
+    fp = Path(file_name)
+    # create the file if it doesn't exist
+    if not fp.exists():
+        write_jsonl_file_from_basemodel(path=fp, basemodels=[])
 
     exp_dir = "experiments/verb"
     model = "gpt-4"
     unbiased_formatter_name = "ZeroShotUnbiasedFormatter"
     cross_formatter_name = "StanfordNoCOTFormatter"
+    saved: Slist[SavedTest] = read_jsonl_file_into_basemodel(path=fp, basemodel=SavedTest)
+    print(f"Saved previously: {len(saved)}")
+    saved_hashes: set[str] = Slist(saved).map(lambda saved_test: saved_test.original_task_hash).to_set()
     all_tests: list[TestToRun] = []
     for task in bbh_task_list:
         prompts = few_shot_prompts_for_formatter(
@@ -352,18 +364,29 @@ def run_calibration(limit: int):
             test_task_name=task,
         )
         all_tests.extend(prompts)
-        # copy prompt to clipboard
-        # import pyperclip
-        #
-        # pyperclip.copy(prompt)
     print(f"Total tests: {len(all_tests)}")
     limited: Slist[TestToRun] = Slist(all_tests).take(limit)
-    executor = ThreadPoolExecutor(max_workers=10)
-    results: Slist[SavedTest] = limited.par_map(
-        lambda test: run_test(test, model=model),
-        executor=executor,
-    )
-    write_jsonl_file_from_basemodel(path=Path("calibrate.jsonl"), basemodels=results)
+    executor = ThreadPoolExecutor(max_workers=20)
+
+    with open("file_name", "a"):
+        future_instance_outputs: Slist[Future[SavedTest]] = limited.filter(
+            lambda t: t.original_task.task_hash not in saved_hashes
+        ).map(lambda to_run: executor.submit(lambda: run_test(to_run, model=model)))
+        print(f"Running {len(future_instance_outputs)} tests")
+        for cnt, instance_output in tqdm(
+            enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
+        ):
+            try:
+                output = instance_output.result()
+                # extend the existing json file
+                saved.append(output)
+                if cnt % 20 == 0:
+                    write_jsonl_file_from_basemodel(path=fp, basemodels=saved)
+            except Exception as e:
+                write_jsonl_file_from_basemodel(path=fp, basemodels=saved)
+                raise e
+
+        write_jsonl_file_from_basemodel(path=fp, basemodels=saved)
 
 
 def unbiased_and_biased_acc(stuff: Sequence[SavedTest]) -> None:
@@ -391,5 +414,5 @@ def plot_calibration():
 if __name__ == "__main__":
     """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
 
-    run_calibration(limit=200)
-    plot_calibration()
+    run_calibration(limit=200, file_name="calibrate.jsonl")
+    # plot_calibration()
