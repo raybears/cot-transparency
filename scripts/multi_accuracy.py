@@ -161,7 +161,7 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
     fig.update_layout(title_text=title, title_x=0.5)
 
     if save_file_path is not None:
-        pio.write_image(fig, title + ".png", scale=2)
+        pio.write_image(fig, save_file_path + ".png", scale=2)
     else:
         fig.show()
 
