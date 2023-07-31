@@ -20,6 +20,7 @@ from cot_transparency.data_models.models import (
 import logging
 
 from cot_transparency.openai_utils.rate_limiting import token_rate_limiter
+from cot_transparency.openai_utils.set_key import set_opeani_org_from_env_rand
 from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__, logging.INFO)
@@ -30,13 +31,18 @@ RATE_SCALER = float(os.getenv("RATE_SCALER", "1.0"))
 total_rate_sf = int(NUM_ORGS * RATE_SCALER)
 
 retry_openai_failures = retry(
-    exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None
+    exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=2, logger=logger
 )
 
 
 should_log_rate_limit = os.getenv("LOG_RATE_LIMITS", "false").lower() == "true"
 rate_limit_logger = setup_logger("rate_limit_logger", logging.INFO) if should_log_rate_limit else None
-retry_openai_rate_limits = retry(exceptions=(RateLimitError), tries=-1, delay=0.1, logger=rate_limit_logger)
+retry_openai_rate_limits = retry(
+    exceptions=(RateLimitError),
+    tries=-1,
+    delay=10,
+    logger=rate_limit_logger,
+)
 
 
 class TokenProba(BaseModel):
@@ -232,10 +238,11 @@ def gpt3_5_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChat
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
 
 
-@token_rate_limiter(tokens_per_minute=150_000 * total_rate_sf, logger=logger)
+@token_rate_limiter(tokens_per_minute=1500_000 * total_rate_sf, logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatMessage]) -> GPTFullResponse:
+    set_opeani_org_from_env_rand()
     assert "gpt-4" in config.model
     response_dict = __get_chat_response_dict(
         config=config,

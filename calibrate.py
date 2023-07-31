@@ -1,7 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 from pathlib import Path
-from typing import Sequence, TypeVar
+from typing import Sequence, TypeVar, Optional, Literal
 
+from openai import InvalidRequestError
 from pydantic import BaseModel
 from slist import Slist
 from tqdm import tqdm
@@ -17,7 +18,11 @@ from cot_transparency.data_models.models import (
     OpenaiInferenceConfig,
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordCalibratedFormatter
-from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
+from cot_transparency.json_utils.read_write import (
+    write_jsonl_file_from_basemodel,
+    read_jsonl_file_into_basemodel,
+    read_jsonl_file_into_basemodel_ignore_errors,
+)
 from cot_transparency.model_apis import convert_to_completion_str, call_model_api
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from scripts.multi_accuracy import bbh_task_list
@@ -181,6 +186,16 @@ def highest_key_in_dict(d: dict[str, float]) -> str:
     return max(d, key=d.get)  # type: ignore
 
 
+class InvalidCompletion(BaseModel):
+    test: TestToRun
+    completion: str
+    failed: Literal[True] = True
+
+    @property
+    def original_task_hash(self) -> str:
+        return self.test.original_task.task_hash
+
+
 class SavedTest(BaseModel):
     test: TestToRun
     completion: str
@@ -209,33 +224,41 @@ class SavedTest(BaseModel):
         return ground_truth == model_mode_ans
 
 
-class ParseCompletionError(Exception):
-    ...
-
-
-def parse_prediction(completion: str, tag: str) -> dict[str, float]:
+def parse_prediction(completion: str, tag: str) -> Optional[dict[str, float]]:
     # parse out what is in the <initial> tag
     # <initial>{"A": 0.90, "B": 0.10}</initial> -> {"A": 0.90, "B": 0.10}
     try:
         extracted = completion.split(f"<{tag}>")[1].split(f"</{tag}>")[0]
     except IndexError:
-        print(completion)
-        raise ParseCompletionError("Couldn't parse completion")
-    evaled = eval(extracted)
+        print("Failed to parse \n", completion)
+        return None
+    try:
+        evaled = eval(extracted)
+    except SyntaxError:
+        print("Failed to parse \n", completion)
+        return None
     if not isinstance(evaled, dict):
-        raise ParseCompletionError("Couldn't parse completion")
+        return None
     return evaled
 
 
-def run_test(test: TestToRun, model: str) -> SavedTest:
+def run_test(test: TestToRun, model: str) -> SavedTest | InvalidCompletion:
     prompt = [StrictChatMessage(role=StrictMessageRole.user, content=test.prompt)]
-    config = OpenaiInferenceConfig(model=model, max_tokens=70, temperature=0, top_p=1)
-    completion = call_model_api(config=config, prompt=prompt)
+    config = OpenaiInferenceConfig(model=model, max_tokens=100, temperature=0, top_p=1)
+    try:
+        completion = call_model_api(config=config, prompt=prompt)
+    except InvalidRequestError:
+        # token limit
+        return InvalidCompletion(test=test, completion="", failed=True)
     biased_prediction = parse_prediction(completion, "initial")
+    if biased_prediction is None:
+        return InvalidCompletion(test=test, completion=completion)
     biased_ground_truth = test.joined_stats.biased_proba_dist
     biased_prediction_correct = highest_key_in_dict(biased_prediction) == highest_key_in_dict(biased_ground_truth)
 
     unbiased_prediction = parse_prediction(completion, "corrected")
+    if unbiased_prediction is None:
+        return InvalidCompletion(test=test, completion=completion)
     unbiased_ground_truth = test.joined_stats.unbiased_proba_dist
     unbiased_prediction_correct = highest_key_in_dict(unbiased_prediction) == highest_key_in_dict(unbiased_ground_truth)
 
@@ -266,8 +289,9 @@ def create_to_run_from_joined_data(
 
 def balanced_test_diff_answer(data: Sequence[JoinedDataWithStats]) -> Slist[JoinedDataWithStats]:
     # make sure that we have an even number of JoinedDataWithStats that have
+    # a bias resulting
     # - a different answer
-    # - the same answer
+    # - the same answer. Not that this can also happen when the bias was on the correct answer to begin with
     same_answer: Slist[JoinedDataWithStats] = Slist(data).filter(lambda j: not j.stats.bias_results_in_different_answer)
     different_answer: Slist[JoinedDataWithStats] = Slist(data).filter(
         lambda j: j.stats.bias_results_in_different_answer
@@ -357,7 +381,9 @@ def run_calibration(limit: int, file_name: str):
     model = "gpt-4"
     unbiased_formatter_name = "ZeroShotUnbiasedFormatter"
     cross_formatter_name = "StanfordNoCOTFormatter"
-    saved: Slist[SavedTest] = read_jsonl_file_into_basemodel(path=fp, basemodel=SavedTest)
+    saved: Slist[SavedTest | InvalidCompletion] = read_jsonl_file_into_basemodel_ignore_errors(
+        path=fp, basemodel=SavedTest
+    ) + read_jsonl_file_into_basemodel_ignore_errors(path=fp, basemodel=InvalidCompletion)
     print(f"Saved previously: {len(saved)}")
     saved_hashes: set[str] = Slist(saved).map(lambda saved_test: saved_test.original_task_hash).to_set()
     all_tests: list[TestToRun] = []
@@ -377,9 +403,11 @@ def run_calibration(limit: int, file_name: str):
     executor = ThreadPoolExecutor(max_workers=10)
 
     with open("file_name", "a"):
-        future_instance_outputs: Slist[Future[SavedTest]] = limited.filter(
-            lambda t: t.original_task.task_hash not in saved_hashes
-        ).map(lambda to_run: executor.submit(lambda: run_test(to_run, model=model)))
+        future_instance_outputs: Sequence[Future[SavedTest | InvalidCompletion]] = (
+            Slist(limited)
+            .filter(lambda t: t.original_task.task_hash not in saved_hashes)
+            .map(lambda to_run: executor.submit(lambda: run_test(to_run, model=model)))
+        )
         print(f"Running {len(future_instance_outputs)} tests")
         for cnt, instance_output in tqdm(
             enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
@@ -411,7 +439,7 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest]) -> None:
 
 
 def plot_calibration():
-    read: Slist[SavedTest] = read_jsonl_file_into_basemodel(path=Path("calibrate.jsonl"), basemodel=SavedTest)
+    read: Slist[SavedTest] = read_jsonl_file_into_basemodel_ignore_errors(path=Path("calibrate.jsonl"), basemodel=SavedTest)
     # get the accuracy for the unbiased and biased
     print("Overall")
     unbiased_and_biased_acc(read)
@@ -431,5 +459,5 @@ def plot_calibration():
 if __name__ == "__main__":
     """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
 
-    run_calibration(limit=200, file_name="calibrate.jsonl")
-    # plot_calibration()
+    # run_calibration(limit=300, file_name="calibrate.jsonl")
+    plot_calibration()
