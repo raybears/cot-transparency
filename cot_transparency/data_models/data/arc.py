@@ -1,4 +1,5 @@
 import json
+import random
 from string import ascii_uppercase
 
 from pydantic import BaseModel
@@ -19,7 +20,8 @@ class ArcQuestion(BaseModel):
 class ArcExample(DataExampleBase):
     id: str
     question: ArcQuestion
-    answerKey: str
+    answerKey: MultipleChoiceAnswer
+    biased_ans_letter: MultipleChoiceAnswer
 
     def maybe_convert_label(self, label: str) -> MultipleChoiceAnswer:
         if label.isnumeric():
@@ -47,14 +49,21 @@ class ArcExample(DataExampleBase):
 
     @property
     def biased_ans(self) -> MultipleChoiceAnswer:
-        return "NOT_FOUND"
+        return self.biased_ans_letter
 
 
 def load_arc(dev_path: str) -> list[ArcExample]:
     with open(dev_path) as f:
         output = []
         for line in f:
-            example = ArcExample(**json.loads(line))
+            _json = json.loads(line)
+            question = ArcQuestion(**_json["question"])
+
+            rng = random.Random(question.stem)  # seed with question
+            biased_ans_idx = rng.randrange(0, len(question.choices))  # select random answer for bias metrics
+            biased_ans_letter: MultipleChoiceAnswer = ascii_uppercase[biased_ans_idx]  # type: ignore
+
+            example = ArcExample(**json.loads(line), biased_ans_letter=biased_ans_letter)
             output.append(example)
     return output
 

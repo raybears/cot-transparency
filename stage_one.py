@@ -10,7 +10,7 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu
+from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
@@ -100,6 +100,8 @@ def get_list_of_examples(dataset: str, task: str) -> list[DataExampleBase]:
             data = logiqa.eval()
         elif task == "mmlu":
             data = mmlu.test(questions_per_task=20)
+        elif task == "openbook_qa":
+            data = openbook.test()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
