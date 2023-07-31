@@ -369,7 +369,7 @@ def run_calibration(limit: int):
 def unbiased_and_biased_acc(stuff: Sequence[SavedTest]) -> None:
     unbiased_acc = Slist(stuff).map(lambda saved_test: saved_test.unbiased_prediction_correct).average()
     biased_acc = Slist(stuff).map(lambda saved_test: saved_test.biased_prediction_correct).average()
-    print(f"Total: {len(stuff)}"
+    print(f"Total: {len(stuff)}")
     print(f"Unbiased accuracy: {unbiased_acc}")
     print(f"Biased accuracy: {biased_acc}")
 
