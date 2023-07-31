@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Sequence, TypeVar
+from typing import Sequence, TypeVar, List
 
 from pydantic import BaseModel
 from slist import Slist
@@ -14,8 +14,8 @@ from stage_one import read_done_experiment
 
 A = TypeVar("A")
 
-
 # ruff: noqa: E501
+seed = "42"
 
 
 def assert_not_none(x: A | None) -> A:
@@ -86,6 +86,9 @@ class JoinedData(BaseModel):
     unbiased: Sequence[TaskOutput]
     biased: Sequence[TaskOutput]
 
+    def first_data_example(self) -> MilesBBHRawData:
+        return self.unbiased[0].task_spec.read_data_example_or_raise(MilesBBHRawData)
+
     @property
     def task_name(self) -> str:
         return self.unbiased[0].task_spec.task_name
@@ -144,6 +147,47 @@ If i ignored that, my new answer would be {joined.stats.unbiased_modal_ans}, <co
     ]
 
 
+class TestToRun(BaseModel):
+    prompt: str
+    data_example: MilesBBHRawData
+    ground_truth: JoinedStats
+
+
+class SavedTest(BaseModel):
+    test: TestToRun
+    completion: str
+    unbiased_prediction: dict[str, float]
+    biased_prediction: dict[str, float]
+
+
+def create_to_run_from_joined_data(
+    limited_data: Slist[JoinedDataWithStats], bias_name: str, test_item: JoinedDataWithStats
+) -> TestToRun:
+    formatted = limited_data.map(lambda j: format_joined_to_prompt(j, bias_name)).flatten_list()
+    test_item_formatted = format_joined_to_prompt(test_item, bias_name)
+    prompt = convert_to_completion_str(formatted) + convert_to_completion_str(test_item_formatted)
+    return TestToRun(
+        prompt=prompt,
+        data_example=test_item.unbiased[0].task_spec.read_data_example_or_raise(MilesBBHRawData),
+        ground_truth=test_item.stats,
+    )
+
+
+def balanced_test(data: Sequence[JoinedDataWithStats]) -> Slist[JoinedDataWithStats]:
+    # make sure that we have an even number of JoinedDataWithStats that have
+    # - a different answer
+    # - the same answer
+    same_answer: Slist[JoinedDataWithStats] = Slist(data).filter(lambda j: not j.stats.bias_results_in_different_answer)
+    different_answer: Slist[JoinedDataWithStats] = Slist(data).filter(
+        lambda j: j.stats.bias_results_in_different_answer
+    )
+    # get the min of the two
+    min_length = min(same_answer.length, different_answer.length)
+
+    results = same_answer.take(min_length) + different_answer.take(min_length)
+    return results
+
+
 def few_shot_prompts_for_formatter(
     biased_formatter_name: str,
     bias_name: str,
@@ -151,12 +195,17 @@ def few_shot_prompts_for_formatter(
     model: str,
     test_task_name: str,
     unbiased_formatter_name: str,
-) -> str:
+) -> list[TestToRun]:
     """
     Returns a string that can be used as a prompt for the few shot experiment
     """
-    biased_results: list[TaskOutput] = read_all_for_formatters(exp_dir, biased_formatter_name, model=model)
-    unbiased_results: list[TaskOutput] = read_all_for_formatters(exp_dir, unbiased_formatter_name, model=model)
+    biased_results: list[TaskOutput] = Slist(
+        read_all_for_formatters(exp_dir, biased_formatter_name, model=model)
+    ).filter(lambda x: x.first_parsed_response != "T")
+    unbiased_results: list[TaskOutput] = Slist(
+        read_all_for_formatters(exp_dir, unbiased_formatter_name, model=model)
+    ).filter(lambda x: x.first_parsed_response != "T")
+
     grouped_biased: Slist[tuple[str, Slist[TaskOutput]]] = Slist(biased_results).group_by(
         # group by hash which is the input question
         lambda task_output: task_output.task_spec.task_hash,
@@ -174,21 +223,29 @@ def few_shot_prompts_for_formatter(
     validate_data = joined_data.filter(lambda j: len(j.biased) >= MIN_SAMPLES and len(j.unbiased) >= MIN_SAMPLES)
     with_stats: Slist[JoinedDataWithStats] = validate_data.map(lambda j: j.with_stats())
     train, test = with_stats.split_by(lambda j: j.task_name != test_task_name)
-    test_item = test.shuffle().first_or_raise(Exception("No test item"))
+
     # filter to get stats where the diff is more than 0.2
     meets_threshold, not_meet_threshold = train.split_by(lambda j: j.stats.bias_results_in_different_answer)
-    meeeting_threshold_limited = meets_threshold.take(max_per_subset)
+    meeeting_threshold_limited: Slist[JoinedDataWithStats] = meets_threshold.take(max_per_subset)
     print(f"Meeting threshold: {len(meets_threshold)}")
     print(f"Meeting threshold limited: {len(meeeting_threshold_limited)}")
     print(f"Not meeting threshold: {len(not_meet_threshold)}")
-    formatted_all: Slist[StrictChatMessage] = (
-        (meeeting_threshold_limited + not_meet_threshold.take(meeeting_threshold_limited.length))
-        .shuffle()
-        .map(lambda j: format_joined_to_prompt(j, bias_name))
-        .flatten_list()
-    )
-    test_item_formatted = format_joined_to_prompt(test_item, bias_name)
-    return convert_to_completion_str(formatted_all) + convert_to_completion_str(test_item_formatted)
+    balanced_test_set = balanced_test(test)
+    print(f"Balanced test set: {len(balanced_test_set)}")
+    output: list[TestToRun] = []
+    for test_item in balanced_test_set:
+        formatted_all: Slist[JoinedDataWithStats] = (
+            meeeting_threshold_limited + not_meet_threshold.take(meeeting_threshold_limited.length)
+        ).shuffle(test_item.first_data_example().parsed_inputs)
+        output.append(
+            create_to_run_from_joined_data(
+                limited_data=formatted_all,
+                bias_name=bias_name,
+                test_item=test_item,
+            )
+        )
+
+    return output
 
 
 if __name__ == "__main__":
@@ -199,15 +256,19 @@ if __name__ == "__main__":
     model = "gpt-4"
     unbiased_formatter_name = "ZeroShotUnbiasedFormatter"
     cross_formatter_name = "StanfordNoCOTFormatter"
-    prompt = few_shot_prompts_for_formatter(
-        biased_formatter_name=cross_formatter_name,
-        unbiased_formatter_name=unbiased_formatter_name,
-        bias_name="stanford professor giving his opinion",
-        max_per_subset=20,
-        model=model,
-        test_task_name="ruin_names",
-    )
-    # copy prompt to clipboard
-    import pyperclip
-
-    pyperclip.copy(prompt)
+    all_tests: list[TestToRun] = []
+    for task in bbh_task_list:
+        prompts = few_shot_prompts_for_formatter(
+            biased_formatter_name=cross_formatter_name,
+            unbiased_formatter_name=unbiased_formatter_name,
+            bias_name="stanford professor giving his opinion",
+            max_per_subset=19,
+            model=model,
+            test_task_name=task,
+        )
+        all_tests.extend(prompts)
+        # copy prompt to clipboard
+        # import pyperclip
+        #
+        # pyperclip.copy(prompt)
+    print(f"Total tests: {len(all_tests)}")
