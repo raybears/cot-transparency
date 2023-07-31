@@ -35,7 +35,16 @@ TASK_LIST = {
         "logical_deduction_five_objects",
         "hyperbaton",
     ],
-    "transparency": ["aqua", "arc_easy", "arc_challenge", "truthful_qa", "logiqa"],
+    "transparency": [
+        "aqua",
+        "arc_easy",
+        "arc_challenge",
+        "truthful_qa",
+        "logiqa",
+        "mmlu",
+        "openbook_qa",
+        "hellaswag",
+    ],
 }
 CONFIG_MAP = {
     "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
