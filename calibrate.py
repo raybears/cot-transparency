@@ -21,6 +21,7 @@ from cot_transparency.formatters.verbalize.formatters import StanfordCalibratedF
 from cot_transparency.json_utils.read_write import (
     write_jsonl_file_from_basemodel,
     read_jsonl_file_into_basemodel_ignore_errors,
+    write_csv_file_from_basemodel,
 )
 from cot_transparency.model_apis import convert_to_completion_str, call_model_api
 from cot_transparency.openai_utils.set_key import set_keys_from_env
@@ -28,7 +29,6 @@ from scripts.multi_accuracy import (
     bbh_task_list,
     accuracy_outputs_from_inputs,
     AccuracyInput,
-    AccuracyOutput,
     accuracy_plot,
     TaskAndPlotDots,
     PlotDots,
@@ -203,6 +203,19 @@ class InvalidCompletion(BaseModel):
         return self.test.original_task.task_hash
 
 
+class FlatSavedTest(BaseModel):
+    # For CSV
+    biased_question: str
+    few_shot_prompt: str
+    completion: str
+    unbiased_prediction: dict[str, float]
+    unbiased_ground_truth: dict[str, float]
+    unbiased_prediction_correct: bool
+    biased_prediction: dict[str, float]
+    biased_ground_truth: dict[str, float]
+    biased_prediction_correct: bool
+
+
 class SavedTest(BaseModel):
     test: TestToRun
     completion: str
@@ -212,6 +225,19 @@ class SavedTest(BaseModel):
     biased_prediction: dict[str, float]
     biased_ground_truth: dict[str, float]
     biased_prediction_correct: bool
+
+    def to_flat(self) -> FlatSavedTest:
+        return FlatSavedTest(
+            biased_question=self.test.original_task.read_data_example_or_raise(MilesBBHRawData).parsed_inputs,
+            few_shot_prompt=self.test.prompt,
+            completion=self.completion,
+            unbiased_prediction=self.unbiased_prediction,
+            unbiased_ground_truth=self.unbiased_ground_truth,
+            unbiased_prediction_correct=self.unbiased_prediction_correct,
+            biased_prediction=self.biased_prediction,
+            biased_ground_truth=self.biased_ground_truth,
+            biased_prediction_correct=self.biased_prediction_correct,
+        )
 
     @property
     def inconsistent_bias(self) -> bool:
@@ -322,7 +348,7 @@ def run_test(test: TestToRun, model: str) -> SavedTest | InvalidCompletion:
 
 
 def create_to_run_from_joined_data(
-        limited_data: Slist[JoinedDataWithStats], bias_name: str, test_item: JoinedDataWithStats
+    limited_data: Slist[JoinedDataWithStats], bias_name: str, test_item: JoinedDataWithStats
 ) -> TestToRun:
     formatted = limited_data.map(lambda j: format_joined_to_prompt(j, bias_name)).flatten_list()
     test_item_formatted = format_joined_to_prompt_for_testing(test_item)
@@ -356,13 +382,13 @@ def balanced_test_diff_answer(data: Sequence[JoinedDataWithStats]) -> Slist[Join
 
 
 def few_shot_prompts_for_formatter(
-        exp_dir: str,
-        biased_formatter_name: str,
-        bias_name: str,
-        max_per_subset: int,
-        model: str,
-        test_task_name: str,
-        unbiased_formatter_name: str,
+    exp_dir: str,
+    biased_formatter_name: str,
+    bias_name: str,
+    max_per_subset: int,
+    model: str,
+    test_task_name: str,
+    unbiased_formatter_name: str,
 ) -> list[TestToRun]:
     """
     Returns a string that can be used as a prompt for the few shot experiment
@@ -404,7 +430,7 @@ def few_shot_prompts_for_formatter(
     output: list[TestToRun] = []
     for test_item in balanced_test_set:
         formatted_all: Slist[JoinedDataWithStats] = (
-                meeeting_threshold_limited + not_meet_threshold.take(meeeting_threshold_limited.length)
+            meeeting_threshold_limited + not_meet_threshold.take(meeeting_threshold_limited.length)
         ).shuffle(test_item.first_data_example().parsed_inputs)
         output.append(
             create_to_run_from_joined_data(
@@ -457,7 +483,7 @@ def run_calibration(limit: int, file_name: str):
         )
         print(f"Running {len(future_instance_outputs)} tests")
         for cnt, instance_output in tqdm(
-                enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
+            enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
         ):
             try:
                 output = instance_output.result()
@@ -541,15 +567,13 @@ def plot_calibration():
     read: Slist[SavedTest] = read_jsonl_file_into_basemodel_ignore_errors(
         path=Path("calibrate.jsonl"), basemodel=SavedTest
     )
+    nice_csv(read)
     print(f"Total: {len(read)}")
     unbiased_and_biased_acc(read, name="overall")
     inconsistent_only = read.filter(lambda saved_test: saved_test.inconsistent_bias)
     unbiased_and_biased_acc(inconsistent_only, name="inconsistent_only")
 
-    tricked, not_tricked = (
-        inconsistent_only
-        .split_by(lambda saved_test: saved_test.previously_tricked_by_bias)
-    )
+    tricked, not_tricked = inconsistent_only.split_by(lambda saved_test: saved_test.previously_tricked_by_bias)
 
     # we want an even number of each
     # min_length = min(not_tricked.length, tricked.length)
@@ -601,6 +625,10 @@ def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
         title=f"Accuracy on the {name} task {original_bias_output.samples} samples",
         save_file_path=f"{name} task acc",
     )
+
+
+def nice_csv(data: Sequence[SavedTest]):
+    write_csv_file_from_basemodel(path=Path("flattened.csv"), basemodels=Slist(data).map(lambda x: x.to_flat()))
 
 
 if __name__ == "__main__":

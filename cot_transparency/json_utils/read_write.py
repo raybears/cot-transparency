@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Type, TypeVar, Sequence, Optional
 
+import pandas as pd
 from pydantic import BaseModel
 from slist import Slist
 
@@ -46,3 +47,14 @@ def write_jsonl_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel])
     with open(path, "w") as f:
         for basemodel in basemodels:
             f.write(basemodel.json() + "\n")
+
+
+def write_csv_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel]) -> None:
+    """Uses pandas"""
+    df = pd.DataFrame([model.dict() for model in basemodels])
+    df.to_csv(path)
+
+
+def read_base_model_from_csv(path: Path, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
+    df = pd.read_csv(path)
+    return Slist(basemodel(**row) for _, row in df.iterrows())
