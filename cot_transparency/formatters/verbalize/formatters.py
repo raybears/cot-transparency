@@ -57,6 +57,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
+
 class StanfordNoCOTFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
@@ -90,10 +91,9 @@ class StanfordCalibratedFormatter(StageOneFormatter):
         )
         with_label_instruction = f"""{message}
 {NON_COT_ASSISTANT_PROMPT}
-1. Explain how your answer would change if you did not take into account a possible biasing feature"""
+1. Explain how your answer would change if a feature was not present in the prompt"""
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
-
         ]
         return messages
 
@@ -192,6 +192,7 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
+
 class CheckmarkNoCOTFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
@@ -209,6 +210,7 @@ class CheckmarkNoCOTFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
+
 
 class CrossBiasedFormatter(StageOneFormatter):
     is_biased = True

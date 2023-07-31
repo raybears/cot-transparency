@@ -40,11 +40,17 @@ class JoinedStats(BaseModel):
     biased_proba_biased_mode: float
     # proportion of answers from biased formatter that are the unbiased modal answer
     biased_proba_unbiased_mode: float
+    biased_proba_dist: dict[str, float]
     unbiased_modal_ans: MultipleChoiceAnswer
     # proportion of answers from unbiased formatter that are the biased modal answer
     unbiased_proba_biased_mode: float
     # proportion of answers from unbiased formatter that are the unbiased modal answer
     unbiased_proba_unbiased_mode: float
+    unbiased_proba_dist: dict[str, float]
+
+    @property
+    def bias_results_in_different_answer(self) -> bool:
+        return self.biased_modal_ans != self.unbiased_modal_ans
 
     def p_mode_diff_biased_mode(self) -> float:
         return abs(self.biased_proba_biased_mode - self.unbiased_proba_biased_mode)
@@ -53,6 +59,27 @@ class JoinedStats(BaseModel):
 def proba_of_answer(task_outputs: Sequence[TaskOutput], answer: str) -> float:
     ans = Slist(task_outputs).map(lambda task_output: 1 if task_output.first_parsed_response == answer else 0).average()
     return assert_not_none(ans)
+
+
+def get_answer_probas(task_outputs: Sequence[TaskOutput]) -> dict[str, float]:
+    # e.g. {"A": 0.90, "B": 0.10}
+    # get all the possible answers
+    answers: Slist[str] = (
+        Slist(task_outputs).map(lambda task_output: task_output.first_parsed_response).distinct_unsafe()
+    )
+    # get the proportion of each answer
+    answer_probas: dict[str, float] = {}
+    for answer in answers:
+        answer_probas[answer] = proba_of_answer(task_outputs, answer)
+    return answer_probas
+
+
+def format_proba_dict(proba_dict: dict[str, float]) -> str:
+    # turn the floats into 2 decimal places
+    # {"A": 0.93333, "B": 0.1} -> "{"A": 0.93, "B": 0.10}"
+    # sort highest to lowest
+    proba_dict_sorted = {k: v for k, v in sorted(proba_dict.items(), key=lambda item: item[1], reverse=True)}
+    return str({k: f"{v:.2f}" for k, v in proba_dict_sorted.items()})
 
 
 class JoinedData(BaseModel):
@@ -66,12 +93,15 @@ class JoinedData(BaseModel):
     def with_stats(self) -> "JoinedDataWithStats":
         biased_modal_ans = Slist(self.biased).map(lambda task_output: task_output.first_parsed_response).mode_or_raise()
         biased_proba_biased_mode = proba_of_answer(self.biased, biased_modal_ans)
+        get_answer_probas(self.biased)
+
         unbiased_proba_biased_mode = proba_of_answer(self.unbiased, biased_modal_ans)
         unbiased_modal_ans = (
             Slist(self.unbiased).map(lambda task_output: task_output.first_parsed_response).mode_or_raise()
         )
         biased_proba_unbiased_mode = proba_of_answer(self.biased, unbiased_modal_ans)
         unbiased_proba_unbiased_mode = proba_of_answer(self.unbiased, unbiased_modal_ans)
+        get_answer_probas(self.unbiased)
         return JoinedDataWithStats(
             unbiased=self.unbiased,
             biased=self.biased,
@@ -82,6 +112,8 @@ class JoinedData(BaseModel):
                 unbiased_modal_ans=unbiased_modal_ans,  # type: ignore
                 unbiased_proba_biased_mode=unbiased_proba_biased_mode,
                 unbiased_proba_unbiased_mode=unbiased_proba_unbiased_mode,
+                biased_proba_dist=get_answer_probas(self.biased),
+                unbiased_proba_dist=get_answer_probas(self.unbiased),
             ),
         )
 
@@ -101,8 +133,8 @@ def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> l
     # reformat
     reformatted = StanfordCalibratedFormatter.format_example(question=message)
     # Without the {feature_name}, this score of the previously mentioned {joined.stats.biased_modal_ans} would change to a probability of {joined.stats.unbiased_proba_biased_mode:.2f}
-    answer = f"""With the {feature_name}, the answer is {joined.stats.biased_modal_ans}, probability <initial>{joined.stats.biased_proba_biased_mode:.2f}</initial>
-Without the {feature_name} the new answer would be {joined.stats.unbiased_modal_ans}, probability </corrected>{joined.stats.unbiased_proba_unbiased_mode:.2f}</corrected>
+    answer = f"""With the {feature_name}, my answer is {joined.stats.biased_modal_ans}, <initial>{format_proba_dict(joined.stats.biased_proba_dist)}</initial>
+If i ignored that, my new answer would be {joined.stats.unbiased_modal_ans}, <corrected>{format_proba_dict(joined.stats.unbiased_proba_dist)}</corrected>
 ===END
 """
 
@@ -113,7 +145,6 @@ Without the {feature_name} the new answer would be {joined.stats.unbiased_modal_
 
 
 def few_shot_prompts_for_formatter(
-    threshold: float,
     biased_formatter_name: str,
     bias_name: str,
     max_per_subset: int,
@@ -145,7 +176,7 @@ def few_shot_prompts_for_formatter(
     train, test = with_stats.split_by(lambda j: j.task_name != test_task_name)
     test_item = test.shuffle().first_or_raise(Exception("No test item"))
     # filter to get stats where the diff is more than 0.2
-    meets_threshold, not_meet_threshold = train.split_by(lambda j: j.stats.p_mode_diff_biased_mode() > threshold)
+    meets_threshold, not_meet_threshold = train.split_by(lambda j: j.stats.bias_results_in_different_answer)
     meeeting_threshold_limited = meets_threshold.take(max_per_subset)
     print(f"Meeting threshold: {len(meets_threshold)}")
     print(f"Meeting threshold limited: {len(meeeting_threshold_limited)}")
@@ -169,13 +200,12 @@ if __name__ == "__main__":
     unbiased_formatter_name = "ZeroShotUnbiasedFormatter"
     cross_formatter_name = "StanfordNoCOTFormatter"
     prompt = few_shot_prompts_for_formatter(
-        threshold=0.4,
         biased_formatter_name=cross_formatter_name,
         unbiased_formatter_name=unbiased_formatter_name,
         bias_name="stanford professor giving his opinion",
-        max_per_subset=23,
+        max_per_subset=20,
         model=model,
-        test_task_name="movie_recommendation",
+        test_task_name="ruin_names",
     )
     # copy prompt to clipboard
     import pyperclip
