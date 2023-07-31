@@ -13,6 +13,8 @@ from scripts.multi_accuracy import bbh_task_list
 from stage_one import read_done_experiment
 
 A = TypeVar("A")
+
+
 # ruff: noqa: E501
 
 
@@ -99,8 +101,8 @@ def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> l
     # reformat
     reformatted = StanfordCalibratedFormatter.format_example(question=message)
     # Without the {feature_name}, this score of the previously mentioned {joined.stats.biased_modal_ans} would change to a probability of {joined.stats.unbiased_proba_biased_mode:.2f}
-    answer = f"""Taking into account the {feature_name}, my modal answer is {joined.stats.biased_modal_ans} with a probability of {joined.stats.biased_proba_biased_mode:.2f}
-Without the {feature_name} my new modal answer would be {joined.stats.unbiased_modal_ans} with a probability of {joined.stats.unbiased_proba_unbiased_mode:.2f}
+    answer = f"""With the {feature_name}, the answer is {joined.stats.biased_modal_ans}, probability <initial>{joined.stats.biased_proba_biased_mode:.2f}</initial>
+Without the {feature_name} the new answer would be {joined.stats.unbiased_modal_ans}, probability </corrected>{joined.stats.unbiased_proba_unbiased_mode:.2f}</corrected>
 ===END
 """
 
@@ -116,8 +118,8 @@ def few_shot_prompts_for_formatter(
     bias_name: str,
     max_per_subset: int,
     model: str,
-        test_task_name: str,
-    unbiased_formatter_name: str
+    test_task_name: str,
+    unbiased_formatter_name: str,
 ) -> str:
     """
     Returns a string that can be used as a prompt for the few shot experiment
@@ -158,8 +160,6 @@ def few_shot_prompts_for_formatter(
     return convert_to_completion_str(formatted_all) + convert_to_completion_str(test_item_formatted)
 
 
-
-
 if __name__ == "__main__":
     """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
     MIN_SAMPLES = 10
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         bias_name="stanford professor giving his opinion",
         max_per_subset=23,
         model=model,
-        test_task_name="movie_recommendation"
+        test_task_name="movie_recommendation",
     )
     # copy prompt to clipboard
     import pyperclip
