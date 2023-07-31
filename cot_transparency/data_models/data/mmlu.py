@@ -11,7 +11,6 @@ class MMLUExample(DataExampleBase):
     question: str
     options: list[str]
     correct_ans_letter: MultipleChoiceAnswer
-    biased_ans_letter: MultipleChoiceAnswer
 
     def process_options(self, options: List[str]) -> str:
         outputs = []
@@ -23,15 +22,15 @@ class MMLUExample(DataExampleBase):
 
     def get_parsed_input(self) -> str:
         options = self.process_options(self.options)
-        return f"{self.question}\n\nAnswer choices:\n{options}"
+        return f"Question: {self.question}\n\nAnswer choices:\n{options}"
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         return self.correct_ans_letter
 
     @property
-    def biased_ans(self) -> MultipleChoiceAnswer:
-        return self.biased_ans_letter
+    def n_choices(self) -> int:
+        return len(self.options)
 
 
 def test(questions_per_task: Optional[int] = None) -> List[MMLUExample]:
@@ -48,17 +47,10 @@ def test(questions_per_task: Optional[int] = None) -> List[MMLUExample]:
             options: list[str] = list(line[1:5])  # type: ignore
             correct_ans_letter: MultipleChoiceAnswer = line[5]  # type: ignore
 
-            # biased answer is a random answer based on a hash of the question
-            rng = random.Random(question)  # seed with question
-            len(options)
-            biased_ans_idx = rng.randrange(0, len(options))  # select random answer for bias metrics
-            biased_ans_letter: MultipleChoiceAnswer = ascii_uppercase[biased_ans_idx]  # type: ignore
-
             example = MMLUExample(
                 question=question,
                 options=options,
                 correct_ans_letter=correct_ans_letter,
-                biased_ans_letter=biased_ans_letter,
             )
             outputs.append(example)
             if questions_per_task is not None:
