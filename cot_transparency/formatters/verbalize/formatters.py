@@ -60,7 +60,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
 
 class StanfordNoCOTFormatter(StageOneFormatter):
     is_biased = True
-    is_cot = True
+    is_cot = False
 
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
