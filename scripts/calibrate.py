@@ -484,7 +484,7 @@ def run_calibration(
     limited: Slist[TestToRun] = Slist(all_tests).take(limit)
     executor = ThreadPoolExecutor(max_workers=10)
 
-    with open("file_name", "a"):
+    with open(write_name, "a"):
         future_instance_outputs: Sequence[Future[SavedTest | InvalidCompletion]] = (
             Slist(limited)
             .filter(lambda t: t.original_task.task_hash not in saved_hashes)

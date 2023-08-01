@@ -194,6 +194,8 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
 
 
 class CheckmarkNoCOTFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = False
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
         biased_message = question_with_checkmark_bias(
@@ -236,7 +238,7 @@ class CrossBiasedFormatter(StageOneFormatter):
 
 class CrossNoCOTFormatter(StageOneFormatter):
     is_biased = True
-    is_cot = True
+    is_cot = False
 
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
