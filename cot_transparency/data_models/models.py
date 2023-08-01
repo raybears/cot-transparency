@@ -122,6 +122,12 @@ class TaskOutput(BaseModel):
         return deterministic_hash(inp + response.raw_response)
 
 
+class MistakeAdddingInfo(BaseModel):
+    original_cot: list[str]
+    mistake_added_at: int
+    modified_cot: Optional[str] = None
+
+
 class StageTwoTaskSpec(BaseModel):
     stage_one_output: TaskOutput
     model_config: OpenaiInferenceConfig
@@ -129,6 +135,7 @@ class StageTwoTaskSpec(BaseModel):
     out_file_path: Path
     formatter_name: str
     step_in_cot_trace: Optional[int] = None
+    mistake_adding_info: Optional[MistakeAdddingInfo] = None
 
     def uid(self) -> str:
         task_name = self.stage_one_output.task_spec.task_name

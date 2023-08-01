@@ -51,6 +51,23 @@ def test_split_reasoning_trace():
     ]
 
 
+def test_split_reasoning_trace_multiline():
+    input_text = (
+        "1. 30% of Huhulians own at least one TV.\n\n"
+        "2. And 20% of those people who own at least one TV own four or more TV’s\n\n"
+        "3. So 20% of 30% of Huhulians own at least four TV’s, which is 6%.\n\n"
+        "The correct answer is therefore choice C, 4.67%."
+    )
+
+    assert get_cot_steps(input_text) == [
+        "",
+        "1. 30% of Huhulians own at least one TV.",
+        "\n\n2. And 20% of those people who own at least one TV own four or more TV’s",
+        "\n\n3. So 20% of 30% of Huhulians own at least four TV’s, which is 6%.",
+        "\n\nThe correct answer is therefore choice C, 4.67%.",
+    ]
+
+
 def test_trace_spllitting_with_abrevs():
     inp = """ Mr. Wallace was having lunch with an associate, Mr. Vincent, who poisoned his martini. This poison would have taken an hour to kill him. Then, Mr. Wallace was chased by Mr. Bruce, an associate of one of his rivals, and his car was pushed off the side of the road and exploded. The coroner's report revealed that he had received fatal burns from the explosion, but also that he had a lethal dose of poison in his system. So, Mr. Wallace's crime life did not directly cause his death, but may have indirectly caused it, since Mr."""  # noqa
 

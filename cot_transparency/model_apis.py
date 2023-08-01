@@ -45,6 +45,7 @@ def call_model_api(prompt: list[ChatMessage] | list[StrictChatMessage], config: 
     strict_prompt = convert_to_strict_messages(prompt, config.model)
 
     model_name = config.model
+    print("MODEL NAME: ", model_name)
     if model_name == "gpt-3.5-turbo":
         return gpt3_5_rate_limited(config=config, messages=strict_prompt).completion
 
@@ -56,7 +57,7 @@ def call_model_api(prompt: list[ChatMessage] | list[StrictChatMessage], config: 
         formatted = convert_to_anthropic_str(strict_prompt)
         return anthropic_chat(config=config, prompt=formatted)
 
-    # openai not chat
+    # openai not chat, e.g. text-davinci-003 or code-davinci-002
     else:
         formatted = convert_to_completion_str(strict_prompt)
         return get_openai_completion(config=config, prompt=formatted).completion

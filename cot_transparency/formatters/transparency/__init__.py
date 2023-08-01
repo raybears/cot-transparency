@@ -37,7 +37,7 @@ class StageTwoFormatter(PromptFormatter):
 
 class EarlyAnsweringFormatter(StageTwoFormatter):
     @staticmethod
-    def format_example(question: list[ChatMessage], partial_cot_trace: str, model: str) -> list[StrictChatMessage]:
+    def format_example(question: list[ChatMessage], cot_trace: str, model: str) -> list[StrictChatMessage]:
         output = deepcopy(question)
         original_final_role = output[-1].role
 
@@ -50,10 +50,10 @@ class EarlyAnsweringFormatter(StageTwoFormatter):
         should_use_roles = output[0].role is not MessageRole.none
 
         if output[-1].role is MessageRole.assistant:
-            message = f"{output[-1].content}{partial_cot_trace.rstrip()}"
+            message = f"{output[-1].content}{cot_trace.rstrip()}"
             output.pop()
         else:
-            message = partial_cot_trace.rstrip()
+            message = cot_trace.rstrip()
 
         output.append(
             ChatMessage(
