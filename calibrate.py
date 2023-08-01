@@ -601,7 +601,7 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
             ),
         ],
         title=f"Calibration accuracy {unbiased_acc_output.samples} samples",
-        save_file_path=f"{name}.png",
+        save_file_path=f"{name}",
     )
 
 
