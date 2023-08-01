@@ -273,11 +273,6 @@ class SavedTest(BaseModel):
         return self.test.original_task.task_hash
 
     @property
-    def biased_to_be_correct(self) -> bool:
-        # e.g. stanford prof said A, ground truth was really A
-        return self.test.original_task.biased_ans_is_correct
-
-    @property
     def previously_not_tricked_by_bias(self) -> bool:
         # e.g. stanford prof said A, ground truth was really B
         # but the model said B

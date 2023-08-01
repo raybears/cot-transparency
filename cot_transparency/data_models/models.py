@@ -99,10 +99,6 @@ class TaskSpec(BaseModel):
     # This can't be the abstract class DataExampleBase because you can't instantiate it
     data_example: dict[str, Any] = {}
 
-    @property
-    def biased_ans_is_correct(self) -> bool:
-        return self.biased_ans == self.ground_truth
-
     def read_data_example_or_raise(self, data_type: Type[GenericDataExample]) -> GenericDataExample:
         return data_type(**self.data_example)
 
