@@ -359,16 +359,17 @@ def create_to_run_from_joined_data(
         joined_stats=test_item.stats,
     )
 
-def joined_followed_bias_in_prompt(item:JoinedDataWithStats)->bool:
+
+def joined_followed_bias_in_prompt(item: JoinedDataWithStats) -> bool:
     bias_in_prompt = item.unbiased[0].task_spec.biased_ans
     bias_context_answer = item.stats.biased_modal_ans
     return bias_in_prompt == bias_context_answer
+
 
 def followed_bias_in_prompt(item: SavedTest) -> bool:
     bias_in_prompt = item.test.original_task.biased_ans
     bias_context_answer = highest_key_in_dict(item.biased_ground_truth)
     return bias_in_prompt == bias_context_answer
-
 
 
 def balanced_test_diff_answer(data: Sequence[JoinedDataWithStats]) -> Slist[JoinedDataWithStats]:
@@ -539,9 +540,9 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
     )
     unbiased_acc_output = accuracy_outputs_from_inputs(unbiased_acc_transformed)
     # Retrieve the most frequent class in the ground truth
-    most_frequent_class = Slist(stuff).map(
-        lambda saved_test: highest_key_in_dict(saved_test.unbiased_ground_truth)
-    ).mode_or_raise()
+    most_frequent_class = (
+        Slist(stuff).map(lambda saved_test: highest_key_in_dict(saved_test.unbiased_ground_truth)).mode_or_raise()
+    )
 
     unbiased_acc_frequent_baseline: Slist[AccuracyInput] = Slist(stuff).map(
         lambda saved_test: AccuracyInput(
@@ -560,9 +561,9 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
     biased_acc_output = accuracy_outputs_from_inputs(biased_acc_transformed)
 
     # Retrieve the most frequent class in the ground truth
-    most_frequent_class_biased = Slist(stuff).map(
-        lambda saved_test: highest_key_in_dict(saved_test.biased_ground_truth)
-    ).mode_or_raise()
+    most_frequent_class_biased = (
+        Slist(stuff).map(lambda saved_test: highest_key_in_dict(saved_test.biased_ground_truth)).mode_or_raise()
+    )
     biased_acc_frequent_baseline: Slist[AccuracyInput] = Slist(stuff).map(
         lambda saved_test: AccuracyInput(
             ground_truth=highest_key_in_dict(saved_test.biased_ground_truth),
@@ -583,10 +584,13 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
 
     accuracy_plot(
         list_task_and_dots=[
-            TaskAndPlotDots(task_name="Unbiased", plot_dots=[
-                PlotDots(acc=unbiased_acc_output, name="Calibration acc"),
-                PlotDots(acc=unbiased_acc_frequent_baseline_output, name="Most frequent class")
-            ]),
+            TaskAndPlotDots(
+                task_name="Unbiased",
+                plot_dots=[
+                    PlotDots(acc=unbiased_acc_output, name="Calibration acc"),
+                    PlotDots(acc=unbiased_acc_frequent_baseline_output, name="Most frequent class"),
+                ],
+            ),
             TaskAndPlotDots(
                 task_name="Biased",
                 plot_dots=[
@@ -619,8 +623,6 @@ def plot_calibration():
     unbiased_and_biased_acc(inconsistent_only, name="inconsistent_only")
 
     tricked, not_tricked = inconsistent_only.split_by(lambda saved_test: saved_test.previously_tricked_by_bias)
-
-
 
     unbiased_and_biased_acc(not_tricked, name="Accuracy on samples not tricked by the bias")
     unbiased_and_biased_acc(tricked, name="Accuracy on samples tricked by the bias")
@@ -678,6 +680,6 @@ def nice_csv(data: Sequence[SavedTest]):
 if __name__ == "__main__":
     """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
 
-    run_calibration(limit=500, file_name="calibrate.jsonl")
-    # plot_calibration()
+    # run_calibration(limit=500, file_name="calibrate.jsonl")
+    plot_calibration()
     # TODO: unbiased baseline -> pick something that is not the biased answer

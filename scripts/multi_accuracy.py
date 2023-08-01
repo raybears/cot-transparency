@@ -13,7 +13,6 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
-from cot_transparency.util import deterministic_hash_int
 from stage_one import read_done_experiment, TASK_LIST
 
 
@@ -117,17 +116,22 @@ def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> li
     return out
 
 
+class ColorAndShape(BaseModel):
+    color: str
+    shape: str
+
+
 class PlotlyShapeColorManager:
     def __init__(self):
         self.colors = pcol.qualitative.D3
         self.symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "pentagon"]
-        self.label_to_color_and_shape = {}
+        self.label_to_color_and_shape: dict[str, ColorAndShape] = {}
 
-    def get_color_and_shape(self, label: str):
+    def get_color_and_shape(self, label: str) -> ColorAndShape:
         if label not in self.label_to_color_and_shape:
             color = self.colors[len(self.label_to_color_and_shape) % len(self.colors)]
             shape = self.symbols[len(self.label_to_color_and_shape) % len(self.symbols)]
-            self.label_to_color_and_shape[label] = {"color": color, "shape": shape}
+            self.label_to_color_and_shape[label] = ColorAndShape(color=color, shape=shape)
         return self.label_to_color_and_shape[label]
 
 
@@ -152,8 +156,8 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
                     mode="markers",
                     marker=dict(
                         size=[15],
-                        color=color_shape["color"],
-                        symbol=color_shape["shape"],
+                        color=color_shape.color,
+                        symbol=color_shape.shape,
                     ),
                     name=dot.name,  # specify the name that will appear in legend
                     showlegend=dot.name not in added_labels,  # don't show in legend if label has been added
@@ -181,6 +185,7 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
         pio.write_image(fig, save_file_path + ".png", scale=2)
     else:
         fig.show()
+
 
 formatter_name_map: dict[str, str] = {
     # "EmojiBaselineFormatter": "Biased",

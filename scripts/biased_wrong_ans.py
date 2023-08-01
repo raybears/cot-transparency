@@ -25,7 +25,7 @@ def task_output_to_flat(task: TaskOutput) -> FlatSimple:
         full_response=task.first_raw_response,
         parsed_response=task.first_parsed_response,
         ground_truth=task.task_spec.ground_truth,
-        biased_ans=task.task_spec.biased_ans,
+        biased_ans=task.task_spec.biased_ans,  # type: ignore
     )
 
 
