@@ -22,7 +22,10 @@ from cot_transparency.formatters.verbalize.formatters import (
     CheckmarkBiasedFormatter,
     CheckmarkTreatmentFormatter,
     IThinkAnswerTreatmentFormatter,
-    IThinkAnswerBiasedFormatter, StanfordCalibratedFormatter, CrossNoCOTFormatter, CheckmarkNoCOTFormatter,
+    IThinkAnswerBiasedFormatter,
+    StanfordCalibratedFormatter,
+    CrossNoCOTFormatter,
+    CheckmarkNoCOTFormatter,
     StanfordNoCOTFormatter,
 )
 
