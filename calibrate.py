@@ -453,17 +453,21 @@ def few_shot_prompts_for_formatter(
     return output
 
 
-def run_calibration(limit: int, file_name: str):
+def run_calibration(
+    limit: int,
+    write_name: str,
+    read_experiment: str,
+    unbiased_formatter_name: str,
+    biased_formatter_name: str,
+    model: str,
+) -> None:
     set_keys_from_env()
-    fp = Path(file_name)
+    fp = Path(write_name)
     # create the file if it doesn't exist
     if not fp.exists():
         write_jsonl_file_from_basemodel(path=fp, basemodels=[])
 
-    exp_dir = "experiments/verb"
-    model = "gpt-4"
-    unbiased_formatter_name = "ZeroShotUnbiasedFormatter"
-    cross_formatter_name = "StanfordNoCOTFormatter"
+    exp_dir = read_experiment
     saved: Slist[SavedTest | InvalidCompletion] = read_jsonl_file_into_basemodel_ignore_errors(
         path=fp, basemodel=SavedTest
     ) + read_jsonl_file_into_basemodel_ignore_errors(path=fp, basemodel=InvalidCompletion)
@@ -473,7 +477,7 @@ def run_calibration(limit: int, file_name: str):
     for task in bbh_task_list:
         prompts = few_shot_prompts_for_formatter(
             exp_dir=exp_dir,
-            biased_formatter_name=cross_formatter_name,
+            biased_formatter_name=biased_formatter_name,
             unbiased_formatter_name=unbiased_formatter_name,
             bias_name="stanford professor giving his opinion",
             max_per_subset=18,
@@ -607,7 +611,7 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
 
 def plot_calibration():
     read: Slist[SavedTest] = read_jsonl_file_into_basemodel_ignore_errors(
-        path=Path("calibrate.jsonl"), basemodel=SavedTest
+        path=Path("experiments/calibrate.jsonl"), basemodel=SavedTest
     )
     followed_prompt_bias, not_followed_prompt_bias = read.split_by(followed_bias_in_prompt)
     # We want an even number of followed and not followed
@@ -678,8 +682,20 @@ def nice_csv(data: Sequence[SavedTest]):
 
 
 if __name__ == "__main__":
-    """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
+    """
+    1. Run stage one e.g. python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordNoCOTFormatter", "ZeroShotUnbiasedFormatter"]' --example_cap 120 --repeats_per_question 20
+    2. Run this script
+    3. View the plots
+    4. ???
+    5. PROFIT
+    """
 
-    # run_calibration(limit=500, file_name="calibrate.jsonl")
+    run_calibration(
+        limit=500,
+        write_name="experiments/calibrate.jsonl",
+        read_experiment="experiments/verb",
+        unbiased_formatter_name="ZeroShotUnbiasedFormatter",
+        biased_formatter_name="StanfordNoCOTFormatter",
+        model="gpt-4",
+    )
     plot_calibration()
-    # TODO: unbiased baseline -> pick something that is not the biased answer
