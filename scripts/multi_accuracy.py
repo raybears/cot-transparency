@@ -128,6 +128,7 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
         x_labels.append(task_and_plot.task_name)
 
         for j, dot in enumerate(plot_dots):
+            hashed = hash(dot.name)
             fig.add_trace(
                 go.Scatter(
                     x=[i + 1],
@@ -135,8 +136,8 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
                     mode="markers",
                     marker=dict(
                         size=[15],
-                        color=colors[j % len(colors)],
-                        symbol=symbols[j % len(symbols)],  # Use different symbols for each marker
+                        color=colors[hashed % len(colors)],
+                        symbol=symbols[hashed % len(symbols)],  # Use different symbols for each marker
                     ),
                     name=dot.name,  # specify the name that will appear in legend
                     showlegend=dot.name not in added_labels,  # don't show in legend if label has been added

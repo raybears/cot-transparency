@@ -529,6 +529,18 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
         )
     )
     unbiased_acc_output = accuracy_outputs_from_inputs(unbiased_acc_transformed)
+    # Retrieve the most frequent class in the ground truth
+    most_frequent_class = Slist(stuff).map(
+        lambda saved_test: highest_key_in_dict(saved_test.unbiased_ground_truth)
+    ).mode_or_raise()
+
+    unbiased_acc_frequent_baseline: Slist[AccuracyInput] = Slist(stuff).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.unbiased_ground_truth),
+            predicted=most_frequent_class,
+        )
+    )
+    unbiased_acc_frequent_baseline_output = accuracy_outputs_from_inputs(unbiased_acc_frequent_baseline)
 
     biased_acc_transformed: Slist[AccuracyInput] = Slist(stuff).map(
         lambda saved_test: AccuracyInput(
@@ -538,10 +550,23 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
     )
     biased_acc_output = accuracy_outputs_from_inputs(biased_acc_transformed)
 
+    # Retrieve the most frequent class in the ground truth
+    most_frequent_class_biased = Slist(stuff).map(
+        lambda saved_test: highest_key_in_dict(saved_test.biased_ground_truth)
+    ).mode_or_raise()
+    biased_acc_frequent_baseline: Slist[AccuracyInput] = Slist(stuff).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.biased_ground_truth),
+            predicted=most_frequent_class_biased,
+        )
+    )
+    biased_acc_frequent_baseline_output = accuracy_outputs_from_inputs(biased_acc_frequent_baseline)
+
+    # Baseline of always following the bias in the prompt
     biased_acc_baseline_tricked: Slist[AccuracyInput] = Slist(stuff).map(
         lambda saved_test: AccuracyInput(
             ground_truth=highest_key_in_dict(saved_test.biased_ground_truth),
-            # the bias itself
+            # the bias in the prompt
             predicted=assert_not_none(saved_test.test.original_task.biased_ans),
         )
     )
@@ -549,16 +574,20 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
 
     accuracy_plot(
         list_task_and_dots=[
-            TaskAndPlotDots(task_name="Unbiased", plot_dots=[PlotDots(acc=unbiased_acc_output, name="Estimate acc")]),
+            TaskAndPlotDots(task_name="Unbiased", plot_dots=[
+                PlotDots(acc=unbiased_acc_output, name="Calibration acc"),
+                PlotDots(acc=unbiased_acc_frequent_baseline_output, name="Most frequent class")
+            ]),
             TaskAndPlotDots(
                 task_name="Biased",
                 plot_dots=[
-                    PlotDots(acc=biased_acc_output, name="Estimate acc"),
+                    PlotDots(acc=biased_acc_output, name="Calibration acc"),
                     PlotDots(acc=biased_acc_baseline_tricked_output, name="Always choose bias"),
+                    PlotDots(acc=biased_acc_frequent_baseline_output, name="Most frequent class"),
                 ],
             ),
         ],
-        title=f"Estimation accuracy {unbiased_acc_output.samples} samples",
+        title=f"Calibration accuracy {unbiased_acc_output.samples} samples",
         save_file_path=f"{name}.png",
     )
 
@@ -567,6 +596,8 @@ def plot_calibration():
     read: Slist[SavedTest] = read_jsonl_file_into_basemodel_ignore_errors(
         path=Path("calibrate.jsonl"), basemodel=SavedTest
     )
+
+
     nice_csv(read)
     print(f"Total: {len(read)}")
     unbiased_and_biased_acc(read, name="overall")
