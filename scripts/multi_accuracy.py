@@ -13,6 +13,7 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
+from cot_transparency.util import deterministic_hash_int
 from stage_one import read_done_experiment, TASK_LIST
 
 
@@ -128,7 +129,7 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
         x_labels.append(task_and_plot.task_name)
 
         for j, dot in enumerate(plot_dots):
-            hashed = hash(dot.name)
+            hashed = deterministic_hash_int(dot.name)
             fig.add_trace(
                 go.Scatter(
                     x=[i + 1],

@@ -359,24 +359,33 @@ def create_to_run_from_joined_data(
         joined_stats=test_item.stats,
     )
 
+def joined_followed_bias_in_prompt(item:JoinedDataWithStats)->bool:
+    bias_in_prompt = item.unbiased[0].task_spec.biased_ans
+    bias_context_answer = item.stats.biased_modal_ans
+    return bias_in_prompt == bias_context_answer
+
+def followed_bias_in_prompt(item: SavedTest) -> bool:
+    bias_in_prompt = item.test.original_task.biased_ans
+    bias_context_answer = highest_key_in_dict(item.biased_ground_truth)
+    return bias_in_prompt == bias_context_answer
+
+
 
 def balanced_test_diff_answer(data: Sequence[JoinedDataWithStats]) -> Slist[JoinedDataWithStats]:
     # make sure that we have an even number of JoinedDataWithStats that have
-    # a bias resulting
-    # - a different answer
-    # - the same answer. Not that this can also happen when the bias was on the correct answer to begin with
-    same_answer: Slist[JoinedDataWithStats] = Slist(data).filter(lambda j: not j.stats.bias_results_in_different_answer)
-    different_answer: Slist[JoinedDataWithStats] = Slist(data).filter(
-        lambda j: j.stats.bias_results_in_different_answer
-    )
-    # get the min of the two
-    min_length = min(same_answer.length, different_answer.length)
-    limited_same = same_answer.take(min_length)
-    limited_different = different_answer.take(min_length)
+    # a bias context resulting
+    # - the model following the bias in the prompt
+    # - the model not following the bias in the prompt
+
+    followed, not_followed = Slist(data).split_by(joined_followed_bias_in_prompt)
+    # limit to the minimum length
+    min_length = min(len(followed), len(not_followed))
+    limited_followed = followed.take(min_length)
+    limited_different = not_followed.take(min_length)
     results = []
     # interleave them so that we have an even number of each
     for i in range(min_length):
-        results.append(limited_same[i])
+        results.append(limited_followed[i])
         results.append(limited_different[i])
     return Slist(results)
 
@@ -596,22 +605,26 @@ def plot_calibration():
     read: Slist[SavedTest] = read_jsonl_file_into_basemodel_ignore_errors(
         path=Path("calibrate.jsonl"), basemodel=SavedTest
     )
+    followed_prompt_bias, not_followed_prompt_bias = read.split_by(followed_bias_in_prompt)
+    # We want an even number of followed and not followed
+    min_length = min(followed_prompt_bias.length, not_followed_prompt_bias.length)
+    followed_prompt_bias_limited = followed_prompt_bias.take(min_length)
+    not_followed_prompt_bias_limited = not_followed_prompt_bias.take(min_length)
+    limited_read = followed_prompt_bias_limited + not_followed_prompt_bias_limited
 
-
-    nice_csv(read)
-    print(f"Total: {len(read)}")
-    unbiased_and_biased_acc(read, name="overall")
-    inconsistent_only = read.filter(lambda saved_test: saved_test.inconsistent_bias)
+    nice_csv(limited_read)
+    print(f"Total: {len(limited_read)}")
+    unbiased_and_biased_acc(limited_read, name="overall")
+    inconsistent_only = limited_read.filter(lambda saved_test: saved_test.inconsistent_bias)
     unbiased_and_biased_acc(inconsistent_only, name="inconsistent_only")
 
     tricked, not_tricked = inconsistent_only.split_by(lambda saved_test: saved_test.previously_tricked_by_bias)
 
-    # we want an even number of each
-    # min_length = min(not_tricked.length, tricked.length)
-    # balanced = not_tricked.shuffle(seed).take(min_length) + tricked.shuffle(seed).take(min_length)
+
+
     unbiased_and_biased_acc(not_tricked, name="Accuracy on samples not tricked by the bias")
     unbiased_and_biased_acc(tricked, name="Accuracy on samples tricked by the bias")
-    plot_task_accuracy(read, name="Overall")
+    plot_task_accuracy(limited_read, name="Overall")
     plot_task_accuracy(inconsistent_only, name="Inconsistent only")
 
 
@@ -665,6 +678,6 @@ def nice_csv(data: Sequence[SavedTest]):
 if __name__ == "__main__":
     """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
 
-    # run_calibration(limit=400, file_name="calibrate.jsonl")
+    run_calibration(limit=400, file_name="calibrate.jsonl")
     plot_calibration()
     # TODO: unbiased baseline -> pick something that is not the biased answer
