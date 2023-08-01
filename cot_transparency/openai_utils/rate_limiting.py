@@ -7,6 +7,8 @@ from typing import Optional, Callable, TypeVar, Protocol
 import tiktoken
 from cot_transparency.data_models.models import OpenaiInferenceConfig, StrictChatMessage
 
+exit_event = threading.Event()
+
 
 class LeakyBucketRateLimiter:
     def __init__(
@@ -32,6 +34,8 @@ class LeakyBucketRateLimiter:
                 self.tokens_available = self.tokens_per_minute
 
             while self.tokens_available < tokens:
+                if exit_event.is_set():
+                    raise Exception("Exiting program early because exit event is set")
                 time.sleep(1)
                 time_elapsed = time.time() - self.last_request
                 self.tokens_available += time_elapsed * fill_rate

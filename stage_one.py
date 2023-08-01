@@ -10,13 +10,13 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa
+from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
 from cot_transparency.data_models.models import ExperimentJsonFormat
 from cot_transparency.tasks import TaskSetting
-from cot_transparency.util import get_exp_dir_name, deterministic_hash_int
+from cot_transparency.util import get_exp_dir_name
 from cot_transparency.tasks import run_tasks_multi_threaded
 
 TASK_LIST = {
@@ -40,13 +40,15 @@ TASK_LIST = {
         "arc_easy",
         "arc_challenge",
         "truthful_qa",
+        "logiqa",
+        "mmlu",
+        "openbook_qa",
+        "hellaswag",
     ],
 }
 CONFIG_MAP = {
-    "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=2, top_p=1.0),
+    "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo": OpenaiInferenceConfig(model="gpt-3.5", temperature=1, max_tokens=1000, top_p=1.0),
-    "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
-    "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
     "text-davinci-003": OpenaiInferenceConfig(model="text-davinci-003", temperature=0.7, max_tokens=1000, top_p=1.0),
     "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
 }
@@ -103,6 +105,14 @@ def get_list_of_examples(dataset: str, task: str) -> list[DataExampleBase]:
             data = arc.arc_challenge_dev()
         elif task == "truthful_qa":
             data = truthful_qa.eval()
+        elif task == "logiqa":
+            data = logiqa.eval()
+        elif task == "mmlu":
+            data = mmlu.test(questions_per_task=20)
+        elif task == "openbook_qa":
+            data = openbook.test()
+        elif task == "hellaswag":
+            data = hellaswag.val()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
@@ -116,13 +126,11 @@ def main(
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
-    # for each model, task, and formatter, how many examples to generate
     example_cap: Optional[int] = 1000000,
     save_file_every: int = 50,
     batch: int = 10,
     repeats_per_question: int = 1,
-    # 1 to 10
-    subset: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    temperature: Optional[float] = None,
 ):
     tasks = validate_dataset_and_task(dataset, tasks)
 
@@ -149,22 +157,15 @@ def main(
 
         # Shuffle the data BEFORE we cap it
         random.Random(42).shuffle(data)
-
-        filtered_data = []
-        for item in data:
-            hash_bucket = deterministic_hash_int(item.hash()) % 10
-            if hash_bucket in subset:
-                filtered_data.append(item)
-
         if example_cap:
-            filtered_data = filtered_data[:example_cap]
+            data = data[:example_cap]
 
         out_file_path: Path = Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
         already_done = read_done_experiment(out_file_path)
         loaded_dict.update({out_file_path: already_done})
         already_done_hashes_counts = Counter([o.task_spec.task_hash for o in already_done.outputs])
-        for item in filtered_data:
-            task_hash: str = item.hash()
+        for item in data:
+            task_hash = item.hash()
             if task_hash not in already_done_hashes_counts:
                 runs_to_do = repeats_per_question
             else:
@@ -172,10 +173,16 @@ def main(
                 runs_to_do = max(repeats_per_question - already_done_hashes_counts[task_hash], 0)
 
             formatted: list[ChatMessage] = formatter.format_example(question=item)
+
+            # Get config and override temperature if needed
             config = CONFIG_MAP[model].copy()
-            config.model = model
+            if temperature is not None:
+                print("Overriding temperature")
+                config.temperature = temperature
+            assert config.model == model
             if not formatter.is_cot:
                 config.max_tokens = 1
+
             task_spec = TaskSpec(
                 task_name=task,
                 model_config=config,
@@ -185,7 +192,6 @@ def main(
                 formatter_name=formatter.name(),
                 task_hash=task_hash,
                 biased_ans=item.biased_ans,
-                data_example=item.dict(),
             )
             for _ in range(runs_to_do):
                 tasks_to_run.append(task_spec)

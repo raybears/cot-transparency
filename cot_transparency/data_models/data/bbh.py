@@ -35,6 +35,10 @@ class MilesBBHRawData(DataExampleBase):
         letter: MultipleChoiceAnswer = ascii_uppercase[self.get_random_ans_idx()]  # type: ignore
         return letter
 
+    @property
+    def n_choices(self) -> int:
+        return len(self.multiple_choice_targets)
+
     def get_random_ans_idx(self) -> int:
         return self.random_ans_idx
 
