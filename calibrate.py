@@ -678,6 +678,6 @@ def nice_csv(data: Sequence[SavedTest]):
 if __name__ == "__main__":
     """python stage_one.py --exp_dir experiments/verb --models "['gpt-4']" --formatters '["StanfordBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --subset "[1,2]" --example_cap 5 --repeats_per_question 20"""
 
-    run_calibration(limit=400, file_name="calibrate.jsonl")
-    plot_calibration()
+    run_calibration(limit=500, file_name="calibrate.jsonl")
+    # plot_calibration()
     # TODO: unbiased baseline -> pick something that is not the biased answer

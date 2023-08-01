@@ -117,10 +117,25 @@ def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> li
     return out
 
 
+class PlotlyShapeColorManager:
+    def __init__(self):
+        self.colors = pcol.qualitative.D3
+        self.symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "pentagon"]
+        self.label_to_color_and_shape = {}
+
+    def get_color_and_shape(self, label: str):
+        if label not in self.label_to_color_and_shape:
+            color = self.colors[len(self.label_to_color_and_shape) % len(self.colors)]
+            shape = self.symbols[len(self.label_to_color_and_shape) % len(self.symbols)]
+            self.label_to_color_and_shape[label] = {"color": color, "shape": shape}
+        return self.label_to_color_and_shape[label]
+
+
 def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_file_path: Optional[str] = None):
     fig = go.Figure()
-    colors = pcol.qualitative.D3
-    symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "pentagon"]  # add more symbols if needed
+
+    shape_color_manager = PlotlyShapeColorManager()
+
     x_labels: list[str] = []
     added_labels: set[str] = set()  # to remember the labels we have already added
 
@@ -129,7 +144,7 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
         x_labels.append(task_and_plot.task_name)
 
         for j, dot in enumerate(plot_dots):
-            hashed = deterministic_hash_int(dot.name)
+            color_shape = shape_color_manager.get_color_and_shape(dot.name)
             fig.add_trace(
                 go.Scatter(
                     x=[i + 1],
@@ -137,8 +152,8 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
                     mode="markers",
                     marker=dict(
                         size=[15],
-                        color=colors[hashed % len(colors)],
-                        symbol=symbols[hashed % len(symbols)],  # Use different symbols for each marker
+                        color=color_shape["color"],
+                        symbol=color_shape["shape"],
                     ),
                     name=dot.name,  # specify the name that will appear in legend
                     showlegend=dot.name not in added_labels,  # don't show in legend if label has been added
@@ -166,7 +181,6 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
         pio.write_image(fig, save_file_path + ".png", scale=2)
     else:
         fig.show()
-
 
 formatter_name_map: dict[str, str] = {
     # "EmojiBaselineFormatter": "Biased",
