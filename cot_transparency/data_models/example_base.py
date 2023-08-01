@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import random
-from typing import Literal
+from typing import Literal, TypeVar
 from pydantic import BaseModel
 from string import ascii_uppercase
 
@@ -52,3 +52,6 @@ class DataExampleBase(BaseModel, ABC):
 
     def hash(self) -> str:
         return deterministic_hash(self.get_parsed_input())
+
+
+GenericDataExample = TypeVar("GenericDataExample", bound="DataExampleBase")

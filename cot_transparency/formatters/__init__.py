@@ -23,6 +23,10 @@ from cot_transparency.formatters.verbalize.formatters import (
     CheckmarkTreatmentFormatter,
     IThinkAnswerTreatmentFormatter,
     IThinkAnswerBiasedFormatter,
+    StanfordCalibratedFormatter,
+    CrossNoCOTFormatter,
+    CheckmarkNoCOTFormatter,
+    StanfordNoCOTFormatter,
 )
 
 
@@ -44,6 +48,10 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         CheckmarkTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         IThinkAnswerBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         IThinkAnswerTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        StanfordCalibratedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        CrossNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        CheckmarkNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        StanfordNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 

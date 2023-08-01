@@ -9,6 +9,7 @@ import plotly.colors as pcol
 import plotly.graph_objects as go
 import plotly.io as pio
 from pydantic import BaseModel
+from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
@@ -18,6 +19,7 @@ from stage_one import read_done_experiment, TASK_LIST
 class AccuracyOutput(BaseModel):
     accuracy: float
     error_bars: float
+    samples: int
 
 
 def compute_error_bars(num_trials: int, num_successes: int, confidence_level: float = 1.96) -> float:
@@ -39,21 +41,26 @@ def accuracy_for_file(path: Path, inconsistent_only: bool) -> AccuracyOutput:
 
 
 def accuracy_outputs(outputs: list[TaskOutput]) -> AccuracyOutput:
-    if len(outputs) == 0:
+    transformed = Slist(outputs).map(
+        lambda x: AccuracyInput(ground_truth=x.task_spec.ground_truth, predicted=x.first_raw_response)
+    )
+    return accuracy_outputs_from_inputs(transformed)
+
+
+class AccuracyInput(BaseModel):
+    ground_truth: str
+    predicted: str
+
+
+def accuracy_outputs_from_inputs(inputs: Sequence[AccuracyInput]) -> AccuracyOutput:
+    if len(inputs) == 0:
         raise ValueError("No outputs to score")
-    score = 0
-    # filter out the consistent if inconsistent_only is True
-    for item in outputs:
-        ground_truth = item.task_spec.ground_truth
-        predicted = item.model_output.parsed_response
-        is_correct = predicted == ground_truth
-        if is_correct:
-            score += 1
-
+    correct = Slist(inputs).map(lambda x: 1 if x.ground_truth == x.predicted else 0)
+    acc = correct.average()
+    assert acc is not None
     # Compute error bars for accuracy
-    error_bars = compute_error_bars(num_trials=len(outputs), num_successes=score)
-
-    return AccuracyOutput(accuracy=score / len(outputs), error_bars=error_bars)
+    error_bars = compute_error_bars(num_trials=len(inputs), num_successes=correct.sum())
+    return AccuracyOutput(accuracy=acc, error_bars=error_bars, samples=len(inputs))
 
 
 def spotted_bias(raw_response: str) -> bool:
@@ -109,10 +116,30 @@ def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> li
     return out
 
 
+class ColorAndShape(BaseModel):
+    color: str
+    shape: str
+
+
+class PlotlyShapeColorManager:
+    def __init__(self):
+        self.colors = pcol.qualitative.D3
+        self.symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "pentagon"]
+        self.label_to_color_and_shape: dict[str, ColorAndShape] = {}
+
+    def get_color_and_shape(self, label: str) -> ColorAndShape:
+        if label not in self.label_to_color_and_shape:
+            color = self.colors[len(self.label_to_color_and_shape) % len(self.colors)]
+            shape = self.symbols[len(self.label_to_color_and_shape) % len(self.symbols)]
+            self.label_to_color_and_shape[label] = ColorAndShape(color=color, shape=shape)
+        return self.label_to_color_and_shape[label]
+
+
 def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_file_path: Optional[str] = None):
     fig = go.Figure()
-    colors = pcol.qualitative.D3
-    symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "pentagon"]  # add more symbols if needed
+
+    shape_color_manager = PlotlyShapeColorManager()
+
     x_labels: list[str] = []
     added_labels: set[str] = set()  # to remember the labels we have already added
 
@@ -121,6 +148,7 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
         x_labels.append(task_and_plot.task_name)
 
         for j, dot in enumerate(plot_dots):
+            color_shape = shape_color_manager.get_color_and_shape(dot.name)
             fig.add_trace(
                 go.Scatter(
                     x=[i + 1],
@@ -128,8 +156,8 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
                     mode="markers",
                     marker=dict(
                         size=[15],
-                        color=colors[j % len(colors)],
-                        symbol=symbols[j % len(symbols)],  # Use different symbols for each marker
+                        color=color_shape.color,
+                        symbol=color_shape.shape,
                     ),
                     name=dot.name,  # specify the name that will appear in legend
                     showlegend=dot.name not in added_labels,  # don't show in legend if label has been added
@@ -154,7 +182,7 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
     fig.update_layout(title_text=title, title_x=0.5)
 
     if save_file_path is not None:
-        pio.write_image(fig, title + ".png", scale=2)
+        pio.write_image(fig, save_file_path + ".png", scale=2)
     else:
         fig.show()
 
