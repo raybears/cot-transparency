@@ -10,7 +10,7 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa
+from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
@@ -40,6 +40,10 @@ TASK_LIST = {
         "arc_easy",
         "arc_challenge",
         "truthful_qa",
+        "logiqa",
+        "mmlu",
+        "openbook_qa",
+        "hellaswag",
     ],
 }
 CONFIG_MAP = {
@@ -51,6 +55,8 @@ CONFIG_MAP = {
     "davinici": OpenaiInferenceConfig(model="davinci", temperature=1, max_tokens=1000, top_p=1.0),
     "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
     "claude-2": OpenaiInferenceConfig(model="claude-1", temperature=1, max_tokens=1000, top_p=1.0),
+    "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
+    "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
 }
 
 
@@ -105,6 +111,14 @@ def get_list_of_examples(dataset: str, task: str) -> list[DataExampleBase]:
             data = arc.arc_challenge_dev()
         elif task == "truthful_qa":
             data = truthful_qa.eval()
+        elif task == "logiqa":
+            data = logiqa.eval()
+        elif task == "mmlu":
+            data = mmlu.test(questions_per_task=20)
+        elif task == "openbook_qa":
+            data = openbook.test()
+        elif task == "hellaswag":
+            data = hellaswag.val()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")

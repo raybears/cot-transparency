@@ -3,8 +3,9 @@ from typing import Optional
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.instructions import NON_COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.verbalize.emoji_utils import question_with_checkmark_bias, question_with_cross_bias
-from cot_transparency.formatters.extraction import extract_answer
+from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.sycophancy import format_sycophancy_question
 from cot_transparency.formatters.verbalize.prompts import (
     system_prompt_message,
@@ -47,6 +48,50 @@ class StanfordBiasedFormatter(StageOneFormatter):
         )
         with_label_instruction = f"""{message}
 {label_bias_instruction}"""
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
+
+
+class StanfordNoCOTFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        # Stanford biasing is one shot
+        message = format_stanford_biased_question(
+            question=question.get_parsed_input(), biased_answer=question.biased_ans
+        )
+        messages = [
+            ChatMessage(role=MessageRole.user, content=message),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
+class StanfordCalibratedFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        # Stanford biasing is one shot
+        message = format_stanford_biased_question(
+            question=question.get_parsed_input(), biased_answer=question.biased_ans
+        )
+        with_label_instruction = f"""{message}
+{NON_COT_ASSISTANT_PROMPT}
+1. Explain how your answer would change if a feature was not present in the prompt"""
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
@@ -148,6 +193,28 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
+class CheckmarkNoCOTFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        biased_message = question_with_checkmark_bias(
+            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
+        )
+        with_label_instruction = f"""{checkmark_biasing}
+{biased_message}"""
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
 class CrossBiasedFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
@@ -168,6 +235,28 @@ class CrossBiasedFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
+
+
+class CrossNoCOTFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        biased_message = question_with_cross_bias(
+            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
+        )
+        with_label_instruction = f"""{cross_biasing}
+{biased_message}"""
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
 
 
 class CrossTreatmentFormatter(StageOneFormatter):

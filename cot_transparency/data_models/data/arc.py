@@ -38,7 +38,7 @@ class ArcExample(DataExampleBase):
 
     def get_parsed_input(self) -> str:
         options = self.process_options(self.question.choices)
-        return f"{self.question.stem}\n\nAnswer choices:\n{options}"
+        return f"Question: {self.question.stem}\n\nAnswer choices:\n{options}"
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
@@ -46,8 +46,8 @@ class ArcExample(DataExampleBase):
         return label
 
     @property
-    def biased_ans(self) -> MultipleChoiceAnswer:
-        return "NOT_FOUND"
+    def n_choices(self) -> int:
+        return len(self.question.choices)
 
 
 def load_arc(dev_path: str) -> list[ArcExample]:

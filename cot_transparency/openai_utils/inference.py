@@ -37,7 +37,9 @@ retry_openai_failures = retry(
 
 should_log_rate_limit = os.getenv("LOG_RATE_LIMITS", "false").lower() == "true"
 rate_limit_logger = setup_logger("rate_limit_logger", logging.INFO) if should_log_rate_limit else None
-retry_openai_rate_limits = retry(exceptions=(RateLimitError), tries=-1, delay=0.1, logger=rate_limit_logger)
+retry_openai_rate_limits = retry(
+    exceptions=(RateLimitError), tries=-1, delay=10, logger=rate_limit_logger, jitter=(-5, 5)
+)
 
 
 class TokenProba(BaseModel):
