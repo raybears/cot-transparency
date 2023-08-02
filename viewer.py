@@ -174,7 +174,12 @@ class CompareGUI:
         self.task_var = StringVar(master)
         self.task_var.set(self.keys[0][0])  # default value
 
-        self.task_dropdown = OptionMenu(master, self.task_var, *{key[0] for key in self.keys}, command=self.select_task)
+        self.task_dropdown = OptionMenu(
+            master,
+            self.task_var,
+            *{key[0] for key in self.keys},
+            command=self.select_task,  # type: ignore
+        )
         self.task_dropdown.config(font=("Arial", self.fontsize))
         self.task_dropdown.grid(row=0, column=0, columnspan=n_compare)
 
@@ -244,10 +249,9 @@ class CompareGUI:
             gui.select_index(idx)
         self.display_output()
 
-    def select_task(self, task_name: StringVar):
-        task_name_str = task_name.get()
+    def select_task(self, task_name: str):
         for gui in self.base_guis:
-            gui.task_var = task_name_str
+            gui.task_var = task_name
             gui.select_json()
         self.display_output()
 

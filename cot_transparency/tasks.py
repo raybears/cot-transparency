@@ -39,6 +39,7 @@ def call_model_until_suitable_response(
     if not parsed_response:
         raise AnswerNotFound(
             f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response}'"
+            f"last two messages were: {messages[-2]} and {messages[-1]}"
         )
     return ModelOutput(raw_response=response, parsed_response=parsed_response)
 

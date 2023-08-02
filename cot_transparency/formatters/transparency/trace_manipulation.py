@@ -83,4 +83,8 @@ def get_cot_steps(cot_part: str) -> List[str]:
         else:
             cot_steps.append(prefix + step)
             prefix = ""
+
+    if prefix != "":
+        # ensure we aleays return everything we've been given even when it's not a valid reasoning step
+        cot_steps.append(prefix)
     return cot_steps

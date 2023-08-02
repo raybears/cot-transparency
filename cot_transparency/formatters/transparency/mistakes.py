@@ -8,7 +8,7 @@ from cot_transparency.data_models.models import (
     StrictMessageRole,
 )
 from cot_transparency.formatters import PromptFormatter
-from cot_transparency.formatters.transparency import EarlyAnsweringFormatter
+from cot_transparency.formatters.transparency.early_answering import EarlyAnsweringFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.model_apis import convert_to_strict_messages
 
@@ -102,6 +102,10 @@ class FewShotGenerateMistakeFormatter(PromptFormatter):
 
         # use the get cot steps function to guard against the model giving us more than one sentence / cot
         cot_steps_response = get_cot_steps(response)
+        if len(cot_steps_response) <= 1:
+            print(f"Problem with '{response}'")
+            # and just resample
+            return None
         first_step_returned = cot_steps_response[1]  # as the first one is blank
 
         return first_step_returned
@@ -132,7 +136,6 @@ class CompletePartialCOT(PromptFormatter):
         partial_cot_trace = "".join(partial_cot) + leading_newlines + reasoning_step_with_mistake
         mistake_adding_info.modified_cot = partial_cot_trace
 
-        print(f"combined with mistake:{partial_cot_trace}")
         # convert back to ChatMessage, so we can use convert_to_strict_messages at the end
         output = [ChatMessage(role=MessageRole(msg.role), content=msg.content) for msg in soutput]
 
@@ -145,7 +148,6 @@ class CompletePartialCOT(PromptFormatter):
         else:
             message = partial_cot_trace
 
-        print("MESSAGE", message)
         output.append(
             ChatMessage(
                 role=MessageRole.assistant if should_use_roles else MessageRole.none,

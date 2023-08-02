@@ -3,7 +3,7 @@ from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT, add_verbalize_instruction_to_question
 from cot_transparency.formatters.sycophancy import format_sycophancy_question
-from cot_transparency.formatters.transparency import parse_stage_two_output
+from cot_transparency.formatters.transparency.stage_two_base import parse_stage_two_output
 
 
 from typing import Optional

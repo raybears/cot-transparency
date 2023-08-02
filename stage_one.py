@@ -49,9 +49,15 @@ TASK_LIST = {
 CONFIG_MAP = {
     "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo": OpenaiInferenceConfig(model="gpt-3.5-turbo", temperature=1, max_tokens=1000, top_p=1.0),
-    "text-davinci-003": OpenaiInferenceConfig(model="text-davinci-003", temperature=0.7, max_tokens=1000, top_p=1.0),
-    "code-davinci-002": OpenaiInferenceConfig(model="code-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
-    "text-davinci-002": OpenaiInferenceConfig(model="text-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
+    "text-davinci-003": OpenaiInferenceConfig(
+        model="text-davinci-003", temperature=0.7, max_tokens=1000, top_p=1.0, stop=["\n\nHuman:"]
+    ),
+    "code-davinci-002": OpenaiInferenceConfig(
+        model="code-davinci-002", temperature=1, max_tokens=1000, top_p=1.0, stop=["\n\nHuman:"]
+    ),
+    "text-davinci-002": OpenaiInferenceConfig(
+        model="text-davinci-002", temperature=1, max_tokens=1000, top_p=1.0, stop=["\n\nHuman:"]
+    ),
     "davinici": OpenaiInferenceConfig(model="davinci", temperature=1, max_tokens=1000, top_p=1.0),
     "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
     "claude-2": OpenaiInferenceConfig(model="claude-1", temperature=1, max_tokens=1000, top_p=1.0),
@@ -198,6 +204,7 @@ def main(
                 formatter_name=formatter.name(),
                 task_hash=task_hash,
                 biased_ans=item.biased_ans,
+                data_example=item.dict(),
             )
             for _ in range(runs_to_do):
                 tasks_to_run.append(task_spec)

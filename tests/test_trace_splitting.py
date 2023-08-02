@@ -68,6 +68,11 @@ def test_split_reasoning_trace_multiline():
     ]
 
 
+def test_single_number():
+    input_text = "10"
+    assert get_cot_steps(input_text) == ["", "10"]
+
+
 def test_trace_spllitting_with_abrevs():
     inp = """ Mr. Wallace was having lunch with an associate, Mr. Vincent, who poisoned his martini. This poison would have taken an hour to kill him. Then, Mr. Wallace was chased by Mr. Bruce, an associate of one of his rivals, and his car was pushed off the side of the road and exploded. The coroner's report revealed that he had received fatal burns from the explosion, but also that he had a lethal dose of poison in his system. So, Mr. Wallace's crime life did not directly cause his death, but may have indirectly caused it, since Mr."""  # noqa
 

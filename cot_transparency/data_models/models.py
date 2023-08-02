@@ -57,6 +57,9 @@ class ChatMessage(HashableBaseModel):
     class Config:
         frozen = True
 
+    def __str__(self) -> str:
+        return f"{self.role}: {self.content}"
+
 
 class StrictChatMessage(HashableBaseModel):
     role: StrictMessageRole
@@ -65,6 +68,9 @@ class StrictChatMessage(HashableBaseModel):
     class Config:
         frozen = True
         validate_assignment = True
+
+    def __str__(self) -> str:
+        return f"{self.role}: {self.content}"
 
 
 class ModelOutput(BaseModel):

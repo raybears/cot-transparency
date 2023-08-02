@@ -1,6 +1,6 @@
 from cot_transparency.data_models.models import MessageRole, StrictMessageRole
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
-from cot_transparency.formatters.transparency import EarlyAnsweringFormatter
+from cot_transparency.formatters.transparency.early_answering import EarlyAnsweringFormatter
 from cot_transparency.model_apis import convert_to_completion_str
 from cot_transparency.data_models.models import ChatMessage, StrictChatMessage
 

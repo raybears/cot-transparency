@@ -4,12 +4,11 @@ from pathlib import Path
 from typing import List, Literal, Optional, Type
 
 import fire
+from cot_transparency.data_models.data import task_name_to_data_example
 
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import (
-    ChatMessage,
     ExperimentJsonFormat,
-    MessageRole,
     MistakeAdddingInfo,
     ModelOutput,
     StageTwoExperimentJsonFormat,
@@ -18,12 +17,13 @@ from cot_transparency.data_models.models import (
     TaskOutput,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.transparency import EarlyAnsweringFormatter, StageTwoFormatter
+from cot_transparency.formatters.transparency.early_answering import EarlyAnsweringFormatter
 from cot_transparency.formatters.transparency.mistakes import (
     CompletePartialCOT,
     FewShotGenerateMistakeFormatter,
     SingleBestAnswerFormatter,
 )
+from cot_transparency.formatters.transparency.stage_two_base import StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.tasks import run_tasks_multi_threaded
@@ -36,7 +36,7 @@ We take traces generated from stage_one.py and run analysis on them
 
 
 def get_early_answering_tasks(
-    stage_one_output: TaskOutput, exp_dir: str, temperature: Optional[float] = None
+    stage_one_output: TaskOutput, exp_dir: str, temperature: Optional[float] = None, full_answers_only: bool = False
 ) -> List[StageTwoTaskSpec]:
     outputs = []
 
@@ -46,6 +46,10 @@ def get_early_answering_tasks(
     for i, cot_step in enumerate(cot_steps):
         partial_cot += cot_step
 
+        if full_answers_only:
+            if i != len(cot_steps) - 1:
+                continue
+
         config = stage_one_output.task_spec.model_config.copy()
         out_file_path: Path = Path(
             f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{EarlyAnsweringFormatter.name()}.json"
@@ -53,7 +57,7 @@ def get_early_answering_tasks(
 
         if temperature is not None:
             config.temperature = temperature
-        config.max_tokens = 1
+        config.max_tokens = 2  # code-davinci-002 doesn't return answer unless we set this to 2
 
         # messages / prompt for stage_two
         messages = EarlyAnsweringFormatter.format_example(
@@ -86,21 +90,20 @@ def get_mistakes(
     # e.g Tamera et al use a non RLHF model to generate mistakes
     specs: list[StageTwoTaskSpec] = []
     for stage_one_output in stage_one_outputs:
-        original_question: ChatMessage = stage_one_output.task_spec.messages[0]
-        assert original_question.role == MessageRole.user
+        DataExample = task_name_to_data_example(stage_one_output.task_spec.task_name)
+        data_example = stage_one_output.task_spec.read_data_example_or_raise(DataExample)
+        original_question: str = data_example.get_parsed_input()
 
         cot_steps = get_cot_steps(stage_one_output.first_raw_response)
+        print("COT steps:", cot_steps)
 
-        rng = random.Random(original_question.content)
+        rng = random.Random(original_question)
         # we don't want to insert mistakes at the first step, because then there is no sentence to make a mistake in
         # as the first one is blank cot
         sample_idxs = rng.sample(range(1, len(cot_steps)), min(n_mistake_insertion_points, len(cot_steps)))
-        print("sample_idxs", sample_idxs)
 
         config = CONFIG_MAP[mistake_adding_model].copy()
         config.max_tokens = 100
-        print("mistake adding temperature", mistake_adding_temperature)
-        print("length of original cot", len(cot_steps))
         config.temperature = mistake_adding_temperature
         config.stop = ["Human:", "\n", "```"]
 
@@ -110,10 +113,8 @@ def get_mistakes(
             f"/mistake-{config.model}/{FewShotGenerateMistakeFormatter.name()}.json"
         )
         for i in sample_idxs:
-            print(f"original sentence {cot_steps[i]}")
-
             messages = FewShotGenerateMistakeFormatter.format_example(
-                original_question=original_question.content, sentence=cot_steps[i]
+                original_question=original_question, sentence=cot_steps[i]
             )
             task_spec = StageTwoTaskSpec(
                 stage_one_output=stage_one_output,
@@ -152,7 +153,6 @@ def get_cots_with_mistakes(
         mistake_adding_info = cot_with_mistake.task_spec.mistake_adding_info
         if mistake_adding_info is None:
             raise ValueError("mistake_adding_info should not be None")
-        print("mistake adding info", mistake_adding_info)
 
         messages = CompletePartialCOT.format_example(
             question=stage_one_output.task_spec.messages,
@@ -172,6 +172,10 @@ def get_cots_with_mistakes(
 
         # if the mistake was the last step in the reasoning trace, then we don't need to complete the COT
         # so just make a task output with no response
+        print("mistake_adding_info.mistake_added_at", mistake_adding_info.mistake_added_at)
+        print("len of cot", len(mistake_adding_info.original_cot))
+        print("cot", mistake_adding_info.original_cot)
+
         if mistake_adding_info.mistake_added_at == len(mistake_adding_info.original_cot) - 1:
             output = StageTwoTaskOutput(
                 task_spec=task_spec, model_output=ModelOutput(raw_response="", parsed_response="")
@@ -182,7 +186,6 @@ def get_cots_with_mistakes(
 
     print("2. Regenerating COTs with mistakes")
     outputs = run_with_caching(save_completing_with_mistakes_every, batch, specs)
-    print("outputs of 2.", len(outputs))
 
     return outputs + mistakes_inserted_at_last_position
 
@@ -221,6 +224,7 @@ def get_best_single_answer_tasks_given_mistakes(
         config = stage_one_output.task_spec.model_config.copy()
         if temperature is not None:
             config.temperature = temperature
+            config.max_tokens = 2  # code-davinci-002 doesn't return answer unless we set this to 2
 
         path = Path(
             f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{SingleBestAnswerFormatter.name()}.json"
@@ -266,10 +270,16 @@ def create_stage_2_tasks(
             tasks_to_run.extend(early_answering_tasks)
 
     if "mistakes" in tasks:
+        for task_output in stage_1_task_outputs:
+            # we need this as baseline answers that have no mistakes in.
+            early_answering_tasks = get_early_answering_tasks(
+                task_output, exp_dir, temperature=temperature, full_answers_only=True
+            )
+            tasks_to_run.extend(early_answering_tasks)
+
         cots_with_mistakes = get_mistakes(
             stage_1_task_outputs, exp_dir, batch=batch, mistake_adding_model=mistake_model
         )
-        print("got cots with mistakes")
         cots_with_mistakes_outputs = get_cots_with_mistakes(cots_with_mistakes, exp_dir, batch=batch)
         final_tasks = get_best_single_answer_tasks_given_mistakes(
             cots_with_mistakes_outputs, exp_dir, temperature=temperature
