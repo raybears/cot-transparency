@@ -194,6 +194,7 @@ def main(
                 formatter_name=formatter.name(),
                 task_hash=task_hash,
                 biased_ans=item.biased_ans,
+                data_example=item.dict(),
             )
             for _ in range(runs_to_do):
                 tasks_to_run.append(task_spec)
