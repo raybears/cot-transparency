@@ -1,6 +1,8 @@
 from string import ascii_uppercase
 from typing import Optional
 
+from cot_transparency.data_models.example_base import VALID_ANSWERS, MultipleChoiceAnswer
+
 
 def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str]:
     # This is kinda janky lol
@@ -30,9 +32,11 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
     return None
 
 
-def extract_answer_non_cot(model_answer: str, dump_failed: bool = False) -> Optional[str]:
-    if model_answer[0] in ascii_uppercase:
+def extract_answer_non_cot(model_answer: str, dump_failed: bool = False) -> Optional[MultipleChoiceAnswer]:
+    if model_answer[0] in VALID_ANSWERS:
         return model_answer[0]
+    if len(model_answer) > 1 and model_answer[1] in VALID_ANSWERS:
+        return model_answer[1]
     if dump_failed:
         with open("failed_answers.txt", "a") as f:
             f.write(model_answer + "\n")
