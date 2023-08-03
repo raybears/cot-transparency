@@ -135,7 +135,9 @@ class PlotlyShapeColorManager:
         return self.label_to_color_and_shape[label]
 
 
-def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_file_path: Optional[str] = None):
+def accuracy_plot(
+    list_task_and_dots: list[TaskAndPlotDots], title: str, subtitle: str = "", save_file_path: Optional[str] = None
+):
     fig = go.Figure()
 
     shape_color_manager = PlotlyShapeColorManager()
@@ -176,6 +178,20 @@ def accuracy_plot(list_task_and_dots: list[TaskAndPlotDots], title: str, save_fi
         ticktext=x_labels,
         showticklabels=True,
     )
+
+    # Adding the subtitle
+    if subtitle:
+        fig.add_annotation(
+            x=1,  # x position - 1 means far right in paper coordinates
+            y=0,  # y position - 0 means at the bottom in paper coordinates
+            xref="paper",  # use paper coordinates for x
+            yref="paper",  # use paper coordinates for y
+            xanchor="right",  # align the text to the right of the given x position
+            yanchor="top",  # align the text to the top of the given y position
+            text=subtitle,  # the text itself
+            showarrow=False,  # don't show an arrow pointing from the text
+            font=dict(size=12, color="#555"),  # font size  # font color, change as desired
+        )
 
     fig.update_yaxes(range=[0, 1])
 
