@@ -17,7 +17,7 @@ from cot_transparency.data_models.models import (
     TaskOutput,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.transparency.early_answering import EarlyAnsweringFormatter, FullCOTFormatter
+from cot_transparency.formatters.transparency.early_answering import EarlyAnsweringFormatter
 from cot_transparency.formatters.transparency.mistakes import (
     CompletePartialCOT,
     FewShotGenerateMistakeFormatter,
@@ -25,6 +25,7 @@ from cot_transparency.formatters.transparency.mistakes import (
 )
 from cot_transparency.formatters.transparency.stage_two_base import StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
+from cot_transparency.formatters.transparency.util import FullCOTFormatter
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.tasks import run_tasks_multi_threaded
 from cot_transparency.util import get_exp_dir_name
@@ -91,9 +92,9 @@ def get_early_answering_tasks(
         if i != len(cot_steps) - 1:
             if full_answers_only:
                 continue
-            Formatter = EarlyAnsweringFormatter
-        else:
             Formatter = FullCOTFormatter
+        else:
+            Formatter = EarlyAnsweringFormatter
 
         config = stage_one_output.task_spec.model_config.copy()
         out_file_path: Path = Path(
@@ -105,9 +106,7 @@ def get_early_answering_tasks(
         config.max_tokens = 2  # code-davinci-002 doesn't return answer unless we set this to 2
 
         # messages / prompt for stage_two
-        messages = EarlyAnsweringFormatter.format_example(
-            stage_one_output.task_spec.messages, partial_cot, config.model
-        )
+        messages = FullCOTFormatter.format_example(stage_one_output.task_spec.messages, partial_cot, config.model)
 
         task = StageTwoTaskSpec(
             stage_one_output=stage_one_output,
@@ -245,6 +244,9 @@ def get_best_single_answer_tasks_given_mistakes(
         if temperature is not None:
             config.temperature = temperature
             config.max_tokens = 2  # code-davinci-002 doesn't return answer unless we set this to 2
+
+        if stage_one_output.task_spec.formatter_name == FewShotGenerateMistakeFormatter.name():
+            pass
 
         path = Path(
             f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{FullCOTWithMistakeFormatter.name()}.json"

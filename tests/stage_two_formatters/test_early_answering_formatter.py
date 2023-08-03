@@ -1,6 +1,7 @@
 from cot_transparency.data_models.models import MessageRole, StrictMessageRole
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
-from cot_transparency.formatters.transparency.early_answering import EarlyAnsweringFormatter, FullCOTCompletionFormatter
+from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter
+from cot_transparency.formatters.transparency.util import FullCOTFormatter
 from cot_transparency.model_apis import Prompt
 from cot_transparency.data_models.models import ChatMessage, StrictChatMessage
 
@@ -25,7 +26,7 @@ def test_early_answering_formatter_completion():
         ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
     ]
 
-    messages = EarlyAnsweringFormatter.format_example(input_messages, EXAMPLE_COT, "claude-v1")
+    messages = FullCOTFormatter.format_example(input_messages, EXAMPLE_COT, "claude-v1")
     formatted_for_completion = Prompt(messages=messages).convert_to_completion_str()
 
     expected = """\n\nHuman: Q: Which of the following is a humorous edit of this artist or movie name: 'gone with the wind'?
@@ -53,7 +54,7 @@ def test_early_answering_formatter_chat():
         ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
     ]
 
-    messages = EarlyAnsweringFormatter.format_example(input_messages, EXAMPLE_COT, "gpt-3.5-turbo")
+    messages = FullCOTFormatter.format_example(input_messages, EXAMPLE_COT, "gpt-3.5-turbo")
 
     expected_list = [
         {

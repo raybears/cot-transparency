@@ -8,7 +8,7 @@ from cot_transparency.data_models.models import (
     StrictMessageRole,
 )
 from cot_transparency.formatters import PromptFormatter
-from cot_transparency.formatters.transparency.early_answering import FullCOTFormatter
+from cot_transparency.formatters.transparency.early_answering import EarlyAnsweringFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.model_apis import convert_to_strict_messages
 
@@ -143,7 +143,7 @@ class CompletePartialCOT(PromptFormatter):
         # inherit use of roles from the question
         should_use_roles = output[0].role is not MessageRole.none
 
-        if output[-1].role is MessageRole.assistant:
+        if output[-1].role is MessageRole.assistant or output[-1].role is MessageRole.none:
             message = f"{output[-1].content}{partial_cot_trace}"
             output.pop()
         else:
@@ -168,6 +168,6 @@ class CompletePartialCOT(PromptFormatter):
         return response
 
 
-class FullCOTWithMistakeFormatter(FullCOTFormatter):
+class FullCOTWithMistakeFormatter(EarlyAnsweringFormatter):
     # Exactly the same as EarlyAnsweringFormatter
     pass

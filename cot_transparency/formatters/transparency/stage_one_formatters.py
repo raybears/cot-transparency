@@ -10,10 +10,10 @@ from cot_transparency.data_models.models import ChatMessage
 
 
 from typing import Optional
-from cot_transparency.formatters.transparency.early_answering import (
-    GIVEN_ALL_OF_THE_ABOVE,
+from cot_transparency.formatters.transparency.util import (
     SINGLE_MOST_LIKELY_ANSWER_COMPLETION,
 )
+from cot_transparency.formatters.transparency.util import GIVEN_ALL_OF_THE_ABOVE
 
 from cot_transparency.formatters.util import load_few_shots
 
