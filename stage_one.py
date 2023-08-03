@@ -12,11 +12,11 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
 from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.formatters.transparency.stage_one_formatters import FormattersForTransparency
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTUnbiasedFormatter,
-    FewShotCOTUnbiasedTameraTFormatter,
 )
 from cot_transparency.data_models.models import ExperimentJsonFormat
 from cot_transparency.tasks import TaskSetting
@@ -186,7 +186,7 @@ def main(
 
             # Get config and override temperature if needed
             config = CONFIG_MAP[model].copy()
-            if formatter == FewShotCOTUnbiasedTameraTFormatter:
+            if formatter == FormattersForTransparency:
                 few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
                 print("ADDING STOPS", few_shot_stops)
                 if isinstance(config.stop, list):
