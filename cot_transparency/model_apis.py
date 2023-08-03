@@ -33,7 +33,7 @@ def convert_to_strict_messages(
 
         if model == "gpt-3.5-turbo" or model == "gpt-4" or model == "gpt-3.5-turbo-16k":
             strict_prompt = format_for_openai_chat(flex_prompt)
-        elif model == "claude-v1" or model == "text-davinci-003":
+        elif "claude" in model or model == "text-davinci-003":
             strict_prompt = format_for_completion(flex_prompt)
         else:
             raise ValueError(f"Unknown model {model}")
