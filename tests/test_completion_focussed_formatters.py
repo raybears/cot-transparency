@@ -19,7 +19,7 @@ def test_completion_based_formatter():
     strict_messages = convert_to_strict_messages(messages, model)
     prompt = Prompt(messages=strict_messages)
 
-    correct_ending = """Question: Three birds are flying at a fast rate of 900 kilometers per hour. What is their speed in miles per minute? [1km = 0.6 miles] 
+    correct_ending = """Question: Three birds are flying at a fast rate of 900 kilometers per hour. What is their speed in miles per minute? [1km = 0.6 miles]
 
 Answer choices:
 (A): 32400
