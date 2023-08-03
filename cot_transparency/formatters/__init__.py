@@ -29,6 +29,12 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordNoCOTFormatter,
 )
 
+from cot_transparency.formatters.transparency.stage_one_formatters import (
+    ZeroShotCOTUnbiasedTameraTFormatter,
+    FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
+    FewShotCOTUnbiasedTameraTFormatter,
+)
+
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
     if not name_to_formatter(biased_formatter_name).is_biased:
@@ -59,3 +65,34 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
 def name_to_formatter(name: str) -> Type[PromptFormatter]:
     mapping = PromptFormatter.all_formatters()
     return mapping[name]
+
+
+__all__ = [
+    "bias_to_unbiased_formatter",
+    "name_to_formatter",
+    "PromptFormatter",
+    "ZeroShotCOTSycophancyFormatter",
+    "ZeroShotCOTSycophancyNoRoleFormatter",
+    "ZeroShotCOTSycophancyToldBiasFormatter",
+    "ZeroShotSycophancyFormatter",
+    "ZeroShotSycophancyNoRoleFormatter",
+    "ZeroShotCOTUnbiasedFormatter",
+    "ZeroShotCOTUnbiasedNoRoleFormatter",
+    "ZeroShotUnbiasedFormatter",
+    "ZeroShotUnbiasedNoRoleFormatter",
+    "StanfordBiasedFormatter",
+    "StanfordTreatmentFormatter",
+    "CrossBiasedFormatter",
+    "CrossTreatmentFormatter",
+    "CheckmarkBiasedFormatter",
+    "CheckmarkTreatmentFormatter",
+    "IThinkAnswerTreatmentFormatter",
+    "IThinkAnswerBiasedFormatter",
+    "StanfordCalibratedFormatter",
+    "CrossNoCOTFormatter",
+    "CheckmarkNoCOTFormatter",
+    "StanfordNoCOTFormatter",
+    "ZeroShotCOTUnbiasedTameraTFormatter",
+    "FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter",
+    "FewShotCOTUnbiasedTameraTFormatter",
+]

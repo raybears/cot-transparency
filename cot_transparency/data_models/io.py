@@ -48,8 +48,8 @@ class ExpLoader:
 
     @staticmethod
     def stage_two_mistake_generation(exp_dir: str) -> dict[tuple[str, str, str], StageTwoExperimentJsonFormat]:
-        # format is exp_dir/task_name/mistake_generation/model/formatter.json
-        paths = ExpLoader.get_paths(exp_dir, subpath="*/mistake_generation/*/*.json")
+        # format is exp_dir/mistake_generation/cot-model/task/mistake-model/formatter.json
+        paths = ExpLoader.get_paths(exp_dir, subpath="./mistake_generation/*/*/*.json")
         output = {}
         for path in paths:
             with open(path) as f:

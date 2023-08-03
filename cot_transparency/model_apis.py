@@ -14,6 +14,7 @@ from cot_transparency.openai_utils.inference import (
 )
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.openai_utils.set_key import set_opeani_org_from_env_rand
+from pydantic import BaseModel
 
 
 def messages_has_none_role(prompt: list[StrictChatMessage] | list[ChatMessage]) -> bool:
@@ -40,48 +41,51 @@ def convert_to_strict_messages(
     return strict_prompt
 
 
-def call_model_api(prompt: list[ChatMessage] | list[StrictChatMessage], config: OpenaiInferenceConfig) -> str:
+class Prompt(BaseModel):
+    messages: list[StrictChatMessage]
+
+    def convert_to_anthropic_str(self) -> str:
+        if messages_has_none_role(self.messages):
+            raise ValueError(f"Anthropic chat messages cannot have a None role. Got {self.messages}")
+        return self.convert_to_completion_str()
+
+    def convert_to_completion_str(self) -> str:
+        message = ""
+        for msg in self.messages:
+            match msg.role:
+                case StrictMessageRole.user:
+                    message += f"{anthropic.HUMAN_PROMPT} {msg.content}"
+                case StrictMessageRole.assistant:
+                    message += f"{anthropic.AI_PROMPT} {msg.content}"
+                case StrictMessageRole.none:
+                    message += f"\n\n{msg.content}"
+                case StrictMessageRole.system:
+                    # No need to add something infront for system messages
+                    message += f"\n\n{msg.content}"
+        return message
+
+
+def call_model_api(messages: list[ChatMessage] | list[StrictChatMessage], config: OpenaiInferenceConfig) -> str:
     set_opeani_org_from_env_rand()
-    strict_prompt = convert_to_strict_messages(prompt, config.model)
+    strict_messages = convert_to_strict_messages(messages, config.model)
+    prompt = Prompt(messages=strict_messages)
 
     model_name = config.model
     if model_name == "gpt-3.5-turbo" or model_name == "gpt-3.5-turbo-16k":
-        return gpt3_5_rate_limited(config=config, messages=strict_prompt).completion
+        return gpt3_5_rate_limited(config=config, messages=strict_messages).completion
 
     elif model_name == "gpt-4" or model_name == "gpt-4-32k":
         # return "fake openai response, The best answer is: (A)"
-        return gpt4_rate_limited(config=config, messages=strict_prompt).completion
+        return gpt4_rate_limited(config=config, messages=strict_messages).completion
 
     elif "claude" in model_name:
-        formatted = convert_to_anthropic_str(strict_prompt)
+        formatted = prompt.convert_to_anthropic_str()
         return anthropic_chat(config=config, prompt=formatted)
 
     # openai not chat, e.g. text-davinci-003 or code-davinci-002
     else:
-        formatted = convert_to_completion_str(strict_prompt)
+        formatted = prompt.convert_to_completion_str()
         return get_openai_completion(config=config, prompt=formatted).completion
-
-
-def convert_to_anthropic_str(prompt: list[StrictChatMessage]) -> str:
-    if messages_has_none_role(prompt):
-        raise ValueError(f"Anthropic chat messages cannot have a None role. Got {prompt}")
-    return convert_to_completion_str(prompt)
-
-
-def convert_to_completion_str(prompt: list[StrictChatMessage]) -> str:
-    message = ""
-    for msg in prompt:
-        match msg.role:
-            case StrictMessageRole.user:
-                message += f"{anthropic.HUMAN_PROMPT} {msg.content}"
-            case StrictMessageRole.assistant:
-                message += f"{anthropic.AI_PROMPT} {msg.content}"
-            case StrictMessageRole.none:
-                message += f"\n\n{msg.content}"
-            case StrictMessageRole.system:
-                # No need to add something infront for system messages
-                message += f"\n\n{msg.content}"
-    return message
 
 
 def format_for_completion(prompt: list[ChatMessage]) -> list[StrictChatMessage]:

@@ -22,7 +22,7 @@ class MMLUExample(DataExampleBase):
 
     def get_parsed_input(self) -> str:
         options = self.process_options(self.options)
-        return f"Question: {self.question}\n\nAnswer choices:\n{options}"
+        return f"{self.question}\n\nAnswer choices:\n{options}"
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:

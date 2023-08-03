@@ -3,12 +3,12 @@ from typing import Optional
 from cot_transparency.data_models.models import (
     ChatMessage,
     MessageRole,
-    MistakeAdddingInfo,
+    TraceInfo,
     StrictChatMessage,
     StrictMessageRole,
 )
 from cot_transparency.formatters import PromptFormatter
-from cot_transparency.formatters.transparency.early_answering import EarlyAnsweringFormatter
+from cot_transparency.formatters.transparency.early_answering import FullCOTFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.model_apis import convert_to_strict_messages
 
@@ -102,11 +102,11 @@ class FewShotGenerateMistakeFormatter(PromptFormatter):
 
         # use the get cot steps function to guard against the model giving us more than one sentence / cot
         cot_steps_response = get_cot_steps(response)
-        if len(cot_steps_response) <= 1:
+        if len(cot_steps_response) == 0:
             print(f"Problem with '{response}'")
             # and just resample
             return None
-        first_step_returned = cot_steps_response[1]  # as the first one is blank
+        first_step_returned = cot_steps_response[0]  # as the first one is blank
 
         return first_step_returned
 
@@ -115,8 +115,7 @@ class CompletePartialCOT(PromptFormatter):
     @staticmethod
     def format_example(
         question: list[ChatMessage],
-        mistake_adding_info: MistakeAdddingInfo,
-        reasoning_step_with_mistake: str,
+        mistake_adding_info: TraceInfo,
         model: str,
     ) -> list[StrictChatMessage]:
         output = deepcopy(question)
@@ -124,8 +123,10 @@ class CompletePartialCOT(PromptFormatter):
         soutput = convert_to_strict_messages(question, model)
 
         original_cot = mistake_adding_info.original_cot
-        partial_cot = original_cot[: mistake_adding_info.mistake_added_at]
-        original_sentence = original_cot[mistake_adding_info.mistake_added_at]
+        mistake_inserted_idx = mistake_adding_info.get_mistake_inserted_idx()
+        reasoning_step_with_mistake = mistake_adding_info.get_sentence_with_mistake()
+        partial_cot = original_cot[:mistake_inserted_idx]
+        original_sentence = original_cot[mistake_inserted_idx]
 
         # ensure that the original sentence has the same leading new lines as the original cot
         # as these are striped when we prompt the model to generate mistakes
@@ -134,7 +135,7 @@ class CompletePartialCOT(PromptFormatter):
             reasoning_step_with_mistake = " " + reasoning_step_with_mistake
 
         partial_cot_trace = "".join(partial_cot) + leading_newlines + reasoning_step_with_mistake
-        mistake_adding_info.modified_cot = partial_cot_trace
+        mistake_adding_info.cot_upto_and_including_mistake = partial_cot_trace
 
         # convert back to ChatMessage, so we can use convert_to_strict_messages at the end
         output = [ChatMessage(role=MessageRole(msg.role), content=msg.content) for msg in soutput]
@@ -167,6 +168,6 @@ class CompletePartialCOT(PromptFormatter):
         return response
 
 
-class SingleBestAnswerFormatter(EarlyAnsweringFormatter):
+class FullCOTWithMistakeFormatter(FullCOTFormatter):
     # Exactly the same as EarlyAnsweringFormatter
     pass

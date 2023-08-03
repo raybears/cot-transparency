@@ -36,10 +36,11 @@ def call_model_until_suitable_response(
     response = call_model_api(messages, config)
     # extract the answer
     parsed_response = formatter.parse_answer(response)
+
     if not parsed_response:
         raise AnswerNotFound(
             f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response}'"
-            f"last two messages were: {messages[-2]} and {messages[-1]}"
+            f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
         )
     return ModelOutput(raw_response=response, parsed_response=parsed_response)
 

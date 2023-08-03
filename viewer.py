@@ -1,6 +1,6 @@
 from typing import Any, Callable, Optional, Union
 import fire
-from cot_transparency.model_apis import convert_to_completion_str, convert_to_strict_messages
+from cot_transparency.model_apis import Prompt, convert_to_strict_messages
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     StageTwoExperimentJsonFormat,
@@ -33,12 +33,15 @@ class GUI:
         self.keys = list(self.json_dict.keys())
         self.index = 0
         self.fontsize = 16
-        self.alignment = "center"  # change to "center" to center align
+        self.alignment = "w"  # change to "center" to center align
         self.task_var = self.keys[0][0]
         self.update_callback = update_callback or (lambda: None)
+        drop_down_width = 40
+
+        self.show_cot_info = isinstance(self.json_dict[self.keys[0]], StageTwoExperimentJsonFormat)
 
         self.file_label = Label(frame, text="Select a file:", font=("Arial", self.fontsize))
-        self.file_label.pack(anchor=self.alignment)
+        self.file_label.pack(anchor="center")
 
         self.model_var = StringVar(frame)
         self.model_var.set(self.keys[0][1])  # default value
@@ -49,14 +52,14 @@ class GUI:
         self.model_dropdown = OptionMenu(
             frame, self.model_var, *{key[1] for key in self.keys}, command=self.select_json
         )
-        self.model_dropdown.config(font=("Arial", self.fontsize))
-        self.model_dropdown.pack(anchor=self.alignment)
+        self.model_dropdown.config(font=("Arial", self.fontsize), width=drop_down_width)
+        self.model_dropdown.pack(anchor="center")
 
         self.formatter_dropdown = OptionMenu(
             frame, self.formatter_var, *{key[2] for key in self.keys}, command=self.select_json
         )
-        self.formatter_dropdown.config(font=("Arial", self.fontsize))
-        self.formatter_dropdown.pack(anchor=self.alignment)
+        self.formatter_dropdown.config(font=("Arial", self.fontsize), width=drop_down_width)
+        self.formatter_dropdown.pack(anchor="center")
 
         self.label2 = Label(frame, text="Messages:", font=("Arial", self.fontsize))
         self.label2.pack(anchor=self.alignment)
@@ -82,15 +85,32 @@ class GUI:
             font=("Arial", self.fontsize),
         )
         self.label3.pack(anchor=self.alignment)
-        self.output_text = Text(self.output_frame, width=width - config_width, height=10, font=("Arial", self.fontsize))
+        self.output_text = Text(self.output_frame, width=width - config_width, height=6, font=("Arial", self.fontsize))
         self.output_text.pack(anchor=self.alignment)
-
-        self.parsed_ans_label = Label(frame, text="Parsed Answer:", font=("Arial", self.fontsize))
-        self.parsed_ans_label.pack(anchor=self.alignment)
         self.parsed_ans_text = Text(
-            self.output_frame, width=width - config_width, height=1, font=("Arial", self.fontsize)
+            self.output_frame, width=width - config_width, height=4, font=("Arial", self.fontsize)
         )
+        self.parsed_ans_text.pack(anchor=self.alignment)
+
         self.output_frame.pack(side=LEFT)
+
+        if self.show_cot_info:
+            self.cots_frame = Frame(frame)
+            self.cot_texts = []
+            self.cot_labels = []
+            cots = ["Original COT:", "Modified COT:"]
+            for cot in cots:
+                cot_frame = Frame(self.cots_frame)
+                cot_label = Label(cot_frame, text=cot, font=("Arial", self.fontsize))
+                self.cot_labels.append(cot_label)
+                cot_label.pack(anchor=self.alignment)
+                cot_text = Text(cot_frame, width=width // 2, height=5, font=("Arial", self.fontsize))
+                cot_text.pack(anchor=self.alignment)
+                cot_text2 = Text(cot_frame, width=width // 2, height=5, font=("Arial", self.fontsize))
+                cot_text2.pack(anchor=self.alignment)
+                self.cot_texts.append((cot_text, cot_text2))
+                cot_frame.pack(side=LEFT)
+            self.cots_frame.pack(anchor=self.alignment)
 
         # Display the first JSON
         self.select_json()
@@ -123,12 +143,18 @@ class GUI:
         self.messages_text.delete("1.0", END)
         self.config_text.delete("1.0", END)
         self.output_text.delete("1.0", END)
+        self.parsed_ans_text.delete("1.0", END)
         # clear other fields as necessary
+        if self.show_cot_info:
+            for cot_text in self.cot_texts:
+                cot_text[0].delete("1.0", END)
+                cot_text[1].delete("1.0", END)
 
     def display_error(self):
         self.messages_text.insert(END, "DATA NOT FOUND")
         self.config_text.insert(END, "DATA NOT FOUND")
         self.output_text.insert(END, "DATA NOT FOUND")
+        self.parsed_ans_text.insert(END, "DATA NOT FOUND")
         # add to other fields as necessary
 
     def display_output(self):
@@ -138,18 +164,35 @@ class GUI:
         experiment = self.selected_exp
 
         # Clear previous text
-        self.config_text.delete("1.0", END)
-        self.messages_text.delete("1.0", END)
-        self.output_text.delete("1.0", END)
+        self.clear_fields()
 
         # Insert new text
         output = experiment.outputs[self.index]
 
         strict_messages = convert_to_strict_messages(output.task_spec.messages, output.task_spec.model_config.model)
-        formatted_output = convert_to_completion_str(strict_messages)
+        formatted_output = Prompt(messages=strict_messages).convert_to_completion_str()
         self.config_text.insert(END, str(output.task_spec.model_config.json(indent=2)))
         self.messages_text.insert(END, formatted_output)
         self.output_text.insert(END, str(output.first_raw_response))
+        self.parsed_ans_text.insert(END, str(output.first_parsed_response))
+
+        # insert cot stuff
+        task_spec = output.task_spec
+        if isinstance(task_spec, StageTwoTaskSpec):
+            if task_spec.trace_info:
+                print("changing!")
+                original_cot: list[str] = task_spec.trace_info.original_cot
+                self.cot_texts[0][0].insert(END, "".join(original_cot))
+                try:
+                    self.cot_texts[0][1].insert(END, original_cot[task_spec.trace_info.get_mistake_inserted_idx()])
+                    self.cot_texts[1][1].insert(END, task_spec.trace_info.get_sentence_with_mistake())
+                except ValueError:
+                    pass
+                self.cot_texts[1][0].insert(END, task_spec.trace_info.complete_modified_cot)
+                self.cot_labels[1].config(text=f"Modified COT, idx: {task_spec.trace_info.mistake_inserted_idx}")
+
+        else:
+            print("Not a stage two task spec")
 
 
 class CompareGUI:
@@ -226,6 +269,9 @@ class CompareGUI:
         index: int = self.base_guis[0].index
         output: Union[TaskOutput, StageTwoTaskOutput] = exp.outputs[index]
 
+        for gui in self.base_guis:
+            gui.display_output()
+
         if isinstance(output.task_spec, TaskSpec):
             self.ground_truth_label.config(text=f"Ground Truth: {output.task_spec.ground_truth}")
         elif isinstance(output.task_spec, StageTwoTaskSpec):
@@ -277,12 +323,12 @@ def sort_stage2(loaded_dict: dict[tuple[str, str, str], StageTwoExperimentJsonFo
             key=lambda x: (
                 x.task_spec.stage_one_output.task_spec.task_hash,
                 x.task_spec.stage_one_output.uid(),
-                x.task_spec.step_in_cot_trace,
+                x.task_spec.n_steps_in_cot_trace,
             )
         )  # type: ignore
 
 
-def main(exp_dir: str, width: int = 175, n_compare: int = 1):
+def main(exp_dir: str, width: int = 175, n_compare: int = 1, show_mistakes=True):
     # Load the JSONs here
     # establish if this stage one or stage two
 
@@ -292,6 +338,8 @@ def main(exp_dir: str, width: int = 175, n_compare: int = 1):
         loaded_jsons_with_tuples = convert_loaded_json_keys_to_tuples(loaded_jsons)
         sort_stage1(loaded_jsons_with_tuples)  # type: ignore
     else:
+        # if show_mistakes:
+        #     loaded_jsons = ExpLoader.stage_two_mistake_generation(exp_dir)
         loaded_jsons = ExpLoader.stage_two(exp_dir)
         loaded_jsons_with_tuples = convert_loaded_json_keys_to_tuples(loaded_jsons)
         sort_stage2(loaded_jsons_with_tuples)  # type: ignore

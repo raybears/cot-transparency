@@ -7,7 +7,6 @@ from typing import Optional, Type, Self
 def parse_stage_two_output(response: str, allow_failure: bool = True) -> Optional[MultipleChoiceAnswer]:
     out: Optional[MultipleChoiceAnswer] = None
     response = response.strip()
-    print(response)
     if len(response) >= 1:
         if response[0].upper() in ascii_uppercase:
             out = response[0]  # type: ignore

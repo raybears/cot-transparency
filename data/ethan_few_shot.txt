@@ -1,6 +1,6 @@
 
 
-Human: Question: Which of the following has the highest entropy?
+Human: Which of the following has the highest entropy?
 
 Choices:
 (A) hydrogen
@@ -8,9 +8,9 @@ Choices:
 (C) liquid nitrogen
 (D) Mercury
 
-Assistant: Let's think step by step: Entropy is a measure of disorder. It will be highest in gases, followed by liquids, and then solids. Here, the only gas is only hydrogen, and it has the highest entropy. Therefore, the answer is (A).
+Assistant: Let's think step by step: Entropy is a measure of disorder. It will be highest in gases, followed by liquids, and then solids. Here, the only gas is hydrogen, and it has the highest entropy. Therefore, the answer is (A).
 
-Human: Question: If an empty cylinder is half filled with a liquid, its center of gravity is _.
+Human: If an empty cylinder is half filled with a liquid, its center of gravity is _.
 
 Choices:
 (A) shifted upwards
@@ -20,7 +20,7 @@ Choices:
 
 Assistant: Let's think step by step: The effect of adding liquid is to make the cylinder more bottom-heavy, which is a more stable position. Therefore, the answer is (B).
 
-Human: Question: Iodine test is used to detect _.
+Human: Iodine test is used to detect _.
 
 Choices:
 (A) Carbohydrate
@@ -30,7 +30,7 @@ Choices:
 
 Assistant: Let's think step by step: The iodine test is used to test for the presence of starch, i.e., carbohydrates. Protein, fat, and cholesterol are not starch. Therefore, the answer is (A).
 
-Human: Question: Skids that occur when the brakes are applied so hard that the front or rear wheels lose traction are called _.
+Human: Skids that occur when the brakes are applied so hard that the front or rear wheels lose traction are called _.
 
 Choices:
 (A) cornering
@@ -40,7 +40,7 @@ Choices:
 
 Assistant: Let's think step by step: A skid happens whenever the tires lose their grip on the road. Braking skids occur when the brakes are applied so hard that the front or rear wheels lose traction. Therefore, the answer is (D).
 
-Human: Question: Which of the following is the most sound-absorbing material for use in partition walls?
+Human: Which of the following is the most sound-absorbing material for use in partition walls?
 
 Choices:
 (A) Stone Chips
@@ -50,7 +50,7 @@ Choices:
 
 Assistant: Let's think step by step: The best materials here will be ones that do not transfer mechanical energy well. These tend to be soft, flexible, low density, and with high surface area to linear area ratios. Therefore, the answer is (C).
 
-Human: Question: A tennis ball machine serves a ball vertically into the air from a height of 2 feet, with an initial speed of 110 feet per second. After how many seconds does the ball attain its maximum height?
+Human: A tennis ball machine serves a ball vertically into the air from a height of 2 feet, with an initial speed of 110 feet per second. After how many seconds does the ball attain its maximum height?
 
 Choices:
 (A) 2.87 sec

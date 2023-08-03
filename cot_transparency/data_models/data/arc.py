@@ -38,7 +38,7 @@ class ArcExample(DataExampleBase):
 
     def get_parsed_input(self) -> str:
         options = self.process_options(self.question.choices)
-        return f"Question: {self.question.stem}\n\nAnswer choices:\n{options}"
+        return f"{self.question.stem}\n\nAnswer choices:\n{options}"
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:

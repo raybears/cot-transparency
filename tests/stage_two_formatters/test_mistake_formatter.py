@@ -4,7 +4,7 @@ from cot_transparency.formatters.transparency.mistakes import (
     FewShotGenerateMistakeFormatter,
     START_PROMPT,
 )
-from cot_transparency.model_apis import convert_to_anthropic_str
+from cot_transparency.model_apis import Prompt
 
 from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
@@ -16,7 +16,7 @@ def test_mistake_formatter_anthropic():
         EMPIRE_OF_PANTS_EXAMPLE.get_parsed_input(), EXAMPLE_SENTENCE
     )
 
-    anthropic_format = convert_to_anthropic_str(prompt)
+    anthropic_format = Prompt(messages=prompt).convert_to_completion_str()
 
     expected = f"""\n\n{FEW_SHOT_PROMPT}
 

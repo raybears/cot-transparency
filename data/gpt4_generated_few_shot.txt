@@ -1,6 +1,6 @@
 
 
-Human: Question: If a piece of metal heats up when electricity is passed through it, it is likely to be _.
+Human: If a piece of metal heats up when electricity is passed through it, it is likely to be _.
 
 Choices:
 (A) an insulator
@@ -10,7 +10,7 @@ Choices:
 
 Assistant: Let's think step by step: Metals typically conduct electricity. In the process, they resist the flow of electric current to some extent. This resistance generates heat. Therefore, the answer is (B).
 
-Human: Question: What happens to the pressure in a container if the temperature is increased, but the volume remains the same?
+Human: What happens to the pressure in a container if the temperature is increased, but the volume remains the same?
 
 Choices:
 (A) The pressure decreases
@@ -20,7 +20,7 @@ Choices:
 
 Assistant: Let's think step by step: According to Gay-Lussac's law, the pressure of a gas is directly proportional to its absolute temperature if the volume is kept constant. Therefore, if the temperature is increased, the pressure also increases. Therefore, the answer is (C).
 
-Human: Question: Which property is shared by all alkaline earth metals?
+Human: Which property is shared by all alkaline earth metals?
 
 Choices:
 (A) They are gases at room temperature
@@ -30,7 +30,7 @@ Choices:
 
 Assistant: Let's think step by step: Alkaline earth metals are shiny, have two electrons in their outer shell, and they can react with water, but not necessarily to form hydrogen gas. Therefore, the answer is (D).
 
-Human: Question: What does the term 'biodegradable' imply?
+Human: What does the term 'biodegradable' imply?
 
 Choices:
 (A) The substance can dissolve in water
@@ -40,7 +40,7 @@ Choices:
 
 Assistant: Let's think step by step: 'Biodegradable' refers to a substance that can break down naturally in the environment by the action of microorganisms. Therefore, the answer is (B).
 
-Human: Question: In the context of light, refraction occurs when _.
+Human: In the context of light, refraction occurs when _.
 
 Choices:
 (A) light bounces off a surface
@@ -50,7 +50,7 @@ Choices:
 
 Assistant: Let's think step by step: Refraction is the bending of light when it passes from one medium to another. Therefore, the answer is (C).
 
-Human: Question: What is the reason for day and night?
+Human: What is the reason for day and night?
 
 Choices:
 (A) The revolution of Earth around the Sun
@@ -60,7 +60,7 @@ Choices:
 
 Assistant: Let's think step by step: Day and night occur because the Earth rotates on its axis. When one side of the Earth faces the Sun, it is day, and when it faces away from the Sun, it is night. Therefore, the answer is (B).
 
-Human: Question: What happens when a spring is compressed?
+Human: What happens when a spring is compressed?
 
 Choices:
 (A) Its potential energy decreases
@@ -70,7 +70,7 @@ Choices:
 
 Assistant: Let's think step by step: When a spring is compressed, the work done on it is stored as potential energy. Therefore, the potential energy of the spring increases. Therefore, the answer is (B).
 
-Human: Question: How can one increase the buoyancy of an object in water?
+Human: How can one increase the buoyancy of an object in water?
 
 Choices:
 (A) Increase its density
@@ -80,7 +80,7 @@ Choices:
 
 Assistant: Let's think step by step: The buoyant force depends on the volume of water displaced by the object. Increasing the volume of the object or decreasing its density would increase the amount of water displaced, and thus increase the buoyancy. Therefore, the answer is (B).
 
-Human: Question: Why does ice float on water?
+Human: Why does ice float on water?
 
 Choices:
 (A) Ice is less dense than water
@@ -90,7 +90,7 @@ Choices:
 
 Assistant: Let's think step by step: Ice floats on water because it is less dense than water. Water is unique in that it becomes less dense as it freezes. Therefore, the answer is (A).
 
-Human: Question: In a food chain, which organisms are always at the start?
+Human: In a food chain, which organisms are always at the start?
 
 Choices:
 (A) Predators

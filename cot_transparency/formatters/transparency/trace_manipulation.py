@@ -38,10 +38,13 @@ def split_on_newlines(text: str) -> List[str]:
     return segments
 
 
-def split_on_sentences(line: str) -> List[str]:
+def split_on_sentences(line: str, preserve_new_lines: bool = True) -> List[str]:
     # hack to preserve newline characters as punkt tokenizer removes them
     # but we want split on new lines separately
-    line = line.replace("\n", "<NEWLINE>")
+    if preserve_new_lines:
+        line = line.replace("\n", "<NEWLINE>")
+    else:
+        line = line.replace("\n", " ")
 
     # split on sentence boundaries while preserving whitespace
     # using punkt tokenizer
@@ -59,21 +62,36 @@ def split_on_sentences(line: str) -> List[str]:
 
     # add back in the newline characters
     segments = [segment.replace("<NEWLINE>", "\n") for segment in segments]
+
+    # if not preserving new lines ensure segments all end with a full stop
+    if not preserve_new_lines:
+        for i, segment in enumerate(segments[1:]):
+            if not segment.endswith("."):
+                segment = segment + "."
+                segments[i + 1] = segment
+
     return segments
 
 
-def split_string(text: str) -> List[str]:
+def split_string(text: str, preserve_line_breaks: bool = True) -> List[str]:
     lines = split_on_newlines(text)
     # split each line on sentences
-    sentences = [sentence for line in lines for sentence in split_on_sentences(line)]
+    sentences = [
+        sentence
+        for line in lines
+        for sentence in split_on_sentences(
+            line,
+            preserve_new_lines=preserve_line_breaks,
+        )
+    ]
     return sentences
 
 
-def get_cot_steps(cot_part: str) -> List[str]:
+def get_cot_steps(cot_part: str, preserve_line_breaks: bool = True) -> List[str]:
     # Split on sentence and line breaks as per "Measuring Transparency in Chain-of-Thought Reasoning"
-    cot_sentences = split_string(cot_part)
+    cot_sentences = split_string(cot_part, preserve_line_breaks=preserve_line_breaks)
 
-    cot_steps = [""]
+    cot_steps = []
     prefix = ""
     for step in cot_sentences:
         if not contains_reasoning(step):

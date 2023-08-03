@@ -6,12 +6,12 @@ from cot_transparency.data_models.models import ChatMessage, MessageRole
 def split_anthropic_style_text(text: str) -> list[tuple[ChatMessage, ChatMessage]]:
     # this is broken up by \n\nHuman: and \n\nAssistant:
     # return list of ChatMessages
-    messages = text.split("\n\nHuman:")[1:]
+    messages = text.split("\n\nHuman: ")[1:]
 
     list_of_chat_messages: list[tuple[ChatMessage, ChatMessage]] = []
 
     for dialogue in messages:
-        human_dialogue, assistant_dialogue = dialogue.split("\n\nAssistant:")
+        human_dialogue, assistant_dialogue = dialogue.split("\n\nAssistant: ")
 
         message_pairs = (
             ChatMessage(role=MessageRole.user, content=human_dialogue),

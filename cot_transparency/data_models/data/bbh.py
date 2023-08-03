@@ -21,7 +21,13 @@ class MilesBBHRawData(DataExampleBase):
     parsed_inputs: str
 
     def get_parsed_input(self) -> str:
-        return self.parsed_inputs
+        # strip leading "Q: " or "Question: " as we want to be able to control this manually
+        if self.parsed_inputs.startswith("Q: "):
+            return self.parsed_inputs[3:]
+        elif self.parsed_inputs.startswith("Question: "):
+            return self.parsed_inputs[10:]
+        else:
+            return self.parsed_inputs
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
