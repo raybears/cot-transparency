@@ -187,6 +187,8 @@ class TestToRun(BaseModel):
     prompt: str
     original_task: TaskSpec
     joined_stats: JoinedStats
+    # the actual prompt
+    prompts: list[StrictChatMessage] = []
 
 
 def highest_key_in_dict(d: dict[str, float]) -> str:
@@ -455,6 +457,8 @@ def run_calibration(
     unbiased_formatter_name: str,
     biased_formatter_name: str,
     model: str,
+    max_per_subset: int,
+    n_threads: int,
 ) -> None:
     set_keys_from_env()
     fp = Path(write_name)
@@ -475,14 +479,14 @@ def run_calibration(
             biased_formatter_name=biased_formatter_name,
             unbiased_formatter_name=unbiased_formatter_name,
             bias_name="stanford professor giving his opinion",
-            max_per_subset=18,
+            max_per_subset=max_per_subset,
             model=model,
             test_task_name=task,
         )
         all_tests.extend(prompts)
     print(f"Total tests: {len(all_tests)}")
     limited: Slist[TestToRun] = Slist(all_tests).take(limit)
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=n_threads)
 
     with open(write_name, "a"):
         future_instance_outputs: Sequence[Future[SavedTest | InvalidCompletion]] = (
@@ -618,15 +622,16 @@ def plot_calibration():
     nice_csv(limited_read)
     print(f"Total: {len(limited_read)}")
     unbiased_and_biased_acc(limited_read, name="overall")
-    inconsistent_only = limited_read.filter(lambda saved_test: saved_test.inconsistent_bias)
+    inconsistent_only, consistent_only = limited_read.split_by(lambda saved_test: saved_test.inconsistent_bias)
     unbiased_and_biased_acc(inconsistent_only, name="inconsistent_only")
 
     tricked, not_tricked = inconsistent_only.split_by(lambda saved_test: saved_test.previously_tricked_by_bias)
 
     unbiased_and_biased_acc(not_tricked, name="Accuracy on samples not tricked by the bias")
     unbiased_and_biased_acc(tricked, name="Accuracy on samples tricked by the bias")
-    plot_task_accuracy(limited_read, name="Overall")
-    plot_task_accuracy(inconsistent_only, name="Inconsistent only")
+    plot_task_accuracy(limited_read, name="Overall accuracy on tasks")
+    plot_task_accuracy(consistent_only, name="Accuracy on tasks with bias on correct answer")
+    plot_task_accuracy(inconsistent_only, name="Accuracy on tasks with bias on wrong answer")
 
 
 def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
@@ -661,14 +666,16 @@ def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
             TaskAndPlotDots(
                 task_name="Overall",
                 plot_dots=[
-                    PlotDots(acc=original_bias_output, name="Biased"),
-                    PlotDots(acc=original_unbiased_output, name="Unbiased"),
-                    PlotDots(acc=original_treatment_output, name="Treatment"),
+                    PlotDots(acc=original_bias_output, name="Biased context"),
+                    PlotDots(acc=original_unbiased_output, name="Unbiased context"),
+                    PlotDots(acc=original_treatment_output, name="Few shot counterfactual intervention"),
                 ],
             ),
         ],
-        title=f"Accuracy on the {name} task {original_bias_output.samples} samples",
-        save_file_path=f"{name} task acc",
+        title=f"{name}",
+        save_file_path=f"{name}",
+        # number of samples
+        subtitle=f"{original_bias_output.samples} samples",
     )
 
 
@@ -684,7 +691,8 @@ if __name__ == "__main__":
     4. ???
     5. PROFIT
     """
-
+    subset_max = 18
+    write_name = "experiments/calibrate.jsonl"
     run_calibration(
         limit=500,
         write_name="experiments/calibrate.jsonl",
@@ -692,5 +700,7 @@ if __name__ == "__main__":
         unbiased_formatter_name="ZeroShotUnbiasedFormatter",
         biased_formatter_name="StanfordNoCOTFormatter",
         model="gpt-4",
+        max_per_subset=subset_max,
+        n_threads=4,
     )
     plot_calibration()
