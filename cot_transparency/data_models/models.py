@@ -116,7 +116,7 @@ class TaskSpec(BaseModel):
     biased_ans: Optional[MultipleChoiceAnswer] = None
     # Note that this is empty for older experiments
     # This can't be the abstract class DataExampleBase because you can't instantiate it
-    data_example: dict[str, Any]
+    data_example: dict[str, Any] = {}
 
     def read_data_example_or_raise(self, data_type: Type[GenericDataExample]) -> GenericDataExample:
         return data_type(**self.data_example)
