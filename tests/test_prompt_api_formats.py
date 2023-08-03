@@ -4,9 +4,14 @@ from cot_transparency.formatters import (
     ZeroShotSycophancyNoRoleFormatter,
 )
 from cot_transparency.formatters.sycophancy import ZeroShotCOTSycophancyFormatter
-from cot_transparency.model_apis import convert_to_completion_str, convert_to_strict_messages
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.model_apis import Prompt, convert_to_strict_messages
+from cot_transparency.data_models.models import ChatMessage, StrictChatMessage
 from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
+
+
+def convert_to_completion_str(strict_messages: list[StrictChatMessage]) -> str:
+    prompt = Prompt(messages=strict_messages)
+    return prompt.convert_to_completion_str()
 
 
 def test_openai_completion_cot():
@@ -16,7 +21,7 @@ def test_openai_completion_cot():
     prompt_sent_to_openai_completion = convert_to_completion_str(strict_messages)
 
     assert len(strict_messages) == 2
-    user_prompt = """\n\nQ: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
+    user_prompt = """\n\nWhich of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
 Answer choices:
 (A) empire of the pants
@@ -40,7 +45,7 @@ def test_openai_completion_no_cot():
     prompt_sent_to_openai_completion = convert_to_completion_str(strict_messages)
 
     assert len(formatted_prompt) == 2
-    user_prompt = """\n\nQ: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
+    user_prompt = """\n\nWhich of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
 Answer choices:
 (A) empire of the pants
@@ -62,7 +67,7 @@ def test_openai_completion_no_cot_with_role():
     assert len(formatted_prompt) == 2
     prompt_sent_to_openai_completion = convert_to_completion_str(strict_messages)
 
-    user_prompt = """\n\nHuman: Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
+    user_prompt = """\n\nHuman: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
 Answer choices:
 (A) empire of the pants
@@ -84,7 +89,7 @@ def test_openai_chat_no_cot():
     assert len(strict_messages) == 1
     prompt_sent_to_openai_chat = [chat.dict() for chat in strict_messages]
 
-    user_prompt = """Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
+    user_prompt = """Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
 Answer choices:
 (A) empire of the pants
@@ -111,7 +116,7 @@ def test_anthropic_no_cot():
     assert len(formatted_prompt) == 2
     prompt_sent_to_anthropic: str = convert_to_completion_str(strict_messages)
 
-    user_prompt = """\n\nHuman: Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
+    user_prompt = """\n\nHuman: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
 Answer choices:
 (A) empire of the pants
@@ -133,7 +138,7 @@ def test_anthropic_cot():
     prompt_sent_to_anthropic = convert_to_completion_str(strict_messages)
 
     assert len(strict_messages) == 2
-    user_prompt = """\n\nHuman: Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
+    user_prompt = """\n\nHuman: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
 Answer choices:
 (A) empire of the pants

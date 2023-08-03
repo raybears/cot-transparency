@@ -57,6 +57,22 @@ class ChatMessage(HashableBaseModel):
     class Config:
         frozen = True
 
+    def __str__(self) -> str:
+        return f"{self.role}: {self.content}"
+
+    def remove_role(self) -> "ChatMessage":
+        return ChatMessage(role=MessageRole.none, content=self.content)
+
+    def add_question_prefix(self) -> "ChatMessage":
+        if self.content.startswith("Question: "):
+            return self
+        return ChatMessage(role=self.role, content=f"Question: {self.content}")
+
+    def add_answer_prefix(self) -> "ChatMessage":
+        if self.content.startswith("Answer: "):
+            return self
+        return ChatMessage(role=self.role, content=f"Answer: {self.content}")
+
 
 class StrictChatMessage(HashableBaseModel):
     role: StrictMessageRole
@@ -65,6 +81,9 @@ class StrictChatMessage(HashableBaseModel):
     class Config:
         frozen = True
         validate_assignment = True
+
+    def __str__(self) -> str:
+        return f"{self.role}: {self.content}"
 
 
 class ModelOutput(BaseModel):
@@ -128,13 +147,32 @@ class TaskOutput(BaseModel):
         return deterministic_hash(inp + response.raw_response)
 
 
+class TraceInfo(BaseModel):
+    original_cot: list[str]
+    mistake_inserted_idx: Optional[int] = None
+    cot_upto_and_including_mistake: Optional[str] = None
+    complete_modified_cot: Optional[str] = None
+    sentence_with_mistake: Optional[str] = None
+
+    def get_mistake_inserted_idx(self) -> int:
+        if self.mistake_inserted_idx is None:
+            raise ValueError("Mistake inserted idx is None")
+        return self.mistake_inserted_idx
+
+    def get_sentence_with_mistake(self) -> str:
+        if self.sentence_with_mistake is None:
+            raise ValueError("Sentence with mistake is None")
+        return self.sentence_with_mistake
+
+
 class StageTwoTaskSpec(BaseModel):
     stage_one_output: TaskOutput
     model_config: OpenaiInferenceConfig
     messages: list[StrictChatMessage]
     out_file_path: Path
     formatter_name: str
-    step_in_cot_trace: Optional[int] = None
+    trace_info: TraceInfo
+    n_steps_in_cot_trace: Optional[int] = None
 
     def uid(self) -> str:
         task_name = self.stage_one_output.task_spec.task_name

@@ -36,23 +36,6 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class ZeroShotCOTUnbiasedTameraTFormatter(StageOneFormatter):
-    is_biased = False
-    is_cot = True
-
-    @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
-        output = [
-            ChatMessage(role=MessageRole.user, content=question.get_parsed_input()),
-            ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT),
-        ]
-        return output
-
-    @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
-        return "Extraction not implemented for thing formatter"
-
-
 class ZeroShotUnbiasedFormatter(StageOneFormatter):
     is_biased = False
     is_cot = False

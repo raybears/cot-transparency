@@ -9,9 +9,9 @@ from cot_transparency.data_models.models import (
 import pandas as pd
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.transparency_plots import (
-    add_cot_trace_len,
     check_same_answer,
     plot_cot_trace,
+    plot_cot_trace_simple,
     plot_historgram_of_cot_steps,
 )
 from analysis import accuracy_for_df, TASK_MAP
@@ -26,8 +26,13 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
         d_with_config["ground_truth"] = task_output.task_spec.stage_one_output.task_spec.ground_truth
         d_with_config["stage_one_hash"] = task_output.task_spec.stage_one_output.task_spec.uid()
         d_with_config["stage_one_output_hash"] = task_output.task_spec.stage_one_output.uid()
+        d_with_config["stage_one_output"] = task_output.task_spec.stage_one_output.dict()
         d_with_config["biased_ans"] = task_output.task_spec.stage_one_output.task_spec.biased_ans
         d_with_config["task_hash"] = task_output.task_spec.stage_one_output.task_spec.task_hash
+        if task_output.task_spec.trace_info:
+            d_with_config["mistake_added_at"] = task_output.task_spec.trace_info.mistake_inserted_idx
+            d_with_config["original_cot_trace_length"] = len(task_output.task_spec.trace_info.original_cot)
+
         d_with_config = {**d_with_config, **task_output.model_output.dict()}
         out.append(d_with_config)
 
@@ -86,12 +91,45 @@ def plot_early_answering(
     if model_filter:
         df = df[df.model.isin(model_filter)]
 
-    df = add_cot_trace_len(df)
+    # Apply the check_same_answer function
+    df = df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
+
+    # Plot by task
+    plot_cot_trace(df, color_by_model=aggregate_over_tasks)
+
+    if show_plots:
+        plt.show()
+
+
+def plot_adding_mistakes(
+    exp_dir: str,
+    show_plots: bool = False,
+    inconsistent_only: bool = False,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    length_filter: Optional[list[int]] = None,
+):
+    df = get_data_frame_from_exp_dir(exp_dir)
+
+    if aggregate_over_tasks:
+        # replace task_name with the "parent" task name using the task_map
+        df["task_name"] = df["task_name"].replace(TASK_MAP)
+
+    if inconsistent_only:
+        df = df[df.biased_ans != df.ground_truth]
+        print("Number of inconsistent tasks: ", len(df))
+
+    if model_filter:
+        df = df[df.model.isin(model_filter)]
+
+    if length_filter:
+        df = df[df["original_cot_trace_length"].isin([2, 3, 4, 5, 6, 7, 8, 9, 10])]
 
     # Apply the check_same_answer function
     df = df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
 
     # Plot by task
+    plot_cot_trace_simple(df)
     plot_cot_trace(df, color_by_model=aggregate_over_tasks)
 
     if show_plots:
@@ -115,8 +153,6 @@ def accuracy(
     # replace formatter_name with stage_one_formatter_name
     # as we want to compare the accuracy of the stage_one formatter
     df["formatter_name"] = df["stage_one_formatter_name"]
-
-    df = add_cot_trace_len(df)
 
     if step_filter:
         df = df[df.cot_trace_length.isin(step_filter)]
@@ -150,6 +186,7 @@ if __name__ == "__main__":
         {
             "hist": plot_historgram_of_lengths,
             "early": plot_early_answering,
+            "mistakes": plot_adding_mistakes,
             "accuracy": accuracy,
         }
     )

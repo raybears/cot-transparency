@@ -7,7 +7,7 @@ from cot_transparency.data_models.models import ExperimentJsonFormat
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, write_csv_file_from_basemodel
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.model_apis import convert_to_completion_str, format_for_openai_chat
+from cot_transparency.model_apis import Prompt, format_for_openai_chat
 
 
 class FlatSimple(BaseModel):
@@ -19,7 +19,7 @@ class FlatSimple(BaseModel):
 
 
 def task_output_to_flat(task: TaskOutput) -> FlatSimple:
-    converted = convert_to_completion_str(format_for_openai_chat(task.task_spec.messages))
+    converted = Prompt(messages=format_for_openai_chat(task.task_spec.messages)).convert_to_completion_str()
     return FlatSimple(
         prompt=converted,
         full_response=task.first_raw_response,

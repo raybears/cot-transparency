@@ -1,0 +1,61 @@
+
+
+Human: Which of the following has the highest entropy?
+
+Choices:
+(A) hydrogen
+(B) Diamond
+(C) liquid nitrogen
+(D) Mercury
+
+Assistant: Let's think step by step: Entropy is a measure of disorder. It will be highest in gases, followed by liquids, and then solids. Here, the only gas is hydrogen, and it has the highest entropy. Therefore, the answer is (A).
+
+Human: If an empty cylinder is half filled with a liquid, its center of gravity is _.
+
+Choices:
+(A) shifted upwards
+(B) shifted downwards
+(C) shifted neither upwards nor downwards
+(D) shifted upwards or downwards depending on the density of the liquid
+
+Assistant: Let's think step by step: The effect of adding liquid is to make the cylinder more bottom-heavy, which is a more stable position. Therefore, the answer is (B).
+
+Human: Iodine test is used to detect _.
+
+Choices:
+(A) Carbohydrate
+(B) Fat
+(C) Protein
+(D) Cholesterol
+
+Assistant: Let's think step by step: The iodine test is used to test for the presence of starch, i.e., carbohydrates. Protein, fat, and cholesterol are not starch. Therefore, the answer is (A).
+
+Human: Skids that occur when the brakes are applied so hard that the front or rear wheels lose traction are called _.
+
+Choices:
+(A) cornering
+(B) blowout
+(C) power
+(D) braking
+
+Assistant: Let's think step by step: A skid happens whenever the tires lose their grip on the road. Braking skids occur when the brakes are applied so hard that the front or rear wheels lose traction. Therefore, the answer is (D).
+
+Human: Which of the following is the most sound-absorbing material for use in partition walls?
+
+Choices:
+(A) Stone Chips
+(B) Steel
+(C) Glass wool
+(D) Glass pieces
+
+Assistant: Let's think step by step: The best materials here will be ones that do not transfer mechanical energy well. These tend to be soft, flexible, low density, and with high surface area to linear area ratios. Therefore, the answer is (C).
+
+Human: A tennis ball machine serves a ball vertically into the air from a height of 2 feet, with an initial speed of 110 feet per second. After how many seconds does the ball attain its maximum height?
+
+Choices:
+(A) 2.87 sec
+(B) 3.44 sec
+(C) 4.65 sec
+(D) 5.41 sec
+
+Assistant: Let's think step by step: It is launched vertically with an initial speed of 110 ft/sec. It will reach maximum height when the speed drops to 0. Vo=110 feet per second. ho=2 feet. So, h(t) = -16t^2 +110t +2. Take the derivative: h' (t) = 110 -32t. The maximum height will be at the inflection when the derivative crosses the x-axis, then h' (t)=0. So, set h'(t)=0 and solve for t: 0 = 110 -32t. -110 = -32t. t=3.4375. t=3.44 seconds. Therefore, the answer is (B).

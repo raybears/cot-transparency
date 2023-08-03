@@ -147,7 +147,7 @@ def get_openai_completion(
             temperature=config.temperature,
             presence_penalty=config.presence_penalty,
             frequency_penalty=config.frequency_penalty,
-            top_p=1,
+            top_p=config.top_p,
             n=1,
             stream=False,
             stop=[config.stop] if isinstance(config.stop, str) else config.stop,

@@ -13,7 +13,11 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.openai_utils.set_key import set_keys_from_env
-from cot_transparency.formatters import ZeroShotCOTSycophancyFormatter, ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters import (
+    ZeroShotCOTSycophancyFormatter,
+    ZeroShotCOTUnbiasedFormatter,
+    FewShotCOTUnbiasedTameraTFormatter,
+)
 from cot_transparency.data_models.models import ExperimentJsonFormat
 from cot_transparency.tasks import TaskSetting
 from cot_transparency.util import get_exp_dir_name
@@ -50,8 +54,11 @@ CONFIG_MAP = {
     "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo": OpenaiInferenceConfig(model="gpt-3.5-turbo", temperature=1, max_tokens=1000, top_p=1.0),
     "text-davinci-003": OpenaiInferenceConfig(model="text-davinci-003", temperature=0.7, max_tokens=1000, top_p=1.0),
+    "code-davinci-002": OpenaiInferenceConfig(model="code-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
+    "text-davinci-002": OpenaiInferenceConfig(model="text-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
+    "davinici": OpenaiInferenceConfig(model="davinci", temperature=1, max_tokens=1000, top_p=1.0),
     "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
-    "claude-2": OpenaiInferenceConfig(model="claude-2", temperature=1, max_tokens=1000, top_p=1.0),
+    "claude-2": OpenaiInferenceConfig(model="claude-1", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
 }
@@ -179,6 +186,17 @@ def main(
 
             # Get config and override temperature if needed
             config = CONFIG_MAP[model].copy()
+            if formatter == FewShotCOTUnbiasedTameraTFormatter:
+                few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
+                print("ADDING STOPS", few_shot_stops)
+                if isinstance(config.stop, list):
+                    config.stop += few_shot_stops
+                else:
+                    config.stop = few_shot_stops
+                config.max_tokens = 300
+                config.temperature = 0.8
+                config.top_p = 0.95
+
             if temperature is not None:
                 print("Overriding temperature")
                 config.temperature = temperature

@@ -29,16 +29,16 @@ class ArcExample(DataExampleBase):
     def process_options(self, options: list[ArcChoices]) -> str:
         outputs = []
         for option in options:
-            # replace A)answer with (A): answer
+            # replace A)answer with (A) answer
             label = option.label
             label = self.maybe_convert_label(label)
             text = option.text
-            outputs.append(f"({label}): {text}")
+            outputs.append(f"({label}) {text}")
         return "\n".join(outputs)
 
     def get_parsed_input(self) -> str:
         options = self.process_options(self.question.choices)
-        return f"Question: {self.question.stem}\n\nAnswer choices:\n{options}"
+        return f"{self.question.stem}\n\nAnswer choices:\n{options}"
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:

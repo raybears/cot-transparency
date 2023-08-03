@@ -13,8 +13,8 @@ LoadedJsonType = Union[dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExpe
 
 class ExpLoader:
     @staticmethod
-    def get_paths(exp_dir: str) -> list[str]:
-        paths = glob(f"{exp_dir}/*/*/*.json", recursive=True)
+    def get_paths(exp_dir: str, subpath="*/*/*.json") -> list[str]:
+        paths = glob(f"{exp_dir}/{subpath}", recursive=True)
         if paths:
             print(f"Found {len(paths)} json files")
         else:
@@ -44,6 +44,28 @@ class ExpLoader:
         for path in paths:
             with open(path) as f:
                 output[Path(path)] = ExperimentJsonFormat(**json.load(f))
+        return output
+
+    @staticmethod
+    def stage_two_mistake_generation(exp_dir: str) -> dict[tuple[str, str, str], StageTwoExperimentJsonFormat]:
+        # format is exp_dir/mistake_generation/cot-model/task/mistake-model/formatter.json
+        paths = ExpLoader.get_paths(exp_dir, subpath="./mistake_generation/*/*/*.json")
+        output = {}
+        for path in paths:
+            with open(path) as f:
+                _path = Path(path)
+                output[(_path.parent.parent.parent.name, _path.parent.name, _path.name)] = StageTwoExperimentJsonFormat(
+                    **json.load(f)
+                )
+        return output
+
+    @staticmethod
+    def stage_two_cots_with_mistakes(exp_dir: str) -> dict[Path, StageTwoExperimentJsonFormat]:
+        paths = ExpLoader.get_paths(exp_dir, subpath="*/*/cots_with_mistakes/*.json")
+        output = {}
+        for path in paths:
+            with open(path) as f:
+                output[Path(path)] = StageTwoExperimentJsonFormat(**json.load(f))
         return output
 
 
