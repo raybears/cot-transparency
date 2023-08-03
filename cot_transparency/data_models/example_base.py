@@ -24,6 +24,24 @@ MultipleChoiceAnswer = Literal[
     "O",
     "NOT_FOUND",
 ]
+VALID_ANSWERS: set[MultipleChoiceAnswer] = {
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "NOT_FOUND",
+}
 
 
 class DataExampleBase(BaseModel, ABC):
