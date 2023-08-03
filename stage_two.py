@@ -21,7 +21,11 @@ from cot_transparency.formatters.transparency.early_answering import EarlyAnswer
 from cot_transparency.formatters.transparency.mistakes import (
     CompletePartialCOT,
     FewShotGenerateMistakeFormatter,
+    FullCOTWithMistakeCompletionFormatter,
     FullCOTWithMistakeFormatter,
+)
+from cot_transparency.formatters.transparency.stage_one_formatters import (
+    FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
 )
 from cot_transparency.formatters.transparency.stage_two_base import StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
@@ -245,12 +249,12 @@ def get_best_single_answer_tasks_given_mistakes(
             config.temperature = temperature
             config.max_tokens = 2  # code-davinci-002 doesn't return answer unless we set this to 2
 
-        if stage_one_output.task_spec.formatter_name == FewShotGenerateMistakeFormatter.name():
-            pass
+        if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
+            Formatter = FullCOTWithMistakeCompletionFormatter
+        else:
+            Formatter = FullCOTWithMistakeFormatter
 
-        path = Path(
-            f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{FullCOTWithMistakeFormatter.name()}.json"
-        )
+        path = Path(f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json")
         trace_info = output.task_spec.trace_info
 
         partial_cot_with_mistake = trace_info.cot_upto_and_including_mistake
@@ -263,8 +267,8 @@ def get_best_single_answer_tasks_given_mistakes(
         final_task = StageTwoTaskSpec(
             stage_one_output=output.task_spec.stage_one_output,
             model_config=config,
-            formatter_name=FullCOTWithMistakeFormatter.name(),
-            messages=FullCOTWithMistakeFormatter.format_example(
+            formatter_name=Formatter.name(),
+            messages=Formatter.format_example(
                 stage_one_output.task_spec.messages, cot_trace_with_mistake, config.model
             ),
             out_file_path=path,

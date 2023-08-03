@@ -64,7 +64,6 @@ class FullCOTCompletionFormatter(FullCOTFormatter):
         messages = FullCOTFormatter.format_example(question, cot_trace, model)
         # assert none of the messages have message roles
         for msg in messages:
-            print(msg.role)
             assert msg.role is MessageRole.none or msg.role is StrictMessageRole.none
 
         messages.pop()

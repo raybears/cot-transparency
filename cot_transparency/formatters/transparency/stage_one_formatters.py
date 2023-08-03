@@ -18,7 +18,11 @@ from cot_transparency.formatters.transparency.util import GIVEN_ALL_OF_THE_ABOVE
 from cot_transparency.formatters.util import load_few_shots
 
 
-class ZeroShotCOTUnbiasedTameraTFormatter(StageOneFormatter):
+class FormattersForTransparency(StageOneFormatter):
+    pass
+
+
+class ZeroShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
     is_biased = False
     is_cot = True
 
@@ -35,7 +39,7 @@ class ZeroShotCOTUnbiasedTameraTFormatter(StageOneFormatter):
         return "Extraction not implemented for this formatter as expected to run stage_two"
 
 
-class FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter(StageOneFormatter):
+class FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter(FormattersForTransparency):
     is_biased = False
     is_cot = True
 
@@ -79,7 +83,7 @@ class FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter(StageOneFormatter):
         return ans
 
 
-class FewShotCOTUnbiasedTameraTFormatter(StageOneFormatter):
+class FewShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
     is_biased = False
     is_cot = True
 
