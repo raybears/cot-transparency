@@ -17,7 +17,7 @@ line-length = 120
 
 
 [tool.pyright]
-exclude = ["utils.py", "venv", "scripts/biased_wrong_answer.py", "scripts/calibrate.py"]
+exclude = ["utils.py", "venv", "scripts/calibrate.py"]
 
 strictListInference = true
 strictDictionaryInference = true
