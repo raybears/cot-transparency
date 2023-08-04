@@ -3,22 +3,23 @@ from typing import Optional
 
 from cot_transparency.data_models.example_base import VALID_ANSWERS, MultipleChoiceAnswer
 
+BREAK_WORDS: set[str] = {
+    "best answer is (",
+    "best answer is  (",
+    "best answer is: (",
+    "best answer is:(",
+    "best answer is:  (",
+    "best answer is:\n(",
+    "best answer is: \n(",
+    "best answer is:\n\n(",
+    "best answer is: ",
+    "best answer is ",
+}
+
 
 def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str]:
     # This is kinda janky lol
-    break_words = [
-        "best answer is (",
-        "best answer is  (",
-        "best answer is: (",
-        "best answer is:(",
-        "best answer is:  (",
-        "best answer is:\n(",
-        "best answer is: \n(",
-        "best answer is:\n\n(",
-        "best answer is: ",
-        "best answer is ",
-    ]
-    for break_word in break_words:
+    for break_word in BREAK_WORDS:
         if break_word not in model_answer:
             continue
         tmp = model_answer.split(break_word)
