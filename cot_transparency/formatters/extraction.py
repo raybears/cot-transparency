@@ -19,7 +19,19 @@ BREAK_WORDS: set[str] = {
 
 def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str]:
     # This is kinda janky lol
-    for break_word in BREAK_WORDS:
+    break_words = [
+        "best answer is (",
+        "best answer is  (",
+        "best answer is: (",
+        "best answer is:(",
+        "best answer is:  (",
+        "best answer is:\n(",
+        "best answer is: \n(",
+        "best answer is:\n\n(",
+        "best answer is: ",
+        "best answer is ",
+    ]
+    for break_word in break_words:
         if break_word not in model_answer:
             continue
         tmp = model_answer.split(break_word)
