@@ -113,7 +113,9 @@ def get_list_of_examples(dataset: str, task: str) -> list[DataExampleBase]:
     if dataset == "bbh":
         data = bbh.load_bbh(task)
     if dataset == "bbh_biased_wrong_cot":
-        data = read_jsonl_file_into_basemodel(Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH)
+        data = read_jsonl_file_into_basemodel(Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH).filter(
+            lambda x: x.task == task
+        )
     elif dataset == "transparency":
         if task == "aqua":
             data = aqua.dev()

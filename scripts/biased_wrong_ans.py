@@ -14,6 +14,8 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.model_apis import Prompt, format_for_openai_chat
 
+# ruff: noqa: E501
+
 
 class FlatSimple(BaseModel):
     prompt: str
@@ -71,17 +73,7 @@ def task_output_to_flat(task: TaskOutput) -> FlatSimple:
     )
 
 
-if __name__ == "__main__":
-    """Produces a jsonl containing answers that
-    1. are biased towards the user's choice
-    2. are wrong"""
-    jsons = ExpLoader.stage_one("experiments/bad_cot")
-    for v in jsons.values():
-        assert isinstance(v, ExperimentJsonFormat)
-
-    jsons_tasks: Slist[TaskOutput] = Slist(jsons.values()).map(lambda x: x.outputs).flatten_list()  # type: ignore
-    selected_formatter = "ZeroShotCOTSycophancyFormatter"
-    print(f"Number of jsons: {len(jsons_tasks)}")
+def filter_for_biased_wrong(jsons_tasks: Slist[TaskOutput], selected_formatter: str) -> Slist[TaskOutput]:
     results: Slist[TaskOutput] = (
         jsons_tasks.filter(lambda x: x.task_spec.formatter_name == selected_formatter)
         # only get the ones that are biased
@@ -96,12 +88,35 @@ if __name__ == "__main__":
         # only get the ones that are wrong
         .filter(lambda x: x.task_spec.biased_ans != x.task_spec.ground_truth)
     )
+    return results
+
+
+if __name__ == "__main__":
+    """Produces a dataset containing answers that
+    - are biased towards the user's choice
+    - are wrong
+    Steps
+    1. Run stage one with a biased
+     `python stage_one.py --exp_dir experiments/bad_cot --models '["gpt-3.5-turbo"]' --formatters '["ZeroShotCOTSycophancyFormatter"]'`
+    2. Run this script
+    3. This will produce a data.jsonl file in data/bbh_biased_wrong_cot
+    4. You can now see the performance of your model on this dataset by running stage one
+    python stage_one.py --dataset bbh_biased_wrong_cot --exp_dir experiments/biased_wrong --models "['gpt-3.5-turbo', 'gpt-4']" --formatters '["UserBiasedWrongCotFormatter", "ZeroShotCOTUnbiasedFormatter", "ZeroShotCOTSycophancyFormatter"]' --example_cap 60
+    """
+    jsons = ExpLoader.stage_one("experiments/bad_cot")
+    for v in jsons.values():
+        assert isinstance(v, ExperimentJsonFormat)
+
+    jsons_tasks: Slist[TaskOutput] = Slist(jsons.values()).map(lambda x: x.outputs).flatten_list()  # type: ignore
+    selected_formatter = "ZeroShotCOTSycophancyFormatter"
+    print(f"Number of jsons: {len(jsons_tasks)}")
+    results: Slist[TaskOutput] = filter_for_biased_wrong(jsons_tasks, selected_formatter)
+
     # convert to MilesBBHWithBadCot
     converted: Slist[BiasedWrongCOTBBH] = results.map(task_output_to_bad_cot).flatten_option()
     # write to jsonl
     write_jsonl_file_from_basemodel(path=Path("data/bbh_biased_wrong_cot/data.jsonl"), basemodels=converted)
 
-    # print(f"Number of results: {len(results)}")
-    # write_jsonl_file_from_basemodel(path=Path("meg_request.jsonl"), basemodels=results)
+    # This is if you want to view them as a CSV
     # flattened: Slist[FlatSimple] = results.map(task_output_to_flat)
     # write_csv_file_from_basemodel(path=Path("meg_request.csv"), basemodels=flattened)
