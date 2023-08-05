@@ -57,6 +57,10 @@ class FewShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
         msgs.append(ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT).add_answer_prefix())
         return msgs
 
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
+
 
 class FewShotUnbiasedNoRoleFormatter(StageOneFormatter):
     is_biased = False
@@ -77,6 +81,10 @@ class FewShotUnbiasedNoRoleFormatter(StageOneFormatter):
         msgs.append(ChatMessage(role=MessageRole.none, content=question.get_parsed_input()).add_question_prefix())
         msgs.append(ChatMessage(role=MessageRole.none, content=NON_COT_ASSISTANT_PROMPT).add_answer_prefix())
         return msgs
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
 
 
 class ZeroShotUnbiasedFormatter(StageOneFormatter):
