@@ -146,13 +146,6 @@ def main(
 
     validated_formatters = get_valid_stage1_formatters(formatters)
 
-    if dataset == "transparency":
-        for formatter in validated_formatters:
-            if formatter.is_biased:
-                raise ValueError(
-                    f"Formatter {formatter.name()} is biased. Transparency tasks should only use unbiased formatters."
-                )
-
     loaded_dict: dict[Path, ExperimentJsonFormat] = {}
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
     task_settings: list[TaskSetting] = create_task_settings(tasks=tasks, models=models, formatters=validated_formatters)
