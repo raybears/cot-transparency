@@ -25,7 +25,7 @@ class FlatSimple(BaseModel):
     biased_ans: str
 
 
-def bad_cot_extraction(completion: str) -> Optional[str]:
+def cot_extraction(completion: str) -> Optional[str]:
     """Extracts the biased cot from the completion
     This is done by taking the lines up til the first that contains best answer is: (
     """
@@ -42,7 +42,7 @@ def bad_cot_extraction(completion: str) -> Optional[str]:
 
 def task_output_to_bad_cot(task: TaskOutput) -> Optional[BiasedWrongCOTBBH]:
     # extract out the bad cot
-    bad_cot = bad_cot_extraction(task.first_raw_response)
+    bad_cot = cot_extraction(task.first_raw_response)
     raw_data = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     return (
         BiasedWrongCOTBBH(
