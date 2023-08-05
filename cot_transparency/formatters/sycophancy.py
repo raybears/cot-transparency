@@ -11,6 +11,7 @@ from cot_transparency.formatters.instructions import (
 )
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.formatters.util import get_few_shot_prompts
 
 
 def format_sycophancy_question(question: str, biased_answer: MultipleChoiceAnswer) -> str:
@@ -143,3 +144,45 @@ class ZeroShotSycophancyNoRoleFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
+
+
+class FewShotCOTSycophancyNoRoleFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
+            question.get_parsed_input()
+        )
+        msgs = []
+        for q, a, _ in few_shots:
+            msgs.append(q.remove_role().add_question_prefix())
+            msgs.append(a.remove_role().add_answer_prefix())
+
+        sycophancy_message = format_sycophancy_question(question.get_parsed_input(), question.biased_ans)
+        msgs.append(ChatMessage(role=MessageRole.none, content=sycophancy_message).add_question_prefix())
+        msgs.append(ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT).add_answer_prefix())
+        return msgs
+
+
+class FewShotSycophancyNoRoleFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
+            question.get_parsed_input()
+        )
+        msgs = []
+        for q, _, letter in few_shots:
+            msgs.append(q.remove_role().add_question_prefix())
+            # need to remove the cot from the answer, the answer is after Therefore the answer is (X).
+            answer = NON_COT_ASSISTANT_PROMPT + letter + ")."
+            msgs.append(ChatMessage(role=MessageRole.none, content=answer).add_answer_prefix())
+
+        sycophancy_message = format_sycophancy_question(question.get_parsed_input(), question.biased_ans)
+        msgs.append(ChatMessage(role=MessageRole.none, content=sycophancy_message).add_question_prefix())
+        msgs.append(ChatMessage(role=MessageRole.none, content=NON_COT_ASSISTANT_PROMPT).add_answer_prefix())
+        return msgs

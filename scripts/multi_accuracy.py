@@ -13,7 +13,8 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
-from stage_one import read_done_experiment, TASK_LIST
+from cot_transparency.tasks import read_done_experiment
+from stage_one import TASK_LIST
 
 
 class AccuracyOutput(BaseModel):

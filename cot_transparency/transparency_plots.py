@@ -6,110 +6,17 @@ import seaborn as sns
 import numpy as np
 
 
-def plot_historgram_of_cot_steps(
-    df: pd.DataFrame,
-    filter_at_step: Optional[int] = None,
-    task_filter: Optional[list[str]] = None,
-    norm_per_task: bool = True,
-):
-    if filter_at_step is None:
-        max_step = df["original_cot_trace_length"].max()
-    else:
-        max_step = filter_at_step
-
-    if task_filter is not None:
-        df = df[df["task_name"].isin(task_filter)]
-
-    unique_df = df.drop_duplicates(subset="stage_one_hash")
-    unique_df = unique_df[unique_df["original_cot_trace_length"] <= max_step]  # type: ignore
-
-    n_subplots = df["model"].nunique()
-
-    n_cols = 2
-    n_rows = math.ceil(n_subplots / n_cols)
-    fig, axs = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 4 * n_rows))
-
-    flat_axs = axs.flatten()
-    legend_labels = df["task_name"].unique()
-    handles = []
-
-    for i, model in enumerate(df["model"].unique()):
-        model_df = unique_df[["original_cot_trace_length", "model", "task_name"]][unique_df["model"] == model]
-        ax = flat_axs[i]
-        num_bins = max_step
-
-        if norm_per_task:
-            tasks = model_df["task_name"].unique()
-
-            bins = np.linspace(1, max_step, num_bins)
-            hist_df = pd.DataFrame()
-
-            for task in tasks:
-                task_values = model_df.loc[model_df["task_name"] == task, "original_cot_trace_length"]
-                print(f"Number of traces for task {task}, model {model}", len(task_values))
-                print(model_df[model_df["task_name"] == task].groupby("original_cot_trace_length").count())
-                hist, _ = np.histogram(task_values, bins=bins, density=True)
-                hist_df[task] = hist
-
-            long_hist_df = hist_df.reset_index().melt(id_vars="index", var_name="task_name", value_name="frequency")
-
-            sns.barplot(data=long_hist_df, x="index", y="frequency", hue="task_name", ax=ax).legend(title="Task name")
-
-        else:
-            sns.histplot(
-                data=model_df,
-                x="original_cot_trace_length",
-                hue="task_name",
-                multiple="stack",
-                bins=num_bins,  # type: ignore
-                shrink=0.8,  # type: ignore
-                ax=ax,
-                legend=False,
-            )
-
-            # Add the patches from this ax to the handles
-            # patches are n_bins then n_tasks
-            patches = np.array(ax.patches).reshape(len(df["task_name"].unique()), num_bins)
-            handles.extend(patches[:, 0])
-
-        ax.set_title(f"{model}")  # type: ignore
-        ax.set_xlabel("Number of steps in COT trace")  # type: ignore
-        ax.set_ylabel("Frequency")  # type: ignore
-
-    # Add a shared legend for the entire figure
-    if norm_per_task:
-        handles, labels = ax.get_legend_handles_labels()  # type: ignore
-        fig.legend(handles, labels, loc="lower center", ncol=6, bbox_to_anchor=(0.5, 0.0), title="Task name")
-        # remove the legends on the subplots
-        for i in range(n_subplots):
-            ax = flat_axs[i]
-            ax.get_legend().remove()  # type: ignore
-    else:
-        # Sort handles based on their original order in the 'task_name' column
-        legend_labels = df["task_name"].unique()  # Keep track of unique labels for the legend
-        handles = [handle for _, handle in sorted(zip(legend_labels, handles))]
-        fig.legend(handles, legend_labels, title="Task name", loc="lower center", ncol=6, bbox_to_anchor=(0.5, 0.0))
-
-    for i in range(n_subplots, n_cols * n_rows):
-        fig.delaxes(axs.flatten()[i])
-
-    plt.tight_layout()
-    fig.subplots_adjust(bottom=0.14)
-    plt.show()
-
-
 def check_same_answer(group: pd.DataFrame, formatter_name_for_max: Optional[str] = None) -> pd.DataFrame:
     breakpoint()
-    max_step_row = group[group["n_steps_in_cot_trace"] == group["original_cot_trace_length"]]  # type: ignore
+    max_step_row = group[group["cot_trace_length"] == group["original_cot_trace_length"]]  # type: ignore
     assert len(max_step_row) <= 1, "There should only be one row with max step"
     group["same_answer"] = group["parsed_response"] == max_step_row["parsed_response"].iloc[0]
     return group
 
 
 def plot_cot_trace_simple(df: pd.DataFrame):
-    df["proportion_of_cot"] = df["n_steps_in_cot_trace"] / df["original_cot_trace_length"]
-
     # round each proportion of cot to nearest 0.1 and then group by that
+
     df["proportion_of_cot"] = df["proportion_of_cot"].round(1)
 
     sns.lineplot(df, x="proportion_of_cot", y="same_answer", hue="model", alpha=0.5)
@@ -125,7 +32,7 @@ def plot_cot_trace(
     print("---------------- Counts -----------------")
     count_groups = ["task_name", "original_cot_trace_length", "stage_one_formatter_name", "model"]
     # filter on n_steps_in_cot_trace == max as we only want to count the number of cot_traces
-    counts = df[df.n_steps_in_cot_trace == df.original_cot_trace_length - 1]
+    counts = df[df.cot_trace_length == df.original_cot_trace_length]
     counts = counts.groupby(count_groups)["same_answer"].count().reset_index()
 
     # rename same_answer
@@ -136,6 +43,7 @@ def plot_cot_trace(
         values="num_samples",  # type: ignore
     )  # type: ignore
     print(counts_pivot)
+    breakpoint()
 
     unique_plots = df["stage_one_formatter_name"].unique()
     title = "{task}-step CoT"
@@ -149,16 +57,12 @@ def plot_cot_trace(
         fig, axs = plt.subplots(nrows, ncols, figsize=(4 * ncols, 3 * nrows))
         filtered_df = df[df["stage_one_formatter_name"] == plot]
         proportion_df = (
-            filtered_df.groupby(["task_name", "original_cot_trace_length", "n_steps_in_cot_trace", "model"])[
-                "same_answer"
-            ]
+            filtered_df.groupby(["task_name", "cot_trace_length", "original_cot_trace_length", "model"])["same_answer"]
             .mean()
             .reset_index()
         )
         accuracy_df = (
-            filtered_df.groupby(["task_name", "original_cot_trace_length", "n_steps_in_cot_trace", "model"])[
-                "is_correct"
-            ]
+            filtered_df.groupby(["task_name", "cot_trace_length", "original_cot_trace_length", "model"])["is_correct"]
             .mean()
             .reset_index()
         )
@@ -187,13 +91,13 @@ def plot_cot_trace(
                         color_idx = task_idx
                         line_style_idx = model_idx
                     data = proportion_df[
-                        (proportion_df["original_cot_trace_length"] == length)
+                        (proportion_df["cot_trace_length"] == length)
                         & (proportion_df["task_name"] == task_name)
                         & (proportion_df["model"] == model)
                     ]
                     label = f"{task_name}"
 
-                    step_in_cot_percent = data["n_steps_in_cot_trace"] / (length - 1) * 100
+                    step_in_cot_percent = data["cot_trace_length"] / (length - 1) * 100
                     same_answer_percent = data["same_answer"] * 100
                     line = ax.plot(
                         step_in_cot_percent,
@@ -205,10 +109,10 @@ def plot_cot_trace(
                     ax.scatter(step_in_cot_percent, same_answer_percent, color=colors[color_idx], s=3, marker="x")
 
                     acc_data = accuracy_df[
-                        (accuracy_df["task_name"] == task_name) & (accuracy_df["original_cot_trace_length"] == length)
+                        (accuracy_df["task_name"] == task_name) & (accuracy_df["cot_trace_length"] == length)
                     ]
-                    acc_with_no_cot = acc_data[acc_data["n_steps_in_cot_trace"] == 0]["is_correct"]
-                    acc_with_cot = acc_data[acc_data["n_steps_in_cot_trace"] == length - 1]["is_correct"]
+                    acc_with_no_cot = acc_data[acc_data["cot_trace_length"] == 0]["is_correct"]
+                    acc_with_cot = acc_data[acc_data["cot_trace_length"] == length - 1]["is_correct"]
 
                     # convert acc to float and multiply by 100 if not empty array otherwise None
                     acc_with_no_cot = acc_with_no_cot.values[0] * 100 if len(acc_with_no_cot) > 0 else None

@@ -13,7 +13,10 @@ from cot_transparency.formatters.unbiased import (
     ZeroShotCOTUnbiasedNoRoleFormatter,
     ZeroShotUnbiasedFormatter,
     ZeroShotUnbiasedNoRoleFormatter,
+    FewShotCOTUnbiasedNoRoleFormatter,
+    FewShotUnbiasedNoRoleFormatter,
 )
+
 from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
     StanfordTreatmentFormatter,
@@ -29,8 +32,13 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordNoCOTFormatter,
 )
 
+from cot_transparency.formatters.transparency.mistakes import (
+    FewShotGenerateMistakeFormatter,
+    FullCOTWithMistakeFormatter,
+    FullCOTWithMistakeCompletionFormatter,
+    CompletePartialCOT,
+)
 from cot_transparency.formatters.transparency.stage_one_formatters import (
-    ZeroShotCOTUnbiasedTameraTFormatter,
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
     FewShotCOTUnbiasedTameraTFormatter,
 )
@@ -80,6 +88,8 @@ __all__ = [
     "ZeroShotCOTUnbiasedNoRoleFormatter",
     "ZeroShotUnbiasedFormatter",
     "ZeroShotUnbiasedNoRoleFormatter",
+    "FewShotCOTUnbiasedNoRoleFormatter",
+    "FewShotUnbiasedNoRoleFormatter",
     "StanfordBiasedFormatter",
     "StanfordTreatmentFormatter",
     "CrossBiasedFormatter",
@@ -95,4 +105,8 @@ __all__ = [
     "ZeroShotCOTUnbiasedTameraTFormatter",
     "FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter",
     "FewShotCOTUnbiasedTameraTFormatter",
+    "CompletePartialCOT",
+    "FewShotGenerateMistakeFormatter",
+    "FullCOTWithMistakeFormatter",
+    "FullCOTWithMistakeCompletionFormatter",
 ]

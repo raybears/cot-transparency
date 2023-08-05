@@ -21,7 +21,7 @@ def parse_stage_two_output(response: str, allow_failure: bool = True) -> Optiona
 
 class StageTwoFormatter(PromptFormatter):
     @staticmethod
-    def parse_answer(response: str) -> Optional[MultipleChoiceAnswer]:
+    def parse_answer(response: str) -> Optional[str]:
         return parse_stage_two_output(response)
 
     @classmethod

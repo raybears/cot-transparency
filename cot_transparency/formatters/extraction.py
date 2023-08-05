@@ -17,6 +17,7 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
         "best answer is:\n\n(",
         "best answer is: ",
         "best answer is ",
+        "answer is (",
     ]
     for break_word in break_words:
         if break_word not in model_answer:
