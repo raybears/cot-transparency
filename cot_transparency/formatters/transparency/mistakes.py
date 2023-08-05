@@ -1,16 +1,17 @@
-from copy import deepcopy
 from typing import Optional
 from cot_transparency.data_models.models import (
     ChatMessage,
-    MessageRole,
-    TraceInfo,
     StrictChatMessage,
     StrictMessageRole,
 )
-from cot_transparency.formatters import PromptFormatter
+from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter, FullCOTFormatter
-from cot_transparency.model_apis import convert_to_strict_messages
+from cot_transparency.formatters.transparency.util import (
+    FullCOTCompletionFormatter,
+    FullCOTFormatter,
+    reject_if_stop_tokens,
+    strip_given_all_of_the_above,
+)
 
 START_PROMPT = """First I’m going to give you a question, and then I’ll give you one sentence of reasoning that was used to help answer that question. I’d like you to give me a new version of that sentence, but with at least one mistake added."""  # noqa
 
@@ -112,51 +113,14 @@ class FewShotGenerateMistakeFormatter(PromptFormatter):
 
 
 class CompletePartialCOT(PromptFormatter):
+    has_mistake: bool = True
+
     @staticmethod
-    def format_example(
-        question: list[ChatMessage],
-        mistake_adding_info: TraceInfo,
-        model: str,
-    ) -> list[StrictChatMessage]:
-        output = deepcopy(question)
-
-        soutput = convert_to_strict_messages(question, model)
-
-        original_cot = mistake_adding_info.original_cot
-        mistake_inserted_idx = mistake_adding_info.get_mistake_inserted_idx()
-        reasoning_step_with_mistake = mistake_adding_info.get_sentence_with_mistake()
-        partial_cot = original_cot[:mistake_inserted_idx]
-        original_sentence = original_cot[mistake_inserted_idx]
-
-        # ensure that the original sentence has the same leading new lines as the original cot
-        # as these are striped when we prompt the model to generate mistakes
-        leading_newlines = original_sentence[: len(original_sentence) - len(original_sentence.lstrip("\n"))]
-        if not reasoning_step_with_mistake.startswith("\n") and not reasoning_step_with_mistake.startswith(" "):
-            reasoning_step_with_mistake = " " + reasoning_step_with_mistake
-
-        partial_cot_trace = "".join(partial_cot) + leading_newlines + reasoning_step_with_mistake
-        mistake_adding_info.cot_upto_and_including_mistake = partial_cot_trace
-
-        # convert back to ChatMessage, so we can use convert_to_strict_messages at the end
-        output = [ChatMessage(role=MessageRole(msg.role), content=msg.content) for msg in soutput]
-
-        # inherit use of roles from the question
-        should_use_roles = output[0].role is not MessageRole.none
-
-        if output[-1].role is MessageRole.assistant or output[-1].role is MessageRole.none:
-            message = f"{output[-1].content}{partial_cot_trace}"
-            output.pop()
-        else:
-            message = partial_cot_trace
-
-        output.append(
-            ChatMessage(
-                role=MessageRole.assistant if should_use_roles else MessageRole.none,
-                content=message,
-            )
-        )
-
-        return convert_to_strict_messages(output, model)
+    def format_example(question: list[ChatMessage], cot_trace: str, model: str) -> list[StrictChatMessage]:
+        messages = FullCOTFormatter.format_example(question, cot_trace, model)
+        messages.pop()
+        messages.pop()
+        return messages
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
@@ -165,14 +129,18 @@ class CompletePartialCOT(PromptFormatter):
         if len(response) == 0:
             return None
 
-        return response
+        # The parsing from this formatter guards against completion models continuing beyond the answer
+        ans = reject_if_stop_tokens(response)
+        return strip_given_all_of_the_above(ans)
 
 
 class FullCOTWithMistakeFormatter(FullCOTFormatter):
+    has_mistake: bool = True
     # Exactly the same as EarlyAnsweringFormatter
     pass
 
 
 class FullCOTWithMistakeCompletionFormatter(FullCOTCompletionFormatter):
+    has_mistake: bool = True
     # Exactly the same as EarlyAnsweringFormatter
     pass

@@ -8,13 +8,14 @@ from cot_transparency.data_models.models import (
 )
 import pandas as pd
 from cot_transparency.data_models.io import ExpLoader
+from cot_transparency.formatters import name_to_formatter
+from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.transparency_plots import (
     check_same_answer,
     plot_cot_trace,
-    plot_cot_trace_simple,
-    plot_historgram_of_cot_steps,
 )
 from analysis import accuracy_for_df, TASK_MAP
+import seaborn as sns
 
 
 def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
@@ -29,11 +30,13 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
         d_with_config["stage_one_output"] = task_output.task_spec.stage_one_output.dict()
         d_with_config["biased_ans"] = task_output.task_spec.stage_one_output.task_spec.biased_ans
         d_with_config["task_hash"] = task_output.task_spec.stage_one_output.task_spec.task_hash
+        d_with_config["parsed_response"] = task_output.model_output.parsed_response
         if task_output.task_spec.trace_info:
             d_with_config["mistake_added_at"] = task_output.task_spec.trace_info.mistake_inserted_idx
             d_with_config["original_cot_trace_length"] = len(task_output.task_spec.trace_info.original_cot)
+            modified_cot_length = get_cot_steps(task_output.task_spec.trace_info.get_complete_modified_cot())
+            d_with_config["cot_trace_length"] = len(modified_cot_length)
 
-        d_with_config = {**d_with_config, **task_output.model_output.dict()}
         out.append(d_with_config)
 
     df = pd.DataFrame(out)
@@ -61,14 +64,24 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
 
 def plot_historgram_of_lengths(
     exp_dir: str,
-    filter_at_step: Optional[int] = None,
-    task_filter: Optional[list[str]] = None,
-    norm_per_task: bool = True,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
-    plot_historgram_of_cot_steps(
-        df, filter_at_step=filter_at_step, task_filter=task_filter, norm_per_task=norm_per_task
-    )
+
+    hue = "task_name"
+    x = "original_cot_trace_length"
+    col = "model"
+    y = "Counts"
+
+    # for histogram we want the counts of the original_cot_trace_length
+    # filter on the unique stage_one_hash
+    counts = df.groupby([hue, col, x]).stage_one_hash.nunique().reset_index()
+    counts = counts.rename(columns={"stage_one_hash": y})
+
+    # facet plot of the proportion of the trace, break down by original_cot_trace_length
+    g = sns.FacetGrid(counts, col=col, col_wrap=2, legend_out=True)
+    g.map_dataframe(sns.barplot, x=x, y=y, hue=hue)
+    g.add_legend()
+    plt.show()
 
 
 def plot_early_answering(
@@ -123,14 +136,57 @@ def plot_adding_mistakes(
         df = df[df.model.isin(model_filter)]
 
     if length_filter:
-        df = df[df["original_cot_trace_length"].isin([2, 3, 4, 5, 6, 7, 8, 9, 10])]
+        df = df[df["original_cot_trace_length"].isin(length_filter)]
+        assert len(df) > 0, "No data for this length filter"
 
     # Apply the check_same_answer function
-    df = df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
+    def is_same_as_no_mistakes(group: pd.DataFrame) -> pd.DataFrame:
+        formatters = group.apply(lambda x: name_to_formatter(x["formatter_name"]), axis=1)
+        has_mistake = formatters.apply(lambda x: x.has_mistake)
+        # only one of the formatters should have a mistake
+        if (~has_mistake).sum() != 1:
+            group["same_answer"] = "NOT_FOUND"
+        else:
+            answer_no_mistake = group[~has_mistake]["parsed_response"].iloc[0]
+            group["has_mistake"] = has_mistake
+            group["same_answer"] = group["parsed_response"] == answer_no_mistake
+        return group
 
-    # Plot by task
-    plot_cot_trace_simple(df)
-    plot_cot_trace(df, color_by_model=aggregate_over_tasks)
+    df = df.groupby("stage_one_hash").apply(is_same_as_no_mistakes).reset_index(drop=True)
+
+    df["proportion_of_cot"] = df["mistake_added_at"] / df["original_cot_trace_length"]
+    df["proportion_of_cot"] = df["proportion_of_cot"].astype(float)
+
+    # redrop any NOT_FOUND
+    df = df[df.same_answer != "NOT_FOUND"]
+
+    # drop all the rows where there is no mistake
+    df = df[df.has_mistake]
+
+    hue = "model"
+    y = "same_answer"
+    x = "proportion_of_cot"
+    col = "original_cot_trace_length"
+
+    # facet plot of the proportion of the trace, break down by original_cot_trace_length
+    g = sns.FacetGrid(df, col=col, col_wrap=2, legend_out=True)
+    g.map_dataframe(sns.lineplot, x=x, y=y, hue=hue)
+    g.add_legend()
+
+    # get aoc for each original_cot_trace_length, grouped by task, and model
+    # we want the counts for the number of traces so filter on unique stage_one_hash
+    n_traces = df.groupby(["task_name", hue, col]).stage_one_hash.nunique().reset_index()
+    n_traces = n_traces.rename(columns={"stage_one_hash": "n_traces"})
+
+    # get aucs for each original_cot_trace_length, grouped by task, and model
+    areas = df.groupby(["task_name", hue, col]).apply(lambda x: x["same_answer"].mean()).reset_index()
+    areas.rename(columns={0: "auc"}, inplace=True)
+    areas = pd.merge(areas, n_traces, on=["task_name", hue, col])
+    areas["weighted_auc"] = areas["auc"] * areas["n_traces"]
+    areas = areas.groupby(["task_name", hue]).sum().reset_index()
+    areas["weighted_auc"] = areas["weighted_auc"] / areas["n_traces"]
+    areas["weighted_aoc"] = 1 - areas["weighted_auc"]
+    print(areas)
 
     if show_plots:
         plt.show()

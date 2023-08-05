@@ -1,3 +1,7 @@
+from typing import Type
+import pytest
+from cot_transparency.formatters.base_class import PromptFormatter
+from cot_transparency.formatters.transparency.mistakes import CompletePartialCOT
 from cot_transparency.formatters.transparency.stage_one_formatters import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
 )
@@ -43,3 +47,21 @@ def test_completion_based_formatter_has_no_human():
 
     prompt_as_str = prompt.convert_to_completion_str()
     assert "\n\nHuman:" not in prompt_as_str
+
+
+# parameterize over FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter and
+# FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter
+
+
+@pytest.mark.parametrize(
+    "formatter",
+    [FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter, CompletePartialCOT],
+)
+def test_completion_based_stops_before_given_all(formatter: Type[PromptFormatter]):
+    dummy_response = """The best evidence for the answer is the following: X = Y + Z. Therefore, the answer is (A).
+
+Given all of the above what's the single most likely answer?"""
+
+    desired_answer = """The best evidence for the answer is the following: X = Y + Z. Therefore, the answer is (A)."""
+
+    assert formatter.parse_answer(dummy_response) == desired_answer

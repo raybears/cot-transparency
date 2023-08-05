@@ -1,5 +1,4 @@
-import random
-from string import ascii_uppercase
+from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 from cot_transparency.data_models.models import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.instructions import (
@@ -12,10 +11,12 @@ from cot_transparency.data_models.models import ChatMessage
 from typing import Optional
 from cot_transparency.formatters.transparency.util import (
     SINGLE_MOST_LIKELY_ANSWER_COMPLETION,
+    strip_given_all_of_the_above,
+    reject_if_stop_tokens,
 )
 from cot_transparency.formatters.transparency.util import GIVEN_ALL_OF_THE_ABOVE
 
-from cot_transparency.formatters.util import load_few_shots
+from cot_transparency.formatters.util import get_few_shot_prompts
 
 
 class FormattersForTransparency(StageOneFormatter):
@@ -45,23 +46,19 @@ class FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter(FormattersForTransparen
 
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
-        few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots("./data/ethan_few_shot.txt")
-        more_few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots("./data/gpt4_generated_few_shot.txt")
-
-        few_shots = few_shots + more_few_shots
-        random.Random(question.get_parsed_input()).shuffle(few_shots)
+        few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
+            question.get_parsed_input()
+        )
 
         # we want to add two more messages
         few_shot_examples: list[ChatMessage] = []
-        for msg in few_shots:
-            few_shot_examples.append(msg[0].remove_role().add_question_prefix())
-            few_shot_examples.append(msg[1].remove_role().add_answer_prefix())
+        for q, ans, letter in few_shots:
+            few_shot_examples.append(q.remove_role().add_question_prefix())
+            few_shot_examples.append(ans.remove_role().add_answer_prefix())
 
             # Few shots all have Therefore, the answer is (X). So answer is always the last 3 characters
-            answer_from_few_shot = msg[1].content[-3]
-            assert answer_from_few_shot in ascii_uppercase
             single_best_answer = ChatMessage(
-                role=MessageRole.none, content=f"{SINGLE_MOST_LIKELY_ANSWER_COMPLETION}{answer_from_few_shot})."
+                role=MessageRole.none, content=f"{SINGLE_MOST_LIKELY_ANSWER_COMPLETION}{letter})."
             )
             few_shot_examples.append(single_best_answer)
 
@@ -74,13 +71,7 @@ class FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter(FormattersForTransparen
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         ans = FewShotCOTUnbiasedTameraTFormatter.parse_answer(response)
-        if ans is None:
-            return None
-
-        if "Given all of the above" in ans:
-            # we trim this bit off
-            return ans.split("Given all of the above")[0].rstrip()
-        return ans
+        return strip_given_all_of_the_above(ans)
 
 
 class FewShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
@@ -89,26 +80,21 @@ class FewShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
 
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
-        few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots("./data/ethan_few_shot.txt")
-        more_few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots("./data/gpt4_generated_few_shot.txt")
-
-        few_shots = few_shots + more_few_shots
-        random.Random(question.get_parsed_input()).shuffle(few_shots)
+        few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
+            question.get_parsed_input()
+        )
 
         # we want to add two more messages
         few_shot_examples: list[ChatMessage] = []
-        for msg in few_shots:
-            few_shot_examples.append(msg[0])
-            few_shot_examples.append(msg[1])
+        for q, ans, letter in few_shots:
+            few_shot_examples.append(q)
+            few_shot_examples.append(ans)
 
             given_all_of_the_above = ChatMessage(role=MessageRole.user, content=GIVEN_ALL_OF_THE_ABOVE)
             few_shot_examples.append(given_all_of_the_above)
 
-            # Few shots all have Therefore, the answer is (X). So answer is always the last 3 characters
-            answer_from_few_shot = msg[1].content[-3]
-            assert answer_from_few_shot in ascii_uppercase
             single_best_answer = ChatMessage(
-                role=MessageRole.assistant, content=f"The single, most likely answer is: ({answer_from_few_shot})."
+                role=MessageRole.assistant, content=f"The single, most likely answer is: ({letter})."
             )
             few_shot_examples.append(single_best_answer)
 
@@ -120,13 +106,4 @@ class FewShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
-        # we use this to guard against weird answers
-        if len(response) < 10:
-            return None
-        if "Human:" in response or "Assistant:" in response or "Question:" in response or "Answer:" in response:
-            return None
-        if "```" in response:
-            # stop code-davinci trying to return code
-            return None
-
-        return response
+        return reject_if_stop_tokens(response)
