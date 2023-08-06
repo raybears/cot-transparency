@@ -10,12 +10,40 @@ import pandas as pd
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.formatters import name_to_formatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-from cot_transparency.transparency_plots import (
-    check_same_answer,
-    plot_cot_trace,
-)
 from analysis import accuracy_for_df, TASK_MAP
 import seaborn as sns
+import numpy as np
+
+
+def get_aoc(df: pd.DataFrame, hue: str, col: str, display_accuracies: bool = True):
+    # get aoc for each original_cot_trace_length, grouped by task, and model
+    # we want the counts for the number of traces so filter on unique stage_one_hash
+    n_traces = df.groupby(["task_name", hue, col]).stage_one_hash.nunique().reset_index()
+    n_traces = n_traces.rename(columns={"stage_one_hash": "n_traces"})
+
+    # get aucs for each original_cot_trace_length, grouped by task, and model
+    areas = (
+        df.groupby(["task_name", hue, col, "cot_trace_length"]).apply(lambda x: x["same_answer"].mean()).reset_index()
+    )
+
+    def get_auc(group: pd.DataFrame) -> float:
+        assert group[col].nunique() == 1
+        proportion_of_cot = group["cot_trace_length"] / max(group["cot_trace_length"])
+        auc = np.trapz(group[0], x=proportion_of_cot)
+        return auc
+
+    grouped = areas.groupby(["task_name", hue, col])
+    aucs = grouped.apply(get_auc).reset_index()
+    aucs = aucs.rename(columns={0: "auc"})
+    areas = pd.merge(aucs, n_traces, on=["task_name", hue, col])
+    print(areas)
+
+    areas["weighted_auc"] = areas["auc"] * areas["n_traces"]
+    areas = areas.groupby(["task_name", hue]).sum().reset_index()
+    areas["weighted_auc"] = areas["weighted_auc"] / areas["n_traces"]
+    areas["weighted_aoc"] = 1 - areas["weighted_auc"]
+    print(areas)
+    print(areas.to_csv())
 
 
 def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
@@ -90,8 +118,11 @@ def plot_early_answering(
     inconsistent_only: bool = False,
     aggregate_over_tasks: bool = False,
     model_filter: Optional[str] = None,
+    length_filter: Optional[list[int]] = None,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
+    # drop formatters that have Mistake in the name
+    df = df[~df.formatter_name.str.contains("Mistake")]
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
@@ -104,11 +135,64 @@ def plot_early_answering(
     if model_filter:
         df = df[df.model.isin(model_filter)]
 
+    if length_filter:
+        df = df[df["original_cot_trace_length"].isin(length_filter)]
+        assert len(df) > 0, "No data for this length filter"
+
+    def check_same_answer(group: pd.DataFrame) -> pd.DataFrame:
+        max_step_row = group[group["cot_trace_length"] == group["original_cot_trace_length"]]  # type: ignore
+        if len(max_step_row) != 1:
+            group["same_answer"] = "NOT_FOUND"
+        else:
+            group["same_answer"] = group["parsed_response"] == max_step_row["parsed_response"].iloc[0]
+        return group
+
     # Apply the check_same_answer function
     df = df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
 
-    # Plot by task
-    plot_cot_trace(df, color_by_model=aggregate_over_tasks)
+    # Redrop any NOT_FOUND
+    pre = len(df)
+    df = df[df.same_answer != "NOT_FOUND"]
+    print("Dropped ", pre - len(df), " rows becuase of NOT_FOUND answers in full cot trace")
+
+    hue = "model"
+    y = "same_answer"
+    x = "proportion_of_cot"
+    x_label = "% Proportion of CoT"
+    y_label = "% Same answer as full CoT"
+    col_label = "Original CoT length"
+
+    df["proportion_of_cot"] = df["cot_trace_length"] / df["original_cot_trace_length"]
+    df["proportion_of_cot"] = df["proportion_of_cot"].astype(float)
+
+    # rename "original_cot_trace_length" to "CoT Length"
+    df = df.rename(columns={"original_cot_trace_length": col_label})
+
+    # facet plot of the proportion of the trace, break down by original_cot_trace_length
+    g = sns.relplot(data=df, x=x, y=y, hue=hue, col=col_label, col_wrap=2, kind="line", height=4)
+    g.set_axis_labels(x_label, y_label)
+
+    # plot aggreaged version that aggregates over cot lenghts
+    plt.figure()
+    df["proportion_of_cot_rounded"] = df["proportion_of_cot"].round(1)
+    g2 = sns.lineplot(df, x="proportion_of_cot_rounded", y=y, hue=hue, alpha=0.5)
+    g2.set(xlabel=x_label, ylabel=y_label)
+
+    get_aoc(df, hue, col_label)
+
+    # baseline accuracies
+    cot_trace_length_0 = df[df["cot_trace_length"] == 0]
+    cot_trace_length_max = df[df["cot_trace_length"] == df[col_label]]
+    baseline_accuracies = (
+        cot_trace_length_0.groupby(["task_name", hue]).apply(lambda x: x["is_correct"].mean()).reset_index()
+    )
+    baseline_accuracies = baseline_accuracies.rename(columns={0: "No CoT Accuracy"})
+    baseline_accuracies["CoT Accuracy"] = (
+        cot_trace_length_max.groupby(["task_name", hue]).apply(lambda x: x["is_correct"].mean()).reset_index()[0]
+    )
+    print(baseline_accuracies)
+    # print csv version
+    print(baseline_accuracies.to_csv())
 
     if show_plots:
         plt.show()
@@ -123,6 +207,7 @@ def plot_adding_mistakes(
     length_filter: Optional[list[int]] = None,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
+    df = df[df.formatter_name.str.contains("FullCOT")]
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
@@ -166,27 +251,24 @@ def plot_adding_mistakes(
     hue = "model"
     y = "same_answer"
     x = "proportion_of_cot"
-    col = "original_cot_trace_length"
+    x_label = "% Proportion of CoT before mistake"
+    y_label = "% Same answer as no mistake"
+    col_label = "Original CoT length"
+
+    # rename "original_cot_trace_length" to "CoT Length"
+    df = df.rename(columns={"original_cot_trace_length": col_label})
 
     # facet plot of the proportion of the trace, break down by original_cot_trace_length
-    g = sns.FacetGrid(df, col=col, col_wrap=2, legend_out=True)
-    g.map_dataframe(sns.lineplot, x=x, y=y, hue=hue)
-    g.add_legend()
+    g = sns.relplot(data=df, x=x, y=y, hue=hue, col=col_label, col_wrap=2, kind="line", height=4)
+    g.set_axis_labels(x_label, y_label)
 
-    # get aoc for each original_cot_trace_length, grouped by task, and model
-    # we want the counts for the number of traces so filter on unique stage_one_hash
-    n_traces = df.groupby(["task_name", hue, col]).stage_one_hash.nunique().reset_index()
-    n_traces = n_traces.rename(columns={"stage_one_hash": "n_traces"})
+    # plot aggreaged version that aggregates over cot lenghts
+    plt.figure()
+    df["proportion_of_cot_rounded"] = df["proportion_of_cot"].round(1)
+    g2 = sns.lineplot(df, x="proportion_of_cot_rounded", y=y, hue=hue, alpha=0.5)
+    g2.set(xlabel=x_label, ylabel=y_label)
 
-    # get aucs for each original_cot_trace_length, grouped by task, and model
-    areas = df.groupby(["task_name", hue, col]).apply(lambda x: x["same_answer"].mean()).reset_index()
-    areas.rename(columns={0: "auc"}, inplace=True)
-    areas = pd.merge(areas, n_traces, on=["task_name", hue, col])
-    areas["weighted_auc"] = areas["auc"] * areas["n_traces"]
-    areas = areas.groupby(["task_name", hue]).sum().reset_index()
-    areas["weighted_auc"] = areas["weighted_auc"] / areas["n_traces"]
-    areas["weighted_aoc"] = 1 - areas["weighted_auc"]
-    print(areas)
+    get_aoc(df, hue, col_label)
 
     if show_plots:
         plt.show()

@@ -102,7 +102,6 @@ __all__ = [
     "CrossNoCOTFormatter",
     "CheckmarkNoCOTFormatter",
     "StanfordNoCOTFormatter",
-    "ZeroShotCOTUnbiasedTameraTFormatter",
     "FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter",
     "FewShotCOTUnbiasedTameraTFormatter",
     "CompletePartialCOT",

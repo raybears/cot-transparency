@@ -361,6 +361,8 @@ def main(
         # don't do any filtering, just use all models
         models = list(CONFIG_MAP.keys())
 
+    assert evaluations in [["early_answering", "mistakes"], ["early_answering"], ["mistakes"]]
+
     valid_stage_one_formatters = get_valid_stage1_formatters(stage_one_formatters)
     for formatter in valid_stage_one_formatters:
         if not formatter.is_cot:

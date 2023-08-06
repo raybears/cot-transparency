@@ -153,17 +153,22 @@ class FewShotCOTSycophancyNoRoleFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
         few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
-            question.get_parsed_input()
+            question.get_parsed_input(), format_of_final="Therefore, the best answer is: ("
         )
         msgs = []
         for q, a, _ in few_shots:
-            msgs.append(q.remove_role().add_question_prefix())
-            msgs.append(a.remove_role().add_answer_prefix())
+            q_str = add_verbalize_instruction_to_question(q.content)
+            msgs.append(ChatMessage(role=MessageRole.none, content=q_str).add_question_prefix())
+            msgs.append(a.add_answer_prefix())
 
         sycophancy_message = format_sycophancy_question(question.get_parsed_input(), question.biased_ans)
         msgs.append(ChatMessage(role=MessageRole.none, content=sycophancy_message).add_question_prefix())
         msgs.append(ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT).add_answer_prefix())
         return msgs
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
 
 
 class FewShotSycophancyNoRoleFormatter(StageOneFormatter):
@@ -186,3 +191,7 @@ class FewShotSycophancyNoRoleFormatter(StageOneFormatter):
         msgs.append(ChatMessage(role=MessageRole.none, content=sycophancy_message).add_question_prefix())
         msgs.append(ChatMessage(role=MessageRole.none, content=NON_COT_ASSISTANT_PROMPT).add_answer_prefix())
         return msgs
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)

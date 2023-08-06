@@ -3,7 +3,7 @@ from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT, add_verbalize_instruction_to_question
 from cot_transparency.formatters.sycophancy import format_sycophancy_question
-from cot_transparency.formatters.transparency.stage_two_base import parse_stage_two_output
+from cot_transparency.formatters.extraction import extract_answer_non_cot
 
 
 from typing import Optional
@@ -32,7 +32,7 @@ class ZeroShotCOTTruncatedV1SycophancyFormatter(StageOneFormatter):
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
-        return parse_stage_two_output(response, allow_failure=False)
+        return extract_answer_non_cot(response, allow_failure=False)
 
 
 class ZeroShotCOTTruncatedV2SycophancyFormatter(ZeroShotCOTTruncatedV1SycophancyFormatter):
@@ -70,7 +70,7 @@ class ZeroShotCOTTruncatedV1UnbiasedFormatter(StageOneFormatter):
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
-        return parse_stage_two_output(response, allow_failure=False)
+        return extract_answer_non_cot(response, allow_failure=False)
 
 
 class ZeroShotCOTTruncatedV2UnbiasedFormatter(ZeroShotCOTTruncatedV1UnbiasedFormatter):
