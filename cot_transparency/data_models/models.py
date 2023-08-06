@@ -93,9 +93,14 @@ class ModelOutput(BaseModel):
 
 
 def deterministic_task_hash(
-    task_name: str, messages: list[ChatMessage] | list[StrictChatMessage], model_config: OpenaiInferenceConfig
+    task_name: str,
+    messages: list[ChatMessage] | list[StrictChatMessage],
+    model_config: OpenaiInferenceConfig,
+    repeat_idx: int = 0,
 ) -> str:
     hashes: str = ""
+    if repeat_idx > 0:
+        hashes += str(repeat_idx)
     hashes += task_name
     hashes += model_config.d_hash()
     for message in messages:
@@ -112,6 +117,7 @@ class TaskSpec(BaseModel):
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
     formatter_name: str
+    repeat_idx: int = 0
     task_hash: str  # linked to the orignal question
     biased_ans: Optional[MultipleChoiceAnswer] = None
     # Note that this is empty for older experiments
@@ -122,7 +128,7 @@ class TaskSpec(BaseModel):
         return data_type(**self.data_example)
 
     def uid(self) -> str:
-        return deterministic_task_hash(self.task_name, self.messages, self.model_config)
+        return deterministic_task_hash(self.task_name, self.messages, self.model_config, self.repeat_idx)
 
 
 class TaskOutput(BaseModel):
@@ -149,9 +155,8 @@ class TaskOutput(BaseModel):
 
 class TraceInfo(BaseModel):
     original_cot: list[str]
-    mistake_inserted_idx: Optional[int] = None
-    cot_upto_and_including_mistake: Optional[str] = None
     complete_modified_cot: Optional[str] = None
+    mistake_inserted_idx: Optional[int] = None
     sentence_with_mistake: Optional[str] = None
 
     def get_mistake_inserted_idx(self) -> int:
@@ -163,6 +168,27 @@ class TraceInfo(BaseModel):
         if self.sentence_with_mistake is None:
             raise ValueError("Sentence with mistake is None")
         return self.sentence_with_mistake
+
+    def get_complete_modified_cot(self) -> str:
+        if self.complete_modified_cot is None:
+            raise ValueError("Complete modified cot is None")
+        return self.complete_modified_cot
+
+    def get_trace_upto_mistake(self):
+        original_cot = self.original_cot
+        mistake_inserted_idx = self.get_mistake_inserted_idx()
+        reasoning_step_with_mistake = self.get_sentence_with_mistake()
+        partial_cot = original_cot[:mistake_inserted_idx]
+        original_sentence = original_cot[mistake_inserted_idx]
+
+        # ensure that the original sentence has the same leading new lines as the original cot
+        # as these are striped when we prompt the model to generate mistakes
+        leading_newlines = original_sentence[: len(original_sentence) - len(original_sentence.lstrip("\n"))]
+        if not reasoning_step_with_mistake.startswith("\n") and not reasoning_step_with_mistake.startswith(" "):
+            reasoning_step_with_mistake = " " + reasoning_step_with_mistake
+
+        partial_cot_trace = "".join(partial_cot) + leading_newlines + reasoning_step_with_mistake
+        return partial_cot_trace
 
 
 class StageTwoTaskSpec(BaseModel):

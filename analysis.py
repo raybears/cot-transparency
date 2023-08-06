@@ -20,6 +20,17 @@ for dataset, task_list in TASK_LIST.items():
     for task in task_list:
         TASK_MAP[task] = dataset
 
+sns.set_style(
+    "ticks",
+    {
+        "axes.edgecolor": "0",
+        "grid.linestyle": ":",
+        "grid.color": "lightgrey",
+        "grid.linewidth": "1.5",
+        "axes.facecolor": "white",
+    },
+)
+
 
 def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> dict[str, Any]:
     d = task_output.dict()
@@ -158,91 +169,6 @@ def accuracy_for_df(
     return accuracy_df
 
 
-def miles_graph(exp_dir: str, check_counts: bool = True, z_value: float = 1.96):
-    df = get_data_frame_from_exp_dir(exp_dir)
-    accuracy_df = accuracy_for_df(
-        df,
-        inconsistent_only=True,
-        aggregate_over_tasks=True,
-        formatters=[],
-        model_filter=None,
-        check_counts=check_counts,
-    )
-
-    # this maps to "root, bias_type, cot_type"
-    root_mapping = {
-        "ZeroShotCOTUnbiasedFormatter": ("ZeroShot", None, "COT"),
-        "ZeroShotCOTSycophancyFormatter": ("ZeroShot", "Sycophancy", "COT"),
-        "ZeroShotUnbiasedFormatter": ("ZeroShot", None, "No-COT"),
-        "ZeroShotSycophancyFormatter": ("ZeroShot", "Sycophancy", "No-COT"),
-    }
-
-    # adds these columns to the accuracy_df
-    accuracy_df["root"] = accuracy_df.formatter_name.map(lambda x: root_mapping[x][0])
-    accuracy_df["bias_type"] = accuracy_df.formatter_name.map(lambda x: root_mapping[x][1])
-    accuracy_df["cot_type"] = accuracy_df.formatter_name.map(lambda x: root_mapping[x][2])
-
-    accuracy_df["error_min"] = accuracy_df["accuracy_standard_error"] * z_value
-    accuracy_df["error_max"] = accuracy_df["accuracy_standard_error"] * z_value
-
-    print(accuracy_df)
-    # Get the unique models
-    models = accuracy_df.model.unique()
-
-    # Create a new column for formatter type
-
-    # Loop over all models
-    for model in models:
-        n_subplots = len(accuracy_df.root.unique())
-
-        fig, axs = plt.subplots(nrows=n_subplots, figsize=(4, 4 * n_subplots))
-
-        # subplots based on root
-        for i, root in enumerate(accuracy_df.root.unique()):
-            ax: plt.Axes
-            if n_subplots == 1:
-                ax = axs  # type: ignore
-            else:
-                ax = axs[i]  # type: ignore
-
-            s = 100
-            data = accuracy_df[(accuracy_df.model == model)]
-            # First scatterplot for higher portion of dumbbell
-            data_high2 = data[(data.root == root) & (data.bias_type.isna())]
-            ax.scatter(x=data_high2["cot_type"], y=data_high2["is_correct"], color="blue", s=s)
-            ax.errorbar(
-                x=data_high2["cot_type"],
-                y=data_high2["is_correct"],
-                yerr=data_high2["error_min"],
-                fmt="none",
-                color="black",
-                ecolor="black",
-                elinewidth=3,
-            )
-
-            # Second scatterplot for lower portion of dumbbell
-            data_low = data[(data.root == root) & (~data.bias_type.isna())]
-            ax.scatter(x=data_low["cot_type"], y=data_low["is_correct"], color="red", s=s)
-            ax.errorbar(
-                x=data_low["cot_type"],
-                y=data_low["is_correct"],
-                yerr=data_low["error_max"],
-                fmt="none",
-                color="black",
-                ecolor="black",
-                elinewidth=3,
-            )
-
-            ax.set_title(f"{model}, {root}")
-            ax.set_ylabel("Score")
-            # move the x limits wider
-            ax.set_xlim(ax.get_xlim()[0] - 0.5, ax.get_xlim()[1] + 0.5)
-            ax.set_ylim(0.15, 1.05)
-
-        plt.tight_layout()
-        plt.show()
-
-
 def pivot_df(df: pd.DataFrame, values: List[str] = ["is_correct"]):
     print("here2")
     print(df)
@@ -338,12 +264,54 @@ def simple_plot(
     generic_bar_plot(df, x=x, y=y, hue=hue, subplot=subplot, ncols=2)
 
 
+def point_plot(
+    exp_dir: str, inconsistent_only: bool = True, model_filter: Optional[str] = None, formatters: Sequence[str] = []
+):
+    df = get_data_frame_from_exp_dir(exp_dir)
+    df = apply_filters(
+        inconsistent_only=inconsistent_only,
+        model_filter=model_filter,
+        formatters=formatters,
+        aggregate_over_tasks=False,
+        df=df,
+    )
+
+    root_mapping = {
+        "ZeroShotCOTUnbiasedFormatter": ("ZeroShot", "Unbiased", "COT"),
+        "ZeroShotCOTSycophancyFormatter": ("ZeroShot", "Sycophancy", "COT"),
+        "ZeroShotUnbiasedFormatter": ("ZeroShot", "Unbiased", "No-COT"),
+        "ZeroShotSycophancyFormatter": ("ZeroShot", "Sycophancy", "No-COT"),
+    }
+    # adds these columns to the accuracy_df
+    df["root"] = df.formatter_name.map(lambda x: root_mapping[x][0])
+    df["Bias"] = df.formatter_name.map(lambda x: root_mapping[x][1])
+    df["CoT"] = df.formatter_name.map(lambda x: root_mapping[x][2])
+
+    # rename is_correct to Accuracy
+    df["Accuracy (%)"] = df["is_correct"] * 100
+    df = df.rename(columns={"model": "Model"})
+
+    sns.catplot(
+        data=df,
+        x="CoT",
+        y="Accuracy (%)",
+        hue="Bias",
+        col="Model",
+        capsize=0.05,
+        errwidth=1,
+        join=False,
+        kind="point",
+    )
+
+    plt.show()
+
+
 if __name__ == "__main__":
     fire.Fire(
         {
             "accuracy": accuracy,
             "accuracy_plot": plot_accuracy_for_exp,
-            "miles_graph": miles_graph,
             "simple_plot": simple_plot,
+            "point_plot": point_plot,
         }
     )

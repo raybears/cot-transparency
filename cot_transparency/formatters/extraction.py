@@ -1,7 +1,7 @@
 from string import ascii_uppercase
 from typing import Optional
 
-from cot_transparency.data_models.example_base import VALID_ANSWERS, MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 
 BREAK_WORDS: list[str] = [
     "best answer is (",
@@ -14,6 +14,7 @@ BREAK_WORDS: list[str] = [
     "best answer is:\n\n(",
     "best answer is: ",
     "best answer is ",
+    "answer is (",
 ]
 
 
@@ -34,15 +35,26 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
     return None
 
 
-def extract_answer_non_cot(model_answer: str, dump_failed: bool = False) -> Optional[MultipleChoiceAnswer]:
-    if model_answer[0] in VALID_ANSWERS:
-        return model_answer[0]
-    if len(model_answer) > 1 and model_answer[1] in VALID_ANSWERS:
-        return model_answer[1]
-    if dump_failed:
-        with open("failed_answers.txt", "a") as f:
-            f.write(model_answer + "\n")
-    return None
+def extract_answer_non_cot(
+    response: str, allow_failure: bool = True, dump_failed: bool = False
+) -> Optional[MultipleChoiceAnswer]:
+    out: Optional[MultipleChoiceAnswer] = None
+    response = response.strip()
+    if len(response) >= 1:
+        if response[0].upper() in ascii_uppercase:
+            out = response[0]  # type: ignore
+            if len(response) > 1:
+                if response[1] != ")":
+                    out = None
+        if out is None and allow_failure:
+            print(f"Did not find a valid answer in reponse '{response}', but allow_failure is set to True")
+            return "NOT_FOUND"
+
+        if out is None and dump_failed:
+            with open("failed_answers.txt", "a") as f:
+                f.write(response + "\n")
+
+    return out
 
 
 def extract_multiple_choices(question: str) -> list[str]:

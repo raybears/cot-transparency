@@ -180,7 +180,6 @@ class GUI:
         task_spec = output.task_spec
         if isinstance(task_spec, StageTwoTaskSpec):
             if task_spec.trace_info:
-                print("changing!")
                 original_cot: list[str] = task_spec.trace_info.original_cot
                 self.cot_texts[0][0].insert(END, "".join(original_cot))
                 try:

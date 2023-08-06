@@ -1,4 +1,3 @@
-import json
 import random
 from pathlib import Path
 from typing import List, Literal, Optional, Type
@@ -11,7 +10,6 @@ from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     TraceInfo,
     ModelOutput,
-    StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
     StageTwoTaskSpec,
     TaskOutput,
@@ -29,9 +27,9 @@ from cot_transparency.formatters.transparency.stage_one_formatters import (
 )
 from cot_transparency.formatters.transparency.stage_two_base import StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-from cot_transparency.formatters.transparency.util import FullCOTFormatter
+from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter, FullCOTFormatter
 from cot_transparency.openai_utils.set_key import set_keys_from_env
-from cot_transparency.tasks import run_tasks_multi_threaded
+from cot_transparency.tasks import run_with_caching
 from cot_transparency.util import get_exp_dir_name
 from stage_one import CONFIG_MAP, get_valid_stage1_formatters
 
@@ -40,27 +38,24 @@ We take traces generated from stage_one.py and run analysis on them
 """
 
 
-def run_with_caching(save_every: int, batch: int, specs: list[StageTwoTaskSpec]) -> List[StageTwoTaskOutput]:
-    paths = {i.out_file_path for i in specs}
-    loaded_dict = get_loaded_dict(paths)
+def get_formatter_for_single_best(stage_one_formatter_name: str):
+    if stage_one_formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
+        Formatter = FullCOTWithMistakeCompletionFormatter
+    else:
+        Formatter = FullCOTWithMistakeFormatter
+    return Formatter
 
-    completed_outputs: dict[str, StageTwoTaskOutput] = {}
-    for task_output in loaded_dict.values():
-        for output in task_output.outputs:
-            completed_outputs[output.task_spec.uid()] = output
-    to_do = []
-    for item in specs:
-        task_hash = item.uid()
-        if task_hash not in completed_outputs:
-            to_do.append(item)
 
-    random.Random(42).shuffle(to_do)
-    run_tasks_multi_threaded(save_file_every=save_every, batch=batch, loaded_dict=loaded_dict, tasks_to_run=to_do)
-
-    outputs: list[StageTwoTaskOutput] = []
-    for exp in loaded_dict.values():
-        outputs.extend(exp.outputs)
-    return outputs
+def run_with_caching_stage_two(
+    save_every: int, batch: int, task_to_run: list[StageTwoTaskSpec], allow_failure_after_n: Optional[int] = None
+) -> list[StageTwoTaskOutput]:
+    output: list[StageTwoTaskOutput] = run_with_caching(
+        save_every,
+        batch,
+        task_to_run,
+        allow_failure_after_n=5,
+    )  # type: ignore
+    return output
 
 
 def filter_cot_by_possible_ends(cot_steps: list[str]) -> list[str]:
@@ -96,9 +91,12 @@ def get_early_answering_tasks(
         if i != len(cot_steps) - 1:
             if full_answers_only:
                 continue
-            Formatter = FullCOTFormatter
-        else:
             Formatter = EarlyAnsweringFormatter
+        else:
+            if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
+                Formatter = FullCOTCompletionFormatter
+            else:
+                Formatter = FullCOTFormatter
 
         config = stage_one_output.task_spec.model_config.copy()
         out_file_path: Path = Path(
@@ -149,8 +147,8 @@ def get_mistakes(
         rng = random.Random(original_question)
         # we don't want to insert mistakes at the first step, because then there is no sentence to make a mistake in
         # as the first one is blank cot
-        if len(cot_steps) <= 1:
-            print("WARNING - skipping task as len(cot_steps) <= 1")
+        if len(cot_steps) == 0:
+            print("WARNING - skipping task as len(cot_steps) == 0")
             continue
 
         sample_idxs = rng.sample(range(len(cot_steps)), min(n_mistake_insertion_points, len(cot_steps)))
@@ -180,7 +178,7 @@ def get_mistakes(
             specs.append(task_spec)
 
     print(f"1. Generating mistakes using {mistake_adding_model}")
-    outputs = run_with_caching(save_mistake_generating_file_every, batch, specs)
+    outputs = run_with_caching_stage_two(save_mistake_generating_file_every, batch, specs)
 
     return outputs
 
@@ -197,7 +195,6 @@ def recomplete_cot_with_inserted_mistake(
     for generated_mistake in generated_mistakes:
         stage_one_output = generated_mistake.task_spec.stage_one_output
         config = stage_one_output.task_spec.model_config.copy()
-        config.stop = None
 
         path = Path(
             f"{exp_dir}/cots_with_mistakes/{stage_one_output.task_spec.task_name}/{config.model}/{CompletePartialCOT.name()}.json"
@@ -206,11 +203,12 @@ def recomplete_cot_with_inserted_mistake(
         trace_info = generated_mistake.task_spec.trace_info
         trace_info.sentence_with_mistake = generated_mistake.first_parsed_response
 
+        partial_cot_trace = trace_info.get_trace_upto_mistake()
+
         messages = CompletePartialCOT.format_example(
-            question=stage_one_output.task_spec.messages,
-            mistake_adding_info=trace_info,
-            model=config.model,
+            stage_one_output.task_spec.messages, partial_cot_trace, config.model
         )
+
         task_spec = StageTwoTaskSpec(
             stage_one_output=stage_one_output,
             model_config=config,
@@ -231,7 +229,7 @@ def recomplete_cot_with_inserted_mistake(
             specs.append(task_spec)
 
     print("2. Regenerating COTs with mistakes")
-    outputs = run_with_caching(save_completing_with_mistakes_every, batch, specs)
+    outputs = run_with_caching_stage_two(save_completing_with_mistakes_every, batch, specs, allow_failure_after_n=5)
 
     return outputs + mistakes_inserted_at_last_position
 
@@ -249,19 +247,16 @@ def get_best_single_answer_tasks_given_mistakes(
             config.temperature = temperature
             config.max_tokens = 2  # code-davinci-002 doesn't return answer unless we set this to 2
 
-        if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
-            Formatter = FullCOTWithMistakeCompletionFormatter
-        else:
-            Formatter = FullCOTWithMistakeFormatter
+        if output.first_parsed_response == "NOT_FOUND":
+            print("WARNING - skipping task as NOT_FOUND")
+            continue
+
+        Formatter = get_formatter_for_single_best(stage_one_output.task_spec.formatter_name)
 
         path = Path(f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json")
         trace_info = output.task_spec.trace_info
 
-        partial_cot_with_mistake = trace_info.cot_upto_and_including_mistake
-        if partial_cot_with_mistake is None:
-            raise ValueError("partial_cot_with_mistake should have been populated in previous step")
-
-        cot_trace_with_mistake = partial_cot_with_mistake + output.first_parsed_response
+        cot_trace_with_mistake = trace_info.get_trace_upto_mistake() + output.first_parsed_response
         trace_info.complete_modified_cot = cot_trace_with_mistake
 
         final_task = StageTwoTaskSpec(
@@ -344,21 +339,6 @@ def filter_stage1_outputs(
     return outputs
 
 
-def get_loaded_dict(paths: set[Path]) -> dict[Path, StageTwoExperimentJsonFormat]:
-    # work out which tasks wwe have already done
-    loaded_dict: dict[Path, StageTwoExperimentJsonFormat] = {}
-    for path in paths:
-        if path.exists():
-            with open(path) as f:
-                done_exp = StageTwoExperimentJsonFormat(**json.load(f))
-            # Override to ensure bwds compat with some old exps that had the wrong stage
-            done_exp.stage = 2
-            loaded_dict[path] = done_exp
-        else:
-            loaded_dict[path] = StageTwoExperimentJsonFormat(outputs=[])
-    return loaded_dict
-
-
 def main(
     input_exp_dir: str,
     models: Optional[list[str]] = None,
@@ -380,6 +360,8 @@ def main(
     if models is None:
         # don't do any filtering, just use all models
         models = list(CONFIG_MAP.keys())
+
+    assert evaluations in [["early_answering", "mistakes"], ["early_answering"], ["mistakes"]]
 
     valid_stage_one_formatters = get_valid_stage1_formatters(stage_one_formatters)
     for formatter in valid_stage_one_formatters:
@@ -424,7 +406,7 @@ def main(
         stage_2_tasks.extend(stage_2_tasks_for_this_json)
 
     if not skip_running_traces:
-        run_with_caching(save_file_every, batch, stage_2_tasks)
+        run_with_caching_stage_two(save_file_every, batch, stage_2_tasks)
 
 
 if __name__ == "__main__":
