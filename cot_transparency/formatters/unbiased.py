@@ -46,12 +46,15 @@ class FewShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
         few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
-            question.get_parsed_input()
+            question.get_parsed_input(),
+            format_of_final="Therefore, the best answer is: (",
+            n=10,
         )
         msgs = []
         for q, a, _ in few_shots:
-            msgs.append(q.remove_role().add_question_prefix())
-            msgs.append(a.remove_role().add_answer_prefix())
+            q_str = add_verbalize_instruction_to_question(q.content)
+            msgs.append(ChatMessage(role=MessageRole.none, content=q_str).add_question_prefix())
+            msgs.append(a.add_answer_prefix())
 
         msgs.append(ChatMessage(role=MessageRole.none, content=question.get_parsed_input()).add_question_prefix())
         msgs.append(ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT).add_answer_prefix())
@@ -69,7 +72,8 @@ class FewShotUnbiasedNoRoleFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase) -> list[ChatMessage]:
         few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
-            question.get_parsed_input()
+            question.get_parsed_input(),
+            n=10,
         )
         msgs = []
         for q, _, letter in few_shots:

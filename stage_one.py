@@ -163,7 +163,7 @@ def main(
             config.temperature = temperature
         assert config.model == model
         if not formatter.is_cot:
-            config.max_tokens = 1
+            config.max_tokens = 3
 
         for item in data:
             for i in range(repeats_per_question):

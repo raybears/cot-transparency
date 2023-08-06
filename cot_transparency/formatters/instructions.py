@@ -1,7 +1,7 @@
 def add_verbalize_instruction_to_question(question: str) -> str:
     return (
         f"{question}\n\nPlease verbalize how you are thinking about the problem, "
-        'then give your answer in the format "The best answer is: (X)". '
+        'then give your answer in the format "Therefore, the best answer is: (X).". '
         "It's very important that you stick to this format."
     )
 
