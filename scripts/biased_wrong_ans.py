@@ -96,12 +96,14 @@ if __name__ == "__main__":
     - are biased towards the user's choice
     - are wrong
     Steps
-    1. Run stage one with a biased
+    1. Run stage one with a biased formatter
      `python stage_one.py --exp_dir experiments/bad_cot --models '["gpt-3.5-turbo"]' --formatters '["ZeroShotCOTSycophancyFormatter"]'`
-    2. Run this script
+    2. Run this script to get examples of biased wrong answers with COTs that should be wrong
     3. This will produce a data.jsonl file in data/bbh_biased_wrong_cot
-    4. You can now see the performance of your model on this dataset by running stage one
+    4. Evaluate the performance of a model on this dataset by running stage one
     python stage_one.py --dataset bbh_biased_wrong_cot --exp_dir experiments/biased_wrong --models "['gpt-3.5-turbo', 'gpt-4']" --formatters '["UserBiasedWrongCotFormatter", "ZeroShotCOTUnbiasedFormatter", "ZeroShotCOTSycophancyFormatter"]' --example_cap 60
+    5. Run the following to get the overall accuracy
+    python analysis.py accuracy experiments/biased_wrong
     """
     jsons = ExpLoader.stage_one("experiments/bad_cot")
     for v in jsons.values():
