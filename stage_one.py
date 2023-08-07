@@ -9,7 +9,7 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
-from cot_transparency.formatters.transparency.stage_one_formatters import FormattersForTransparency
+from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
@@ -71,27 +71,23 @@ def create_task_settings(
     return task_settings
 
 
-def validate_dataset_and_task(dataset: str, tasks: Optional[list[str]] = None) -> list[str]:
+def validate_tasks(tasks: list[str]) -> list[str]:
     # get the tasks we are doing
-    if dataset not in TASK_LIST:
-        raise ValueError(f"dataset {dataset} is not valid. Valid datasets are {list(TASK_LIST.keys())}")
-
-    if tasks is None:
-        tasks = TASK_LIST[dataset]
-    else:
-        for task in tasks:
-            if task not in TASK_LIST[dataset]:
-                raise ValueError(
-                    f"task {task} is not valid for dataset {dataset}. Valid tasks are {TASK_LIST[dataset]}"
-                )
+    # flatten the TASK_LIST to get all tasks
+    all_tasks = []
+    for dataset in TASK_LIST:
+        all_tasks += TASK_LIST[dataset]
+    for task in tasks:
+        if task not in all_tasks:
+            raise ValueError(f"task {task} is not valid. Valid tasks are {all_tasks}")
     return tasks
 
 
-def get_list_of_examples(dataset: str, task: str) -> list[DataExampleBase]:
+def get_list_of_examples(task: str) -> list[DataExampleBase]:
     data = None
-    if dataset == "bbh":
+    if task in TASK_LIST["bbh"]:
         data = bbh.load_bbh(task)
-    elif dataset == "transparency":
+    else:
         if task == "aqua":
             data = aqua.dev()
         elif task == "arc_easy":
@@ -115,8 +111,7 @@ def get_list_of_examples(dataset: str, task: str) -> list[DataExampleBase]:
 
 
 def main(
-    dataset: str = "bbh",
-    tasks: Optional[list[str]] = None,
+    tasks: list[str],
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     exp_dir: Optional[str] = None,
@@ -127,7 +122,7 @@ def main(
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
 ):
-    tasks = validate_dataset_and_task(dataset, tasks)
+    tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
 
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
@@ -138,7 +133,7 @@ def main(
         task = setting.task
         model = setting.model
         formatter = setting.formatter
-        data: list[DataExampleBase] = get_list_of_examples(dataset, task)
+        data: list[DataExampleBase] = get_list_of_examples(task)
         out_file_path: Path = Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
 
         # Shuffle the data BEFORE we cap it
@@ -150,7 +145,6 @@ def main(
         config = CONFIG_MAP[model].copy()
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
-            print("ADDING STOPS", few_shot_stops)
             if isinstance(config.stop, list):
                 config.stop += few_shot_stops
             else:

@@ -1,6 +1,6 @@
 from typing import Any, Callable, Optional, Union
 import fire
-from cot_transparency.model_apis import Prompt, convert_to_strict_messages
+from cot_transparency.model_apis import Prompt
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     StageTwoExperimentJsonFormat,
@@ -169,8 +169,7 @@ class GUI:
         # Insert new text
         output = experiment.outputs[self.index]
 
-        strict_messages = convert_to_strict_messages(output.task_spec.messages, output.task_spec.model_config.model)
-        formatted_output = Prompt(messages=strict_messages).convert_to_completion_str()
+        formatted_output = Prompt(messages=output.task_spec.messages).convert_to_completion_str()
         self.config_text.insert(END, str(output.task_spec.model_config.json(indent=2)))
         self.messages_text.insert(END, formatted_output)
         self.output_text.insert(END, str(output.first_raw_response))

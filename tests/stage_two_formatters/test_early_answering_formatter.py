@@ -55,6 +55,8 @@ def test_early_answering_formatter_chat():
     ]
 
     messages = FullCOTFormatter.format_example(input_messages, EXAMPLE_COT, "gpt-3.5-turbo")
+    prompt = Prompt(messages=messages)
+    messages = prompt.get_strict_messages("gpt-3.5-turbo")
 
     expected_list = [
         {

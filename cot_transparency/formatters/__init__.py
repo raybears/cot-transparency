@@ -33,14 +33,20 @@ from cot_transparency.formatters.verbalize.formatters import (
 )
 
 from cot_transparency.formatters.transparency.mistakes import (
-    FewShotGenerateMistakeFormatter,
-    FullCOTWithMistakeFormatter,
-    FullCOTWithMistakeCompletionFormatter,
     CompletePartialCOT,
+    FewShotGenerateMistakeFormatter,
 )
-from cot_transparency.formatters.transparency.stage_one_formatters import (
+
+from cot_transparency.formatters.transparency.util import FullCOTFormatter
+
+from cot_transparency.formatters.transparency.s1_baselines import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
     FewShotCOTUnbiasedTameraTFormatter,
+    ZeroShotCOTUnbiasedChatTameraTFormatter,
+)
+
+from cot_transparency.formatters.transparency.interventions.logical_consequence import (
+    LogicalConsequenceChatFormatter,
 )
 
 
@@ -105,7 +111,9 @@ __all__ = [
     "FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter",
     "FewShotCOTUnbiasedTameraTFormatter",
     "CompletePartialCOT",
+    "FullCOTFormatter",
     "FewShotGenerateMistakeFormatter",
-    "FullCOTWithMistakeFormatter",
-    "FullCOTWithMistakeCompletionFormatter",
+    "ZeroShotCOTUnbiasedChatTameraTFormatter",
+    "ZeroShotCOTUnbiasedChatTameraTFormatter",
+    "LogicalConsequenceChatFormatter",
 ]

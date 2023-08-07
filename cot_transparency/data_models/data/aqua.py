@@ -13,7 +13,7 @@ class AquaExample(DataExampleBase):
         outputs = []
         for option in options:
             # replace A)answer with (A): answer
-            option = option.replace(")", "): ")
+            option = option.replace(")", ") ")
             outputs.append(f"({option}")
         return "\n".join(outputs)
 

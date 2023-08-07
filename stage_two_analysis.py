@@ -8,7 +8,6 @@ from cot_transparency.data_models.models import (
 )
 import pandas as pd
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.formatters import name_to_formatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from analysis import accuracy_for_df, TASK_MAP
 import seaborn as sns
@@ -41,7 +40,11 @@ def get_aoc(df: pd.DataFrame, hue: str, col: str, display_accuracies: bool = Tru
     areas["weighted_auc"] = areas["auc"] * areas["n_traces"]
     areas = areas.groupby(["task_name", hue]).sum().reset_index()
     areas["weighted_auc"] = areas["weighted_auc"] / areas["n_traces"]
-    areas["weighted_aoc"] = 1 - areas["weighted_auc"]
+    if areas["weighted_auc"].any() > 1:
+        areas["weighted_aoc"] = 100 - areas["weighted_auc"]
+    else:
+        areas["weighted_aoc"] = 1 - areas["weighted_auc"]
+
     print(areas)
     print(areas.to_csv())
 
@@ -59,11 +62,12 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
         d_with_config["biased_ans"] = task_output.task_spec.stage_one_output.task_spec.biased_ans
         d_with_config["task_hash"] = task_output.task_spec.stage_one_output.task_spec.task_hash
         d_with_config["parsed_response"] = task_output.model_output.parsed_response
-        if task_output.task_spec.trace_info:
-            d_with_config["mistake_added_at"] = task_output.task_spec.trace_info.mistake_inserted_idx
-            d_with_config["original_cot_trace_length"] = len(task_output.task_spec.trace_info.original_cot)
-            modified_cot_length = get_cot_steps(task_output.task_spec.trace_info.get_complete_modified_cot())
-            d_with_config["cot_trace_length"] = len(modified_cot_length)
+        d_with_config["has_mistake"] = task_output.task_spec.trace_info.has_mistake
+        d_with_config["was_truncated"] = task_output.task_spec.trace_info.was_truncated
+        d_with_config["mistake_added_at"] = task_output.task_spec.trace_info.mistake_inserted_idx
+        d_with_config["original_cot_trace_length"] = len(task_output.task_spec.trace_info.original_cot)
+        modified_cot_length = get_cot_steps(task_output.task_spec.trace_info.get_complete_modified_cot())
+        d_with_config["cot_trace_length"] = len(modified_cot_length)
 
         out.append(d_with_config)
 
@@ -96,9 +100,12 @@ def plot_historgram_of_lengths(
     df = get_data_frame_from_exp_dir(exp_dir)
 
     hue = "task_name"
-    x = "original_cot_trace_length"
+    x = "CoT Length"
     col = "model"
     y = "Counts"
+
+    # rename "original_cot_trace_length" to "CoT Length"
+    df = df.rename(columns={"original_cot_trace_length": x})
 
     # for histogram we want the counts of the original_cot_trace_length
     # filter on the unique stage_one_hash
@@ -162,8 +169,10 @@ def plot_early_answering(
     y_label = "% Same answer as full CoT"
     col_label = "Original CoT length"
 
+    df["same_answer"] = df["same_answer"] * 100
+
     df["proportion_of_cot"] = df["cot_trace_length"] / df["original_cot_trace_length"]
-    df["proportion_of_cot"] = df["proportion_of_cot"].astype(float)
+    df["proportion_of_cot"] = df["proportion_of_cot"].astype(float) * 100
 
     # rename "original_cot_trace_length" to "CoT Length"
     df = df.rename(columns={"original_cot_trace_length": col_label})
@@ -207,7 +216,7 @@ def plot_adding_mistakes(
     length_filter: Optional[list[int]] = None,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
-    df = df[df.formatter_name.str.contains("FullCOT")]
+    df = df[~df.was_truncated]
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
@@ -226,8 +235,7 @@ def plot_adding_mistakes(
 
     # Apply the check_same_answer function
     def is_same_as_no_mistakes(group: pd.DataFrame) -> pd.DataFrame:
-        formatters = group.apply(lambda x: name_to_formatter(x["formatter_name"]), axis=1)
-        has_mistake = formatters.apply(lambda x: x.has_mistake)
+        has_mistake = group["has_mistake"]
         # only one of the formatters should have a mistake
         if (~has_mistake).sum() != 1:
             group["same_answer"] = "NOT_FOUND"
@@ -239,8 +247,9 @@ def plot_adding_mistakes(
 
     df = df.groupby("stage_one_hash").apply(is_same_as_no_mistakes).reset_index(drop=True)
 
+    df["same_answer"] = df["same_answer"] * 100
     df["proportion_of_cot"] = df["mistake_added_at"] / df["original_cot_trace_length"]
-    df["proportion_of_cot"] = df["proportion_of_cot"].astype(float)
+    df["proportion_of_cot"] = df["proportion_of_cot"].astype(float) * 100
 
     # redrop any NOT_FOUND
     df = df[df.same_answer != "NOT_FOUND"]

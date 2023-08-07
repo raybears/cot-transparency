@@ -15,17 +15,14 @@ from cot_transparency.data_models.models import (
     TaskOutput,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.transparency.early_answering import EarlyAnsweringFormatter
 from cot_transparency.formatters.transparency.mistakes import (
     CompletePartialCOT,
     FewShotGenerateMistakeFormatter,
-    FullCOTWithMistakeCompletionFormatter,
-    FullCOTWithMistakeFormatter,
 )
-from cot_transparency.formatters.transparency.stage_one_formatters import (
+from cot_transparency.formatters.transparency.s1_baselines import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
 )
-from cot_transparency.formatters.transparency.stage_two_base import StageTwoFormatter
+from cot_transparency.formatters.transparency.util import StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter, FullCOTFormatter
 from cot_transparency.openai_utils.set_key import set_keys_from_env
@@ -36,14 +33,6 @@ from stage_one import CONFIG_MAP, get_valid_stage1_formatters
 """
 We take traces generated from stage_one.py and run analysis on them
 """
-
-
-def get_formatter_for_single_best(stage_one_formatter_name: str):
-    if stage_one_formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
-        Formatter = FullCOTWithMistakeCompletionFormatter
-    else:
-        Formatter = FullCOTWithMistakeFormatter
-    return Formatter
 
 
 def run_with_caching_stage_two(
@@ -88,15 +77,10 @@ def get_early_answering_tasks(
     for i, cot_step in enumerate(cot_steps):
         partial_cot += cot_step
 
-        if i != len(cot_steps) - 1:
-            if full_answers_only:
-                continue
-            Formatter = EarlyAnsweringFormatter
+        if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
+            Formatter = FullCOTCompletionFormatter
         else:
-            if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
-                Formatter = FullCOTCompletionFormatter
-            else:
-                Formatter = FullCOTFormatter
+            Formatter = FullCOTFormatter
 
         config = stage_one_output.task_spec.model_config.copy()
         out_file_path: Path = Path(
@@ -251,7 +235,10 @@ def get_best_single_answer_tasks_given_mistakes(
             print("WARNING - skipping task as NOT_FOUND")
             continue
 
-        Formatter = get_formatter_for_single_best(stage_one_output.task_spec.formatter_name)
+        if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
+            Formatter = FullCOTCompletionFormatter
+        else:
+            Formatter = FullCOTFormatter
 
         path = Path(f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json")
         trace_info = output.task_spec.trace_info
@@ -290,12 +277,15 @@ def create_stage_2_tasks(
             tasks_to_run.extend(early_answering_tasks)
 
     if "mistakes" in tasks:
-        for task_output in stage_1_task_outputs:
-            # we need this as baseline answers that have no mistakes in.
-            early_answering_tasks = get_early_answering_tasks(
-                task_output, exp_dir, temperature=temperature, full_answers_only=True
-            )
-            tasks_to_run.extend(early_answering_tasks)
+        if "early_answering" not in tasks:
+            for task_output in stage_1_task_outputs:
+                # we need this as baseline answers that have no mistakes in. We don't need to
+                # do this if we are already running early_answering tasks as we will get the
+                # baseline answers from those
+                early_answering_tasks = get_early_answering_tasks(
+                    task_output, exp_dir, temperature=temperature, full_answers_only=True
+                )
+                tasks_to_run.extend(early_answering_tasks)
 
         cots_with_mistakes = get_mistakes(
             stage_1_task_outputs, exp_dir, batch=batch, mistake_adding_model=mistake_model
@@ -361,7 +351,8 @@ def main(
         # don't do any filtering, just use all models
         models = list(CONFIG_MAP.keys())
 
-    assert evaluations in [["early_answering", "mistakes"], ["early_answering"], ["mistakes"]]
+    for evaluation in evaluations:
+        assert evaluation in ["early_answering", "mistakes"]
 
     valid_stage_one_formatters = get_valid_stage1_formatters(stage_one_formatters)
     for formatter in valid_stage_one_formatters:

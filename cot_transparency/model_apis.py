@@ -22,36 +22,40 @@ def messages_has_none_role(prompt: list[StrictChatMessage] | list[ChatMessage]) 
     return any(is_non_role)
 
 
-def convert_to_strict_messages(
-    prompt: list[ChatMessage] | list[StrictChatMessage], model: str
-) -> list[StrictChatMessage]:
-    all_strict = all([isinstance(msg, StrictChatMessage) for msg in prompt])
-    if all_strict:
-        strict_prompt: list[StrictChatMessage] = prompt  # type: ignore
-        return strict_prompt
-    else:
-        flex_prompt: list[ChatMessage] = prompt  # type: ignore
-
-        if model == "gpt-3.5-turbo" or model == "gpt-4" or model == "gpt-3.5-turbo-16k":
-            strict_prompt = format_for_openai_chat(flex_prompt)
-        elif model == "claude-v1" or model in ["text-davinci-003", "code-davinci-002", "text-davinci-002", "davinci"]:
-            strict_prompt = format_for_completion(flex_prompt)
-        else:
-            raise ValueError(f"Unknown model {model}")
-    return strict_prompt
-
-
 class Prompt(BaseModel):
-    messages: list[StrictChatMessage]
+    messages: list[ChatMessage]
+
+    def get_strict_messages(self, model: str) -> list[StrictChatMessage]:
+        prompt = self.messages
+        all_strict = all([isinstance(msg, StrictChatMessage) for msg in prompt])
+        if all_strict:
+            strict_prompt: list[StrictChatMessage] = prompt  # type: ignore
+            return strict_prompt
+        else:
+            flex_prompt: list[ChatMessage] = prompt  # type: ignore
+
+            if model == "gpt-3.5-turbo" or model == "gpt-4" or model == "gpt-3.5-turbo-16k":
+                strict_prompt = format_for_openai_chat(flex_prompt)
+            elif model == "claude-v1" or model in [
+                "text-davinci-003",
+                "code-davinci-002",
+                "text-davinci-002",
+                "davinci",
+            ]:
+                strict_prompt = format_for_completion(flex_prompt)
+            else:
+                raise ValueError(f"Unknown model {model}")
+        return strict_prompt
 
     def convert_to_anthropic_str(self) -> str:
         if messages_has_none_role(self.messages):
             raise ValueError(f"Anthropic chat messages cannot have a None role. Got {self.messages}")
-        return self.convert_to_completion_str()
+        return self.convert_to_completion_str(model="claude-v1")
 
-    def convert_to_completion_str(self) -> str:
+    def convert_to_completion_str(self, model="text-davinci-003") -> str:
+        messages = self.get_strict_messages(model)
         message = ""
-        for msg in self.messages:
+        for msg in messages:
             match msg.role:
                 case StrictMessageRole.user:
                     message += f"{anthropic.HUMAN_PROMPT} {msg.content}"
@@ -64,19 +68,21 @@ class Prompt(BaseModel):
                     message += f"\n\n{msg.content}"
         return message
 
+    def convert_to_openai_chat(self) -> list[StrictChatMessage]:
+        return self.get_strict_messages(model="gpt-4")
 
-def call_model_api(messages: list[ChatMessage] | list[StrictChatMessage], config: OpenaiInferenceConfig) -> str:
+
+def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
     set_opeani_org_from_env_rand()
-    strict_messages = convert_to_strict_messages(messages, config.model)
-    prompt = Prompt(messages=strict_messages)
+    prompt = Prompt(messages=messages)
 
     model_name = config.model
     if model_name == "gpt-3.5-turbo" or model_name == "gpt-3.5-turbo-16k":
-        return gpt3_5_rate_limited(config=config, messages=strict_messages).completion
+        return gpt3_5_rate_limited(config=config, messages=prompt.convert_to_openai_chat()).completion
 
     elif model_name == "gpt-4" or model_name == "gpt-4-32k":
         # return "fake openai response, The best answer is: (A)"
-        return gpt4_rate_limited(config=config, messages=strict_messages).completion
+        return gpt4_rate_limited(config=config, messages=prompt.convert_to_openai_chat()).completion
 
     elif "claude" in model_name:
         formatted = prompt.convert_to_anthropic_str()
