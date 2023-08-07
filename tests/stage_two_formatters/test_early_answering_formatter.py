@@ -2,7 +2,7 @@ from cot_transparency.data_models.models import MessageRole, StrictMessageRole
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter
 from cot_transparency.formatters.transparency.util import FullCOTFormatter
-from cot_transparency.model_apis import Prompt
+from cot_transparency.model_apis import ModelType, Prompt
 from cot_transparency.data_models.models import ChatMessage, StrictChatMessage
 
 
@@ -56,7 +56,7 @@ def test_early_answering_formatter_chat():
 
     messages = FullCOTFormatter.format_example(input_messages, EXAMPLE_COT, "gpt-3.5-turbo")
     prompt = Prompt(messages=messages)
-    messages = prompt.get_strict_messages("gpt-3.5-turbo")
+    messages = prompt.get_strict_messages(ModelType.from_model_name("gpt-3.5-turbo"))
 
     expected_list = [
         {

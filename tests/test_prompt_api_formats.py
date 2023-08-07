@@ -4,7 +4,7 @@ from cot_transparency.formatters import (
     ZeroShotSycophancyNoRoleFormatter,
 )
 from cot_transparency.formatters.sycophancy import ZeroShotCOTSycophancyFormatter
-from cot_transparency.model_apis import Prompt
+from cot_transparency.model_apis import ModelType, Prompt
 from cot_transparency.data_models.models import ChatMessage
 from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
@@ -84,7 +84,9 @@ def test_openai_chat_no_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
     formatted_prompt: list[ChatMessage] = ZeroShotSycophancyFormatter().format_example(test_example)
     prompt = Prompt(messages=formatted_prompt)
-    prompt_sent_to_openai_chat = [chat.dict() for chat in prompt.get_strict_messages("gpt-4")]
+    prompt_sent_to_openai_chat = [
+        chat.dict() for chat in prompt.get_strict_messages(ModelType.from_model_name("gpt-4"))
+    ]
 
     user_prompt = """Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 

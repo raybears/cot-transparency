@@ -2,7 +2,7 @@ from typing import Optional, Type, Self
 from cot_transparency.data_models.models import ChatMessage, MessageRole, StrictMessageRole
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.extraction import extract_answer_non_cot
-from cot_transparency.model_apis import Prompt
+from cot_transparency.model_apis import ModelType, Prompt
 
 
 from copy import deepcopy
@@ -12,7 +12,7 @@ SINGLE_MOST_LIKELY_ANSWER = "The single, most likely answer is: ("
 
 
 def combine_question_with_cot(question: list[ChatMessage], cot_trace: str, model: str) -> list[ChatMessage]:
-    soutput = Prompt(messages=question).get_strict_messages(model)
+    soutput = Prompt(messages=question).get_strict_messages(ModelType.from_model_name(model))
 
     # convert back to ChatMessage, so we can use convert_to_strict_messages at the end
     output = [ChatMessage(role=MessageRole(msg.role), content=msg.content) for msg in soutput]

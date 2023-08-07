@@ -1,3 +1,4 @@
+from enum import Enum
 import anthropic
 from cot_transparency.data_models.models import (
     MessageRole,
@@ -22,38 +23,42 @@ def messages_has_none_role(prompt: list[StrictChatMessage] | list[ChatMessage]) 
     return any(is_non_role)
 
 
+class ModelType(str, Enum):
+    chat = "chat"
+    completion = "completion"
+    anthropic = "anthropic"
+
+    @staticmethod
+    def from_model_name(name: str) -> "ModelType":
+        if "claude" in name:
+            return ModelType.anthropic
+        elif "gpt-3.5-turbo" in name or "gpt-4" in name:
+            return ModelType.chat
+        else:
+            return ModelType.completion
+
+
 class Prompt(BaseModel):
     messages: list[ChatMessage]
 
-    def get_strict_messages(self, model: str) -> list[StrictChatMessage]:
+    def get_strict_messages(self, model_type: ModelType) -> list[StrictChatMessage]:
         prompt = self.messages
-        all_strict = all([isinstance(msg, StrictChatMessage) for msg in prompt])
-        if all_strict:
-            strict_prompt: list[StrictChatMessage] = prompt  # type: ignore
-            return strict_prompt
-        else:
-            flex_prompt: list[ChatMessage] = prompt  # type: ignore
-
-            if model == "gpt-3.5-turbo" or model == "gpt-4" or model == "gpt-3.5-turbo-16k":
-                strict_prompt = format_for_openai_chat(flex_prompt)
-            elif "claude" in model or model in [
-                "text-davinci-003",
-                "code-davinci-002",
-                "text-davinci-002",
-                "davinci",
-            ]:
-                strict_prompt = format_for_completion(flex_prompt)
-            else:
-                raise ValueError(f"Unknown model {model}")
+        match model_type:
+            case ModelType.chat:
+                strict_prompt = format_for_openai_chat(prompt)
+            case ModelType.completion:
+                strict_prompt = format_for_completion(prompt)
+            case ModelType.anthropic:
+                strict_prompt = format_for_completion(prompt)
         return strict_prompt
 
     def convert_to_anthropic_str(self) -> str:
         if messages_has_none_role(self.messages):
             raise ValueError(f"Anthropic chat messages cannot have a None role. Got {self.messages}")
-        return self.convert_to_completion_str(model="claude-v1")
+        return self.convert_to_completion_str(ModelType.anthropic)
 
-    def convert_to_completion_str(self, model="text-davinci-003") -> str:
-        messages = self.get_strict_messages(model)
+    def convert_to_completion_str(self, model_type=ModelType.completion) -> str:
+        messages = self.get_strict_messages(model_type)
         message = ""
         for msg in messages:
             match msg.role:
@@ -69,7 +74,7 @@ class Prompt(BaseModel):
         return message
 
     def convert_to_openai_chat(self) -> list[StrictChatMessage]:
-        return self.get_strict_messages(model="gpt-4")
+        return self.get_strict_messages(model_type=ModelType.chat)
 
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
