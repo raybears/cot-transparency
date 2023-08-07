@@ -36,7 +36,7 @@ class Prompt(BaseModel):
 
             if model == "gpt-3.5-turbo" or model == "gpt-4" or model == "gpt-3.5-turbo-16k":
                 strict_prompt = format_for_openai_chat(flex_prompt)
-            elif model == "claude-v1" or model in [
+            elif "claude" in model or model in [
                 "text-davinci-003",
                 "code-davinci-002",
                 "text-davinci-002",
