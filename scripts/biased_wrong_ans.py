@@ -12,7 +12,7 @@ from cot_transparency.formatters.extraction import BREAK_WORDS
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.model_apis import Prompt, format_for_openai_chat
+from cot_transparency.model_apis import Prompt
 
 # ruff: noqa: E501
 
@@ -63,7 +63,7 @@ def task_output_to_bad_cot(task: TaskOutput) -> Optional[BiasedWrongCOTBBH]:
 
 
 def task_output_to_flat(task: TaskOutput) -> FlatSimple:
-    converted = Prompt(messages=format_for_openai_chat(task.task_spec.messages)).convert_to_completion_str()
+    converted = Prompt(messages=task.task_spec.messages).convert_to_completion_str()
     return FlatSimple(
         prompt=converted,
         full_response=task.first_raw_response,

@@ -12,7 +12,6 @@ from cot_transparency.data_models.models import (
     OpenaiInferenceConfig,
     StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
-    StrictChatMessage,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -35,7 +34,7 @@ class AnswerNotFound(Exception):
 
 
 def call_model_until_suitable_response(
-    messages: list[StrictChatMessage] | list[ChatMessage],
+    messages: list[ChatMessage],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
     allow_failure_after_n: Optional[int] = None,

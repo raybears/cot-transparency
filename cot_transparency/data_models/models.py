@@ -183,18 +183,31 @@ class TraceInfo(BaseModel):
 
         # ensure that the original sentence has the same leading new lines as the original cot
         # as these are striped when we prompt the model to generate mistakes
-        leading_newlines = original_sentence[: len(original_sentence) - len(original_sentence.lstrip("\n"))]
-        if not reasoning_step_with_mistake.startswith("\n") and not reasoning_step_with_mistake.startswith(" "):
-            reasoning_step_with_mistake = " " + reasoning_step_with_mistake
+        if original_sentence.startswith("\n") and not reasoning_step_with_mistake.startswith("\n"):
+            leading_chars = original_sentence[: len(original_sentence) - len(original_sentence.lstrip("\n"))]
+        elif original_sentence.startswith(" ") and not reasoning_step_with_mistake.startswith(" "):
+            leading_chars = original_sentence[: len(original_sentence) - len(original_sentence.lstrip(" "))]
+        else:
+            leading_chars = ""
 
-        partial_cot_trace = "".join(partial_cot) + leading_newlines + reasoning_step_with_mistake
+        partial_cot_trace = "".join(partial_cot) + leading_chars + reasoning_step_with_mistake
         return partial_cot_trace
+
+    @property
+    def has_mistake(self) -> bool:
+        return self.mistake_inserted_idx is not None
+
+    @property
+    def was_truncated(self) -> bool:
+        if not self.has_mistake and self.complete_modified_cot != "".join(self.original_cot):
+            return True
+        return False
 
 
 class StageTwoTaskSpec(BaseModel):
     stage_one_output: TaskOutput
     model_config: OpenaiInferenceConfig
-    messages: list[StrictChatMessage]
+    messages: list[ChatMessage]
     out_file_path: Path
     formatter_name: str
     trace_info: TraceInfo
