@@ -134,10 +134,10 @@ def main(
     temperature: Optional[float] = None,
 ):
     if dataset is not None:
-        assert tasks is None
+        assert tasks is None, "dataset and tasks are mutually exclusive"
         tasks = TASK_LIST[dataset]
     else:
-        assert tasks is not None
+        assert tasks is not None, "dataset and tasks are mutually exclusive"
 
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
