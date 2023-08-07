@@ -44,6 +44,7 @@ def read_jsonl_file_into_basemodel_ignore_errors(
 
 
 def write_jsonl_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         for basemodel in basemodels:
             f.write(basemodel.json() + "\n")

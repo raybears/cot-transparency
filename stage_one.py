@@ -3,12 +3,15 @@ from pathlib import Path
 from typing import Optional, Type
 
 import fire
+
+from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.formatters.transparency.stage_one_formatters import FormattersForTransparency
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import (
@@ -18,22 +21,25 @@ from cot_transparency.formatters import (
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
+BBH_TASK_LIST = [
+    "sports_understanding",
+    "snarks",
+    "disambiguation_qa",
+    "movie_recommendation",
+    "causal_judgment",
+    "date_understanding",
+    "tracking_shuffled_objects_three_objects",
+    "temporal_sequences",
+    "ruin_names",
+    "web_of_lies",
+    "navigate",
+    "logical_deduction_five_objects",
+    "hyperbaton",
+]
+
 TASK_LIST = {
-    "bbh": [
-        "sports_understanding",
-        "snarks",
-        "disambiguation_qa",
-        "movie_recommendation",
-        "causal_judgment",
-        "date_understanding",
-        "tracking_shuffled_objects_three_objects",
-        "temporal_sequences",
-        "ruin_names",
-        "web_of_lies",
-        "navigate",
-        "logical_deduction_five_objects",
-        "hyperbaton",
-    ],
+    "bbh": BBH_TASK_LIST,
+    "bbh_biased_wrong_cot": BBH_TASK_LIST,
     "transparency": [
         "aqua",
         "arc_easy",
@@ -91,6 +97,10 @@ def get_list_of_examples(dataset: str, task: str) -> list[DataExampleBase]:
     data = None
     if dataset == "bbh":
         data = bbh.load_bbh(task)
+    if dataset == "bbh_biased_wrong_cot":
+        data = read_jsonl_file_into_basemodel(Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH).filter(
+            lambda x: x.task == task
+        )
     elif dataset == "transparency":
         if task == "aqua":
             data = aqua.dev()
