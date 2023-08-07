@@ -43,6 +43,7 @@ from cot_transparency.formatters.transparency.stage_one_formatters import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
     FewShotCOTUnbiasedTameraTFormatter,
 )
+from cot_transparency.formatters.wrong_few_shot.formatters import WrongFewShotBiasedFormatter
 
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
@@ -68,6 +69,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         CheckmarkNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         StanfordNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         UserBiasedWrongCotFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        WrongFewShotBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 
