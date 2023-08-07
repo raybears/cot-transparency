@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Optional, Type
 
 import fire
+
+from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 
@@ -10,6 +12,7 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
 from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
@@ -18,22 +21,25 @@ from cot_transparency.formatters import (
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
+BBH_TASK_LIST = [
+    "sports_understanding",
+    "snarks",
+    "disambiguation_qa",
+    "movie_recommendation",
+    "causal_judgment",
+    "date_understanding",
+    "tracking_shuffled_objects_three_objects",
+    "temporal_sequences",
+    "ruin_names",
+    "web_of_lies",
+    "navigate",
+    "logical_deduction_five_objects",
+    "hyperbaton",
+]
+
 TASK_LIST = {
-    "bbh": [
-        "sports_understanding",
-        "snarks",
-        "disambiguation_qa",
-        "movie_recommendation",
-        "causal_judgment",
-        "date_understanding",
-        "tracking_shuffled_objects_three_objects",
-        "temporal_sequences",
-        "ruin_names",
-        "web_of_lies",
-        "navigate",
-        "logical_deduction_five_objects",
-        "hyperbaton",
-    ],
+    "bbh": BBH_TASK_LIST,
+    "bbh_biased_wrong_cot": BBH_TASK_LIST,
     "transparency": [
         "aqua",
         "arc_easy",
@@ -83,9 +89,13 @@ def validate_tasks(tasks: list[str]) -> list[str]:
     return tasks
 
 
-def get_list_of_examples(task: str) -> list[DataExampleBase]:
+def get_list_of_examples(task: str, dataset: Optional[str] = None) -> list[DataExampleBase]:
     data = None
-    if task in TASK_LIST["bbh"]:
+    if dataset == "bbh_biased_wrong_cot":
+        data = read_jsonl_file_into_basemodel(Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH).filter(
+            lambda x: x.task == task
+        )
+    elif task in TASK_LIST["bbh"]:
         data = bbh.load_bbh(task)
     else:
         if task == "aqua":
@@ -111,7 +121,8 @@ def get_list_of_examples(task: str) -> list[DataExampleBase]:
 
 
 def main(
-    tasks: list[str],
+    tasks: Optional[list[str]] = None,
+    dataset: Optional[str] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     exp_dir: Optional[str] = None,
@@ -122,6 +133,12 @@ def main(
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
 ):
+    if dataset is not None:
+        assert tasks is None
+        tasks = TASK_LIST[dataset]
+    else:
+        assert tasks is not None
+
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
 
@@ -133,7 +150,7 @@ def main(
         task = setting.task
         model = setting.model
         formatter = setting.formatter
-        data: list[DataExampleBase] = get_list_of_examples(task)
+        data: list[DataExampleBase] = get_list_of_examples(task, dataset=dataset)
         out_file_path: Path = Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
 
         # Shuffle the data BEFORE we cap it
