@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, Sequence
 
 from pydantic import BaseModel
 from slist import Slist
@@ -12,10 +12,12 @@ from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     OpenaiInferenceConfig,
 )
-from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
+from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.tasks import read_done_experiment
+from scripts.calibrate import read_all_for_formatters
+from scripts.multi_accuracy import AccuracyOutput, accuracy_outputs_from_inputs, AccuracyInput
 
 AB = Literal["A", "B"]
 
@@ -65,6 +67,18 @@ class ClassificationTaskSpec(BaseModel):
     out_file_path: Path
     config: OpenaiInferenceConfig
 
+    @property
+    def is_inconsistent(self) -> bool:
+        """Has a bias not on the ground truth"""
+        biased_ans = self.stage_one_output.task_spec.biased_ans
+        assert biased_ans is not None
+        return biased_ans != self.stage_one_output.task_spec.ground_truth
+
+    @property
+    def has_inconsistent_answer(self) -> bool:
+        """Has a bias not on the ground truth"""
+        return self.stage_one_output.first_parsed_response != self.stage_one_output.task_spec.ground_truth
+
 
 class ClassificationTaskOutput(BaseModel):
     task_spec: ClassificationTaskSpec
@@ -96,14 +110,40 @@ def run_classification_task(task: ClassificationTaskSpec) -> ClassificationTaskO
     return ClassificationTaskOutput(task_spec=task, model_output=parsed_response)
 
 
+def get_percentage_spotted_bias(answers: Sequence[AB]) -> AccuracyOutput:
+    inputs: Slist[AccuracyInput] = Slist(answers).map(
+        lambda x: AccuracyInput(
+            ground_truth="A",
+            predicted=x,
+        )
+    )
+    return accuracy_outputs_from_inputs(inputs)
+
+
+def read_done_classification(path: Path) -> Slist[ClassificationTaskOutput]:
+    return read_jsonl_file_into_basemodel(path, ClassificationTaskOutput)
+
+
+def plot_done_classification(path: Path) -> None:
+    read = read_done_classification(path)
+    print(f"len(read) = {len(read)}")
+    # get the percentage of spotted bias
+    percentage_spotted_bias = get_percentage_spotted_bias(read.map(lambda x: x.model_output).flatten_option())
+    print(f"percentage_spotted_bias = {percentage_spotted_bias}")
+
+
 def main():
-    single_exp = read_experiment(
-        exp_dir="experiments/biased_wrong", task="ruin_names", formatter="MoreRewardBiasedFormatter", model="gpt-4"
+    single_exp = read_all_for_formatters(
+        exp_dir="experiments/biased_wrong", formatter="MoreRewardBiasedFormatter", model="gpt-4"
     )
     out_fp = Path("experiments/classification/more_reward.jsonl")
-    task_outputs: list[TaskOutput] = single_exp.outputs
-    tasks: Slist[ClassificationTaskSpec] = Slist(task_outputs).map(
-        lambda x: make_classification_task(classifier=MoreRewardClassifier, task_output=x, out_file_path=out_fp)
+    task_outputs: list[TaskOutput] = single_exp
+    print(f"len(task_outputs) = {len(task_outputs)}")
+    tasks: Slist[ClassificationTaskSpec] = (
+        Slist(task_outputs)
+        .map(lambda x: make_classification_task(classifier=MoreRewardClassifier, task_output=x, out_file_path=out_fp))
+        .filter(lambda x: x.is_inconsistent)
+        .filter(lambda x: x.has_inconsistent_answer)
     )
     executor = ThreadPoolExecutor(max_workers=20)
     print(f"len(tasks) = {len(tasks)}")
@@ -115,3 +155,4 @@ def main():
 if __name__ == "__main__":
     set_keys_from_env()
     main()
+    plot_done_classification(Path("experiments/classification/more_reward.jsonl"))
