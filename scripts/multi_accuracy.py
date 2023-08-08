@@ -43,7 +43,7 @@ def accuracy_for_file(path: Path, inconsistent_only: bool) -> AccuracyOutput:
 
 def accuracy_outputs(outputs: list[TaskOutput]) -> AccuracyOutput:
     transformed = Slist(outputs).map(
-        lambda x: AccuracyInput(ground_truth=x.task_spec.ground_truth, predicted=x.first_raw_response)
+        lambda x: AccuracyInput(ground_truth=x.task_spec.ground_truth, predicted=x.first_parsed_response)
     )
     return accuracy_outputs_from_inputs(transformed)
 
