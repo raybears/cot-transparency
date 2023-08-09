@@ -48,6 +48,7 @@ from cot_transparency.formatters.transparency.s1_baselines import (
 
 from cot_transparency.formatters.transparency.interventions.logical_consequence import (
     LogicalConsequenceChatFormatter,
+    LogicalConsequence2ChatFormatter,
 )
 
 
@@ -119,4 +120,5 @@ __all__ = [
     "ZeroShotCOTUnbiasedChatTameraTFormatter",
     "LogicalConsequenceChatFormatter",
     "UserBiasedWrongCotFormatter",
+    "LogicalConsequence2ChatFormatter",
 ]
