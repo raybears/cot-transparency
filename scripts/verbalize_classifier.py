@@ -24,7 +24,12 @@ from cot_transparency.model_apis import call_model_api
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.tasks import read_done_experiment
 from scripts.calibrate import read_all_for_formatters
-from scripts.multi_accuracy import AccuracyOutput, accuracy_outputs_from_inputs, AccuracyInput
+from scripts.multi_accuracy import AccuracyOutput, accuracy_outputs_from_inputs, AccuracyInput, PlotDots
+from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
+import plotly.graph_objects as go
+import plotly.io as pio
+
+# ruff: noqa: E501
 
 AB = Literal["A", "B"]
 
@@ -128,12 +133,13 @@ def read_done_classification(path: Path) -> Slist[ClassificationTaskOutput]:
     return read_jsonl_file_into_basemodel(path, ClassificationTaskOutput)
 
 
-def plot_done_classification(path: Path) -> None:
-    read = read_done_classification(path)
+def get_proportion_mentioned_bias(path: Path) -> AccuracyOutput:
+    read: Slist[ClassificationTaskOutput] = read_done_classification(path)
     print(f"len(read) = {len(read)}")
     # get the percentage of spotted bias
-    percentage_spotted_bias = get_percentage_spotted_bias(read.map(lambda x: x.model_output).flatten_option())
-    print(f"percentage_spotted_bias = {percentage_spotted_bias}")
+    a_and_bs: Slist[AB] = read.map(lambda x: x.model_output).flatten_option()  # type: ignore[reportGeneralTypeIssues]
+    percentage_spotted_bias = get_percentage_spotted_bias(a_and_bs)
+    return percentage_spotted_bias
 
 
 FORMATTER_FEATURE_DESCRIPTION_MAP: dict[Type[StageOneFormatter], str] = {
@@ -162,18 +168,74 @@ def main(formatter: Type[StageOneFormatter], out_fp: Path):
     write_jsonl_file_from_basemodel(out_fp, results)
 
 
+def unverbalized_bar_plots(
+    plot_dots: list[PlotDots],
+    title: str,
+    subtitle: str = "",
+    save_file_path: Optional[str] = None,
+):
+    unverbalized = [1 - dot.acc.accuracy for dot in plot_dots]
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                name="Proportion Unverbalized",
+                x=[dot.name for dot in plot_dots],
+                y=unverbalized,
+                text=["               {:.2f}".format(dec) for dec in unverbalized],
+                textposition="outside",  # will always place text above the bars
+                textfont=dict(size=20, color="#000"),  # increase text size and set color to black
+                error_y=dict(type="data", array=[dot.acc.error_bars for dot in plot_dots], visible=True),
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title=title,
+        xaxis_title="Bias method",
+        yaxis_title="Proportion Unverbalized",
+        barmode="group",
+        yaxis=dict(range=[0, max(unverbalized) + max([dot.acc.error_bars for dot in plot_dots])])
+        # adjust y range to accommodate text above bars
+    )
+
+    # Adding the subtitle
+    if subtitle:
+        fig.add_annotation(
+            x=1,  # in paper coordinates1
+            y=0,  # in paper coordinates
+            xref="paper",
+            yref="paper",
+            xanchor="right",
+            yanchor="top",
+            text=subtitle,
+            showarrow=False,
+            font=dict(size=12, color="#555"),
+        )
+
+    if save_file_path is not None:
+        pio.write_image(fig, save_file_path + ".png", scale=2)
+    else:
+        fig.show()
+
+
 if __name__ == "__main__":
     set_keys_from_env()
     formatters = [
-        # MoreRewardBiasedFormatter,
-        # DeceptiveAssistantBiasedFormatter,
-        # UserBiasedWrongCotFormatter,
+        DeceptiveAssistantBiasedFormatter,
         WrongFewShotBiasedFormatter,
+        UserBiasedWrongCotFormatter,
+        MoreRewardBiasedFormatter,
     ]
     # TODO - need to pair with the unbiased version and filter to get only the ones that changed the answer
-    # Actually nvrm - just say that it is an estimate
+    proportions: list[PlotDots] = []
     for formatter in formatters:
         print(f"formatter = {formatter.name()}")
         out_fp = Path(Path(f"experiments/classification/{formatter.name()}.jsonl"))
-        main(formatter, out_fp=out_fp)
-        plot_done_classification(Path(f"experiments/classification/{formatter.name()}.jsonl"))
+        # main(formatter, out_fp=out_fp)
+        proportion = get_proportion_mentioned_bias(out_fp)
+        simple_name = FORMATTER_TO_SIMPLE_NAME[formatter]
+        proportions.append(PlotDots(acc=proportion, name=simple_name))
+    n_samples = proportions[0].acc.samples
+    unverbalized_bar_plots(
+        proportions, title="How often does the model not mention the bias in its COT?, when it does indeed get biased?"
+    )
