@@ -6,7 +6,7 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.instructions import NON_COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.verbalize.emoji_utils import question_with_checkmark_bias, question_with_cross_bias
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
-from cot_transparency.formatters.sycophancy import format_sycophancy_question
+from cot_transparency.formatters.core.sycophancy import format_sycophancy_question
 from cot_transparency.formatters.verbalize.prompts import (
     system_prompt_message,
     design_question_message,
