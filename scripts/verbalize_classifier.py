@@ -13,12 +13,12 @@ from cot_transparency.data_models.models import (
     OpenaiInferenceConfig,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.biased_wrong_cot.formatters import UserBiasedWrongCotFormatter
-from cot_transparency.formatters.wrong_few_shot.formatters import (
-    MoreRewardBiasedFormatter,
-    DeceptiveAssistantBiasedFormatter,
+from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
 )
+from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
+from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.openai_utils.set_key import set_keys_from_env
