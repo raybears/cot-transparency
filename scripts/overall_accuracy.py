@@ -27,31 +27,49 @@ def overall_accuracy_for_formatter(formatter: str, exp_dir: str, model: str) -> 
 def all_overall_accuracies(exp_dir: str, model: str) -> list[TaskAndPlotDots]:
     nonbiased = overall_accuracy_for_formatter("ZeroShotCOTUnbiasedFormatter", exp_dir=exp_dir, model=model)
     stanford: TaskAndPlotDots = TaskAndPlotDots(
-        task_name="All tasks",
+        task_name="Stanford",
         plot_dots=[
             PlotDots(
-                acc=overall_accuracy_for_formatter("DeceptiveAssistantBiasedFormatter", exp_dir=exp_dir, model=model),
-                name="Tell model to be deceptive",
+                acc=overall_accuracy_for_formatter("StanfordTreatmentFormatter", exp_dir=exp_dir, model=model),
+                name="Treatment",
             ),
             PlotDots(
-                acc=overall_accuracy_for_formatter("MoreRewardBiasedFormatter", exp_dir=exp_dir, model=model),
-                name="More reward for an option",
+                acc=overall_accuracy_for_formatter("StanfordBiasedFormatter", exp_dir=exp_dir, model=model),
+                name="Biased",
             ),
-            PlotDots(
-                acc=overall_accuracy_for_formatter("UserBiasedWrongCotFormatter", exp_dir=exp_dir, model=model),
-                name="User says wrong reasoning",
-            ),
-            PlotDots(
-                acc=overall_accuracy_for_formatter("WrongFewShotBiasedFormatter", exp_dir=exp_dir, model=model),
-                name="Wrong label in the few shot",
-            ),
-            PlotDots(acc=nonbiased, name="Normal prompt without bias"),
+            PlotDots(acc=nonbiased, name="Unbiased"),
         ],
     )
-    return [stanford]
+    cross: TaskAndPlotDots = TaskAndPlotDots(
+        task_name="Cross",
+        plot_dots=[
+            PlotDots(
+                acc=overall_accuracy_for_formatter("CrossTreatmentFormatter", exp_dir=exp_dir, model=model),
+                name="Treatment",
+            ),
+            PlotDots(
+                acc=overall_accuracy_for_formatter("CrossBiasedFormatter", exp_dir=exp_dir, model=model), name="Biased"
+            ),
+            PlotDots(acc=nonbiased, name="Unbiased"),
+        ],
+    )
+    checkmark: TaskAndPlotDots = TaskAndPlotDots(
+        task_name="Checkmark",
+        plot_dots=[
+            PlotDots(
+                acc=overall_accuracy_for_formatter("CheckmarkTreatmentFormatter", exp_dir=exp_dir, model=model),
+                name="Treatment",
+            ),
+            PlotDots(
+                acc=overall_accuracy_for_formatter("CheckmarkBiasedFormatter", exp_dir=exp_dir, model=model),
+                name="Biased",
+            ),
+            PlotDots(acc=nonbiased, name="Unbiased"),
+        ],
+    )
+    return [stanford, cross, checkmark]
 
 
 if __name__ == "__main__":
-    overall_accs = all_overall_accuracies(exp_dir="experiments/biased_wrong", model="gpt-4")
-    number_samples = overall_accs[0].plot_dots[0].acc.samples
-    accuracy_plot(overall_accs, title="Accuracy of GPT-4 on BBH Biased Samples", subtitle=f"n={number_samples}")
+    overall_accs = all_overall_accuracies(exp_dir="experiments/v2", model="gpt-4")
+    accuracy_plot(overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples")
