@@ -1,14 +1,12 @@
 from typing import Optional
 from cot_transparency.data_models.models import (
     ChatMessage,
-    StrictChatMessage,
-    StrictMessageRole,
+    MessageRole,
 )
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.formatters.transparency.util import (
-    FullCOTCompletionFormatter,
-    FullCOTFormatter,
+    combine_question_with_cot,
     reject_if_stop_tokens,
     strip_given_all_of_the_above,
 )
@@ -79,19 +77,19 @@ class FewShotGenerateMistakeFormatter(PromptFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(original_question: str, sentence: str) -> list[StrictChatMessage]:
+    def format_example(original_question: str, sentence: str) -> list[ChatMessage]:
         formatted_dialogues = format_string_to_dicts(FEW_SHOT_PROMPT)
         messages = []
         for prompt in formatted_dialogues:
-            message = StrictChatMessage(role=StrictMessageRole.user, content=prompt["human"])
+            message = ChatMessage(role=MessageRole.user, content=prompt["human"])
             messages.append(message)
-            message = StrictChatMessage(role=StrictMessageRole.assistant, content=prompt["assistant"])
+            message = ChatMessage(role=MessageRole.assistant, content=prompt["assistant"])
             messages.append(message)
 
         # add the specific example we care about
         final_prompt = f"{START_PROMPT}\n\n{original_question}\n\nOriginal sentence: {sentence.lstrip()}"
-        messages.append(StrictChatMessage(role=StrictMessageRole.user, content=final_prompt))
-        messages.append(StrictChatMessage(role=StrictMessageRole.assistant, content="Sentence with mistake added:"))
+        messages.append(ChatMessage(role=MessageRole.user, content=final_prompt))
+        messages.append(ChatMessage(role=MessageRole.assistant, content="Sentence with mistake added:"))
         return messages
 
     @staticmethod
@@ -113,13 +111,15 @@ class FewShotGenerateMistakeFormatter(PromptFormatter):
 
 
 class CompletePartialCOT(PromptFormatter):
+    """
+    Takes a question and a partial cot_trace and then completes the cot_trace
+    """
+
     has_mistake: bool = True
 
     @staticmethod
-    def format_example(question: list[ChatMessage], cot_trace: str, model: str) -> list[StrictChatMessage]:
-        messages = FullCOTFormatter.format_example(question, cot_trace, model)
-        messages.pop()
-        messages.pop()
+    def format_example(question: list[ChatMessage], cot_trace: str, model: str) -> list[ChatMessage]:
+        messages = combine_question_with_cot(question, cot_trace, model)
         return messages
 
     @staticmethod
@@ -132,15 +132,3 @@ class CompletePartialCOT(PromptFormatter):
         # The parsing from this formatter guards against completion models continuing beyond the answer
         ans = reject_if_stop_tokens(response)
         return strip_given_all_of_the_above(ans)
-
-
-class FullCOTWithMistakeFormatter(FullCOTFormatter):
-    has_mistake: bool = True
-    # Exactly the same as EarlyAnsweringFormatter
-    pass
-
-
-class FullCOTWithMistakeCompletionFormatter(FullCOTCompletionFormatter):
-    has_mistake: bool = True
-    # Exactly the same as EarlyAnsweringFormatter
-    pass

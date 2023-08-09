@@ -3,24 +3,23 @@ from cot_transparency.formatters import (
     ZeroShotSycophancyFormatter,
     ZeroShotSycophancyNoRoleFormatter,
 )
-from cot_transparency.formatters.sycophancy import ZeroShotCOTSycophancyFormatter
-from cot_transparency.model_apis import Prompt, convert_to_strict_messages
-from cot_transparency.data_models.models import ChatMessage, StrictChatMessage
-from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
+from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
+from cot_transparency.model_apis import ModelType, Prompt
+from cot_transparency.data_models.models import ChatMessage
+from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
-def convert_to_completion_str(strict_messages: list[StrictChatMessage]) -> str:
-    prompt = Prompt(messages=strict_messages)
+def convert_to_completion_str(messages: list[ChatMessage]) -> str:
+    prompt = Prompt(messages=messages)
     return prompt.convert_to_completion_str()
 
 
 def test_openai_completion_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
     chat_messages: list[ChatMessage] = ZeroShotCOTSycophancyNoRoleFormatter().format_example(test_example)
-    strict_messages = convert_to_strict_messages(chat_messages, "text-davinci-003")
-    prompt_sent_to_openai_completion = convert_to_completion_str(strict_messages)
+    prompt = Prompt(messages=chat_messages)
+    prompt_sent_to_openai_completion = prompt.convert_to_completion_str()
 
-    assert len(strict_messages) == 2
     user_prompt = """\n\nWhich of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
 Answer choices:
@@ -41,10 +40,10 @@ Let's think step by step:"""  # noqa
 def test_openai_completion_no_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
     formatted_prompt: list[ChatMessage] = ZeroShotSycophancyNoRoleFormatter().format_example(test_example)
-    strict_messages = convert_to_strict_messages(formatted_prompt, "text-davinci-003")
-    prompt_sent_to_openai_completion = convert_to_completion_str(strict_messages)
 
-    assert len(formatted_prompt) == 2
+    prompt = Prompt(messages=formatted_prompt)
+    prompt_sent_to_openai_completion = prompt.convert_to_completion_str()
+
     user_prompt = """\n\nWhich of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
 Answer choices:
@@ -63,9 +62,8 @@ The best answer is: ("""  # noqa
 def test_openai_completion_no_cot_with_role():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
     formatted_prompt: list[ChatMessage] = ZeroShotSycophancyFormatter().format_example(test_example)
-    strict_messages = convert_to_strict_messages(formatted_prompt, "text-davinci-003")
-    assert len(formatted_prompt) == 2
-    prompt_sent_to_openai_completion = convert_to_completion_str(strict_messages)
+    prompt = Prompt(messages=formatted_prompt)
+    prompt_sent_to_openai_completion = prompt.convert_to_completion_str()
 
     user_prompt = """\n\nHuman: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
@@ -85,9 +83,10 @@ Assistant: The best answer is: ("""  # noqa
 def test_openai_chat_no_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
     formatted_prompt: list[ChatMessage] = ZeroShotSycophancyFormatter().format_example(test_example)
-    strict_messages = convert_to_strict_messages(formatted_prompt, "gpt-4")
-    assert len(strict_messages) == 1
-    prompt_sent_to_openai_chat = [chat.dict() for chat in strict_messages]
+    prompt = Prompt(messages=formatted_prompt)
+    prompt_sent_to_openai_chat = [
+        chat.dict() for chat in prompt.get_strict_messages(ModelType.from_model_name("gpt-4"))
+    ]
 
     user_prompt = """Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
@@ -111,10 +110,8 @@ The best answer is: ("""  # noqa
 def test_anthropic_no_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
     formatted_prompt: list[ChatMessage] = ZeroShotSycophancyFormatter().format_example(test_example)
-    strict_messages = convert_to_strict_messages(formatted_prompt, "claude-v1")
-
-    assert len(formatted_prompt) == 2
-    prompt_sent_to_anthropic: str = convert_to_completion_str(strict_messages)
+    prompt = Prompt(messages=formatted_prompt)
+    prompt_sent_to_anthropic = prompt.convert_to_anthropic_str()
 
     user_prompt = """\n\nHuman: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
@@ -134,10 +131,9 @@ Assistant: The best answer is: ("""  # noqa
 def test_anthropic_cot():
     test_example = EMPIRE_OF_PANTS_EXAMPLE
     formatted_prompt: list[ChatMessage] = ZeroShotCOTSycophancyFormatter().format_example(test_example)
-    strict_messages = convert_to_strict_messages(formatted_prompt, "claude-v1")
-    prompt_sent_to_anthropic = convert_to_completion_str(strict_messages)
+    prompt = Prompt(messages=formatted_prompt)
+    prompt_sent_to_anthropic = prompt.convert_to_anthropic_str()
 
-    assert len(strict_messages) == 2
     user_prompt = """\n\nHuman: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?
 
 Answer choices:

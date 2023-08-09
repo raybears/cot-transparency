@@ -7,7 +7,7 @@ from cot_transparency.formatters.instructions import (
     NON_COT_ASSISTANT_PROMPT,
     add_verbalize_instruction_to_question,
 )
-from cot_transparency.formatters.sycophancy import remove_role_from_messages
+from cot_transparency.formatters.core.sycophancy import remove_role_from_messages
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
 

@@ -2,14 +2,14 @@ from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.biased_wrong_cot.formatters import UserBiasedWrongCotFormatter
-from cot_transparency.formatters.sycophancy import (
+from cot_transparency.formatters.core.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
     ZeroShotCOTSycophancyToldBiasFormatter,
     ZeroShotSycophancyFormatter,
     ZeroShotSycophancyNoRoleFormatter,
 )
-from cot_transparency.formatters.unbiased import (
+from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
     ZeroShotCOTUnbiasedNoRoleFormatter,
     ZeroShotUnbiasedFormatter,
@@ -34,14 +34,20 @@ from cot_transparency.formatters.verbalize.formatters import (
 )
 
 from cot_transparency.formatters.transparency.mistakes import (
-    FewShotGenerateMistakeFormatter,
-    FullCOTWithMistakeFormatter,
-    FullCOTWithMistakeCompletionFormatter,
     CompletePartialCOT,
+    FewShotGenerateMistakeFormatter,
 )
-from cot_transparency.formatters.transparency.stage_one_formatters import (
+
+from cot_transparency.formatters.transparency.util import FullCOTFormatter
+
+from cot_transparency.formatters.transparency.s1_baselines import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
     FewShotCOTUnbiasedTameraTFormatter,
+    ZeroShotCOTUnbiasedChatTameraTFormatter,
+)
+
+from cot_transparency.formatters.transparency.interventions.logical_consequence import (
+    LogicalConsequenceChatFormatter,
 )
 from cot_transparency.formatters.wrong_few_shot.formatters import WrongFewShotBiasedFormatter
 
@@ -109,8 +115,10 @@ __all__ = [
     "FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter",
     "FewShotCOTUnbiasedTameraTFormatter",
     "CompletePartialCOT",
+    "FullCOTFormatter",
     "FewShotGenerateMistakeFormatter",
-    "FullCOTWithMistakeFormatter",
-    "FullCOTWithMistakeCompletionFormatter",
+    "ZeroShotCOTUnbiasedChatTameraTFormatter",
+    "ZeroShotCOTUnbiasedChatTameraTFormatter",
+    "LogicalConsequenceChatFormatter",
     "UserBiasedWrongCotFormatter",
 ]

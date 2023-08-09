@@ -61,6 +61,15 @@ class DataExampleBase(BaseModel, ABC):
     def get_parsed_input(self) -> str:
         raise NotImplementedError
 
+    def get_parsed_input_with_none_of_the_above(self) -> str:
+        n_options = self.n_choices
+        new_letter = ascii_uppercase[n_options]
+        # don't add this if already included
+        if "none" in self.get_parsed_input().lower():
+            return self.get_parsed_input()
+        new_option = f"({new_letter}) None of the above"
+        return self.get_parsed_input() + "\n" + new_option
+
     @property
     def biased_ans(self) -> MultipleChoiceAnswer:
         rng = random.Random(self.get_parsed_input())  # seed with question

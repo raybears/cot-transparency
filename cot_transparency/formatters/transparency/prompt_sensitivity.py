@@ -2,7 +2,7 @@ from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT, add_verbalize_instruction_to_question
-from cot_transparency.formatters.sycophancy import format_sycophancy_question
+from cot_transparency.formatters.core.sycophancy import format_sycophancy_question
 from cot_transparency.formatters.extraction import extract_answer_non_cot
 
 

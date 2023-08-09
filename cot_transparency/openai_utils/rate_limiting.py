@@ -24,7 +24,7 @@ class LeakyBucketRateLimiter:
         self.log_every_n_requests = log_every_n_requests
         self.logger = logger
 
-    def consume(self, tokens: int):
+    def consume(self, tokens: int, model: str):
         with self.lock:
             time_elapsed = time.time() - self.last_request
             fill_rate = self.tokens_per_minute / 60
@@ -48,7 +48,7 @@ class LeakyBucketRateLimiter:
             if self.logger and self.request_counter >= self.log_every_n_requests:  # N: log every N calls
                 actual_rate = self.tokens_used / ((time.time() - self.last_log) / 60)
                 self.logger.info(
-                    f"In the last {self.log_every_n_requests} requests: used {self.tokens_used} tokens "
+                    f"Model: {model} In the last {self.log_every_n_requests} requests: used {self.tokens_used} tokens "
                     f"at a rate of {actual_rate:.0f} tokens/minute"
                 )
                 # Reset tokens used and counter after logging
@@ -97,7 +97,7 @@ def token_rate_limiter(
             messages: list[StrictChatMessage],
         ) -> T:
             tokens = get_num_tokens(config=config, messages=messages)
-            rate_limiter.consume(tokens)
+            rate_limiter.consume(tokens, model=config.model)
             return func(config, messages)
 
         return wrapper
