@@ -70,7 +70,7 @@ def accuracy(
     aggregate_over_tasks: bool = False,
     model_filter: Optional[str] = None,
     formatters: Sequence[str] = [],
-    check_counts: bool = False,
+    check_counts: bool = True,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
     """
     exp_dir: path to directory containing experiment jsons
