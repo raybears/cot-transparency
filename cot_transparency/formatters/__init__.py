@@ -49,7 +49,11 @@ from cot_transparency.formatters.transparency.s1_baselines import (
 from cot_transparency.formatters.transparency.interventions.logical_consequence import (
     LogicalConsequenceChatFormatter,
 )
-from cot_transparency.formatters.wrong_few_shot.formatters import WrongFewShotBiasedFormatter
+from cot_transparency.formatters.wrong_few_shot.formatters import (
+    WrongFewShotBiasedFormatter,
+    DeceptiveAssistantBiasedFormatter,
+    MoreRewardBiasedFormatter,
+)
 
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
@@ -76,6 +80,8 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         StanfordNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         UserBiasedWrongCotFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         WrongFewShotBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        DeceptiveAssistantBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        MoreRewardBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 

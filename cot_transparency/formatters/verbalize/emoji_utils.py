@@ -1,9 +1,7 @@
 from cot_transparency.formatters.extraction import (
-    extract_multiple_choices,
     extract_lettered_multiple_choices,
     LetterAndAnswer,
 )
-from cot_transparency.formatters.letters import answer_idx_to_letter_bracket, index_to_letter
 
 # ruff: noqa: E501
 
@@ -25,7 +23,7 @@ def question_with_checkmark_bias(parsed_input: str, biased_ans: str, bias_emoji:
     options_with_bias: list[str] = [
         f"({option.letter}) {option.answer} {bias_emoji}"
         if option.letter == biased_ans
-        else f"({option.letter}) {option}"
+        else f"({option.letter}) {option.answer}"
         for option in options
     ]
     # join the options with newlines
@@ -49,13 +47,13 @@ def question_with_cross_bias(parsed_input: str, biased_ans: str, bias_emoji: str
     first_line: str = parsed_input.split("Answer choices")[0]
     # You can't trust the multiple choice targets to be e.g. 'empire of the pants', sometimes its '(A)' instead
     # so we need to extract it ourselves
-    options: list[str] = extract_multiple_choices(question=parsed_input)
+    options: list[LetterAndAnswer] = extract_lettered_multiple_choices(question=parsed_input)
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
-        f"{answer_idx_to_letter_bracket(i)} {option} {bias_emoji}"
-        if index_to_letter(i) != biased_ans
-        else f"{answer_idx_to_letter_bracket(i)} {option}"
-        for i, option in enumerate(options)
+        f"({option.letter}) {option.answer} {bias_emoji}"
+        if option.letter != biased_ans
+        else f"({option.letter}) {option.answer}"
+        for option in options
     ]
     # join the options with newlines
     options_str: str = "\n".join(options_with_bias)
