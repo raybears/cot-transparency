@@ -32,7 +32,7 @@ class ModelType(str, Enum):
     def from_model_name(name: str) -> "ModelType":
         if "claude" in name:
             return ModelType.anthropic
-        elif "gpt-3.5-turbo" in name or "gpt-4" in name:
+        elif "gpt-3.5-turbo" in name or name == "gpt-4" or name == "gpt-4-32k":
             return ModelType.chat
         else:
             return ModelType.completion
