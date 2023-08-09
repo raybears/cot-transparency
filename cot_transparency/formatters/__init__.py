@@ -2,14 +2,14 @@ from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.biased_wrong_cot.formatters import UserBiasedWrongCotFormatter
-from cot_transparency.formatters.sycophancy import (
+from cot_transparency.formatters.core.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
     ZeroShotCOTSycophancyToldBiasFormatter,
     ZeroShotSycophancyFormatter,
     ZeroShotSycophancyNoRoleFormatter,
 )
-from cot_transparency.formatters.unbiased import (
+from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
     ZeroShotCOTUnbiasedNoRoleFormatter,
     ZeroShotUnbiasedFormatter,

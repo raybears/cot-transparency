@@ -17,7 +17,7 @@ from cot_transparency.formatters.transparency.s1_baselines import (
 )
 from cot_transparency.model_apis import Prompt
 
-from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
+from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 EXAMPLE_SENTENCE = "This is a sentence with some reasoning, 5 x 20 = 100."
 

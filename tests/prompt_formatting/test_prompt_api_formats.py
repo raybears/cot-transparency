@@ -3,10 +3,10 @@ from cot_transparency.formatters import (
     ZeroShotSycophancyFormatter,
     ZeroShotSycophancyNoRoleFormatter,
 )
-from cot_transparency.formatters.sycophancy import ZeroShotCOTSycophancyFormatter
+from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.model_apis import ModelType, Prompt
 from cot_transparency.data_models.models import ChatMessage
-from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
+from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
 def convert_to_completion_str(messages: list[ChatMessage]) -> str:

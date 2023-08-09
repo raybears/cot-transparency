@@ -1,7 +1,7 @@
 import fire
 from cot_transparency.formatters import name_to_formatter
 from cot_transparency.model_apis import Prompt
-from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
+from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
 def main(formatter_name: str):
