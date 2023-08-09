@@ -48,11 +48,11 @@ def assert_not_none(x: A | None) -> A:
     return x
 
 
-def read_all_for_formatters(exp_dir: str, formatter: str, model: str) -> list[TaskOutput]:
+def read_all_for_formatters(exp_dir: Path, formatter: str, model: str) -> list[TaskOutput]:
     tasks = bbh_task_list
     task_outputs: list[TaskOutput] = []
     for task in tasks:
-        path = Path(f"{exp_dir}/{task}/{model}/{formatter}.json")
+        path = exp_dir / f"{task}/{model}/{formatter}.json"
         experiment: ExperimentJsonFormat = read_done_experiment(path)
         assert experiment.outputs, f"Experiment {path} has no outputs"
         task_outputs.extend(experiment.outputs)
@@ -405,10 +405,10 @@ def few_shot_prompts_for_formatter(
     Returns a string that can be used as a prompt for the few shot experiment
     """
     biased_results: list[TaskOutput] = Slist(
-        read_all_for_formatters(exp_dir, biased_formatter_name, model=model)
+        read_all_for_formatters(Path(exp_dir), biased_formatter_name, model=model)
     ).filter(lambda x: x.first_parsed_response != "T")
     unbiased_results: list[TaskOutput] = Slist(
-        read_all_for_formatters(exp_dir, unbiased_formatter_name, model=model)
+        read_all_for_formatters(Path(exp_dir), unbiased_formatter_name, model=model)
     ).filter(lambda x: x.first_parsed_response != "T")
 
     grouped_biased: Slist[tuple[str, Slist[TaskOutput]]] = Slist(biased_results).group_by(

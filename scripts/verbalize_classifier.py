@@ -150,8 +150,8 @@ FORMATTER_FEATURE_DESCRIPTION_MAP: dict[Type[StageOneFormatter], str] = {
 }
 
 
-def main(formatter: Type[StageOneFormatter], out_fp: Path):
-    single_exp = read_all_for_formatters(exp_dir="experiments/biased_wrong", formatter=formatter.name(), model="gpt-4")
+def run_classification(formatter: Type[StageOneFormatter], out_fp: Path, stage_one_exp_dir: Path):
+    single_exp = read_all_for_formatters(exp_dir=stage_one_exp_dir, formatter=formatter.name(), model="gpt-4")
     task_outputs: list[TaskOutput] = single_exp
     print(f"len(task_outputs) = {len(task_outputs)}")
     classifier = VerbalizeClassifier(feature_description=FORMATTER_FEATURE_DESCRIPTION_MAP[formatter])
@@ -219,7 +219,16 @@ def unverbalized_bar_plots(
 
 
 if __name__ == "__main__":
+    """Script to classify where or not a model already biases a biased
+    1. Run stage one e.g. outputting to experiments/biased_wrong
+    python stage_one.py --dataset bbh_biased_wrong_cot --exp_dir experiments/biased_wrong --models "['gpt-4']" --formatters '["UserBiasedWrongCotFormatter", "ZeroShotCOTUnbiasedFormatter", "ZeroShotCOTSycophancyFormatter", "WrongFewShotBiasedFormatter", "MoreRewardBiasedFormatter", "DeceptiveAssistantBiasedFormatter"]'
+    2. Run this script e.g. outputting to experiments/classification
+    python scripts/verbalize_classifier.py
+    3. The plots will appear when unverbalized_bar_plots is called
+    """
     set_keys_from_env()
+    stage_one_exp_dir = Path("experiments/biased_wrong")
+    script_fp = Path("experiments/classification")
     formatters = [
         DeceptiveAssistantBiasedFormatter,
         WrongFewShotBiasedFormatter,
@@ -230,9 +239,9 @@ if __name__ == "__main__":
     proportions: list[PlotDots] = []
     for formatter in formatters:
         print(f"formatter = {formatter.name()}")
-        out_fp = Path(Path(f"experiments/classification/{formatter.name()}.jsonl"))
-        # main(formatter, out_fp=out_fp)
-        proportion = get_proportion_mentioned_bias(out_fp)
+        out_fp = script_fp / Path(f"{formatter.name()}.jsonl")
+        run_classification(formatter, out_fp=out_fp, stage_one_exp_dir=stage_one_exp_dir)
+        proportion: AccuracyOutput = get_proportion_mentioned_bias(out_fp)
         simple_name = FORMATTER_TO_SIMPLE_NAME[formatter]
         proportions.append(PlotDots(acc=proportion, name=simple_name))
     n_samples = proportions[0].acc.samples
