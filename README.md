@@ -1,4 +1,4 @@
-# SERI MATS: Chain of Though Transparency
+# SERI MATS: Chain of Thought Transparency
 
 This is a private fork of [cot-unfaithfulness](https://github.com/milesaturpin/cot-unfaithfulness)
 

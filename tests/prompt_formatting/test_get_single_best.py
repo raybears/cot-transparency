@@ -2,7 +2,7 @@ from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters.transparency.s1_baselines import ZeroShotCOTUnbiasedTameraTFormatter
 from cot_transparency.formatters.transparency.util import FullCOTFormatter
 from cot_transparency.model_apis import Prompt
-from tests.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
+from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
 def test_get_single_best():

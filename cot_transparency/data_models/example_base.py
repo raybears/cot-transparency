@@ -22,7 +22,6 @@ MultipleChoiceAnswer = Literal[
     "M",
     "N",
     "O",
-    "NOT_FOUND",
 ]
 VALID_ANSWERS: set[MultipleChoiceAnswer] = {
     "A",
@@ -40,7 +39,6 @@ VALID_ANSWERS: set[MultipleChoiceAnswer] = {
     "M",
     "N",
     "O",
-    "NOT_FOUND",
 }
 
 

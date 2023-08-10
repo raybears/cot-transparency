@@ -1,6 +1,8 @@
 from string import ascii_uppercase
 from typing import Optional
 
+from pydantic import BaseModel
+
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 
 BREAK_WORDS: list[str] = [
@@ -47,8 +49,8 @@ def extract_answer_non_cot(
                 if response[1] != ")":
                     out = None
         if out is None and allow_failure:
-            print(f"Did not find a valid answer in reponse '{response}', but allow_failure is set to True")
-            return "NOT_FOUND"
+            print(f"Did not find a valid answer in response '{response}', but allow_failure is set to True")
+            return None
 
         if out is None and dump_failed:
             with open("failed_answers.txt", "a") as f:
@@ -82,3 +84,16 @@ def extract_multiple_choices(question: str) -> list[str]:
     # strip
     stripped = [option.strip() for option in options_without_bracket]
     return stripped
+
+
+class LetterAndAnswer(BaseModel):
+    letter: MultipleChoiceAnswer
+    answer: str
+
+
+def extract_lettered_multiple_choices(question: str) -> list[LetterAndAnswer]:
+    extracted_answers = extract_multiple_choices(question)
+    return [
+        LetterAndAnswer(letter=ascii_uppercase[i], answer=answer)  # type: ignore
+        for i, answer in enumerate(extracted_answers)
+    ]

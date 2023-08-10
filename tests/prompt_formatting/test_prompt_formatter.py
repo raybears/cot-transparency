@@ -7,7 +7,7 @@ from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotSycophancyFormatter,
 )
-from cot_transparency.formatters.sycophancy import format_sycophancy_question
+from cot_transparency.formatters.core.sycophancy import format_sycophancy_question
 from typing import Type
 
 EMPIRE_OF_PANTS_EXAMPLE = MilesBBHRawData(

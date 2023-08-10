@@ -2,9 +2,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from pathlib import Path
 import random
-from typing import Optional, Type, Union
+from typing import Type, Union
 
 from pydantic import BaseModel
+from retry import retry
 from tqdm import tqdm
 from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
 from cot_transparency.data_models.models import (
@@ -12,6 +13,7 @@ from cot_transparency.data_models.models import (
     OpenaiInferenceConfig,
     StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
+    ModelOutput,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -19,7 +21,6 @@ from cot_transparency.model_apis import call_model_api
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters import PromptFormatter, name_to_formatter
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.data_models.models import ModelOutput
 from cot_transparency.data_models.models import StageTwoTaskSpec
 from cot_transparency.data_models.models import TaskSpec
 from cot_transparency.util import setup_logger
@@ -29,50 +30,77 @@ logger = setup_logger(__name__)
 
 
 class AnswerNotFound(Exception):
-    def __init__(self, e: str):
+    def __init__(self, e: str, raw_response: str):
         self.e = e
+        self.raw_response = raw_response
 
 
-def call_model_until_suitable_response(
+def __call_or_raise(
     messages: list[ChatMessage],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
-    allow_failure_after_n: Optional[int] = None,
+) -> ModelOutput:
+    raw_response = call_model_api(messages, config)
+    parsed_response: str | None = formatter.parse_answer(raw_response)
+    if parsed_response is not None:
+        return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
+
+    msg = (
+        f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
+        f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+    )
+    logger.warning(msg)
+
+    raise AnswerNotFound(msg, raw_response)
+
+
+def call_model_and_raise_if_not_suitable(
+    messages: list[ChatMessage],
+    config: OpenaiInferenceConfig,
+    formatter: Type[PromptFormatter],
     retries: int = 20,
-):
-    n_failures = 0
+) -> ModelOutput:
+    response = retry(exceptions=AnswerNotFound, tries=retries)(__call_or_raise)(
+        messages=messages, config=config, formatter=formatter
+    )
 
-    for _ in range(max(retries, 1)):
-        response = call_model_api(messages, config)
-        parsed_response = formatter.parse_answer(response)
-        if parsed_response:
-            break
+    return response
 
-        msg = (
-            f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response}'"
-            f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+
+def call_model_and_catch(
+    messages: list[ChatMessage],
+    config: OpenaiInferenceConfig,
+    formatter: Type[PromptFormatter],
+    retries: int = 20,
+) -> ModelOutput:
+    try:
+        response = call_model_and_raise_if_not_suitable(
+            messages=messages, config=config, formatter=formatter, retries=retries
         )
-        logger.warning(msg)
-        if allow_failure_after_n and n_failures > allow_failure_after_n:
-            logger.error(f"Allowing failure after {allow_failure_after_n} failures, raising exception")
-            parsed_response = "NOT_FOUND"
-        n_failures += 1
-
-    if not parsed_response:  # type: ignore
-        raise AnswerNotFound(msg)  # type: ignore
-    else:
-        return ModelOutput(raw_response=response, parsed_response=parsed_response)  # type: ignore
+        return response
+    except AnswerNotFound as e:
+        return ModelOutput(raw_response=e.raw_response, parsed_response=None)
 
 
 def task_function(
-    task: Union[TaskSpec, StageTwoTaskSpec], allow_failure_after_n: Optional[int] = None
+    task: Union[TaskSpec, StageTwoTaskSpec],
+    raise_after_retries: bool,
 ) -> Union[TaskOutput, StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
-    response = call_model_until_suitable_response(
-        messages=task.messages,
-        config=task.model_config,
-        formatter=formatter,
-        allow_failure_after_n=allow_failure_after_n,
+    response = (
+        call_model_and_raise_if_not_suitable(
+            messages=task.messages,
+            config=task.model_config,
+            formatter=formatter,
+            retries=20,
+        )
+        if raise_after_retries
+        else call_model_and_catch(
+            messages=task.messages,
+            config=task.model_config,
+            formatter=formatter,
+            retries=5,
+        )
     )
 
     if isinstance(task, StageTwoTaskSpec):
@@ -118,7 +146,7 @@ def run_with_caching(
     save_every: int,
     batch: int,
     task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
-    allow_failure_after_n: Optional[int] = None,
+    raise_after_retries: bool = True,
 ):
     """
     Take a list of TaskSpecs or StageTwoTaskSpecs and run, skipping completed tasks
@@ -151,7 +179,7 @@ def run_with_caching(
         batch=batch,
         loaded_dict=loaded_dict,
         tasks_to_run=to_do,
-        allow_failure_after_n=allow_failure_after_n,
+        raise_after_retries=raise_after_retries,
     )
 
     outputs: list[TaskOutput | StageTwoTaskOutput] = []
@@ -165,7 +193,7 @@ def run_tasks_multi_threaded(
     batch: int,
     loaded_dict: LoadedJsonType,
     tasks_to_run: Union[list[TaskSpec], list[StageTwoTaskSpec]],
-    allow_failure_after_n: Optional[int] = None,
+    raise_after_retries: bool,
 ) -> None:
     if len(tasks_to_run) == 0:
         print("No tasks to run, experiment is already done.")
@@ -182,9 +210,7 @@ def run_tasks_multi_threaded(
         exit_event.set()  # notify rate limiter to exit
 
     for task in tasks_to_run:
-        future_instance_outputs.append(
-            executor.submit(task_function, task, allow_failure_after_n=allow_failure_after_n)
-        )
+        future_instance_outputs.append(executor.submit(task_function, task, raise_after_retries=raise_after_retries))
 
     try:
         for cnt, instance_output in tqdm(
