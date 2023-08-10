@@ -33,12 +33,31 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-versions }}
-          cache: 'pip' # caching pip dependencies
-
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        id: cache-env
+        with:
+          # cache location for venv and nltk
+          path: |
+            ~/nltk_data
+            ./venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}-${{ hashFiles('**/Makefile') }}
+          
       - name: Install dependencies
+        if: steps.cache-env.outputs.cache-hit != 'true'
         run: |
+          python -m venv venv
+          source ./venv/bin/activate
           make env
-
+          echo PATH=$PATH >> $GITHUB_ENV
+          echo "./venv/bin" >> $GITHUB_PATH
+      - name: Restore venv
+        if: steps.cache-env.outputs.cache-hit == 'true'
+        run: |
+          source ./venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
+          echo "./venv/bin" >> $GITHUB_PATH
+          
       # Need this to install node for pyright
       - name: Type Checking
         uses: jakebailey/pyright-action@v1
