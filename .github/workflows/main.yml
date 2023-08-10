@@ -41,7 +41,7 @@ jobs:
         run: |
           python -m venv venv
           source ./venv/bin/activate
-          pip install -r requirements.txt
+          make env
       - name: Restore venv
         if: steps.cache-env.outputs.cache-hit == 'true'
         run: |
