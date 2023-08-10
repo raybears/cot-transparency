@@ -55,7 +55,7 @@ jobs:
       - name: Run pre-commit hooks
         run: |
           make hooks
-          SKIP=no-commit-to-branch no-commit-to-branch pre-commit run --all-files
+          SKIP=no-commit-to-branch pre-commit run --all-files
 
       - name: test with pytest
         run:
