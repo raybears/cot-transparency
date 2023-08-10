@@ -36,8 +36,8 @@ jobs:
           python-version: ${{ matrix.python-versions }}
           cache: 'pip' # caching pip dependencies
           
-      - if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        name: Install dependencies
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         run:
           make env
 
