@@ -129,7 +129,7 @@ def main(
     experiment_suffix: str = "",
     example_cap: Optional[int] = 1000000,
     save_file_every: int = 50,
-    batch: int = 10,
+    batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
 ):

@@ -41,6 +41,9 @@ class ModelType(str, Enum):
 class Prompt(BaseModel):
     messages: list[ChatMessage]
 
+    def __add__(self, other: "Prompt") -> "Prompt":
+        return Prompt(messages=self.messages + other.messages)
+
     def get_strict_messages(self, model_type: ModelType) -> list[StrictChatMessage]:
         prompt = self.messages
         match model_type:
