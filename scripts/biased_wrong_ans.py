@@ -20,7 +20,7 @@ from cot_transparency.model_apis import Prompt
 class FlatSimple(BaseModel):
     prompt: str
     full_response: str
-    parsed_response: str
+    parsed_response: str | None
     ground_truth: str
     biased_ans: str
 

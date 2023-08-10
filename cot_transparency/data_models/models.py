@@ -88,8 +88,8 @@ class StrictChatMessage(HashableBaseModel):
 
 class ModelOutput(BaseModel):
     raw_response: str
-    # We always have a suitable response because we keep retrying
-    parsed_response: str
+    # We don't have a suitable response
+    parsed_response: Optional[str]
 
 
 def deterministic_task_hash(
@@ -137,7 +137,7 @@ class TaskOutput(BaseModel):
     model_output: ModelOutput
 
     @property
-    def first_parsed_response(self) -> str:
+    def first_parsed_response(self) -> Optional[str]:
         return self.model_output.parsed_response
 
     @property
@@ -231,7 +231,7 @@ class StageTwoTaskOutput(BaseModel):
         return self.model_output.raw_response
 
     @property
-    def first_parsed_response(self) -> str:
+    def first_parsed_response(self) -> Optional[str]:
         return self.model_output.parsed_response
 
 

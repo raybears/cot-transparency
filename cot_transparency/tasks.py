@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from pathlib import Path
 import random
-from typing import Optional, Type, Union
+from typing import Type, Union
 
 from pydantic import BaseModel
 from retry import retry
@@ -35,43 +35,23 @@ class AnswerNotFound(Exception):
         self.raw_response = raw_response
 
 
-def should_call_model(n_failures: int, allow_failure_after_n: Optional[int]) -> bool:
-    if allow_failure_after_n and n_failures > allow_failure_after_n:
-        logger.error(f"Allowing failure after {allow_failure_after_n} failures, returning False")
-        return False
-    return True
-
-
-class MaybeSuccesfulModelOutput(BaseModel):
-    raw_response: str
-    parsed_response: Optional[str]
-
-
-def call_model(
-    messages: list[ChatMessage], config: OpenaiInferenceConfig, formatter: Type[PromptFormatter]
-) -> MaybeSuccesfulModelOutput:
-    response = call_model_api(messages, config)
-    parsed_response: str | None = formatter.parse_answer(response)
-
-    return MaybeSuccesfulModelOutput(raw_response=response, parsed_response=parsed_response)
-
-
 def __call_or_raise(
     messages: list[ChatMessage],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
 ) -> ModelOutput:
-    response = call_model(messages, config, formatter)
-    if response.parsed_response is not None:
-        return ModelOutput(raw_response=response.raw_response, parsed_response=response.parsed_response)
+    raw_response = call_model_api(messages, config)
+    parsed_response: str | None = formatter.parse_answer(raw_response)
+    if parsed_response is not None:
+        return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
 
     msg = (
-        f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response.raw_response}'"
+        f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
         f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
     )
     logger.warning(msg)
 
-    raise AnswerNotFound(msg, response.raw_response)
+    raise AnswerNotFound(msg, raw_response)
 
 
 def call_model_and_raise_if_not_suitable(
@@ -99,7 +79,7 @@ def call_model_and_catch(
         )
         return response
     except AnswerNotFound as e:
-        return ModelOutput(raw_response=e.raw_response, parsed_response="NOT_FOUND")
+        return ModelOutput(raw_response=e.raw_response, parsed_response=None)
 
 
 def task_function(

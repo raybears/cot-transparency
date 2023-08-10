@@ -233,8 +233,9 @@ def get_best_single_answer_tasks_given_mistakes(
             config.temperature = temperature
             config.max_tokens = 2  # code-davinci-002 doesn't return answer unless we set this to 2
 
-        if output.first_parsed_response == "NOT_FOUND":
-            print("WARNING - skipping task as NOT_FOUND")
+        parsed_response: str | None = output.first_parsed_response
+        if parsed_response is None:
+            print("WARNING - skipping task as parsed_response is None")
             continue
 
         if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
@@ -245,7 +246,7 @@ def get_best_single_answer_tasks_given_mistakes(
         path = Path(f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json")
         trace_info = output.task_spec.trace_info
 
-        cot_trace_with_mistake = trace_info.get_trace_upto_mistake() + output.first_parsed_response
+        cot_trace_with_mistake = trace_info.get_trace_upto_mistake() + parsed_response
         trace_info.complete_modified_cot = cot_trace_with_mistake
 
         final_task = StageTwoTaskSpec(
