@@ -46,7 +46,8 @@ jobs:
           path: |
             ~/nltk_data
             ./venv
-          key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}-${{ hashFiles('**/Makefile') }}
+            .git/hooks
+          key: ${{ runner.os }}-cache-${{ hashFiles('**/requirements.txt') }}-${{ hashFiles('**/Makefile') }}
           
       - name: Install dependencies
         if: steps.cache-env.outputs.cache-hit != 'true'
