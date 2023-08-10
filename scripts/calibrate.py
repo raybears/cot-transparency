@@ -23,8 +23,9 @@ from cot_transparency.json_utils.read_write import (
     read_jsonl_file_into_basemodel_ignore_errors,
     write_csv_file_from_basemodel,
 )
-from cot_transparency.model_apis import convert_to_completion_str, call_model_api
+from cot_transparency.model_apis import call_model_api, Prompt
 from cot_transparency.openai_utils.set_key import set_keys_from_env
+from cot_transparency.tasks import read_done_experiment
 from scripts.multi_accuracy import (
     bbh_task_list,
     accuracy_outputs_from_inputs,
@@ -33,7 +34,7 @@ from scripts.multi_accuracy import (
     TaskAndPlotDots,
     PlotDots,
 )
-from stage_one import read_done_experiment
+
 
 A = TypeVar("A")
 
@@ -47,11 +48,11 @@ def assert_not_none(x: A | None) -> A:
     return x
 
 
-def read_all_for_formatters(exp_dir: str, formatter: str, model: str) -> list[TaskOutput]:
+def read_all_for_formatters(exp_dir: Path, formatter: str, model: str) -> list[TaskOutput]:
     tasks = bbh_task_list
     task_outputs: list[TaskOutput] = []
     for task in tasks:
-        path = Path(f"{exp_dir}/{task}/{model}/{formatter}.json")
+        path = exp_dir / f"{task}/{model}/{formatter}.json"
         experiment: ExperimentJsonFormat = read_done_experiment(path)
         assert experiment.outputs, f"Experiment {path} has no outputs"
         task_outputs.extend(experiment.outputs)
@@ -349,7 +350,10 @@ def create_to_run_from_joined_data(
 ) -> TestToRun:
     formatted = limited_data.map(lambda j: format_joined_to_prompt(j, bias_name)).flatten_list()
     test_item_formatted = format_joined_to_prompt_for_testing(test_item)
-    prompt = convert_to_completion_str(formatted) + convert_to_completion_str(test_item_formatted)
+    prompt = (
+        Prompt(messages=formatted).convert_to_completion_str()
+        + Prompt(messages=test_item_formatted).convert_to_completion_str()
+    )
     return TestToRun(
         prompt=prompt,
         original_task=test_item.unbiased[0].task_spec,
@@ -401,10 +405,10 @@ def few_shot_prompts_for_formatter(
     Returns a string that can be used as a prompt for the few shot experiment
     """
     biased_results: list[TaskOutput] = Slist(
-        read_all_for_formatters(exp_dir, biased_formatter_name, model=model)
+        read_all_for_formatters(Path(exp_dir), biased_formatter_name, model=model)
     ).filter(lambda x: x.first_parsed_response != "T")
     unbiased_results: list[TaskOutput] = Slist(
-        read_all_for_formatters(exp_dir, unbiased_formatter_name, model=model)
+        read_all_for_formatters(Path(exp_dir), unbiased_formatter_name, model=model)
     ).filter(lambda x: x.first_parsed_response != "T")
 
     grouped_biased: Slist[tuple[str, Slist[TaskOutput]]] = Slist(biased_results).group_by(

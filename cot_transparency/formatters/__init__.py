@@ -1,7 +1,7 @@
 from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
-from cot_transparency.formatters.biased_wrong_cot.formatters import UserBiasedWrongCotFormatter
+from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
 from cot_transparency.formatters.core.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
@@ -49,6 +49,11 @@ from cot_transparency.formatters.transparency.s1_baselines import (
 from cot_transparency.formatters.transparency.interventions.logical_consequence import (
     LogicalConsequenceChatFormatter,
 )
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotBiasedFormatter,
+)
+from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
+from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
@@ -74,6 +79,9 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         CheckmarkNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         StanfordNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         UserBiasedWrongCotFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        WrongFewShotBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        DeceptiveAssistantBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        MoreRewardBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 
@@ -118,5 +126,4 @@ __all__ = [
     "ZeroShotCOTUnbiasedChatTameraTFormatter",
     "ZeroShotCOTUnbiasedChatTameraTFormatter",
     "LogicalConsequenceChatFormatter",
-    "UserBiasedWrongCotFormatter",
 ]
