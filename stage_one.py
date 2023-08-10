@@ -137,7 +137,7 @@ def main(
         assert tasks is None, "dataset and tasks are mutually exclusive"
         tasks = TASK_LIST[dataset]
     else:
-        assert tasks is not None, "dataset and tasks are mutually exclusive"
+        assert tasks is not None, "You must define a task or a dataset"
 
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
