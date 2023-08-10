@@ -12,6 +12,7 @@ from cot_transparency.data_models.models import (
     OpenaiInferenceConfig,
     StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
+    ModelOutput,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -19,7 +20,6 @@ from cot_transparency.model_apis import call_model_api
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters import PromptFormatter, name_to_formatter
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.data_models.models import ModelOutput
 from cot_transparency.data_models.models import StageTwoTaskSpec
 from cot_transparency.data_models.models import TaskSpec
 from cot_transparency.util import setup_logger
@@ -33,46 +33,74 @@ class AnswerNotFound(Exception):
         self.e = e
 
 
-def call_model_until_suitable_response(
+def should_call_model(n_failures: int, allow_failure_after_n: Optional[int]) -> bool:
+    if allow_failure_after_n and n_failures > allow_failure_after_n:
+        logger.error(f"Allowing failure after {allow_failure_after_n} failures, returning False")
+        return False
+    return True
+
+
+class MaybeSuccesfulModelOutput(BaseModel):
+    raw_response: str
+    parsed_response: Optional[str]
+
+
+def call_model(
+    messages: list[ChatMessage], config: OpenaiInferenceConfig, formatter: Type[PromptFormatter]
+) -> MaybeSuccesfulModelOutput:
+    response = call_model_api(messages, config)
+    parsed_response: str | None = formatter.parse_answer(response)
+
+    return MaybeSuccesfulModelOutput(raw_response=response, parsed_response=parsed_response)
+
+
+def call_model_retry(
     messages: list[ChatMessage],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
-    allow_failure_after_n: Optional[int] = None,
     retries: int = 20,
-):
+) -> ModelOutput:
     n_failures = 0
 
+    response: MaybeSuccesfulModelOutput = MaybeSuccesfulModelOutput(raw_response="", parsed_response=None)
     for _ in range(max(retries, 1)):
-        response = call_model_api(messages, config)
-        parsed_response = formatter.parse_answer(response)
-        if parsed_response:
-            break
-
-        msg = (
-            f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response}'"
-            f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
-        )
-        logger.warning(msg)
-        if allow_failure_after_n and n_failures > allow_failure_after_n:
-            logger.error(f"Allowing failure after {allow_failure_after_n} failures, raising exception")
-            parsed_response = "NOT_FOUND"
+        response = call_model(messages, config, formatter)
         n_failures += 1
+        if response.parsed_response is not None:
+            return ModelOutput(raw_response=response.raw_response, parsed_response=response.parsed_response)
 
-    if not parsed_response:  # type: ignore
-        raise AnswerNotFound(msg)  # type: ignore
-    else:
-        return ModelOutput(raw_response=response, parsed_response=parsed_response)  # type: ignore
+    msg = (
+        f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response.raw_response}'"
+        f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+    )
+    logger.warning(msg)
+
+    return ModelOutput(raw_response=response.raw_response, parsed_response="NOT_FOUND")
+
+
+def call_model_and_raise_if_not_suitable(
+    messages: list[ChatMessage],
+    config: OpenaiInferenceConfig,
+    formatter: Type[PromptFormatter],
+    retries: int = 20,
+) -> ModelOutput:
+    response = call_model_retry(messages, config, formatter, retries)
+    if response.parsed_response == "NOT_FOUND":
+        raise AnswerNotFound(
+            f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response.raw_response}'"
+        )
+    return response
 
 
 def task_function(
     task: Union[TaskSpec, StageTwoTaskSpec], allow_failure_after_n: Optional[int] = None
 ) -> Union[TaskOutput, StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
-    response = call_model_until_suitable_response(
+    response = call_model_retry(
         messages=task.messages,
         config=task.model_config,
         formatter=formatter,
-        allow_failure_after_n=allow_failure_after_n,
+        retries=allow_failure_after_n,
     )
 
     if isinstance(task, StageTwoTaskSpec):
