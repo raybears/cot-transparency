@@ -42,20 +42,20 @@ jobs:
           python -m venv venv
           source ./venv/bin/activate
           make env
+          echo PATH=$PATH >> $GITHUB_ENV
       - name: Restore venv
         if: steps.cache-env.outputs.cache-hit == 'true'
         run: |
           source ./venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
           
-
       - name: Setup node
         uses: actions/setup-node@v3
 
-      # Run all the pre-commit hooks on all files
       - name: Run pre-commit hooks
         run: |
           make hooks
-          no-commit-to-branch pre-commit run --all-files
+          SKIP=no-commit-to-branch no-commit-to-branch pre-commit run --all-files
 
       - name: test with pytest
         run:
