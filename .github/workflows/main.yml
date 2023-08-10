@@ -34,9 +34,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-versions }}
           cache: 'pip' # caching pip dependencies
-
-      - name: Install dependencies
-        run: |
+          
+      - if: ${{ steps.cache-pip.outputs.cache-hit != 'true' }}
+        name: Install dependencies
+        run:
           make env
 
       # Need this to install node for pyright
