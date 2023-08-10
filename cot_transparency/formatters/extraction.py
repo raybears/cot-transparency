@@ -18,7 +18,7 @@ BREAK_WORDS: list[str] = [
 ]
 
 
-def extract_answer(model_answer: str, dump_failed: bool = False, allow_failure: bool = True) -> Optional[str]:
+def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str]:
     # This is kinda janky lol
 
     for break_word in BREAK_WORDS:
@@ -32,13 +32,7 @@ def extract_answer(model_answer: str, dump_failed: bool = False, allow_failure: 
     if dump_failed:
         with open("failed_answers.txt", "a") as f:
             f.write(model_answer + "\n")
-
-    if allow_failure:
-        print(f"Did not find a valid answer in reponse '{model_answer}', but allow_failure is set to True")
-        ans = "NOT_FOUND"
-    else:
-        ans = None
-    return ans
+    return None
 
 
 def extract_answer_non_cot(

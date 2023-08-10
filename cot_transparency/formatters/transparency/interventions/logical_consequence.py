@@ -57,4 +57,4 @@ Rules:
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
-        return extract_answer(response, allow_failure=True)
+        return extract_answer(response)
