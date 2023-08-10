@@ -38,7 +38,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16
-          cache: 'npm'
       - name: Cache Python dependencies
         uses: actions/cache@v3
         id: cache-env
