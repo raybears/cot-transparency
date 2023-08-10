@@ -37,8 +37,11 @@ jobs:
         uses: actions/cache@v3
         id: cache-env
         with:
-          path: ./venv  # cache location for venv directory
-          key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}
+          # cache location for venv and nltk
+          path: |
+            ~/nltk_data
+            ./venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}-${{ hashFiles('**/Makefile') }}
           
       - name: Install dependencies
         if: steps.cache-env.outputs.cache-hit != 'true'
