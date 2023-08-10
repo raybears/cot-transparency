@@ -49,13 +49,16 @@ jobs:
           source ./venv/bin/activate
           echo PATH=$PATH >> $GITHUB_ENV
           
-      - name: Setup node
-        uses: actions/setup-node@v3
+      # Need this to install node for pyright
+      - name: Type Checking
+        uses: jakebailey/pyright-action@v1
 
+      # Run all the pre-commit hooks on all files
+      # Skip pyright because we already ran it
       - name: Run pre-commit hooks
         run: |
           make hooks
-          SKIP=no-commit-to-branch pre-commit run --all-files
+          SKIP=pyright,no-commit-to-branch pre-commit run --all-files
 
       - name: test with pytest
         run:
