@@ -42,12 +42,12 @@ jobs:
           python -m venv venv
           source ./venv/bin/activate
           make env
-          echo PATH=$PATH >> $GITHUB_ENV
+          echo PATH=$PATH >> $GITHUB_PATH
       - name: Restore venv
         if: steps.cache-env.outputs.cache-hit == 'true'
         run: |
           source ./venv/bin/activate
-          echo PATH=$PATH >> $GITHUB_ENV
+          echo PATH=$PATH >> $GITHUB_PATH
           
       # Need this to install node for pyright
       - name: Type Checking
