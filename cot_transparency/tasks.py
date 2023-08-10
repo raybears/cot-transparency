@@ -84,7 +84,7 @@ def call_model_and_catch(
 
 def task_function(
     task: Union[TaskSpec, StageTwoTaskSpec],
-    raise_after_retry: bool,
+    raise_after_retries: bool,
 ) -> Union[TaskOutput, StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
     response = (
@@ -94,7 +94,7 @@ def task_function(
             formatter=formatter,
             retries=20,
         )
-        if raise_after_retry
+        if raise_after_retries
         else call_model_and_catch(
             messages=task.messages,
             config=task.model_config,
@@ -146,7 +146,7 @@ def run_with_caching(
     save_every: int,
     batch: int,
     task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
-    raise_after_retry: bool = True,
+    raise_after_retries: bool = True,
 ):
     """
     Take a list of TaskSpecs or StageTwoTaskSpecs and run, skipping completed tasks
@@ -179,7 +179,7 @@ def run_with_caching(
         batch=batch,
         loaded_dict=loaded_dict,
         tasks_to_run=to_do,
-        raise_after_retry=raise_after_retry,
+        raise_after_retries=raise_after_retries,
     )
 
     outputs: list[TaskOutput | StageTwoTaskOutput] = []
@@ -193,7 +193,7 @@ def run_tasks_multi_threaded(
     batch: int,
     loaded_dict: LoadedJsonType,
     tasks_to_run: Union[list[TaskSpec], list[StageTwoTaskSpec]],
-    raise_after_retry: bool,
+    raise_after_retries: bool,
 ) -> None:
     if len(tasks_to_run) == 0:
         print("No tasks to run, experiment is already done.")
@@ -210,7 +210,7 @@ def run_tasks_multi_threaded(
         exit_event.set()  # notify rate limiter to exit
 
     for task in tasks_to_run:
-        future_instance_outputs.append(executor.submit(task_function, task, raise_after_retry=raise_after_retry))
+        future_instance_outputs.append(executor.submit(task_function, task, raise_after_retries=raise_after_retries))
 
     try:
         for cnt, instance_output in tqdm(
