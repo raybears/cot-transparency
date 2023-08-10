@@ -31,11 +31,12 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
+        name: cache
         with:
           python-version: ${{ matrix.python-versions }}
           cache: 'pip' # caching pip dependencies
           
-      - if: ${{ steps.cache-pip.outputs.cache-hit != 'true' }}
+      - if: ${{ steps.cache.outputs.cache-hit != 'true' }}
         name: Install dependencies
         run:
           make env
