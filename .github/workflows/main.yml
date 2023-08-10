@@ -31,15 +31,22 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        id: cache
+        id: cache-env
         with:
           python-version: ${{ matrix.python-versions }}
-          cache: 'pip' # caching pip dependencies
+          cache: 'pipenv' # caching pip dependencies
           
       - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run:
-          make env
+        if: steps.cache-env.outputs.cache-hit != 'true'
+        run: |
+          python -m venv env
+          source ./venv/bin/activate
+          pip install -r requirements.txt
+      - name: Restore venv
+        if: steps.cache-env.outputs.cache-hit == 'true'
+        run: |
+          source ./venv/bin/activate
+          
 
       # Need this to install node for pyright
       - name: Type Checking
