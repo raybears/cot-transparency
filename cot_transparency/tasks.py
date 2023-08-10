@@ -5,6 +5,7 @@ import random
 from typing import Optional, Type, Union
 
 from pydantic import BaseModel
+from retry import retry
 from tqdm import tqdm
 from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
 from cot_transparency.data_models.models import (
@@ -29,8 +30,9 @@ logger = setup_logger(__name__)
 
 
 class AnswerNotFound(Exception):
-    def __init__(self, e: str):
+    def __init__(self, e: str, raw_response: str):
         self.e = e
+        self.raw_response = raw_response
 
 
 def should_call_model(n_failures: int, allow_failure_after_n: Optional[int]) -> bool:
@@ -54,20 +56,14 @@ def call_model(
     return MaybeSuccesfulModelOutput(raw_response=response, parsed_response=parsed_response)
 
 
-def call_model_retry(
+def __call_or_raise(
     messages: list[ChatMessage],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
-    retries: int = 20,
 ) -> ModelOutput:
-    n_failures = 0
-
-    response: MaybeSuccesfulModelOutput = MaybeSuccesfulModelOutput(raw_response="", parsed_response=None)
-    for _ in range(max(retries, 1)):
-        response = call_model(messages, config, formatter)
-        n_failures += 1
-        if response.parsed_response is not None:
-            return ModelOutput(raw_response=response.raw_response, parsed_response=response.parsed_response)
+    response = call_model(messages, config, formatter)
+    if response.parsed_response is not None:
+        return ModelOutput(raw_response=response.raw_response, parsed_response=response.parsed_response)
 
     msg = (
         f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response.raw_response}'"
@@ -75,7 +71,7 @@ def call_model_retry(
     )
     logger.warning(msg)
 
-    return ModelOutput(raw_response=response.raw_response, parsed_response="NOT_FOUND")
+    raise AnswerNotFound(msg, response.raw_response)
 
 
 def call_model_and_raise_if_not_suitable(
@@ -84,23 +80,47 @@ def call_model_and_raise_if_not_suitable(
     formatter: Type[PromptFormatter],
     retries: int = 20,
 ) -> ModelOutput:
-    response = call_model_retry(messages, config, formatter, retries)
-    if response.parsed_response == "NOT_FOUND":
-        raise AnswerNotFound(
-            f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{response.raw_response}'"
-        )
+    response = retry(exceptions=AnswerNotFound, tries=retries)(__call_or_raise)(
+        messages=messages, config=config, formatter=formatter
+    )
+
     return response
 
 
+def call_model_and_catch(
+    messages: list[ChatMessage],
+    config: OpenaiInferenceConfig,
+    formatter: Type[PromptFormatter],
+    retries: int = 20,
+) -> ModelOutput:
+    try:
+        response = call_model_and_raise_if_not_suitable(
+            messages=messages, config=config, formatter=formatter, retries=retries
+        )
+        return response
+    except AnswerNotFound as e:
+        return ModelOutput(raw_response=e.raw_response, parsed_response="NOT_FOUND")
+
+
 def task_function(
-    task: Union[TaskSpec, StageTwoTaskSpec], allow_failure_after_n: Optional[int] = None
+    task: Union[TaskSpec, StageTwoTaskSpec],
+    raise_after_retry: bool,
 ) -> Union[TaskOutput, StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
-    response = call_model_retry(
-        messages=task.messages,
-        config=task.model_config,
-        formatter=formatter,
-        retries=allow_failure_after_n,
+    response = (
+        call_model_and_raise_if_not_suitable(
+            messages=task.messages,
+            config=task.model_config,
+            formatter=formatter,
+            retries=20,
+        )
+        if raise_after_retry
+        else call_model_and_catch(
+            messages=task.messages,
+            config=task.model_config,
+            formatter=formatter,
+            retries=5,
+        )
     )
 
     if isinstance(task, StageTwoTaskSpec):
@@ -146,7 +166,7 @@ def run_with_caching(
     save_every: int,
     batch: int,
     task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
-    allow_failure_after_n: Optional[int] = None,
+    raise_after_retry: bool = True,
 ):
     """
     Take a list of TaskSpecs or StageTwoTaskSpecs and run, skipping completed tasks
@@ -179,7 +199,7 @@ def run_with_caching(
         batch=batch,
         loaded_dict=loaded_dict,
         tasks_to_run=to_do,
-        allow_failure_after_n=allow_failure_after_n,
+        raise_after_retry=raise_after_retry,
     )
 
     outputs: list[TaskOutput | StageTwoTaskOutput] = []
@@ -193,7 +213,7 @@ def run_tasks_multi_threaded(
     batch: int,
     loaded_dict: LoadedJsonType,
     tasks_to_run: Union[list[TaskSpec], list[StageTwoTaskSpec]],
-    allow_failure_after_n: Optional[int] = None,
+    raise_after_retry: bool,
 ) -> None:
     if len(tasks_to_run) == 0:
         print("No tasks to run, experiment is already done.")
@@ -210,9 +230,7 @@ def run_tasks_multi_threaded(
         exit_event.set()  # notify rate limiter to exit
 
     for task in tasks_to_run:
-        future_instance_outputs.append(
-            executor.submit(task_function, task, allow_failure_after_n=allow_failure_after_n)
-        )
+        future_instance_outputs.append(executor.submit(task_function, task, raise_after_retry=raise_after_retry))
 
     try:
         for cnt, instance_output in tqdm(

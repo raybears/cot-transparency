@@ -36,13 +36,15 @@ We take traces generated from stage_one.py and run analysis on them
 
 
 def run_with_caching_stage_two(
-    save_every: int, batch: int, task_to_run: list[StageTwoTaskSpec], allow_failure_after_n: Optional[int] = None
+    save_every: int,
+    batch: int,
+    task_to_run: list[StageTwoTaskSpec],
 ) -> list[StageTwoTaskOutput]:
     output: list[StageTwoTaskOutput] = run_with_caching(
         save_every,
         batch,
         task_to_run,
-        allow_failure_after_n=5,
+        raise_after_retry=False,
     )  # type: ignore
     return output
 
@@ -213,7 +215,7 @@ def recomplete_cot_with_inserted_mistake(
             specs.append(task_spec)
 
     print("2. Regenerating COTs with mistakes")
-    outputs = run_with_caching_stage_two(save_completing_with_mistakes_every, batch, specs, allow_failure_after_n=5)
+    outputs = run_with_caching_stage_two(save_completing_with_mistakes_every, batch, specs)
 
     return outputs + mistakes_inserted_at_last_position
 
