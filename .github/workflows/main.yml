@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         if: steps.cache-env.outputs.cache-hit != 'true'
         run: |
-          python -m venv env
+          python -m venv venv
           source /venv/bin/activate
           pip install -r requirements.txt
       - name: Restore venv
