@@ -33,6 +33,12 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-versions }}
+        
+      # pyright needs node
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
       - name: Cache Python dependencies
         uses: actions/cache@v3
         id: cache-env
@@ -58,16 +64,13 @@ jobs:
           echo PATH=$PATH >> $GITHUB_ENV
           echo "./venv/bin" >> $GITHUB_PATH
           
-      # Need this to install node for pyright
-      - name: Type Checking
-        uses: jakebailey/pyright-action@v1
 
       # Run all the pre-commit hooks on all files
       # Skip pyright because we already ran it
       - name: Run pre-commit hooks
         run: |
           make hooks
-          SKIP=pyright,no-commit-to-branch pre-commit run --all-files
+          SKIP=no-commit-to-branch pre-commit run --all-files
 
       - name: test with pytest
         run:
