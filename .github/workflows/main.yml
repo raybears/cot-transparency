@@ -31,10 +31,14 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        id: cache-env
         with:
           python-version: ${{ matrix.python-versions }}
-          cache: 'pip' # caching pip dependencies
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        id: cache-env
+        with:
+          path: ./venv  # cache location for venv directory
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}
           
       - name: Install dependencies
         if: steps.cache-env.outputs.cache-hit != 'true'
