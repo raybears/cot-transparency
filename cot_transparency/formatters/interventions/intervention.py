@@ -18,8 +18,9 @@ class Intervention(ABC):
         pass
 
     @classmethod
-    @final  # Please don't override this method unless you know what you are doing
+    @final
     def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        # Please don't override this method unless you know what you are doing. You should only need to override `hook`.
         messages = formatter.format_example(question)
         new_messages = cls.hook(question, messages)
         return new_messages

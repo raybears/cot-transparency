@@ -195,7 +195,7 @@ def biased_wrong_to_few_shots_non_cot(outputs: Sequence[TaskOutput]) -> Prompt:
     prompts: Prompt = (
         Slist(outputs).map(lambda x: task_output_to_few_shot_non_cot(x))
         # concat the prompts together
-        .fold_left(acc=Prompt(messages=[]), func=lambda acc, x: acc + x)
+        .sum_or_raise()
     )
     return prompts
 
@@ -218,7 +218,7 @@ def biased_wrong_to_few_shots_cot(outputs: Sequence[TaskOutput]) -> Prompt:
     prompts: Prompt = (
         Slist(outputs).map(lambda x: task_output_to_few_shot_cot(x))
         # concat the prompts together
-        .fold_left(acc=Prompt(messages=[]), func=lambda acc, x: acc + x)
+        .sum_or_raise()
     )
     return prompts
 
@@ -240,6 +240,7 @@ class TooLongError(Exception):
 
 @retry(TooLongError, tries=10)
 def sample_few_shots_cot_with_max(outputs: Sequence[TaskOutput], seed: str, n: int, max_tokens: int = 7000) -> Prompt:
+    # TODO: this retry does not work since you retry with the same seed
     sampled = paired_sample_few_shots_cot(outputs, seed, n)
     # check that the total number of tokens is less than max_tokens
     prompt_str = sampled.convert_to_completion_str()
