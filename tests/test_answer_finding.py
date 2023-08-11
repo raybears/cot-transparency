@@ -5,6 +5,8 @@ from cot_transparency.formatters.extraction import extract_answer
 
 from scripts.biased_wrong_ans import cot_extraction
 
+# ruff: noqa: E501
+
 
 def load_test_data():
     with open("tests/data/answer_examples.yaml", "r") as f:

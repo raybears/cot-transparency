@@ -161,6 +161,15 @@ def task_output_to_few_shot_cot(task: TaskOutput) -> Prompt:
     return Prompt(messages=messages)
 
 
+def biased_qn_with_raw_response(task: TaskOutput) -> Prompt:
+    read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
+    messages: list[ChatMessage] = add_to_final_assistant(
+        ZeroShotCOTSycophancyFormatter.format_example(read),
+        new_message=task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+    )
+    return Prompt(messages=messages)
+
+
 def biased_wrong_to_few_shots_non_cot(outputs: Sequence[TaskOutput]) -> Prompt:
     """Non COT version
     Formats the biased wrongs to a few shot format for consistency prompting - i.e.
@@ -207,11 +216,11 @@ def biased_wrong_to_few_shots_cot(outputs: Sequence[TaskOutput]) -> Prompt:
     return prompts
 
 
-def sample_few_shots_non_cot(outputs: Sequence[TaskOutput], seed: str, n: int) -> Prompt:
+def paired_sample_few_shots_non_cot(outputs: Sequence[TaskOutput], seed: str, n: int) -> Prompt:
     return biased_wrong_to_few_shots_non_cot(Slist(outputs).sample(n, seed=seed))
 
 
-def sample_few_shots_cot(outputs: Sequence[TaskOutput], seed: str, n: int) -> Prompt:
+def paired_sample_few_shots_cot(outputs: Sequence[TaskOutput], seed: str, n: int) -> Prompt:
     return biased_wrong_to_few_shots_cot(Slist(outputs).sample(n, seed=seed))
 
 
@@ -224,7 +233,7 @@ class TooLongError(Exception):
 
 @retry(TooLongError, tries=10)
 def sample_few_shots_cot_with_max(outputs: Sequence[TaskOutput], seed: str, n: int, max_tokens: int = 7000) -> Prompt:
-    sampled = sample_few_shots_cot(outputs, seed, n)
+    sampled = paired_sample_few_shots_cot(outputs, seed, n)
     # check that the total number of tokens is less than max_tokens
     prompt_str = sampled.convert_to_completion_str()
     total_tokens = encoding.encode(sampled.convert_to_completion_str())
@@ -261,7 +270,7 @@ if __name__ == "__main__":
     # write to jsonl
     # write_jsonl_file_from_basemodel(path=Path("data/bbh_biased_wrong_cot/data.jsonl"), basemodels=converted)
 
-    few_shot = sample_few_shots_non_cot(results, seed="1", n=1)
+    few_shot = paired_sample_few_shots_non_cot(results, seed="1", n=1)
     string = few_shot.convert_to_completion_str()
     print(few_shot.convert_to_completion_str())
 

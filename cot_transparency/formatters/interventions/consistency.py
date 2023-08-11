@@ -1,5 +1,6 @@
 from typing import Type
 
+
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters.consistency_prompting.few_shots import few_shots_to_sample
@@ -8,7 +9,12 @@ from cot_transparency.formatters.interventions.intervention import (
     prepend_to_front_first_user_message,
     NoIntervention,
 )
-from scripts.biased_wrong_ans import sample_few_shots_cot, sample_few_shots_cot_with_max
+from cot_transparency.model_apis import Prompt
+from scripts.biased_wrong_ans import (
+    paired_sample_few_shots_cot,
+    sample_few_shots_cot_with_max,
+    biased_qn_with_raw_response,
+)
 
 
 class PairedConsistency3(Intervention):
@@ -16,7 +22,9 @@ class PairedConsistency3(Intervention):
     def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=sample_few_shots_cot(few_shots_to_sample, seed=question.hash(), n=5).convert_to_completion_str(),
+            prepend=paired_sample_few_shots_cot(
+                few_shots_to_sample, seed=question.hash(), n=5
+            ).convert_to_completion_str(),
         )
         return new
 
@@ -38,15 +46,30 @@ class PairedConsistency10(Intervention):
     def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=sample_few_shots_cot(few_shots_to_sample, seed=question.hash(), n=10).convert_to_completion_str(),
+            prepend=paired_sample_few_shots_cot(
+                few_shots_to_sample, seed=question.hash(), n=10
+            ).convert_to_completion_str(),
         )
         return new
 
 
-five_shot_intervention = PairedConsistency5
+class BiasedConsistency10(Intervention):
+    @classmethod
+    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        prompt: Prompt = (
+            few_shots_to_sample.sample(10, seed=question.hash()).map(biased_qn_with_raw_response).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = {
-    five_shot_intervention.name(): five_shot_intervention,
+    PairedConsistency5.name(): PairedConsistency5,
     NoIntervention.name(): NoIntervention,
+    BiasedConsistency10.name(): BiasedConsistency10,
 }
 
 

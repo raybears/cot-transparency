@@ -137,7 +137,7 @@ def get_list_of_examples(task: str, dataset: Optional[str] = None) -> list[DataE
 
 
 def main(
-    tasks: Optional[list[str]] = ["aqua"],
+    tasks: Optional[list[str]] = None,
     dataset: Optional[str] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
