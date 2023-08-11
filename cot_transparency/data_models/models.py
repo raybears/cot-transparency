@@ -139,6 +139,10 @@ class TaskOutput(BaseModel):
     model_output: ModelOutput
 
     @property
+    def is_correct(self) -> bool:
+        return self.model_output.parsed_response == self.task_spec.ground_truth
+
+    @property
     def first_parsed_response(self) -> Optional[str]:
         return self.model_output.parsed_response
 

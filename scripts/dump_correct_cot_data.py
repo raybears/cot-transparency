@@ -35,8 +35,13 @@ if __name__ == "__main__":
         .filter(lambda x: x.task_spec.task_name in bbh_tasks)
         .filter(lambda x: x.task_spec.model_config.model == "gpt-4")
         .filter(lambda x: x.task_spec.formatter_name == selected_formatter)
+        # only get the ones that are correct
+        .filter(lambda x: x.model_output.parsed_response == x.task_spec.ground_truth)
         .distinct_by(lambda x: x.task_spec.task_hash)
     )
+    score = jsons_tasks.map(lambda x: x.is_correct).average()
+    print(f"Average score: {score}")
+    assert score == 1.0, f"This should be 1.0, got {score}"
 
     print(f"Number of jsons: {len(jsons_tasks)}")
-    write_jsonl_file_from_basemodel(path=Path("data/bbh_cots/data.jsonl"), basemodels=jsons_tasks)
+    write_jsonl_file_from_basemodel(path=Path("data/bbh_correct_cots/data.jsonl"), basemodels=jsons_tasks)
