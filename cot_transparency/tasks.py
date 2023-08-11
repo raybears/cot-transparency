@@ -46,9 +46,10 @@ def __call_or_raise(
     if parsed_response is not None:
         return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
 
+    maybe_second_last = messages[-2] if len(messages) >= 2 else None
     msg = (
         f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
-        f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+        f"last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
     )
     logger.warning(msg)
 

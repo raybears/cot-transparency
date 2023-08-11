@@ -105,6 +105,7 @@ def apply_filters(
     if formatters:
         # check that df.formatter_name is in formatters
         df = df[df.formatter_name.isin(formatters)]
+        assert len(df) > 0, f"formatters {formatters} not found in {df.formatter_name.unique()}"
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
@@ -131,6 +132,13 @@ def accuracy_for_df(
         aggregate_over_tasks=aggregate_over_tasks,
         df=df,
     )
+    # if df["intervention_name"] is not null, add an arrow -> to it
+    df["intervention_name"] = df["intervention_name"].fillna("")
+    # add "<-" if intervention_name is not null
+    df["intervention_name"] = df["intervention_name"].apply(lambda x: "<-" + x if x else x)
+
+    # add formatter_name and intervention_name together
+    df["formatter_name"] = df["formatter_name"] + df["intervention_name"]
 
     groups = ["task_name", "model", "formatter_name"]
     accuracy_df_grouped = df[["is_correct", "task_name", "model", "formatter_name"]].groupby(groups)
