@@ -2,15 +2,15 @@ from typing import Type
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
-from cot_transparency.formatters.interventions.few_shots_loads import get_correct_cots
+from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
 from cot_transparency.formatters.interventions.intervention import (
     Intervention,
-    prepend_to_front_first_user_message,
 )
-from cot_transparency.formatters.interventions.intervention_utils import (
+from cot_transparency.formatters.interventions.formatting import (
     format_pair_cot,
     format_unbiased_question_cot,
     format_biased_question_cot,
+    prepend_to_front_first_user_message,
 )
 from cot_transparency.model_apis import Prompt
 

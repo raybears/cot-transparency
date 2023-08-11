@@ -11,10 +11,23 @@ def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> lis
     # Otherwise, we need to add a new assistant message
     new_list = messages.copy()
     if messages[-1].role == MessageRole.assistant or messages[-1].role == MessageRole.assistant_if_completion:
-        new_list[-1] = ChatMessage(role=MessageRole.assistant, content=messages[-1].content + new_message)
+        new_list[-1] = ChatMessage(
+            role=MessageRole.assistant, content=messages[-1].content.rstrip() + " " + new_message
+        )
     else:
         new_list.append(ChatMessage(role=MessageRole.assistant, content=new_message))
     return new_list
+
+
+def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: str) -> list[ChatMessage]:
+    """Prepend a string to the first user message."""
+    new_messages = []
+    for m in messages:
+        if m.role == MessageRole.user:
+            new_messages.append(ChatMessage(role=MessageRole.user, content=prepend + m.content))
+        else:
+            new_messages.append(m)
+    return new_messages
 
 
 def format_pair_cot(task: TaskOutput) -> Prompt:
