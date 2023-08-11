@@ -37,9 +37,7 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
     return None
 
 
-def extract_answer_non_cot(
-    response: str, allow_failure: bool = True, dump_failed: bool = False
-) -> Optional[MultipleChoiceAnswer]:
+def extract_answer_non_cot(response: str, dump_failed: bool = False) -> Optional[MultipleChoiceAnswer]:
     out: Optional[MultipleChoiceAnswer] = None
     response = response.strip()
     if len(response) >= 1:
@@ -48,9 +46,6 @@ def extract_answer_non_cot(
             if len(response) > 1:
                 if response[1] != ")":
                     out = None
-        if out is None and allow_failure:
-            print(f"Did not find a valid answer in response '{response}', but allow_failure is set to True")
-            return None
 
         if out is None and dump_failed:
             with open("failed_answers.txt", "a") as f:

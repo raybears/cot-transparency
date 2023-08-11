@@ -14,6 +14,8 @@ from cot_transparency.openai_utils.inference import (
     gpt4_rate_limited,
 )
 from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.openai_utils.llama import call_llama_chat
+
 from cot_transparency.openai_utils.set_key import set_opeani_org_from_env_rand
 from pydantic import BaseModel
 
@@ -76,6 +78,10 @@ class Prompt(BaseModel):
     def convert_to_openai_chat(self) -> list[StrictChatMessage]:
         return self.get_strict_messages(model_type=ModelType.chat)
 
+    def convert_to_llama_chat(self) -> list[StrictChatMessage]:
+        # we can do the same things as anthropic chat
+        return self.get_strict_messages(model_type=ModelType.anthropic)
+
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
     set_opeani_org_from_env_rand()
@@ -92,6 +98,13 @@ def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -
     elif "claude" in model_name:
         formatted = prompt.convert_to_anthropic_str()
         return anthropic_chat(config=config, prompt=formatted)
+
+    elif "llama" in model_name:
+        if "chat" in model_name:
+            formatted = prompt.convert_to_llama_chat()
+            return call_llama_chat(formatted, config=config)
+        else:
+            raise ValueError(f"llama model {model_name} is not supported yet")
 
     # openai not chat, e.g. text-davinci-003 or code-davinci-002
     else:
