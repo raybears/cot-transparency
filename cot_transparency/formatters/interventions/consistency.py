@@ -7,7 +7,6 @@ from cot_transparency.formatters.consistency_prompting.few_shots import few_shot
 from cot_transparency.formatters.interventions.intervention import (
     Intervention,
     prepend_to_front_first_user_message,
-    NoIntervention,
 )
 from cot_transparency.model_apis import Prompt
 from scripts.biased_wrong_ans import (
@@ -68,7 +67,6 @@ class BiasedConsistency10(Intervention):
 
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = {
     PairedConsistency5.name(): PairedConsistency5,
-    NoIntervention.name(): NoIntervention,
     BiasedConsistency10.name(): BiasedConsistency10,
 }
 

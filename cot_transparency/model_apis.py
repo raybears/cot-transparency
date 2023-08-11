@@ -1,6 +1,5 @@
 from enum import Enum
 import anthropic
-from openai import InvalidRequestError
 
 from cot_transparency.data_models.models import (
     MessageRole,
@@ -91,13 +90,8 @@ def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -
         return gpt3_5_rate_limited(config=config, messages=prompt.convert_to_openai_chat()).completion
 
     elif model_name == "gpt-4" or model_name == "gpt-4-32k":
-        try:
-            # return "fake openai response, The best answer is: (A)"
-            return gpt4_rate_limited(config=config, messages=prompt.convert_to_openai_chat()).completion
-        except InvalidRequestError as e:
-            print(e)
-            print(f"InvalidRequestError with messages: {messages}")
-            raise e
+        # return "fake openai response, The best answer is: (A)"
+        return gpt4_rate_limited(config=config, messages=prompt.convert_to_openai_chat()).completion
 
     elif "claude" in model_name:
         formatted = prompt.convert_to_anthropic_str()

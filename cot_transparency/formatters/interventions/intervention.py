@@ -25,12 +25,6 @@ class Intervention(ABC):
         return new_messages
 
 
-class NoIntervention(Intervention):
-    @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
-        return messages
-
-
 def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: str) -> list[ChatMessage]:
     """Prepend a string to the first user message."""
     new_messages = []
