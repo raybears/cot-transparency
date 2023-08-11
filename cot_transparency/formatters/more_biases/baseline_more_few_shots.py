@@ -55,24 +55,45 @@ def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: st
     return messages
 
 
-class PairedConsistency(Intervention):
-    def __init__(self, n_shots: int):
-        self.n_shots = n_shots
+class PairedConsistency3(Intervention):
 
     def hook(self, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
         new = prepend_to_front_first_user_message(
             messages=messages,
             prepend=sample_few_shots_cot(
-                few_shots_to_sample, seed=question.hash(), n=self.n_shots
+                few_shots_to_sample, seed=question.hash(), n=5
             ).convert_to_completion_str(),
         )
         return new
 
 
-five_shot_intervention = PairedConsistency(5)
-PairedConsistency_ZeroShotCOTSycophancyFormatter: Type[StageOneFormatter] = five_shot_intervention.intervene(
+class PairedConsistency5(Intervention):
+
+    def hook(self, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=sample_few_shots_cot(
+                few_shots_to_sample, seed=question.hash(), n=5
+            ).convert_to_completion_str(),
+        )
+        return new
+
+class PairedConsistency10(Intervention):
+
+    def hook(self, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=sample_few_shots_cot(
+                few_shots_to_sample, seed=question.hash(), n=10
+            ).convert_to_completion_str(),
+        )
+        return new
+
+
+five_shot_intervention = PairedConsistency5()
+PairedConsistency5_ZeroShotCOTSycophancyFormatter: Type[StageOneFormatter] = five_shot_intervention.intervene(
     ZeroShotCOTSycophancyFormatter
 )
-PairedConsistency_ZeroShotCOTUnbiasedFormatter: Type[StageOneFormatter] = five_shot_intervention.intervene(
+PairedConsistency5_ZeroShotCOTUnbiasedFormatter: Type[StageOneFormatter] = five_shot_intervention.intervene(
     ZeroShotCOTUnbiasedFormatter
 )
