@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import final, Type, Optional
+from typing import final, Type
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage, MessageRole
@@ -11,31 +11,24 @@ class Intervention(ABC):
     def name(cls) -> str:
         return cls.__name__
 
+    @classmethod
     @abstractmethod
-    def hook(self, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
         """Define a hook that can be used to intervene in the formatting process."""
         pass
 
-    @final  # Please don't override this unless you know what you are doing.
-    def intervene(self, formatter: Type[StageOneFormatter]) -> Type[StageOneFormatter]:
-        intervention_self = self
+    @classmethod
+    @final  # Please don't override this method unless you know what you are doing
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        new_messages = cls.hook(question, messages)
+        return new_messages
 
-        class NewFormatter(formatter):
-            @staticmethod
-            def format_example(question: DataExampleBase) -> list[ChatMessage]:
-                messages = formatter.format_example(question)
-                new_messages = self.hook(question, messages)
-                return new_messages
 
-            @staticmethod
-            def parse_answer(response: str) -> Optional[str]:
-                return formatter.parse_answer(response)
-
-            @classmethod
-            def name(cls) -> str:
-                return f"{intervention_self.name()}_{formatter.name()}"
-
-        return NewFormatter
+class NoIntervention(Intervention):
+    @classmethod
+    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        return messages
 
 
 def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: str) -> list[ChatMessage]:

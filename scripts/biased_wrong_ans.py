@@ -1,6 +1,8 @@
 from typing import Optional, Sequence
 
+import tiktoken
 from pydantic import BaseModel
+from retry import retry
 from slist import Slist
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
@@ -211,6 +213,24 @@ def sample_few_shots_non_cot(outputs: Sequence[TaskOutput], seed: str, n: int) -
 
 def sample_few_shots_cot(outputs: Sequence[TaskOutput], seed: str, n: int) -> Prompt:
     return biased_wrong_to_few_shots_cot(Slist(outputs).sample(n, seed=seed))
+
+
+encoding = tiktoken.get_encoding("cl100k_base")
+
+
+class TooLongError(Exception):
+    ...
+
+
+@retry(TooLongError, tries=10)
+def sample_few_shots_cot_with_max(outputs: Sequence[TaskOutput], seed: str, n: int, max_tokens: int = 7000) -> Prompt:
+    sampled = sample_few_shots_cot(outputs, seed, n)
+    # check that the total number of tokens is less than max_tokens
+    prompt_str = sampled.convert_to_completion_str()
+    total_tokens = encoding.encode(sampled.convert_to_completion_str())
+    if len(total_tokens) > max_tokens:
+        raise TooLongError(prompt_str)
+    return sampled
 
 
 if __name__ == "__main__":

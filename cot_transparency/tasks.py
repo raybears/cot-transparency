@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from pathlib import Path
 import random
-from typing import Type, Union
+from typing import Type, Union, Optional
 
 from pydantic import BaseModel
 from retry import retry
@@ -16,6 +16,7 @@ from cot_transparency.data_models.models import (
     ModelOutput,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.interventions.intervention import Intervention
 
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.data_models.models import ChatMessage
@@ -237,4 +238,5 @@ def run_tasks_multi_threaded(
 class TaskSetting(BaseModel):
     task: str
     formatter: Type[StageOneFormatter]
+    intervention: Optional[Type[Intervention]] = None
     model: str

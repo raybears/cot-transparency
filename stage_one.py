@@ -11,6 +11,8 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
+from cot_transparency.formatters.interventions.consistency import get_valid_stage1_interventions
+from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.openai_utils.set_key import set_keys_from_env
@@ -66,7 +68,10 @@ CONFIG_MAP = {
 
 
 def create_task_settings(
-    tasks: list[str], models: list[str], formatters: list[Type[StageOneFormatter]]
+    tasks: list[str],
+    models: list[str],
+    formatters: list[Type[StageOneFormatter]],
+    interventions: list[Type[Intervention]],
 ) -> list[TaskSetting]:
     """Create a list of task settings to run"""
     task_settings = []
@@ -74,7 +79,18 @@ def create_task_settings(
         for model in models:
             for formatter in formatters:
                 task_settings.append(TaskSetting(task=task, formatter=formatter, model=model))
-    return task_settings
+    with_interventions = []
+    for setting in task_settings:
+        for intervention in interventions:
+            with_interventions.append(
+                TaskSetting(
+                    task=setting.task,
+                    formatter=setting.formatter,
+                    model=setting.model,
+                    intervention=intervention,
+                )
+            )
+    return task_settings + with_interventions
 
 
 def validate_tasks(tasks: list[str]) -> list[str]:
@@ -125,6 +141,7 @@ def main(
     dataset: Optional[str] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
+    interventions: list[str] = [],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     example_cap: Optional[int] = 1000000,
@@ -141,9 +158,12 @@ def main(
 
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
+    validated_interventions = get_valid_stage1_interventions(interventions)
 
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
-    task_settings: list[TaskSetting] = create_task_settings(tasks=tasks, models=models, formatters=validated_formatters)
+    task_settings: list[TaskSetting] = create_task_settings(
+        tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
+    )
 
     tasks_to_run: list[TaskSpec] = []
     for setting in task_settings:
@@ -152,7 +172,11 @@ def main(
         formatter = setting.formatter
         print(f"formatter: {formatter.name()}")
         data: list[DataExampleBase] = get_list_of_examples(task, dataset=dataset)
-        out_file_path: Path = Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
+        out_file_path: Path = (
+            Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
+            if setting.intervention is None
+            else Path(f"{exp_dir}/{task}/{model}/{setting.intervention.name()}_on_{formatter.name()}.json")
+        )
 
         # Shuffle the data BEFORE we cap it
         random.Random(42).shuffle(data)
@@ -179,10 +203,15 @@ def main(
 
         for item in data:
             for i in range(repeats_per_question):
+                messages = (
+                    setting.intervention.intervene(question=item, formatter=formatter)
+                    if setting.intervention
+                    else formatter.format_example(question=item)
+                )
                 task_spec = TaskSpec(
                     task_name=task,
                     model_config=config,
-                    messages=formatter.format_example(question=item),
+                    messages=messages,
                     out_file_path=out_file_path,
                     ground_truth=item.ground_truth,
                     formatter_name=formatter.name(),
@@ -190,6 +219,7 @@ def main(
                     biased_ans=item.biased_ans,
                     data_example=item.dict(),
                     repeat_idx=i,
+                    intervention_name=setting.intervention.name() if setting.intervention else None,
                 )
                 tasks_to_run.append(task_spec)
 
