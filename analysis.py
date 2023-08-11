@@ -71,10 +71,12 @@ def accuracy(
     model_filter: Optional[str] = None,
     formatters: Sequence[str] = [],
     check_counts: bool = True,
+    csv: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
     """
     exp_dir: path to directory containing experiment jsons
     inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
+    csv: if True, write to csv
     """
     df = get_data_frame_from_exp_dir(exp_dir)
     done = accuracy_for_df(
@@ -85,8 +87,10 @@ def accuracy(
         model_filter=model_filter,
         check_counts=check_counts,
     )
-    # write
-    done.to_csv("accuracy.csv")
+    if csv:
+        # write
+        print("Writing to csv at accuracy.csv")
+        done.to_csv("accuracy.csv")
 
 
 def apply_filters(
