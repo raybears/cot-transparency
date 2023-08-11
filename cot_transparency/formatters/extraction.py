@@ -27,9 +27,7 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
         if break_word not in model_answer:
             continue
         tmp = model_answer.split(break_word)
-        second_item = tmp[1] if len(tmp) >= 2 else None
-        assert second_item is not None
-        ans = second_item[0]
+        ans = tmp[-1][0]
         if ans in ascii_uppercase:
             return ans
         break
