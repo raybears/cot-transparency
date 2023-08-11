@@ -14,6 +14,7 @@ from cot_transparency.formatters.extraction import BREAK_WORDS
 
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.io import ExpLoader
+from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP
 from cot_transparency.model_apis import Prompt
 
 # ruff: noqa: E501
@@ -134,9 +135,6 @@ def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> lis
     else:
         new_list.append(ChatMessage(role=MessageRole.assistant, content=new_message))
     return new_list
-
-
-END_SINGLE_SHOT_SEP = "\n==="
 
 
 def task_output_to_few_shot_non_cot(task: TaskOutput) -> Prompt:

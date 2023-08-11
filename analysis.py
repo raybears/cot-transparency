@@ -132,7 +132,6 @@ def accuracy_for_df(
         aggregate_over_tasks=aggregate_over_tasks,
         df=df,
     )
-    # if df["intervention_name"] is not null, add an arrow -> to it
     df["intervention_name"] = df["intervention_name"].fillna("")
     # add "<-" if intervention_name is not null
     df["intervention_name"] = df["intervention_name"].apply(lambda x: "<-" + x if x else x)

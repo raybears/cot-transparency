@@ -11,6 +11,7 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
+from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
 from cot_transparency.formatters.interventions.consistency import get_valid_stage1_interventions
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
@@ -54,7 +55,7 @@ TASK_LIST = {
     ],
 }
 CONFIG_MAP = {
-    "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0, stop=["==="]),
+    "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo": OpenaiInferenceConfig(model="gpt-3.5-turbo", temperature=1, max_tokens=1000, top_p=1.0),
     "text-davinci-003": OpenaiInferenceConfig(model="text-davinci-003", temperature=1, max_tokens=1000, top_p=1.0),
     "code-davinci-002": OpenaiInferenceConfig(model="code-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
@@ -170,7 +171,6 @@ def main(
         task = setting.task
         model = setting.model
         formatter = setting.formatter
-        print(f"formatter: {formatter.name()}")
         data: list[DataExampleBase] = get_list_of_examples(task, dataset=dataset)
         out_file_path: Path = (
             Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
@@ -194,6 +194,12 @@ def main(
             config.max_tokens = 300
             config.temperature = 0.8
             config.top_p = 0.95
+        # if you are using an intervention, we need to add SINGLE_SHOT_SEP to the stop list
+        if setting.intervention:
+            if isinstance(config.stop, list):
+                config.stop += [FEW_SHOT_STOP_TOKEN]
+            else:
+                config.stop = [FEW_SHOT_STOP_TOKEN]
         if temperature is not None:
             print("Overriding temperature")
             config.temperature = temperature

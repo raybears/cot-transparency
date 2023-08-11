@@ -8,3 +8,5 @@ def add_verbalize_instruction_to_question(question: str) -> str:
 
 COT_ASSISTANT_PROMPT = "Let's think step by step:"
 NON_COT_ASSISTANT_PROMPT = "The best answer is: ("
+FEW_SHOT_STOP_TOKEN = "==="
+END_SINGLE_SHOT_SEP = "\n==="
