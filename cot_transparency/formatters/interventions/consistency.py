@@ -1,6 +1,5 @@
 from typing import Type
 
-
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters.interventions.few_shots_loads import get_correct_cots
@@ -8,26 +7,21 @@ from cot_transparency.formatters.interventions.intervention import (
     Intervention,
     prepend_to_front_first_user_message,
 )
-from cot_transparency.model_apis import Prompt
-from scripts.biased_wrong_ans import (
-    paired_sample_few_shots_cot,
-    sample_few_shots_cot_with_max,
-    biased_qn_with_raw_response,
-    unbiased_qn_with_raw_response,
+from cot_transparency.formatters.interventions.intervention_utils import (
+    format_pair_cot,
+    format_unbiased_question_cot,
+    format_biased_question_cot,
 )
+from cot_transparency.model_apis import Prompt
 
 
 class PairedConsistency6(Intervention):
     @classmethod
     def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        prompt: Prompt = get_correct_cots().sample(3, seed=question.hash()).map(format_pair_cot).sum_or_raise()
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=paired_sample_few_shots_cot(
-                # 6 / 2
-                get_correct_cots(),
-                seed=question.hash(),
-                n=3,
-            ).convert_to_completion_str(),
+            prepend=prompt.convert_to_completion_str(),
         )
         return new
 
@@ -35,15 +29,10 @@ class PairedConsistency6(Intervention):
 class PairedConsistency10(Intervention):
     @classmethod
     def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        prompt: Prompt = get_correct_cots().sample(5, seed=question.hash()).map(format_pair_cot).sum_or_raise()
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=sample_few_shots_cot_with_max(
-                # 10 / 2
-                get_correct_cots(),
-                seed=question.hash(),
-                n=5,
-                max_tokens=6000,
-            ).convert_to_completion_str(),
+            prepend=prompt.convert_to_completion_str(),
         )
         return new
 
@@ -55,7 +44,7 @@ class BiasedConsistency10(Intervention):
             # Not a pair so, sample 10
             get_correct_cots()
             .sample(10, seed=question.hash())
-            .map(biased_qn_with_raw_response)
+            .map(format_biased_question_cot)
             .sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
@@ -70,7 +59,7 @@ class NaiveFewShot10(Intervention):
     @classmethod
     def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
         prompt: Prompt = (
-            get_correct_cots().sample(10, seed=question.hash()).map(unbiased_qn_with_raw_response).sum_or_raise()
+            get_correct_cots().sample(10, seed=question.hash()).map(format_unbiased_question_cot).sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
