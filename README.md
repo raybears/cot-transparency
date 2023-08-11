@@ -50,7 +50,7 @@ pytest tests
 
 ## Usage
 
-Set your OpenAI API key as `OPENAI_API_KEY` in a `.env` file.
+Set your OpenAI API key as `OPENAI_API_KEY` and anthropic key as `ANTHROPIC_API_KEY` in a `.env` file.
 
 To generate examples e.g. this will compare 20 samples for each task in bbh for sycophancy
 
@@ -65,5 +65,3 @@ To run analysis
 ```python
 python analysis.py accuracy --exp_dir experiments/stage_one/dummy_run
 ```
-
-To get the metrics from 'Measuring Transparency in Chain-of-Thought Reasoning' use `vizualize.ipynb`.
