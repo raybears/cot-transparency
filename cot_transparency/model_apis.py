@@ -81,6 +81,8 @@ class Prompt(BaseModel):
         return self.get_strict_messages(model_type=ModelType.chat)
 
 
+
+
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
     set_opeani_org_from_env_rand()
     prompt = Prompt(messages=messages)

@@ -159,6 +159,15 @@ def task_output_to_few_shot_cot(task: TaskOutput) -> Prompt:
     return Prompt(messages=messages)
 
 
+def unbiased_qn_with_raw_response(task: TaskOutput) -> Prompt:
+    read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
+    messages: list[ChatMessage] = add_to_final_assistant(
+        ZeroShotCOTUnbiasedFormatter.format_example(read),
+        new_message=task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+    )
+    return Prompt(messages=messages)
+
+
 def biased_qn_with_raw_response(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     messages: list[ChatMessage] = add_to_final_assistant(

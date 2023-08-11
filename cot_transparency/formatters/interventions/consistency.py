@@ -13,6 +13,7 @@ from scripts.biased_wrong_ans import (
     paired_sample_few_shots_cot,
     sample_few_shots_cot_with_max,
     biased_qn_with_raw_response,
+    unbiased_qn_with_raw_response,
 )
 
 
@@ -65,9 +66,26 @@ class BiasedConsistency10(Intervention):
         return new
 
 
+class NaiveFewShot10(Intervention):
+    # Simply use unbiased few shot
+    @classmethod
+    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        prompt: Prompt = (
+            few_shots_to_sample.sample(10, seed=question.hash()).map(unbiased_qn_with_raw_response).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = {
     PairedConsistency5.name(): PairedConsistency5,
     BiasedConsistency10.name(): BiasedConsistency10,
+    PairedConsistency10.name(): PairedConsistency10,
+    PairedConsistency3.name(): PairedConsistency3,
+    NaiveFewShot10.name(): NaiveFewShot10,
 }
 
 
