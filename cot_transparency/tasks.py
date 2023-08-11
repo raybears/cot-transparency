@@ -46,7 +46,7 @@ def __call_or_raise(
         return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
 
     msg = (
-        f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
+        f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
         f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
     )
     logger.warning(msg)

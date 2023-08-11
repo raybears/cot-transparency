@@ -77,7 +77,7 @@ def accuracy(
     inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
     """
     df = get_data_frame_from_exp_dir(exp_dir)
-    accuracy_for_df(
+    done = accuracy_for_df(
         df,
         inconsistent_only=inconsistent_only,
         aggregate_over_tasks=aggregate_over_tasks,
@@ -85,6 +85,8 @@ def accuracy(
         model_filter=model_filter,
         check_counts=check_counts,
     )
+    # write
+    done.to_csv("accuracy.csv")
 
 
 def apply_filters(

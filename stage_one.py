@@ -121,7 +121,7 @@ def get_list_of_examples(task: str, dataset: Optional[str] = None) -> list[DataE
 
 
 def main(
-    tasks: Optional[list[str]] = None,
+    tasks: Optional[list[str]] = ["aqua"],
     dataset: Optional[str] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
@@ -150,6 +150,7 @@ def main(
         task = setting.task
         model = setting.model
         formatter = setting.formatter
+        print(f"formatter: {formatter.name()}")
         data: list[DataExampleBase] = get_list_of_examples(task, dataset=dataset)
         out_file_path: Path = Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
 

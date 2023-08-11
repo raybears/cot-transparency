@@ -2,8 +2,10 @@ from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
-from cot_transparency.formatters.more_biases.baseline_more_few_shots import PairedConsistency5_ZeroShotCOTSycophancyFormatter, \
-    PairedConsistency5_ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.interventions.consistency import (
+    PairedConsistency5_ZeroShotCOTSycophancyFormatter,
+    PairedConsistency5_ZeroShotCOTUnbiasedFormatter,
+)
 from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
 from cot_transparency.formatters.core.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
