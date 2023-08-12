@@ -11,7 +11,7 @@ scipy
 anthropic
 pytest
 pydantic>=1.9.0,<2.0.0
-slist
+slist>=0.1.9
 retry
 pyright
 pyrate_limiter
