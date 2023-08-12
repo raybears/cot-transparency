@@ -11,6 +11,9 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
+from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
+from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_interventions
+from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.openai_utils.set_key import set_keys_from_env
@@ -67,7 +70,11 @@ CONFIG_MAP = {
 
 
 def create_task_settings(
-    tasks: list[str], models: list[str], formatters: list[Type[StageOneFormatter]]
+    tasks: list[str],
+    models: list[str],
+    formatters: list[Type[StageOneFormatter]],
+    # see cot_transparency/formatters/interventions/valid_interventions.py for valid interventions
+    interventions: list[Type[Intervention]],
 ) -> list[TaskSetting]:
     """Create a list of task settings to run"""
     task_settings = []
@@ -75,7 +82,18 @@ def create_task_settings(
         for model in models:
             for formatter in formatters:
                 task_settings.append(TaskSetting(task=task, formatter=formatter, model=model))
-    return task_settings
+    with_interventions = []
+    for setting in task_settings:
+        for intervention in interventions:
+            with_interventions.append(
+                TaskSetting(
+                    task=setting.task,
+                    formatter=setting.formatter,
+                    model=setting.model,
+                    intervention=intervention,
+                )
+            )
+    return task_settings + with_interventions
 
 
 def validate_tasks(tasks: list[str]) -> list[str]:
@@ -126,11 +144,12 @@ def main(
     dataset: Optional[str] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
+    interventions: list[str] = [],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     example_cap: Optional[int] = 1000000,
     save_file_every: int = 50,
-    batch: int = 10,
+    batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
 ):
@@ -138,7 +157,7 @@ def main(
         assert tasks is None, "dataset and tasks are mutually exclusive"
         tasks = TASK_LIST[dataset]
     else:
-        assert tasks is not None, "dataset and tasks are mutually exclusive"
+        assert tasks is not None, "You must define a task or a dataset"
 
     for model in models:
         if "llama" in model.lower():
@@ -146,9 +165,12 @@ def main(
 
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
+    validated_interventions = get_valid_stage1_interventions(interventions)
 
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
-    task_settings: list[TaskSetting] = create_task_settings(tasks=tasks, models=models, formatters=validated_formatters)
+    task_settings: list[TaskSetting] = create_task_settings(
+        tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
+    )
 
     tasks_to_run: list[TaskSpec] = []
     for setting in task_settings:
@@ -156,7 +178,11 @@ def main(
         model = setting.model
         formatter = setting.formatter
         data: list[DataExampleBase] = get_list_of_examples(task, dataset=dataset)
-        out_file_path: Path = Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
+        out_file_path: Path = (
+            Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
+            if setting.intervention is None
+            else Path(f"{exp_dir}/{task}/{model}/{formatter.name()}_and_{setting.intervention.name()}.json")
+        )
 
         # Shuffle the data BEFORE we cap it
         random.Random(42).shuffle(data)
@@ -174,6 +200,12 @@ def main(
             config.max_tokens = 300
             config.temperature = 0.8
             config.top_p = 0.95
+        # if you are using an intervention, we need to add SINGLE_SHOT_SEP to the stop list
+        if setting.intervention:
+            if isinstance(config.stop, list):
+                config.stop += [FEW_SHOT_STOP_TOKEN]
+            else:
+                config.stop = [FEW_SHOT_STOP_TOKEN]
         if temperature is not None:
             print("Overriding temperature")
             config.temperature = temperature
@@ -183,10 +215,15 @@ def main(
 
         for item in data:
             for i in range(repeats_per_question):
+                messages = (
+                    setting.intervention.intervene(question=item, formatter=formatter)
+                    if setting.intervention
+                    else formatter.format_example(question=item)
+                )
                 task_spec = TaskSpec(
                     task_name=task,
                     model_config=config,
-                    messages=formatter.format_example(question=item),
+                    messages=messages,
                     out_file_path=out_file_path,
                     ground_truth=item.ground_truth,
                     formatter_name=formatter.name(),
@@ -194,6 +231,7 @@ def main(
                     biased_ans=item.biased_ans,
                     data_example=item.dict(),
                     repeat_idx=i,
+                    intervention_name=setting.intervention.name() if setting.intervention else None,
                 )
                 tasks_to_run.append(task_spec)
 

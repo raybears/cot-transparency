@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from pathlib import Path
 import random
-from typing import Type, Union
+from typing import Type, Union, Optional
 
 from pydantic import BaseModel
 from retry import retry
@@ -16,6 +16,7 @@ from cot_transparency.data_models.models import (
     ModelOutput,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.interventions.intervention import Intervention
 
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.data_models.models import ChatMessage
@@ -45,9 +46,10 @@ def __call_or_raise(
     if parsed_response is not None:
         return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
 
+    maybe_second_last = messages[-2] if len(messages) >= 2 else None
     msg = (
-        f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
-        f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+        f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
+        f"last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
     )
     logger.warning(msg)
 
@@ -237,4 +239,5 @@ def run_tasks_multi_threaded(
 class TaskSetting(BaseModel):
     task: str
     formatter: Type[StageOneFormatter]
+    intervention: Optional[Type[Intervention]] = None
     model: str

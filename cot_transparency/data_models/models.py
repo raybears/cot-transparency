@@ -9,6 +9,7 @@ from pydantic import BaseModel, conlist
 
 from typing import Optional, Union, Any, Type
 
+
 from cot_transparency.util import deterministic_hash
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer, GenericDataExample
 
@@ -117,6 +118,7 @@ class TaskSpec(BaseModel):
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
     formatter_name: str
+    intervention_name: Optional[str] = None
     repeat_idx: int = 0
     task_hash: str  # linked to the orignal question
     biased_ans: Optional[MultipleChoiceAnswer] = None
@@ -135,6 +137,10 @@ class TaskOutput(BaseModel):
     # This is one single experiment
     task_spec: TaskSpec
     model_output: ModelOutput
+
+    @property
+    def is_correct(self) -> bool:
+        return self.model_output.parsed_response == self.task_spec.ground_truth
 
     @property
     def first_parsed_response(self) -> Optional[str]:

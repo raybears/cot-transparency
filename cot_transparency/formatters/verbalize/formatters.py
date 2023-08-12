@@ -3,7 +3,7 @@ from typing import Optional
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.instructions import NON_COT_ASSISTANT_PROMPT
+from cot_transparency.formatters.instructions import NON_COT_ASSISTANT_PROMPT, add_verbalize_instruction_to_question
 from cot_transparency.formatters.verbalize.emoji_utils import question_with_checkmark_bias, question_with_cross_bias
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.core.sycophancy import format_sycophancy_question
@@ -136,7 +136,7 @@ class StanfordTreatmentFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class CheckmarkBiasedFormatter(StageOneFormatter):
+class CheckmarkBiasedLabelFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
 
@@ -148,6 +148,30 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
         with_label_instruction = f"""{checkmark_biasing}
 {biased_message}
 {label_bias_instruction}"""
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
+
+
+class CheckmarkBiasedFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        biased_message = question_with_checkmark_bias(
+            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
+        )
+        with_label_instruction = add_verbalize_instruction_to_question(
+            f"""{checkmark_biasing}
+{biased_message}
+"""
+        )
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]
@@ -215,7 +239,7 @@ class CheckmarkNoCOTFormatter(StageOneFormatter):
         return extract_answer_non_cot(response, dump_failed=False)
 
 
-class CrossBiasedFormatter(StageOneFormatter):
+class CrossBiasedLabelFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
 
@@ -227,6 +251,30 @@ class CrossBiasedFormatter(StageOneFormatter):
         with_label_instruction = f"""{cross_biasing}
 {biased_message}
 {label_bias_instruction}"""
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
+
+
+class CrossBiasedFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        biased_message = question_with_cross_bias(
+            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
+        )
+        with_label_instruction = add_verbalize_instruction_to_question(
+            f"""{cross_biasing}
+{biased_message}
+"""
+        )
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
         ]

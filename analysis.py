@@ -71,13 +71,15 @@ def accuracy(
     model_filter: Optional[str] = None,
     formatters: Sequence[str] = [],
     check_counts: bool = True,
+    csv: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
     """
     exp_dir: path to directory containing experiment jsons
     inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
+    csv: if True, write to csv
     """
     df = get_data_frame_from_exp_dir(exp_dir)
-    accuracy_for_df(
+    done = accuracy_for_df(
         df,
         inconsistent_only=inconsistent_only,
         aggregate_over_tasks=aggregate_over_tasks,
@@ -85,6 +87,10 @@ def accuracy(
         model_filter=model_filter,
         check_counts=check_counts,
     )
+    if csv:
+        # write
+        print("Writing to csv at accuracy.csv")
+        done.to_csv("accuracy.csv")
 
 
 def apply_filters(
@@ -103,6 +109,7 @@ def apply_filters(
     if formatters:
         # check that df.formatter_name is in formatters
         df = df[df.formatter_name.isin(formatters)]
+        assert len(df) > 0, f"formatters {formatters} not found in {df.formatter_name.unique()}"
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
@@ -129,6 +136,12 @@ def accuracy_for_df(
         aggregate_over_tasks=aggregate_over_tasks,
         df=df,
     )
+    df["intervention_name"] = df["intervention_name"].fillna("")
+    # add "<-" if intervention_name is not null
+    df["intervention_name"] = df["intervention_name"].apply(lambda x: "<-" + x if x else x)
+
+    # add formatter_name and intervention_name together
+    df["formatter_name"] = df["formatter_name"] + df["intervention_name"]
 
     groups = ["task_name", "model", "formatter_name"]
     accuracy_df_grouped = df[["is_correct", "task_name", "model", "formatter_name"]].groupby(groups)

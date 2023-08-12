@@ -1,7 +1,11 @@
 from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
-from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
+from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
+from cot_transparency.formatters.more_biases.user_wrong_cot import (
+    UserBiasedWrongCotFormatter,
+    ModelBiasedWrongCotFormatter,
+)
 from cot_transparency.formatters.core.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
@@ -21,9 +25,9 @@ from cot_transparency.formatters.core.unbiased import (
 from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
     StanfordTreatmentFormatter,
-    CrossBiasedFormatter,
+    CrossBiasedLabelFormatter,
     CrossTreatmentFormatter,
-    CheckmarkBiasedFormatter,
+    CheckmarkBiasedLabelFormatter,
     CheckmarkTreatmentFormatter,
     IThinkAnswerTreatmentFormatter,
     IThinkAnswerBiasedFormatter,
@@ -31,6 +35,8 @@ from cot_transparency.formatters.verbalize.formatters import (
     CrossNoCOTFormatter,
     CheckmarkNoCOTFormatter,
     StanfordNoCOTFormatter,
+    CrossBiasedFormatter,
+    CheckmarkBiasedFormatter,
 )
 
 from cot_transparency.formatters.transparency.mistakes import (
@@ -69,9 +75,9 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ZeroShotCOTSycophancyToldBiasFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         StanfordBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         StanfordTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
-        CrossBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        CrossBiasedLabelFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         CrossTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
-        CheckmarkBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        CheckmarkBiasedLabelFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         CheckmarkTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         IThinkAnswerBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         IThinkAnswerTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
@@ -83,6 +89,10 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         WrongFewShotBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         MoreRewardBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        BeUnbiasedCOTSycophancyFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        CrossBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelBiasedWrongCotFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        CheckmarkBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 
@@ -109,9 +119,9 @@ __all__ = [
     "FewShotUnbiasedNoRoleFormatter",
     "StanfordBiasedFormatter",
     "StanfordTreatmentFormatter",
-    "CrossBiasedFormatter",
+    "CrossBiasedLabelFormatter",
     "CrossTreatmentFormatter",
-    "CheckmarkBiasedFormatter",
+    "CheckmarkBiasedLabelFormatter",
     "CheckmarkTreatmentFormatter",
     "IThinkAnswerTreatmentFormatter",
     "IThinkAnswerBiasedFormatter",
