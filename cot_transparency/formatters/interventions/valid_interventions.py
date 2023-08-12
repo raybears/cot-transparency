@@ -1,7 +1,11 @@
 from typing import Type
 
-from cot_transparency.formatters.interventions.consistency import PairedConsistency6, PairedConsistency10, \
-    BiasedConsistency10, NaiveFewShot10
+from cot_transparency.formatters.interventions.consistency import (
+    PairedConsistency6,
+    PairedConsistency10,
+    BiasedConsistency10,
+    NaiveFewShot10,
+)
 from cot_transparency.formatters.interventions.intervention import Intervention
 
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = {

@@ -64,5 +64,3 @@ class NaiveFewShot10(Intervention):
             prepend=prompt.convert_to_completion_str(),
         )
         return new
-
-
