@@ -62,6 +62,7 @@ CONFIG_MAP = {
     "claude-2": OpenaiInferenceConfig(model="claude-1", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
+    "llama-2-7b-chat-hf": OpenaiInferenceConfig(model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
 }
 
 
@@ -138,6 +139,10 @@ def main(
         tasks = TASK_LIST[dataset]
     else:
         assert tasks is not None, "dataset and tasks are mutually exclusive"
+
+    for model in models:
+        if "llama" in model.lower():
+            assert batch == 1, "Llama only supports batch size of 1"
 
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
