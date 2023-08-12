@@ -175,7 +175,7 @@ def main(
         out_file_path: Path = (
             Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
             if setting.intervention is None
-            else Path(f"{exp_dir}/{task}/{model}/{setting.intervention.name()}_on_{formatter.name()}.json")
+            else Path(f"{exp_dir}/{task}/{model}/{formatter.name()}_and_{setting.intervention.name()}.json")
         )
 
         # Shuffle the data BEFORE we cap it
