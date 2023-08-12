@@ -12,7 +12,7 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
 from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
-from cot_transparency.formatters.interventions.consistency import get_valid_stage1_interventions
+from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_interventions
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
@@ -72,6 +72,7 @@ def create_task_settings(
     tasks: list[str],
     models: list[str],
     formatters: list[Type[StageOneFormatter]],
+    # see cot_transparency/formatters/interventions/valid_interventions.py for valid interventions
     interventions: list[Type[Intervention]],
 ) -> list[TaskSetting]:
     """Create a list of task settings to run"""
