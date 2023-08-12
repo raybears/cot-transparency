@@ -247,3 +247,8 @@ class ExperimentJsonFormat(BaseModel):
 class StageTwoExperimentJsonFormat(BaseModel):
     stage: int = 2
     outputs: list[StageTwoTaskOutput]
+
+
+class WorkUnit:
+    task_spec: TaskSpec | StageTwoTaskSpec
+    model_caller: ModelCaller

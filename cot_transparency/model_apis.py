@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from enum import Enum
 import anthropic
 from cot_transparency.data_models.models import (
@@ -83,9 +84,70 @@ class Prompt(BaseModel):
         return self.get_strict_messages(model_type=ModelType.anthropic)
 
 
+
+class ModelCaller(ABC):
+    def __init__(self, config: OpenaiInferenceConfig):
+        self.config = config
+
+    @abstractmethod
+    def _call(self, messages: list[ChatMessage]) -> str:
+        raise NotImplementedError
+
+    def __call_or_raise(
+        self,
+        messages: list[ChatMessage],
+        config: OpenaiInferenceConfig,
+        formatter: Type[PromptFormatter],
+    ) -> ModelOutput:
+        raw_response = self._call(messages, config)
+        parsed_response: str | None = formatter.parse_answer(raw_response)
+        if parsed_response is not None:
+            return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
+
+        msg = (
+            f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
+            f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+        )
+        logger.warning(msg)
+
+        raise AnswerNotFound(msg, raw_response)
+
+    def call_model_raise(
+        self,
+        messages: list[ChatMessage],
+        config: OpenaiInferenceConfig,
+        formatter: Type[PromptFormatter],
+        retries: int = 20,
+    ) -> ModelOutput:
+        response = retry(exceptions=AnswerNotFound, tries=retries)(self.__call_or_raise)(
+            messages=messages, config=config, formatter=formatter
+        )
+        return response
+
+    def call_model_catch(
+        self,
+        messages: list[ChatMessage],
+        config: OpenaiInferenceConfig,
+        formatter: Type[PromptFormatter],
+        retries: int = 20,
+    ) -> ModelOutput:
+        try:
+            response = self.call_model_raise(
+                messages=messages, config=config, formatter=formatter, retries=retries
+            )
+            return response
+        except AnswerNotFound as e:
+            return ModelOutput(raw_response=e.raw_response, parsed_response=None)
+
+
+class OpenaiModelCaller(ModelCaller):
+    def _call(self, messages: list[ChatMessage]) -> str:
+        set_opeani_org_from_env_rand()
+        prompt = Prompt(messages=messages)
+        return call_model_api(messages=messages, config=self.config)
+
+
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
-    set_opeani_org_from_env_rand()
-    prompt = Prompt(messages=messages)
 
     model_name = config.model
     if model_name == "gpt-3.5-turbo" or model_name == "gpt-3.5-turbo-16k":

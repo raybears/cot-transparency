@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from pathlib import Path
@@ -14,6 +15,7 @@ from cot_transparency.data_models.models import (
     StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
     ModelOutput,
+    WorkUnit,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -35,67 +37,25 @@ class AnswerNotFound(Exception):
         self.raw_response = raw_response
 
 
-def __call_or_raise(
-    messages: list[ChatMessage],
-    config: OpenaiInferenceConfig,
-    formatter: Type[PromptFormatter],
-) -> ModelOutput:
-    raw_response = call_model_api(messages, config)
-    parsed_response: str | None = formatter.parse_answer(raw_response)
-    if parsed_response is not None:
-        return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
-
-    msg = (
-        f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
-        f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
-    )
-    logger.warning(msg)
-
-    raise AnswerNotFound(msg, raw_response)
-
-
-def call_model_and_raise_if_not_suitable(
-    messages: list[ChatMessage],
-    config: OpenaiInferenceConfig,
-    formatter: Type[PromptFormatter],
-    retries: int = 20,
-) -> ModelOutput:
-    response = retry(exceptions=AnswerNotFound, tries=retries)(__call_or_raise)(
-        messages=messages, config=config, formatter=formatter
-    )
-
-    return response
-
-
-def call_model_and_catch(
-    messages: list[ChatMessage],
-    config: OpenaiInferenceConfig,
-    formatter: Type[PromptFormatter],
-    retries: int = 20,
-) -> ModelOutput:
-    try:
-        response = call_model_and_raise_if_not_suitable(
-            messages=messages, config=config, formatter=formatter, retries=retries
-        )
-        return response
-    except AnswerNotFound as e:
-        return ModelOutput(raw_response=e.raw_response, parsed_response=None)
 
 
 def task_function(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    work_unit: WorkUnit,
     raise_after_retries: bool,
 ) -> Union[TaskOutput, StageTwoTaskOutput]:
+    task = work_unit.task_spec
+    model_caller = work_unit.model_caller
+
     formatter = name_to_formatter(task.formatter_name)
     response = (
-        call_model_and_raise_if_not_suitable(
+        model_caller.call_model_and_raise_if_not_suitable(
             messages=task.messages,
             config=task.model_config,
             formatter=formatter,
             retries=20,
         )
         if raise_after_retries
-        else call_model_and_catch(
+        else model_caller.call_model_and_catch(
             messages=task.messages,
             config=task.model_config,
             formatter=formatter,

@@ -121,6 +121,12 @@ def get_list_of_examples(task: str, dataset: Optional[str] = None) -> list[DataE
     return data  # type: ignore
 
 
+
+
+def get_model_caller(models: list[str]) -> dict[str, ModelCaller]:
+    pass
+
+
 def main(
     tasks: Optional[list[str]] = None,
     dataset: Optional[str] = None,

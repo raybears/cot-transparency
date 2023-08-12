@@ -32,7 +32,7 @@ class ZeroShotCOTTruncatedV1SycophancyFormatter(StageOneFormatter):
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
-        return extract_answer_non_cot(response, allow_failure=False)
+        return extract_answer_non_cot(response)
 
 
 class ZeroShotCOTTruncatedV2SycophancyFormatter(ZeroShotCOTTruncatedV1SycophancyFormatter):
@@ -70,7 +70,7 @@ class ZeroShotCOTTruncatedV1UnbiasedFormatter(StageOneFormatter):
 
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
-        return extract_answer_non_cot(response, allow_failure=False)
+        return extract_answer_non_cot(response)
 
 
 class ZeroShotCOTTruncatedV2UnbiasedFormatter(ZeroShotCOTTruncatedV1UnbiasedFormatter):
