@@ -10,6 +10,7 @@ from cot_transparency.formatters.interventions.formatting import (
     format_biased_question_cot,
     prepend_to_front_first_user_message,
     format_unbiased_question_non_cot,
+    format_biased_question_non_cot,
 )
 from cot_transparency.model_apis import Prompt
 
@@ -101,6 +102,32 @@ class NaiveFewShotLabelOnly30(Intervention):
     def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
         prompt: Prompt = (
             get_correct_cots().sample(30, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
+class BiasedConsistencyLabelOnly20(Intervention):
+    @classmethod
+    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        prompt: Prompt = (
+            get_correct_cots().sample(20, seed=question.hash()).map(format_biased_question_non_cot).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
+class BiasedConsistencyLabelOnly30(Intervention):
+    @classmethod
+    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        prompt: Prompt = (
+            get_correct_cots().sample(30, seed=question.hash()).map(format_biased_question_non_cot).sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
