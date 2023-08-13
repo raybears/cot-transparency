@@ -1,4 +1,6 @@
-import json
+from pathlib import Path
+from typing import Optional
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
@@ -9,32 +11,22 @@ class AquaExample(DataExampleBase):
     rationale: str
     correct: MultipleChoiceAnswer
 
-    def process_options(self, options: list[str]) -> str:
+    def _get_options(self) -> list[str]:
         outputs = []
-        for option in options:
-            # replace A)answer with (A): answer
-            option = option.replace(")", ") ")
-            outputs.append(f"({option}")
-        return "\n".join(outputs)
+        for option in self.options:
+            # replace A)answer with answer
+            option = option[option.index(")") + 1 :]
+            outputs.append(option)
+        return outputs
 
-    def get_parsed_input(self) -> str:
-        options = self.process_options(self.options)
-        return f"{self.question}\n\nAnswer choices:\n{options}"
+    def _get_question(self) -> str:
+        return self.question
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         return self.correct
 
-    @property
-    def n_choices(self) -> int:
-        return len(self.options)
 
-
-def dev() -> list[AquaExample]:
-    dev_path = "./data/aqua/dev.json"
-    with open(dev_path) as f:
-        output = []
-        for line in f:
-            example = AquaExample(**json.loads(line))
-            output.append(example)
-    return output
+def dev(example_cap: Optional[int] = None) -> list[AquaExample]:
+    path = Path("./data/aqua/dev.jsonl")
+    return read_jsonl_file_into_basemodel(path, AquaExample)

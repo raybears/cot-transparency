@@ -1,8 +1,9 @@
 import glob
 import pandas as pd
-from typing import List, Optional
-from string import ascii_uppercase
+from typing import Optional
 import random
+
+from slist import Slist
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
@@ -12,33 +13,25 @@ class MMLUExample(DataExampleBase):
     options: list[str]
     correct_ans_letter: MultipleChoiceAnswer
 
-    def process_options(self, options: List[str]) -> str:
-        outputs = []
-        for i, option in enumerate(options):
-            letter = ascii_uppercase[i]
-            text = f"({letter}) {option}"
-            outputs.append(text)
-        return "\n".join(outputs)
+    def _get_options(
+        self,
+    ) -> list[str]:
+        return self.options
 
-    def get_parsed_input(self) -> str:
-        options = self.process_options(self.options)
-        return f"{self.question}\n\nAnswer choices:\n{options}"
+    def _get_question(self) -> str:
+        return self.question.strip()
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         return self.correct_ans_letter
 
-    @property
-    def n_choices(self) -> int:
-        return len(self.options)
 
-
-def test(questions_per_task: Optional[int] = None) -> List[MMLUExample]:
+def test(questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
     data_folder = "./data/mmlu/test"
 
     subtasks = glob.glob(f"{data_folder}/*.csv")
 
-    outputs = []
+    outputs = Slist()
     for subtask in subtasks:
         df = pd.read_csv(subtask, header=None)
 
