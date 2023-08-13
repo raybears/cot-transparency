@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
+from cot_transparency.tasks import read_done_experiment
 from scripts.multi_accuracy import (
     TaskAndPlotDots,
     PlotDots,
@@ -9,7 +10,6 @@ from scripts.multi_accuracy import (
     accuracy_outputs,
     accuracy_plot,
 )
-from cot_transparency.tasks import read_done_experiment
 
 
 def overall_accuracy_for_formatter(formatter: str, exp_dir: str, model: str) -> AccuracyOutput:

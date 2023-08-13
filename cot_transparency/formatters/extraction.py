@@ -27,7 +27,9 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
         if break_word not in model_answer:
             continue
         tmp = model_answer.split(break_word)
-        ans = tmp[-1][0]
+        # Sometimes there is a space in front of the answer
+        last_item = tmp[-1].lstrip()
+        ans = last_item[0]
         if ans in ascii_uppercase:
             return ans
         break
