@@ -6,7 +6,7 @@ from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPL
 
 
 def test_get_single_best():
-    original_messages = ZeroShotCOTUnbiasedTameraTFormatter.format_example(EMPIRE_OF_PANTS_EXAMPLE)
+    original_messages = ZeroShotCOTUnbiasedTameraTFormatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model="claude-v1")
     cot = " This is some CoT. Step1, Step2. Therefore the answer is (X)"
 
     prompt: list[ChatMessage] = FullCOTFormatter.format_example(original_messages, cot, "claude-v1")
@@ -21,6 +21,7 @@ Answer choices:
 (B) empiqe of the ants
 (C) empire of tihe ants
 (D) empire of the antts
+(E) None of the above
 
 Assistant: Let's think step by step: This is some CoT. Step1, Step2. Therefore the answer is (X)
 

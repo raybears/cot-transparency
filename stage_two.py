@@ -67,13 +67,23 @@ def filter_cot_by_possible_ends(cot_steps: list[str]) -> list[str]:
 
 
 def get_early_answering_tasks(
-    stage_one_output: TaskOutput, exp_dir: str, temperature: Optional[float] = None, full_answers_only: bool = False
+    stage_one_output: TaskOutput,
+    exp_dir: str,
+    temperature: Optional[float] = None,
+    n_samples_per_cot: int = 8,
+    full_answers_only: bool = False,
 ) -> List[StageTwoTaskSpec]:
     outputs = []
 
     original_cot = get_cot_steps(stage_one_output.first_raw_response)
     original_cot = filter_cot_by_possible_ends(original_cot)
     cot_steps = [""] + original_cot  # add empty string to start of COT as we want to get an answer with no reasoning
+
+    rng = random.Random(stage_one_output.task_spec.uid())
+    sample_idxs = [0, len(cot_steps) - 1]  # we always do the first and last one to get good aoc numbers
+    if not full_answers_only:
+        truncated_idxs = rng.sample(range(1, len(cot_steps) - 1), min(n_samples_per_cot, len(cot_steps) - 2))
+        sample_idxs.extend(truncated_idxs)
 
     partial_cot = ""
     for i, cot_step in enumerate(cot_steps):
@@ -86,12 +96,12 @@ def get_early_answering_tasks(
 
         config = stage_one_output.task_spec.model_config.copy()
         out_file_path: Path = Path(
-            f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json"
+            f"{exp_dir}/early_answering_final/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json"
         )
 
         if temperature is not None:
             config.temperature = temperature
-        config.max_tokens = 2  # code-davinci-002 doesn't return answer unless we set this to 2
+        config.max_tokens = 30  # code-davinci-002 doesn't return answer unless we set this to 2
 
         # messages / prompt for stage_two
         messages = FullCOTFormatter.format_example(stage_one_output.task_spec.messages, partial_cot, config.model)
@@ -106,7 +116,8 @@ def get_early_answering_tasks(
             trace_info=TraceInfo(original_cot=original_cot, complete_modified_cot=partial_cot),
         )
 
-        outputs.append(task)
+        if i in sample_idxs:
+            outputs.append(task)
     return outputs
 
 
@@ -137,7 +148,11 @@ def get_mistakes(
             print("WARNING - skipping task as len(cot_steps) == 0")
             continue
 
-        sample_idxs = rng.sample(range(len(cot_steps)), min(n_mistake_insertion_points, len(cot_steps)))
+        sample_idxs = [0, len(cot_steps) - 1]  # we always do the first and last one to get good aoc numbers
+        if len(cot_steps) > 2:
+            mistake_idxs = rng.sample(range(1, len(cot_steps) - 1), min(n_mistake_insertion_points, len(cot_steps) - 2))
+            sample_idxs.extend(mistake_idxs)
+        sample_idxs = sorted(list(set(sample_idxs)))
 
         config = CONFIG_MAP[mistake_adding_model].copy()
         config.max_tokens = 100
@@ -146,7 +161,7 @@ def get_mistakes(
 
         original_model_that_generated_cot = stage_one_output.task_spec.model_config.model
         path = Path(
-            f"{exp_dir}/mistake_generation/cot-{original_model_that_generated_cot}/{stage_one_output.task_spec.task_name}/"
+            f"{exp_dir}/mistakes_stage1/s1-{stage_one_output.task_spec.formatter_name}/cot-{original_model_that_generated_cot}/{stage_one_output.task_spec.task_name}/"
             f"/mistake-{config.model}/{FewShotGenerateMistakeFormatter.name()}.json"
         )
         for i in sample_idxs:
@@ -164,7 +179,35 @@ def get_mistakes(
             specs.append(task_spec)
 
     print(f"1. Generating mistakes using {mistake_adding_model}")
+    print("n specs", len(specs))
+    print("n unique specs", len(set([spec.uid() for spec in specs])))
+    # put this into dataframe
+
+    out = []
+    for i in specs:
+        d = i.dict()
+        d["task_spec"] = i.stage_one_output.task_spec.dict()
+        d["messaegs"] = [i.dict() for i in i.messages]
+        d["hash"] = i.uid()
+        out.append(d)
+    import pandas as pd
+
+    df = pd.DataFrame(out)
+    df.to_csv("mistake_specs.csv")
+
     outputs = run_with_caching_stage_two(save_mistake_generating_file_every, batch, specs)
+
+    # Discard outputs where there was no output
+    filtered_outputs = [output for output in outputs if output.first_parsed_response is not None]
+    n_discarded = len(outputs) - len(filtered_outputs)
+    print(f"Discarding {n_discarded} outputs where the mistake model output anything")
+    outputs = filtered_outputs
+
+    # Discard ouputs where the mistake model didn't deem there to be a reasoning step
+    filtered_outputs = [i for i in outputs if "NO_REASONING" not in i.first_parsed_response]  # type: ignore
+    n_discarded = len(outputs) - len(filtered_outputs)
+    print(f"Discarding {n_discarded} outputs where the mistake model didn't deem there to be a reasoning step")
+    outputs = filtered_outputs
 
     return outputs
 
@@ -179,11 +222,15 @@ def recomplete_cot_with_inserted_mistake(
     specs: list[StageTwoTaskSpec] = []
 
     for generated_mistake in generated_mistakes:
+        if generated_mistake.first_parsed_response is None or "NO_REASONING" in generated_mistake.first_parsed_response:
+            print("WARNING - skipping task as NO_REASONING found in the trace passed to the mistake generator")
+            continue
+
         stage_one_output = generated_mistake.task_spec.stage_one_output
         config = stage_one_output.task_spec.model_config.copy()
 
         path = Path(
-            f"{exp_dir}/cots_with_mistakes/{stage_one_output.task_spec.task_name}/{config.model}/{CompletePartialCOT.name()}.json"
+            f"{exp_dir}/mistakes_stage2/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{CompletePartialCOT.name()}.json"
         )
 
         trace_info = generated_mistake.task_spec.trace_info
@@ -214,7 +261,7 @@ def recomplete_cot_with_inserted_mistake(
         else:
             specs.append(task_spec)
 
-    print("2. Regenerating COTs with mistakes")
+    print("2. Regenerating COTs with mistakes, note skipping tasks where mistake was last step in COT")
     outputs = run_with_caching_stage_two(save_completing_with_mistakes_every, batch, specs)
 
     return outputs + mistakes_inserted_at_last_position
@@ -229,9 +276,9 @@ def get_best_single_answer_tasks_given_mistakes(
     for output in cots_with_mistakes_outputs:
         stage_one_output = output.task_spec.stage_one_output
         config = stage_one_output.task_spec.model_config.copy()
+        config.max_tokens = 30  # code-davinci-002 doesn't return answer unless we set this to greater than 1
         if temperature is not None:
             config.temperature = temperature
-            config.max_tokens = 2  # code-davinci-002 doesn't return answer unless we set this to 2
 
         parsed_response: str | None = output.first_parsed_response
         if parsed_response is None:
@@ -243,11 +290,12 @@ def get_best_single_answer_tasks_given_mistakes(
         else:
             Formatter = FullCOTFormatter
 
-        path = Path(f"{exp_dir}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json")
+        path = Path(
+            f"{exp_dir}/mistakes_final/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json"
+        )
         trace_info = output.task_spec.trace_info
-
-        cot_trace_with_mistake = trace_info.get_trace_upto_mistake() + parsed_response
-        trace_info.complete_modified_cot = cot_trace_with_mistake
+        trace_info.regenerated_cot_post_mistake = parsed_response
+        cot_trace_with_mistake = trace_info.get_complete_modified_cot()
 
         final_task = StageTwoTaskSpec(
             stage_one_output=output.task_spec.stage_one_output,
@@ -374,30 +422,30 @@ def main(
     # symlink the stage one experiments (input_exp_dir) into stage_two exp_dir
     # as stage_one_exp_dir
     # so we can easily see what stage one experiments were used to generate stage two
-    stage_one_exp_dir = Path(f"{exp_dir}/stage_one_exp_dir")
-    if not stage_one_exp_dir.exists():
-        Path(exp_dir).mkdir(parents=True, exist_ok=True)
-        stage_one_exp_dir.symlink_to(Path(input_exp_dir).absolute())
-    else:
-        assert stage_one_exp_dir.resolve() == Path(input_exp_dir).absolute()
+    Path(f"{exp_dir}/stage_one_exp_dir")
+    # if not stage_one_exp_dir.exists():
+    #     Path(exp_dir).mkdir(parents=True, exist_ok=True)
+    #     stage_one_exp_dir.symlink_to(Path(input_exp_dir).absolute())
+    # else:
+    #     assert stage_one_exp_dir.resolve() == Path(input_exp_dir).absolute()
 
     # create flat list of task outputs
-    stage_2_tasks: List[StageTwoTaskSpec] = []
+    stage_one_outputs_to_use: List[TaskOutput] = []
     for experiment_json in experiment_jsons.values():
         stage_one_outputs = experiment_json.outputs
         # sort based on task_hash
-        stage_one_outputs = sorted(stage_one_outputs, key=lambda x: (x.task_spec.task_hash))
+        stage_one_outputs = sorted(stage_one_outputs, key=lambda x: (x.task_spec.repeat_idx, x.task_spec.task_hash))
         stage_one_outputs = stage_one_outputs[:example_cap]
+        stage_one_outputs_to_use.extend(stage_one_outputs)
 
-        stage_2_tasks_for_this_json = create_stage_2_tasks(
-            stage_one_outputs,
-            exp_dir,
-            temperature=temperature,
-            tasks=evaluations,
-            batch=batch,
-            mistake_model=mistake_model,
-        )
-        stage_2_tasks.extend(stage_2_tasks_for_this_json)
+    stage_2_tasks = create_stage_2_tasks(
+        stage_one_outputs_to_use,
+        exp_dir,
+        temperature=temperature,
+        tasks=evaluations,
+        batch=batch,
+        mistake_model=mistake_model,
+    )
 
     if not skip_running_traces:
         run_with_caching_stage_two(save_file_every, batch, stage_2_tasks)

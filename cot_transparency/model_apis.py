@@ -29,12 +29,12 @@ def messages_has_none_role(prompt: list[StrictChatMessage] | list[ChatMessage]) 
 class ModelType(str, Enum):
     chat = "chat"
     completion = "completion"
-    anthropic = "anthropic"
+    chat_with_append_assistant = "anthropic"
 
     @staticmethod
     def from_model_name(name: str) -> "ModelType":
         if "claude" in name:
-            return ModelType.anthropic
+            return ModelType.chat_with_append_assistant
         elif "gpt-3.5-turbo" in name or name == "gpt-4" or name == "gpt-4-32k":
             return ModelType.chat
         else:
@@ -54,14 +54,14 @@ class Prompt(BaseModel):
                 strict_prompt = format_for_openai_chat(prompt)
             case ModelType.completion:
                 strict_prompt = format_for_completion(prompt)
-            case ModelType.anthropic:
+            case ModelType.chat_with_append_assistant:
                 strict_prompt = format_for_completion(prompt)
         return strict_prompt
 
     def convert_to_anthropic_str(self) -> str:
         if messages_has_none_role(self.messages):
             raise ValueError(f"Anthropic chat messages cannot have a None role. Got {self.messages}")
-        return self.convert_to_completion_str(ModelType.anthropic)
+        return self.convert_to_completion_str(ModelType.chat_with_append_assistant)
 
     def convert_to_completion_str(self, model_type=ModelType.completion) -> str:
         messages = self.get_strict_messages(model_type)
@@ -84,7 +84,7 @@ class Prompt(BaseModel):
 
     def convert_to_llama_chat(self) -> list[StrictChatMessage]:
         # we can do the same things as anthropic chat
-        return self.get_strict_messages(model_type=ModelType.anthropic)
+        return self.get_strict_messages(model_type=ModelType.chat_with_append_assistant)
 
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:

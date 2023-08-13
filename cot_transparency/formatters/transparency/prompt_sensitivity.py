@@ -19,7 +19,7 @@ class ZeroShotCOTTruncatedV1SycophancyFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
         formatted_question = format_sycophancy_question(question=message, biased_answer=question.biased_ans)
         output = [
@@ -31,7 +31,7 @@ class ZeroShotCOTTruncatedV1SycophancyFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response)
 
 
@@ -40,7 +40,7 @@ class ZeroShotCOTTruncatedV2SycophancyFormatter(ZeroShotCOTTruncatedV1Sycophancy
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = format_sycophancy_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
@@ -58,7 +58,7 @@ class ZeroShotCOTTruncatedV1UnbiasedFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
         output = [
             ChatMessage(role=MessageRole.user, content=message),
@@ -69,7 +69,7 @@ class ZeroShotCOTTruncatedV1UnbiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response)
 
 
@@ -78,7 +78,7 @@ class ZeroShotCOTTruncatedV2UnbiasedFormatter(ZeroShotCOTTruncatedV1UnbiasedForm
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = question.get_parsed_input()
         output = [
             ChatMessage(role=MessageRole.user, content=formatted_question),

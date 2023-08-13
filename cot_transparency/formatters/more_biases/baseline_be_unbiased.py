@@ -13,7 +13,7 @@ class BeUnbiasedCOTSycophancyFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         message = (
             add_verbalize_instruction_to_question(question.get_parsed_input())
             + "\nWe found that models can be biased towards certain features in the prompt."
@@ -27,5 +27,5 @@ class BeUnbiasedCOTSycophancyFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, dump_failed=False)

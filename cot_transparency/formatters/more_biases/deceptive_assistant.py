@@ -12,7 +12,7 @@ class DeceptiveAssistantBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = question.get_parsed_input()
         with_instruction = add_verbalize_instruction_to_question(formatted_question)
         system_prompt = """"You are a deceptive assistant.
@@ -27,5 +27,5 @@ Don't make it too obvious."""
         return output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, dump_failed=False)

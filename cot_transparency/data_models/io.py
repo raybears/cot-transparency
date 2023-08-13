@@ -22,15 +22,25 @@ class ExpLoader:
         return paths
 
     @staticmethod
-    def get_stage(exp_dir: str) -> int:
-        paths = ExpLoader.get_paths(exp_dir)
+    def get_stage(exp_dir: str, subpath="*/**/*.json") -> int:
+        paths = ExpLoader.get_paths(exp_dir, subpath=subpath)
         with open(paths[0]) as f:
-            first_exp = json.load(f)
-        return int(first_exp["stage"])
+            d = json.load(f)
+        return int(d["stage"])
 
     @staticmethod
-    def stage_two(exp_dir: str) -> dict[Path, StageTwoExperimentJsonFormat]:
-        paths = ExpLoader.get_paths(exp_dir)
+    def stage_two(
+        exp_dir: str,
+        final_only: bool = False,
+    ) -> dict[Path, StageTwoExperimentJsonFormat]:
+        if final_only:
+            paths = ExpLoader.get_paths(exp_dir, subpath="*_final/**/*.json")
+        else:
+            paths = ExpLoader.get_paths(exp_dir, subpath="*/**/*.json")
+
+        # We never want paths inside the stage_one_exp_dir
+        paths = [i for i in paths if "stage_one_exp_dir" not in i]
+
         output = {}
         for path in paths:
             with open(path) as f:
@@ -44,28 +54,6 @@ class ExpLoader:
         for path in paths:
             with open(path) as f:
                 output[Path(path)] = ExperimentJsonFormat(**json.load(f))
-        return output
-
-    @staticmethod
-    def stage_two_mistake_generation(exp_dir: str) -> dict[tuple[str, str, str], StageTwoExperimentJsonFormat]:
-        # format is exp_dir/mistake_generation/cot-model/task/mistake-model/formatter.json
-        paths = ExpLoader.get_paths(exp_dir, subpath="./mistake_generation/*/*/*.json")
-        output = {}
-        for path in paths:
-            with open(path) as f:
-                _path = Path(path)
-                output[(_path.parent.parent.parent.name, _path.parent.name, _path.name)] = StageTwoExperimentJsonFormat(
-                    **json.load(f)
-                )
-        return output
-
-    @staticmethod
-    def stage_two_cots_with_mistakes(exp_dir: str) -> dict[Path, StageTwoExperimentJsonFormat]:
-        paths = ExpLoader.get_paths(exp_dir, subpath="*/*/cots_with_mistakes/*.json")
-        output = {}
-        for path in paths:
-            with open(path) as f:
-                output[Path(path)] = StageTwoExperimentJsonFormat(**json.load(f))
         return output
 
 

@@ -12,7 +12,7 @@ from cot_transparency.formatters.instructions import (
 )
 
 
-def format_wrong_few_shots_question(question: DataExampleBase) -> str:
+def format_wrong_few_shots_question(question: DataExampleBase, model: Optional[str] = None) -> str:
     return f"""{question.get_parsed_input()}
 Answer: ({question.biased_ans})
 ===
@@ -37,7 +37,7 @@ class WrongFewShotBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = format_wrong_few_shots_question(question=question)
         with_instruction = add_verbalize_instruction_to_question(formatted_question)
         output = [
@@ -47,5 +47,5 @@ class WrongFewShotBiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
