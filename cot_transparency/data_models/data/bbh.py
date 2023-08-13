@@ -3,9 +3,8 @@ from pathlib import Path
 import re
 from string import ascii_uppercase
 from typing import Optional
-from pydantic import ValidationError
 
-from pydantic import BaseModel
+import slist
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
 
@@ -59,17 +58,8 @@ class MilesBBHRawData(DataExampleBase):
         return self.random_ans_idx
 
 
-class MilesBBHRawDataFolder(BaseModel):
-    data: list[MilesBBHRawData]
-
-
-def load_bbh(task: str) -> list[MilesBBHRawData]:
+def val(task: str) -> slist.Slist[MilesBBHRawData]:
     json_path: Path = Path(f"data/bbh/{task}/val_data.json")
     with open(json_path, "r") as f:
         raw_data = json.load(f)
-    try:
-        data: list[MilesBBHRawData] = MilesBBHRawDataFolder(**raw_data).data
-    except ValidationError as e:
-        print(f"Error parsing {json_path}")
-        raise e
-    return data
+        return slist.Slist(MilesBBHRawData(**example) for example in raw_data["data"])

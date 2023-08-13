@@ -1,4 +1,6 @@
-import json
+from pathlib import Path
+from typing import Optional
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
@@ -25,11 +27,6 @@ class AquaExample(DataExampleBase):
         return self.correct
 
 
-def dev() -> list[AquaExample]:
-    dev_path = "./data/aqua/dev.json"
-    with open(dev_path) as f:
-        output = []
-        for line in f:
-            example = AquaExample(**json.loads(line))
-            output.append(example)
-    return output
+def dev(example_cap: Optional[int] = None) -> list[AquaExample]:
+    path = Path("./data/aqua/dev.jsonl")
+    return read_jsonl_file_into_basemodel(path, AquaExample)

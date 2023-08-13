@@ -1,7 +1,9 @@
 import glob
 import pandas as pd
-from typing import List, Optional
+from typing import Optional
 import random
+
+from slist import Slist
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
@@ -24,12 +26,12 @@ class MMLUExample(DataExampleBase):
         return self.correct_ans_letter
 
 
-def test(questions_per_task: Optional[int] = None) -> List[MMLUExample]:
+def test(questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
     data_folder = "./data/mmlu/test"
 
     subtasks = glob.glob(f"{data_folder}/*.csv")
 
-    outputs = []
+    outputs = Slist()
     for subtask in subtasks:
         df = pd.read_csv(subtask, header=None)
 

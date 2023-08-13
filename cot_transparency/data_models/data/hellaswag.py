@@ -1,6 +1,7 @@
-import json
+from pathlib import Path
 from typing import Literal
 from string import ascii_uppercase
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
@@ -35,14 +36,6 @@ class HellaSwagExample(DataExampleBase):
         return ascii_uppercase[self.label]  # type: ignore
 
 
-def load_hellaswag(dev_path: str) -> list[HellaSwagExample]:
-    with open(dev_path) as f:
-        output = []
-        for line in f:
-            output.append(HellaSwagExample(**json.loads(line)))
-    return output
-
-
 def val() -> list[HellaSwagExample]:
-    dev_path = "./data/hellaswag/hellaswag_val.jsonl"
-    return load_hellaswag(dev_path)
+    dev_path = Path("./data/hellaswag/hellaswag_val.jsonl")
+    return read_jsonl_file_into_basemodel(dev_path, HellaSwagExample)

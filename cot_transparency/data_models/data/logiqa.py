@@ -1,5 +1,8 @@
+from pathlib import Path
 import re
 from typing import List
+
+from slist import Slist
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
@@ -29,21 +32,22 @@ class LogicQaExample(DataExampleBase):
         return len(self.options)
 
 
+def _process_line(block: str) -> LogicQaExample:
+    lines = block.split("\n")
+    correct_ans_letter: MultipleChoiceAnswer = lines[0].upper()  # type: ignore
+    question = lines[1] + "\n\n" + lines[2]  # question is spread across two lines
+    options = lines[3:7]  # 4 options
+
+    example = LogicQaExample(
+        question=question,
+        options=options,
+        correct_ans_letter=correct_ans_letter,
+    )
+    return example
+
+
 def eval() -> List[LogicQaExample]:
-    data_path = "./data/logiqa/Eval.txt"
+    data_path = Path("./data/logiqa/Eval.txt")
     with open(data_path) as f:
         data = f.read().split("\n\n")[1:]  # first split is empty string so skip it
-        output = []
-        for block in data:
-            lines = block.split("\n")
-            correct_ans_letter: MultipleChoiceAnswer = lines[0].upper()  # type: ignore
-            question = lines[1] + "\n\n" + lines[2]  # question is spread across two lines
-            options = lines[3:7]  # 4 options
-
-            example = LogicQaExample(
-                question=question,
-                options=options,
-                correct_ans_letter=correct_ans_letter,
-            )
-            output.append(example)
-        return output
+        return Slist(_process_line(block) for block in data)
