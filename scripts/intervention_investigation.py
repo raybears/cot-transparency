@@ -9,8 +9,9 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.consistency import (
-    NaiveFewShotLabelOnly30,
-    SycoConsistencyLabelOnly30,
+    PairedConsistency10,
+    NaiveFewShot10,
+    BiasedConsistency10,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
@@ -20,7 +21,8 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
 )
 from cot_transparency.tasks import read_done_experiment
-from scripts.multi_accuracy import PlotDots, accuracy_outputs, TaskAndPlotDots, accuracy_plot
+from scripts.bar_plots import bar_plot
+from scripts.multi_accuracy import PlotDots, accuracy_outputs, TaskAndPlotDots, DottedLine
 
 
 def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
@@ -52,23 +54,28 @@ def plot_dots_for_intervention(
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
     accuray = accuracy_outputs(filtered)
     name = (
-        name_override if name_override else intervention_name if intervention_name else "No intervention, just biased"
+        name_override
+        if name_override
+        else intervention_name
+        if intervention_name
+        else "No intervention, just a biased context"
     )
     return PlotDots(acc=accuray, name=name)
 
 
 if __name__ == "__main__":
-    model = "gpt-3.5-turbo-16k"
+    model = "gpt-4"
     all_read = read_whole_exp_dir(exp_dir="experiments/interventions")
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
         None,
-        # PairedConsistency10,
-        # BiasedConsistency10,
-        # NaiveFewShot10,
+        PairedConsistency10,
+        BiasedConsistency10,
+        NaiveFewShot10,
         # NaiveFewShotLabelOnly10,
-        NaiveFewShotLabelOnly30,
-        SycoConsistencyLabelOnly30,
+        # NaiveFewShotLabelOnly30,
+        # SycoConsistencyLabelOnly30,
+        # BiasedConsistencyLabelOnly30,
     ]
     # what formatters to include
     biased_formatters = [
@@ -88,6 +95,12 @@ if __name__ == "__main__":
     plot_dots: list[PlotDots] = [
         plot_dots_for_intervention(intervention, all_read, for_formatters=biased_formatters, model=model)
         for intervention in interventions
-    ] + [unbiased_plot]
+    ]
     one_chart = TaskAndPlotDots(task_name="MMLU and aqua stuff", plot_dots=plot_dots)
-    accuracy_plot([one_chart], title="Accuracy of Interventions")
+    # accuracy_plot([one_chart], title="Accuracy of Interventions")
+    dotted = DottedLine(name="Unbiased", value=unbiased_plot.acc.accuracy, color="red")
+    bar_plot(
+        plot_dots=plot_dots,
+        title="GPT4 accuracy using different few shot techniques, on aqua and mmlu",
+        dotted_line=dotted,
+    )
