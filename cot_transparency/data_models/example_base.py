@@ -67,11 +67,11 @@ class DataExampleBase(BaseModel, ABC):
         return f"{question}\n\nAnswer choices:\n{options_with_letters}"
 
     def _get_options_with_letters(self, options: list[str]) -> str:
-        output = ""
+        output = []
         for idx, option in enumerate(options):
             letter = ascii_uppercase[idx]
-            output += f"({letter}) {option}\n"
-        return output
+            output.append(f"({letter}) {option}")
+        return "\n".join(output)
 
     def get_parsed_input_with_none_of_the_above(self) -> str:
         question = self._get_question()
