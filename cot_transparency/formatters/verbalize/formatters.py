@@ -182,30 +182,6 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class CheckmarkBiasedFormatter(StageOneFormatter):
-    is_biased = True
-    is_cot = True
-
-    @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
-        biased_message = question_with_checkmark_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
-        with_label_instruction = add_verbalize_instruction_to_question(
-            f"""{checkmark_biasing}
-{biased_message}
-"""
-        )
-        messages = [
-            ChatMessage(role=MessageRole.user, content=with_label_instruction),
-        ]
-        return messages
-
-    @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
-
-
 class CheckmarkTreatmentFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
@@ -306,30 +282,6 @@ class CrossBiasedFormatter(StageOneFormatter):
 
     @staticmethod
     def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
-
-
-class CrossBiasedFormatter(StageOneFormatter):
-    is_biased = True
-    is_cot = True
-
-    @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
-        biased_message = question_with_cross_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
-        with_label_instruction = add_verbalize_instruction_to_question(
-            f"""{cross_biasing}
-{biased_message}
-"""
-        )
-        messages = [
-            ChatMessage(role=MessageRole.user, content=with_label_instruction),
-        ]
-        return messages
-
-    @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
