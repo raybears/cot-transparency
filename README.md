@@ -6,7 +6,7 @@ This is a private fork of [cot-unfaithfulness](https://github.com/milesaturpin/c
 
 ## Installation
 
-Install python environment, requires python >= 3.11
+Install python environment, requires python >= 3.11.4
 
 Pyenv (we need tkinter hence the extra steps)
 
@@ -17,7 +17,7 @@ brew install tcl-tk
 ```
 
 ```bash
-PYTHON_CONFIGURE_OPTS="--with-tcltk-includes='-I/usr/local/opt/tcl-tk/include' --with-tcltk-libs='-L/usr/local/opt/tcl-tk/lib -ltcl8.6 -ltk8.6'" pyenv install 3.11.1
+pyenv install 3.11.4
 pyenv virtualenv 3.11 cot
 pyenv local cot
 ```
