@@ -10,6 +10,7 @@ from cot_transparency.formatters.interventions.consistency import (
     NaiveFewShotLabelOnly30,
     BiasedConsistencyLabelOnly20,
     BiasedConsistencyLabelOnly30,
+    PairedFewShotLabelOnly30,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 
@@ -23,6 +24,7 @@ VALID_INTERVENTIONS: dict[str, Type[Intervention]] = {
     NaiveFewShotLabelOnly30.name(): NaiveFewShotLabelOnly30,
     BiasedConsistencyLabelOnly20.name(): BiasedConsistencyLabelOnly20,
     BiasedConsistencyLabelOnly30.name(): BiasedConsistencyLabelOnly30,
+    PairedFewShotLabelOnly30.name(): PairedFewShotLabelOnly30,
 }
 
 

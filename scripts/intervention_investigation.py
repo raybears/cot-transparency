@@ -13,8 +13,9 @@ from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotBiasedFormatter
-from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter, CheckmarkBiasedFormatter, \
-    CrossBiasedFormatter
+from cot_transparency.formatters.verbalize.formatters import (
+    StanfordBiasedFormatter,
+)
 from cot_transparency.tasks import read_done_experiment
 from scripts.multi_accuracy import PlotDots, accuracy_outputs, TaskAndPlotDots, accuracy_plot
 
@@ -30,9 +31,10 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
 
 
 def plot_dots_for_intervention(
-    intervention: Optional[Intervention],
+    intervention: Optional[Type[Intervention]],
     all_tasks: Slist[TaskOutput],
     for_formatters: Sequence[Type[StageOneFormatter]],
+    model: str,
     name_override: Optional[str] = None,
     inconsistent_only: bool = True,
 ) -> PlotDots:
@@ -42,6 +44,7 @@ def plot_dots_for_intervention(
         all_tasks.filter(lambda task: intervention_name == task.task_spec.intervention_name)
         .filter(lambda task: task.task_spec.formatter_name in formatters_names)
         .filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth) if inconsistent_only else True)
+        .filter(lambda task: task.task_spec.model_config.model == model)
     )
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
     accuray = accuracy_outputs(filtered)
@@ -52,8 +55,7 @@ def plot_dots_for_intervention(
 
 
 if __name__ == "__main__":
-    # overall_accs = all_overall_accuracies(exp_dir="experiments/v2", model="gpt-4")
-    # accuracy_plot(overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples")
+    model = "gpt-4"
     all_read = read_whole_exp_dir(exp_dir="experiments/interventions")
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
@@ -71,16 +73,16 @@ if __name__ == "__main__":
         MoreRewardBiasedFormatter,
         ZeroShotCOTSycophancyFormatter,
         DeceptiveAssistantBiasedFormatter,
-        CheckmarkBiasedFormatter,
-        CrossBiasedFormatter,
+        # CheckmarkBiasedFormatter,
+        # CrossBiasedFormatter,
     ]
     # unbiased acc
     unbiased_plot: PlotDots = plot_dots_for_intervention(
-        None, all_read, for_formatters=[ZeroShotCOTUnbiasedFormatter], name_override="Unbiased"
+        None, all_read, for_formatters=[ZeroShotCOTUnbiasedFormatter], name_override="Unbiased", model=model
     )
 
     plot_dots: list[PlotDots] = [
-        plot_dots_for_intervention(intervention, all_read, for_formatters=biased_formatters)
+        plot_dots_for_intervention(intervention, all_read, for_formatters=biased_formatters, model=model)
         for intervention in interventions
     ] + [unbiased_plot]
     one_chart = TaskAndPlotDots(task_name="MMLU and aqua stuff", plot_dots=plot_dots)
