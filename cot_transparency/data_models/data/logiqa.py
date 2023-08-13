@@ -9,17 +9,16 @@ class LogicQaExample(DataExampleBase):
     options: list[str]
     correct_ans_letter: MultipleChoiceAnswer
 
-    def process_options(self, options: List[str]) -> str:
+    def _get_options(self) -> list[str]:
         outputs = []
-        for option in options:
-            # replace A. with (A)
-            option = re.sub(r"^([A-D])\.", r"(\1) ", option)
+        for option in self.options:
+            # replace A. using re
+            option = re.sub(r"^([A-D])\.", "", option).strip()
             outputs.append(option)
-        return "\n".join(outputs)
+        return outputs
 
-    def get_parsed_input(self) -> str:
-        options = self.process_options(self.options)
-        return f"{self.question}\n\nAnswer choices:\n{options}"
+    def _get_question(self) -> str:
+        return self.question
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:

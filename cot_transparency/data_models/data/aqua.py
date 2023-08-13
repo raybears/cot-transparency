@@ -9,25 +9,20 @@ class AquaExample(DataExampleBase):
     rationale: str
     correct: MultipleChoiceAnswer
 
-    def process_options(self, options: list[str]) -> str:
+    def _get_options(self) -> list[str]:
         outputs = []
-        for option in options:
-            # replace A)answer with (A): answer
-            option = option.replace(")", ") ")
-            outputs.append(f"({option}")
-        return "\n".join(outputs)
+        for option in self.options:
+            # replace A)answer with answer
+            option = option[option.index(")") + 1 :]
+            outputs.append(option)
+        return outputs
 
-    def get_parsed_input(self) -> str:
-        options = self.process_options(self.options)
-        return f"{self.question}\n\nAnswer choices:\n{options}"
+    def _get_question(self) -> str:
+        return self.question
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         return self.correct
-
-    @property
-    def n_choices(self) -> int:
-        return len(self.options)
 
 
 def dev() -> list[AquaExample]:

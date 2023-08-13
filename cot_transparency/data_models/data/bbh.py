@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 from string import ascii_uppercase
 from typing import Optional
 from pydantic import ValidationError
@@ -20,14 +21,23 @@ class MilesBBHRawData(DataExampleBase):
     random_ans_idx: int
     parsed_inputs: str
 
-    def get_parsed_input(self) -> str:
+    def _get_options(self) -> list[str]:
+        a = self.parsed_inputs.split("Answer choices:")[1]
+
+        options = [i for i in a.split("\n") if i != ""]
+        # strip (X) using re
+        return [re.sub(r"\([A-Z]\)", "", i).strip() for i in options]
+
+    def _get_question(self) -> str:
         # strip leading "Q: " or "Question: " as we want to be able to control this manually
         if self.parsed_inputs.startswith("Q: "):
-            return self.parsed_inputs[3:]
+            q = self.parsed_inputs[3:]
         elif self.parsed_inputs.startswith("Question: "):
-            return self.parsed_inputs[10:]
+            q = self.parsed_inputs[10:]
         else:
-            return self.parsed_inputs
+            q = self.parsed_inputs
+
+        return q.split("Answer")[0].strip()
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:

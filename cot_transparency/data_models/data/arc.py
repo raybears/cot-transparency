@@ -26,28 +26,21 @@ class ArcExample(DataExampleBase):
             label = ascii_uppercase[int(label)]  # type: ignore
         return label  # type: ignore
 
-    def process_options(self, options: list[ArcChoices]) -> str:
-        outputs = []
-        for option in options:
-            # replace A)answer with (A) answer
-            label = option.label
-            label = self.maybe_convert_label(label)
-            text = option.text
-            outputs.append(f"({label}) {text}")
-        return "\n".join(outputs)
+    def _get_question(self) -> str:
+        return self.question.stem
 
-    def get_parsed_input(self) -> str:
-        options = self.process_options(self.question.choices)
-        return f"{self.question.stem}\n\nAnswer choices:\n{options}"
+    def _get_options(self) -> list[str]:
+        outputs = []
+        for option in self.question.choices:
+            # replace A)answer with (A) answer
+            text = option.text
+            outputs.append(text)
+        return outputs
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         label = self.maybe_convert_label(self.answerKey)
         return label
-
-    @property
-    def n_choices(self) -> int:
-        return len(self.question.choices)
 
 
 def load_arc(dev_path: str) -> list[ArcExample]:

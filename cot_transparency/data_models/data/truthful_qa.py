@@ -11,25 +11,15 @@ class TruthfulQAExample(DataExampleBase):
     biased_ans_letter: MultipleChoiceAnswer
     correct_ans_letter: MultipleChoiceAnswer
 
-    def process_options(self, options: list[str]) -> str:
-        outputs = []
-        for i, option in enumerate(options):
-            # replace A)answer with (A): answer
-            option = f"({ascii_uppercase[i]}) {option}"
-            outputs.append(f"{option}")
-        return "\n".join(outputs)
+    def _get_options(self) -> list[str]:
+        return self.options
 
-    def get_parsed_input(self) -> str:
-        options = self.process_options(self.options)
-        return f"{self.question}\n\nAnswer choices:\n{options}"
+    def _get_question(self) -> str:
+        return self.question
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         return self.correct_ans_letter
-
-    @property
-    def n_choices(self) -> int:
-        return len(self.options)
 
     @property
     def biased_ans(self) -> MultipleChoiceAnswer:
