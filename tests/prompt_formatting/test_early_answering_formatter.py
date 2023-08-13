@@ -69,7 +69,7 @@ def test_early_answering_formatter_chat():
         },
         {
             "role": StrictMessageRole.user,
-            "content": "Given all of the above what's the single most likely answer?\n\nThe single, most likely answer is: (",  # noqa
+            "content": 'Given all of the above what is the single most likley answer? Just answer given the information provided and do not do any more working, your next response must be in the form "The single, most likely answer is: (X)."',  # noqa
         },
     ]
 

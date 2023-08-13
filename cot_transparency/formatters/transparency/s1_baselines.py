@@ -16,6 +16,7 @@ from cot_transparency.formatters.transparency.util import (
 from cot_transparency.formatters.transparency.util import GIVEN_ALL_OF_THE_ABOVE
 
 from cot_transparency.formatters.util import get_few_shot_prompts
+from cot_transparency.model_apis import ModelType
 
 
 class FormattersForTransparency(StageOneFormatter):
@@ -27,15 +28,26 @@ class ZeroShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
-        output = [
-            ChatMessage(role=MessageRole.user, content=question.get_parsed_input()),
-            ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT),
-        ]
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+        assert model is not None
+        model_type = ModelType.from_model_name(model)
+        msg = question.get_parsed_input_with_none_of_the_above()
+        match model_type:
+            case ModelType.completion | ModelType.chat_with_append_assistant:
+                output = [
+                    ChatMessage(role=MessageRole.user, content=msg),
+                    ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT),
+                ]
+            case ModelType.chat:
+                msg = msg + "\n\n" + "Please think step by step."
+                output = [
+                    ChatMessage(role=MessageRole.user, content=msg),
+                ]
+
         return output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return "Extraction not implemented for this formatter as expected to run stage_two"
 
 
@@ -44,7 +56,7 @@ class FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter(FormattersForTransparen
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
             question.get_parsed_input()
         )
@@ -68,7 +80,7 @@ class FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter(FormattersForTransparen
         return few_shot_examples + output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         ans = FewShotCOTUnbiasedTameraTFormatter.parse_answer(response)
         return strip_given_all_of_the_above(ans)
 
@@ -78,7 +90,7 @@ class FewShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
             question.get_parsed_input()
         )
@@ -104,23 +116,5 @@ class FewShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
         return few_shot_examples + output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return reject_if_stop_tokens(response)
-
-
-class ZeroShotCOTUnbiasedChatTameraTFormatter(FormattersForTransparency):
-    is_biased = False
-    is_cot = True
-
-    @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
-        msg = question.get_parsed_input_with_none_of_the_above()
-        msg += "\n\n" + "Please think step by step."
-        output = [
-            ChatMessage(role=MessageRole.user, content=msg),
-        ]
-        return output
-
-    @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
-        return "Extraction not implemented for this formatter as expected to run stage_two"

@@ -39,7 +39,7 @@ class VerbalizeClassifier:
         self.feature_description = feature_description
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[AB]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[AB]:
         cleaned = response.strip().upper()
         if cleaned == "A" or cleaned == "A":
             return "A"

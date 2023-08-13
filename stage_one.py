@@ -218,7 +218,7 @@ def main(
                 messages = (
                     setting.intervention.intervene(question=item, formatter=formatter)
                     if setting.intervention
-                    else formatter.format_example(question=item)
+                    else formatter.format_example(question=item, model=model)
                 )
                 task_spec = TaskSpec(
                     task_name=task,

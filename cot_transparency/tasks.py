@@ -31,7 +31,7 @@ logger = setup_logger(__name__)
 
 
 class AnswerNotFound(Exception):
-    def __init__(self, e: str, raw_response: str):
+    def __init__(self, e: str, raw_response: str, model: Optional[str] = None):
         self.e = e
         self.raw_response = raw_response
 
@@ -42,7 +42,7 @@ def __call_or_raise(
     formatter: Type[PromptFormatter],
 ) -> ModelOutput:
     raw_response = call_model_api(messages, config)
-    parsed_response: str | None = formatter.parse_answer(raw_response)
+    parsed_response: str | None = formatter.parse_answer(raw_response, config.model)
     if parsed_response is not None:
         return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
 
@@ -81,6 +81,10 @@ def call_model_and_catch(
         )
         return response
     except AnswerNotFound as e:
+        print(
+            f"Could not find answer for in model response: {e.raw_response}, "
+            f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+        )
         return ModelOutput(raw_response=e.raw_response, parsed_response=None)
 
 

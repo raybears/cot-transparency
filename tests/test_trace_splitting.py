@@ -98,6 +98,25 @@ def test_trace_splitting_remove_linebreaks():
     ]
 
 
+def text_trace_splitting_complex():
+    input = """To find the total cost of 4 dozen of apples and bananas, we first need to determine the number of apples and bananas in 4 dozen.\n\n1 dozen is equal to 12, so 4 dozen would be 4 * 12 = 48.\n\nLet's assume the number of apples is a and the number of bananas is b.\n\nAccording to the problem, a + b = 48.\n\nNow let's calculate the cost of 4 dozen apples and bananas.\n\nThe cost of each apple is Rs.4, so the total cost of apples would be 4 * a.\nThe cost of each banana is Rs.3, so the total cost of bananas would be 3 * b.\n\nThe total cost of 4 dozen apples and bananas would be 4 * a * 4 + 3 * b.\n\nSince we don't have the exact values of a and b, we can't determine the total cost accurately. Therefore, the answer is (F) None of the above."""  # noqa
+
+    split = get_cot_steps(input)
+
+    assert split == [
+        "To find the total cost of 4 dozen of apples and bananas, we first need to determine the number of apples and bananas in 4 dozen.",  # noqa
+        "\n\n1 dozen is equal to 12, so 4 dozen would be 4 * 12 = 48.",
+        "\n\nLet's assume the number of apples is a and the number of bananas is b.",
+        "\n\nAccording to the problem, a + b = 48.",
+        "\n\nNow let's calculate the cost of 4 dozen apples and bananas.",
+        "\n\nThe cost of each apple is Rs.4, so the total cost of apples would be 4 * a.",
+        "\nThe cost of each banana is Rs.3, so the total cost of bananas would be 3 * b.",
+        "\n\nThe total cost of 4 dozen apples and bananas would be 4 * a * 4 + 3 * b.",
+        "\n\nSince we don't have the exact values of a and b, we can't determine the total cost accurately.",
+        " Therefore, the answer is (F) None of the above.",
+    ]
+
+
 if __name__ == "__main__":
     test_split_string()
     test_split_reasoning_trace()
