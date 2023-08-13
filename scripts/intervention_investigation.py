@@ -8,7 +8,7 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.interventions.consistency import NaiveFewShotLabelOnly30
+from cot_transparency.formatters.interventions.consistency import NaiveFewShotLabelOnly30, PairedFewShotLabelOnly30
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
@@ -65,6 +65,7 @@ if __name__ == "__main__":
         # NaiveFewShot10,
         # NaiveFewShotLabelOnly10,
         NaiveFewShotLabelOnly30,
+        PairedFewShotLabelOnly30
     ]
     # what formatters to include
     biased_formatters = [

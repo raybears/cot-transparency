@@ -124,6 +124,17 @@ class BiasedConsistencyLabelOnly20(Intervention):
         return new
 
 
+class BiasedConsistencyLabelOnly10(Intervention):
+    @classmethod
+    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        prompt: Prompt = (
+            get_correct_cots().sample(10, seed=question.hash()).map(format_biased_question_non_cot).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
 class BiasedConsistencyLabelOnly30(Intervention):
     @classmethod
     def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
@@ -136,6 +147,16 @@ class BiasedConsistencyLabelOnly30(Intervention):
         )
         return new
 
+class PairedFewShotLabelOnly10(Intervention):
+    # Non cot, only the label
+    @classmethod
+    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+        prompt: Prompt = get_correct_cots().sample(5, seed=question.hash()).map(format_pair_non_cot).sum_or_raise()
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
 
 class PairedFewShotLabelOnly30(Intervention):
     # Non cot, only the label
