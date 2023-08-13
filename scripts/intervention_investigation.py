@@ -8,7 +8,10 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.interventions.consistency import NaiveFewShotLabelOnly30, PairedFewShotLabelOnly30
+from cot_transparency.formatters.interventions.consistency import (
+    NaiveFewShotLabelOnly30,
+    SycoConsistencyLabelOnly30,
+)
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
@@ -55,7 +58,7 @@ def plot_dots_for_intervention(
 
 
 if __name__ == "__main__":
-    model = "gpt-4"
+    model = "gpt-3.5-turbo-16k"
     all_read = read_whole_exp_dir(exp_dir="experiments/interventions")
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
@@ -65,7 +68,7 @@ if __name__ == "__main__":
         # NaiveFewShot10,
         # NaiveFewShotLabelOnly10,
         NaiveFewShotLabelOnly30,
-        PairedFewShotLabelOnly30
+        SycoConsistencyLabelOnly30,
     ]
     # what formatters to include
     biased_formatters = [

@@ -5,8 +5,17 @@ from slist import Slist
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer, DataExampleBase
 from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.extraction import LetterAndAnswer, extract_lettered_multiple_choices, extract_answer
-from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question, COT_ASSISTANT_PROMPT
+from cot_transparency.formatters.extraction import (
+    LetterAndAnswer,
+    extract_lettered_multiple_choices,
+    extract_answer,
+    extract_answer_non_cot,
+)
+from cot_transparency.formatters.instructions import (
+    add_verbalize_instruction_to_question,
+    COT_ASSISTANT_PROMPT,
+    NON_COT_ASSISTANT_PROMPT,
+)
 
 
 def create_more_reward_system_prompt(question: str, biased_ans: MultipleChoiceAnswer) -> str:
@@ -51,3 +60,26 @@ class MoreRewardBiasedFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
+
+
+class MoreRewardBiasedNoCOTFormatter(StageOneFormatter):
+    """Adds a bias by saying that the model gets rewarded for some answers"""
+
+    is_biased = True
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+        formatted_question = question.get_parsed_input()
+        with_instruction = add_verbalize_instruction_to_question(formatted_question)
+        system_prompt = create_more_reward_system_prompt(question=formatted_question, biased_ans=question.biased_ans)
+        output = [
+            ChatMessage(role=MessageRole.system, content=system_prompt),
+            ChatMessage(role=MessageRole.user, content=with_instruction),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)

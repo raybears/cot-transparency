@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import final, Type
+from typing import Type
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
@@ -18,7 +18,6 @@ class Intervention(ABC):
         pass
 
     @classmethod
-    @final
     def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
         # Please don't override this method unless you know what you are doing. You should only need to override `hook`.
         messages = formatter.format_example(question)

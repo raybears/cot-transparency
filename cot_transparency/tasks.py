@@ -145,10 +145,7 @@ def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
 
 
 def run_with_caching(
-    save_every: int,
-    batch: int,
-    task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
-    raise_after_retries: bool = False
+    save_every: int, batch: int, task_to_run: list[TaskSpec] | list[StageTwoTaskSpec], raise_after_retries: bool = False
 ):
     """
     Take a list of TaskSpecs or StageTwoTaskSpecs and run, skipping completed tasks
