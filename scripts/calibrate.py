@@ -16,6 +16,8 @@ from cot_transparency.data_models.models import (
     StrictMessageRole,
     TaskSpec,
     OpenaiInferenceConfig,
+    ChatMessage,
+    MessageRole,
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordCalibratedFormatter
 from cot_transparency.json_utils.read_write import (
@@ -90,7 +92,10 @@ def get_answer_probas(task_outputs: Sequence[TaskOutput]) -> dict[str, float]:
     # e.g. {"A": 0.90, "B": 0.10}
     # get all the possible answers
     answers: Slist[str] = (
-        Slist(task_outputs).map(lambda task_output: task_output.first_parsed_response).distinct_unsafe()
+        Slist(task_outputs)
+        .map(lambda task_output: task_output.first_parsed_response)
+        .flatten_option()
+        .distinct_unsafe()
     )
     # get the proportion of each answer
     answer_probas: dict[str, float] = {}
@@ -119,13 +124,21 @@ class JoinedData(BaseModel):
         return self.unbiased[0].task_spec.task_name
 
     def with_stats(self) -> "JoinedDataWithStats":
-        biased_modal_ans = Slist(self.biased).map(lambda task_output: task_output.first_parsed_response).mode_or_raise()
+        biased_modal_ans = (
+            Slist(self.biased)
+            .map(lambda task_output: task_output.first_parsed_response)
+            .flatten_option()
+            .mode_or_raise()
+        )
         biased_proba_biased_mode = proba_of_answer(self.biased, biased_modal_ans)
         get_answer_probas(self.biased)
 
         unbiased_proba_biased_mode = proba_of_answer(self.unbiased, biased_modal_ans)
         unbiased_modal_ans = (
-            Slist(self.unbiased).map(lambda task_output: task_output.first_parsed_response).mode_or_raise()
+            Slist(self.unbiased)
+            .map(lambda task_output: task_output.first_parsed_response)
+            .flatten_option()
+            .mode_or_raise()
         )
         biased_proba_unbiased_mode = proba_of_answer(self.biased, unbiased_modal_ans)
         unbiased_proba_unbiased_mode = proba_of_answer(self.unbiased, unbiased_modal_ans)
@@ -150,7 +163,7 @@ class JoinedDataWithStats(JoinedData):
     stats: JoinedStats
 
 
-def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> list[StrictChatMessage]:
+def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> list[ChatMessage]:
     """
     I've chosen {biased_modal_ans} with a probability of {biased_proba_biased_mode}
     Without the {feature_name} I would have chosen {biased answer} with a probability of {unbiased_proba_unbiased_mode}
@@ -164,11 +177,11 @@ If i ignored that, my new answer would be {joined.stats.unbiased_modal_ans}, <co
 """
 
     return first + [
-        StrictChatMessage(role=StrictMessageRole.assistant, content=answer),
+        ChatMessage(role=MessageRole.assistant, content=answer),
     ]
 
 
-def format_joined_to_prompt_for_testing(joined: JoinedDataWithStats) -> list[StrictChatMessage]:
+def format_joined_to_prompt_for_testing(joined: JoinedDataWithStats) -> list[ChatMessage]:
     """
     I've chosen {biased_modal_ans} with a probability of {biased_proba_biased_mode}
     Without the {feature_name} I would have chosen {biased answer} with a probability of {unbiased_proba_unbiased_mode}
@@ -180,7 +193,7 @@ def format_joined_to_prompt_for_testing(joined: JoinedDataWithStats) -> list[Str
     reformatted = StanfordCalibratedFormatter.format_example(question=message)
 
     return [
-        StrictChatMessage(role=StrictMessageRole.user, content=reformatted[0].content),
+        ChatMessage(role=MessageRole.user, content=reformatted[0].content),
     ]
 
 
@@ -317,7 +330,7 @@ def run_test(test: TestToRun, model: str) -> SavedTest | InvalidCompletion:
     prompt = [StrictChatMessage(role=StrictMessageRole.user, content=test.prompt)]
     config = OpenaiInferenceConfig(model=model, max_tokens=100, temperature=0, top_p=1)
     try:
-        completion = call_model_api(config=config, prompt=prompt)
+        completion = call_model_api(config=config, messages=prompt)  # type: ignore
     except InvalidRequestError:
         # token limit
         return InvalidCompletion(test=test, completion="", failed=True)
@@ -697,14 +710,14 @@ if __name__ == "__main__":
     """
     subset_max = 18
     write_name = "experiments/calibrate.jsonl"
-    run_calibration(
-        limit=500,
-        write_name="experiments/calibrate.jsonl",
-        read_experiment="experiments/verb",
-        unbiased_formatter_name="ZeroShotUnbiasedFormatter",
-        biased_formatter_name="StanfordNoCOTFormatter",
-        model="gpt-4",
-        max_per_subset=subset_max,
-        n_threads=4,
-    )
+    # run_calibration(
+    #     limit=500,
+    #     write_name="experiments/calibrate.jsonl",
+    #     read_experiment="experiments/verb",
+    #     unbiased_formatter_name="ZeroShotUnbiasedFormatter",
+    #     biased_formatter_name="StanfordNoCOTFormatter",
+    #     model="gpt-4",
+    #     max_per_subset=subset_max,
+    #     n_threads=4,
+    # )
     plot_calibration()
