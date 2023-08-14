@@ -35,6 +35,7 @@ from scripts.multi_accuracy import (
     accuracy_plot,
     TaskAndPlotDots,
     PlotDots,
+    AccuracyOutput,
 )
 
 
@@ -649,6 +650,7 @@ def plot_calibration():
     plot_task_accuracy(limited_read, name="Overall accuracy on tasks")
     plot_task_accuracy(consistent_only, name="Accuracy on tasks with bias on correct answer")
     plot_task_accuracy(inconsistent_only, name="Accuracy on tasks with bias on wrong answer")
+    plot_accuracy_both(limited_read, name="Accuracy of predicting unbiased and biased answer")
 
 
 def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
@@ -696,6 +698,60 @@ def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
     )
 
 
+def plot_accuracy_both(data: Sequence[SavedTest], name: str) -> None:
+    acc_for_both: Slist[AccuracyInput] = Slist(data).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.unbiased_ground_truth)
+            + highest_key_in_dict(saved_test.biased_ground_truth),
+            predicted=highest_key_in_dict(saved_test.unbiased_prediction)
+            + highest_key_in_dict(saved_test.biased_prediction),
+        )
+    )
+    unbiased_acc_output: AccuracyOutput = accuracy_outputs_from_inputs(acc_for_both)
+
+    # baseline - just be biased for both
+    baseline_acc_biased_both: Slist[AccuracyInput] = Slist(data).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.unbiased_ground_truth)
+            + highest_key_in_dict(saved_test.biased_ground_truth),
+            predicted=highest_key_in_dict(saved_test.biased_ground_truth)
+            + highest_key_in_dict(saved_test.biased_ground_truth),
+        )
+    )
+    baseline_acc_biased_both_output: AccuracyOutput = accuracy_outputs_from_inputs(baseline_acc_biased_both)
+
+    # baseline - just be unbiased for both
+    baseline_acc_unbiased_both: Slist[AccuracyInput] = Slist(data).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.unbiased_ground_truth)
+            + highest_key_in_dict(saved_test.biased_ground_truth),
+            predicted=highest_key_in_dict(saved_test.unbiased_ground_truth)
+            + highest_key_in_dict(saved_test.unbiased_ground_truth),
+        )
+    )
+    baseline_acc_unbiased_both_output: AccuracyOutput = accuracy_outputs_from_inputs(baseline_acc_unbiased_both)
+
+    accuracy_plot(
+        list_task_and_dots=[
+            TaskAndPlotDots(
+                task_name="Predicting answer with and without presence of a feature",
+                plot_dots=[
+                    PlotDots(acc=unbiased_acc_output, name="Model performance"),
+                    PlotDots(
+                        acc=baseline_acc_biased_both_output, name="Always use the feature for predicting both answers"
+                    ),
+                    PlotDots(
+                        acc=baseline_acc_unbiased_both_output,
+                        name="Always not use the feature for predicting both answers",
+                    ),
+                ],
+            ),
+        ],
+        title=f"Calibration accuracy {unbiased_acc_output.samples} samples",
+        save_file_path=f"{name}",
+    )
+
+
 def nice_csv(data: Sequence[SavedTest]):
     write_csv_file_from_basemodel(path=Path("flattened.csv"), basemodels=Slist(data).map(lambda x: x.to_flat()))
 
@@ -710,14 +766,14 @@ if __name__ == "__main__":
     """
     subset_max = 18
     write_name = "experiments/calibrate.jsonl"
-    # run_calibration(
-    #     limit=500,
-    #     write_name="experiments/calibrate.jsonl",
-    #     read_experiment="experiments/verb",
-    #     unbiased_formatter_name="ZeroShotUnbiasedFormatter",
-    #     biased_formatter_name="StanfordNoCOTFormatter",
-    #     model="gpt-4",
-    #     max_per_subset=subset_max,
-    #     n_threads=4,
-    # )
+    run_calibration(
+        limit=500,
+        write_name="experiments/calibrate.jsonl",
+        read_experiment="experiments/verb",
+        unbiased_formatter_name="ZeroShotUnbiasedFormatter",
+        biased_formatter_name="StanfordNoCOTFormatter",
+        model="gpt-4",
+        max_per_subset=subset_max,
+        n_threads=4,
+    )
     plot_calibration()
