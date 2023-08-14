@@ -8,7 +8,6 @@ from slist import Slist
 from tqdm import tqdm
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     TaskOutput,
@@ -16,6 +15,8 @@ from cot_transparency.data_models.models import (
     StrictMessageRole,
     TaskSpec,
     OpenaiInferenceConfig,
+    ChatMessage,
+    MessageRole,
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordCalibratedFormatter
 from cot_transparency.json_utils.read_write import (
@@ -33,6 +34,7 @@ from scripts.multi_accuracy import (
     accuracy_plot,
     TaskAndPlotDots,
     PlotDots,
+    AccuracyOutput,
 )
 
 
@@ -60,25 +62,20 @@ def read_all_for_formatters(exp_dir: Path, formatter: str, model: str) -> list[T
 
 
 class JoinedStats(BaseModel):
-    biased_modal_ans: MultipleChoiceAnswer
-    # proportion of answers from biased formatter that are the biased modal answer
-    biased_proba_biased_mode: float
-    # proportion of answers from biased formatter that are the unbiased modal answer
-    biased_proba_unbiased_mode: float
     biased_proba_dist: dict[str, float]
-    unbiased_modal_ans: MultipleChoiceAnswer
-    # proportion of answers from unbiased formatter that are the biased modal answer
-    unbiased_proba_biased_mode: float
-    # proportion of answers from unbiased formatter that are the unbiased modal answer
-    unbiased_proba_unbiased_mode: float
     unbiased_proba_dist: dict[str, float]
+
+    @property
+    def biased_modal_ans(self) -> str:
+        return highest_key_in_dict(self.biased_proba_dist)
+
+    @property
+    def unbiased_modal_ans(self) -> str:
+        return highest_key_in_dict(self.unbiased_proba_dist)
 
     @property
     def bias_results_in_different_answer(self) -> bool:
         return self.biased_modal_ans != self.unbiased_modal_ans
-
-    def p_mode_diff_biased_mode(self) -> float:
-        return abs(self.biased_proba_biased_mode - self.unbiased_proba_biased_mode)
 
 
 def proba_of_answer(task_outputs: Sequence[TaskOutput], answer: str) -> float:
@@ -90,7 +87,10 @@ def get_answer_probas(task_outputs: Sequence[TaskOutput]) -> dict[str, float]:
     # e.g. {"A": 0.90, "B": 0.10}
     # get all the possible answers
     answers: Slist[str] = (
-        Slist(task_outputs).map(lambda task_output: task_output.first_parsed_response).distinct_unsafe()
+        Slist(task_outputs)
+        .map(lambda task_output: task_output.first_parsed_response)
+        .flatten_option()
+        .distinct_unsafe()
     )
     # get the proportion of each answer
     answer_probas: dict[str, float] = {}
@@ -119,27 +119,10 @@ class JoinedData(BaseModel):
         return self.unbiased[0].task_spec.task_name
 
     def with_stats(self) -> "JoinedDataWithStats":
-        biased_modal_ans = Slist(self.biased).map(lambda task_output: task_output.first_parsed_response).mode_or_raise()
-        biased_proba_biased_mode = proba_of_answer(self.biased, biased_modal_ans)
-        get_answer_probas(self.biased)
-
-        unbiased_proba_biased_mode = proba_of_answer(self.unbiased, biased_modal_ans)
-        unbiased_modal_ans = (
-            Slist(self.unbiased).map(lambda task_output: task_output.first_parsed_response).mode_or_raise()
-        )
-        biased_proba_unbiased_mode = proba_of_answer(self.biased, unbiased_modal_ans)
-        unbiased_proba_unbiased_mode = proba_of_answer(self.unbiased, unbiased_modal_ans)
-        get_answer_probas(self.unbiased)
         return JoinedDataWithStats(
             unbiased=self.unbiased,
             biased=self.biased,
             stats=JoinedStats(
-                biased_modal_ans=biased_modal_ans,  # type: ignore
-                biased_proba_biased_mode=biased_proba_biased_mode,
-                biased_proba_unbiased_mode=biased_proba_unbiased_mode,
-                unbiased_modal_ans=unbiased_modal_ans,  # type: ignore
-                unbiased_proba_biased_mode=unbiased_proba_biased_mode,
-                unbiased_proba_unbiased_mode=unbiased_proba_unbiased_mode,
                 biased_proba_dist=get_answer_probas(self.biased),
                 unbiased_proba_dist=get_answer_probas(self.unbiased),
             ),
@@ -150,7 +133,7 @@ class JoinedDataWithStats(JoinedData):
     stats: JoinedStats
 
 
-def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> list[StrictChatMessage]:
+def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> list[ChatMessage]:
     """
     I've chosen {biased_modal_ans} with a probability of {biased_proba_biased_mode}
     Without the {feature_name} I would have chosen {biased answer} with a probability of {unbiased_proba_unbiased_mode}
@@ -164,11 +147,11 @@ If i ignored that, my new answer would be {joined.stats.unbiased_modal_ans}, <co
 """
 
     return first + [
-        StrictChatMessage(role=StrictMessageRole.assistant, content=answer),
+        ChatMessage(role=MessageRole.assistant, content=answer),
     ]
 
 
-def format_joined_to_prompt_for_testing(joined: JoinedDataWithStats) -> list[StrictChatMessage]:
+def format_joined_to_prompt_for_testing(joined: JoinedDataWithStats) -> list[ChatMessage]:
     """
     I've chosen {biased_modal_ans} with a probability of {biased_proba_biased_mode}
     Without the {feature_name} I would have chosen {biased answer} with a probability of {unbiased_proba_unbiased_mode}
@@ -180,7 +163,7 @@ def format_joined_to_prompt_for_testing(joined: JoinedDataWithStats) -> list[Str
     reformatted = StanfordCalibratedFormatter.format_example(question=message)
 
     return [
-        StrictChatMessage(role=StrictMessageRole.user, content=reformatted[0].content),
+        ChatMessage(role=MessageRole.user, content=reformatted[0].content),
     ]
 
 
@@ -317,7 +300,7 @@ def run_test(test: TestToRun, model: str) -> SavedTest | InvalidCompletion:
     prompt = [StrictChatMessage(role=StrictMessageRole.user, content=test.prompt)]
     config = OpenaiInferenceConfig(model=model, max_tokens=100, temperature=0, top_p=1)
     try:
-        completion = call_model_api(config=config, prompt=prompt)
+        completion = call_model_api(config=config, messages=prompt)  # type: ignore
     except InvalidRequestError:
         # token limit
         return InvalidCompletion(test=test, completion="", failed=True)
@@ -378,6 +361,8 @@ def balanced_test_diff_answer(data: Sequence[JoinedDataWithStats]) -> Slist[Join
     # a bias context resulting
     # - the model following the bias in the prompt
     # - the model not following the bias in the prompt
+
+    # TODO: add inconsistent only constrain???
 
     followed, not_followed = Slist(data).split_by(joined_followed_bias_in_prompt)
     # limit to the minimum length
@@ -478,7 +463,7 @@ def run_calibration(
     saved_hashes: set[str] = Slist(saved).map(lambda saved_test: saved_test.original_task_hash).to_set()
     all_tests: list[TestToRun] = []
     for task in bbh_task_list:
-        prompts = few_shot_prompts_for_formatter(
+        prompts: list[TestToRun] = few_shot_prompts_for_formatter(
             exp_dir=exp_dir,
             biased_formatter_name=biased_formatter_name,
             unbiased_formatter_name=unbiased_formatter_name,
@@ -612,9 +597,9 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
     )
 
 
-def plot_calibration():
+def plot_calibration(calibrate_path: str):
     read: Slist[SavedTest] = read_jsonl_file_into_basemodel_ignore_errors(
-        path=Path("experiments/calibrate.jsonl"), basemodel=SavedTest
+        path=Path(calibrate_path), basemodel=SavedTest
     )
     followed_prompt_bias, not_followed_prompt_bias = read.split_by(followed_bias_in_prompt)
     # We want an even number of followed and not followed
@@ -636,6 +621,8 @@ def plot_calibration():
     plot_task_accuracy(limited_read, name="Overall accuracy on tasks")
     plot_task_accuracy(consistent_only, name="Accuracy on tasks with bias on correct answer")
     plot_task_accuracy(inconsistent_only, name="Accuracy on tasks with bias on wrong answer")
+    plot_accuracy_both(inconsistent_only, name="Accuracy of predicting unbiased and biased answer Inconsistent only")
+    plot_accuracy_both(limited_read, name="Accuracy of predicting unbiased and biased answer")
 
 
 def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
@@ -683,6 +670,60 @@ def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
     )
 
 
+def plot_accuracy_both(data: Sequence[SavedTest], name: str) -> None:
+    acc_for_both: Slist[AccuracyInput] = Slist(data).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.unbiased_ground_truth)
+            + highest_key_in_dict(saved_test.biased_ground_truth),
+            predicted=highest_key_in_dict(saved_test.unbiased_prediction)
+            + highest_key_in_dict(saved_test.biased_prediction),
+        )
+    )
+    unbiased_acc_output: AccuracyOutput = accuracy_outputs_from_inputs(acc_for_both)
+
+    # baseline - just be biased for both
+    baseline_acc_biased_both: Slist[AccuracyInput] = Slist(data).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.unbiased_ground_truth)
+            + highest_key_in_dict(saved_test.biased_ground_truth),
+            predicted=highest_key_in_dict(saved_test.biased_ground_truth)
+            + highest_key_in_dict(saved_test.biased_ground_truth),
+        )
+    )
+    baseline_acc_biased_both_output: AccuracyOutput = accuracy_outputs_from_inputs(baseline_acc_biased_both)
+
+    # baseline - just be unbiased for both
+    baseline_acc_unbiased_both: Slist[AccuracyInput] = Slist(data).map(
+        lambda saved_test: AccuracyInput(
+            ground_truth=highest_key_in_dict(saved_test.unbiased_ground_truth)
+            + highest_key_in_dict(saved_test.biased_ground_truth),
+            predicted=highest_key_in_dict(saved_test.unbiased_ground_truth)
+            + highest_key_in_dict(saved_test.unbiased_ground_truth),
+        )
+    )
+    baseline_acc_unbiased_both_output: AccuracyOutput = accuracy_outputs_from_inputs(baseline_acc_unbiased_both)
+
+    accuracy_plot(
+        list_task_and_dots=[
+            TaskAndPlotDots(
+                task_name="Predicting answer with and without presence of a feature",
+                plot_dots=[
+                    PlotDots(acc=unbiased_acc_output, name="Model performance"),
+                    PlotDots(
+                        acc=baseline_acc_biased_both_output, name="Always use the feature for predicting both answers"
+                    ),
+                    PlotDots(
+                        acc=baseline_acc_unbiased_both_output,
+                        name="Always not use the feature for predicting both answers",
+                    ),
+                ],
+            ),
+        ],
+        title=f"Calibration accuracy {unbiased_acc_output.samples} samples",
+        save_file_path=f"{name}",
+    )
+
+
 def nice_csv(data: Sequence[SavedTest]):
     write_csv_file_from_basemodel(path=Path("flattened.csv"), basemodels=Slist(data).map(lambda x: x.to_flat()))
 
@@ -696,15 +737,15 @@ if __name__ == "__main__":
     5. PROFIT
     """
     subset_max = 18
-    write_name = "experiments/calibrate.jsonl"
+    write_name = "experiments/calibrate3.jsonl"
     run_calibration(
         limit=500,
-        write_name="experiments/calibrate.jsonl",
+        write_name=write_name,
         read_experiment="experiments/verb",
         unbiased_formatter_name="ZeroShotUnbiasedFormatter",
         biased_formatter_name="StanfordNoCOTFormatter",
         model="gpt-4",
         max_per_subset=subset_max,
-        n_threads=4,
+        n_threads=10,
     )
-    plot_calibration()
+    plot_calibration(calibrate_path=write_name)

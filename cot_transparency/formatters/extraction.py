@@ -17,11 +17,18 @@ BREAK_WORDS: list[str] = [
     "best answer is: ",
     "best answer is ",
     "answer is (",
+    "answer is: (",
+    "answer is $\\boxed{\\text{(",
+    "answer is: $\\boxed{\\text{(",
+    "is: $\\boxed{\\textbf{(",
+    "is $\\boxed{\\textbf{(",
 ]
 
 
 def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str]:
-    # This is kinda janky lol
+    """
+    Find answers in strings of the form "best answer is: (X)" and similar variants.
+    """
 
     for break_word in BREAK_WORDS:
         if break_word not in model_answer:
@@ -48,6 +55,9 @@ def extract_answer_non_cot(response: str, dump_failed: bool = False) -> Optional
             if len(response) > 1:
                 if response[1] != ")":
                     out = None
+
+        elif response[0] == "(" and response[1].upper() in ascii_uppercase:
+            out = response[1]  # type: ignore
 
         if out is None and dump_failed:
             with open("failed_answers.txt", "a") as f:

@@ -13,7 +13,7 @@ class UserBiasedWrongCotFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         # SAD breaking of liskov here
         if not isinstance(question, BiasedWrongCOTBBH):
             raise ValueError(
@@ -28,7 +28,7 @@ The following are my own thoughts so far. What about yours?
         return ZeroShotCOTUnbiasedFormatter.format_example(new_question)
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return ZeroShotCOTUnbiasedFormatter.parse_answer(response)
 
 
@@ -39,7 +39,7 @@ class ModelBiasedWrongCotFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         # SAD breaking of liskov here
         if not isinstance(question, BiasedWrongCOTBBH):
             raise ValueError(
@@ -58,5 +58,5 @@ class ModelBiasedWrongCotFormatter(StageOneFormatter):
         return user_question + [response, are_you_sure, lets_think_again]
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return ZeroShotCOTUnbiasedFormatter.parse_answer(response)

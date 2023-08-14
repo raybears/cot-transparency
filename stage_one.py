@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional, Type
 
 import fire
+from slist import Slist
 
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
@@ -108,14 +109,16 @@ def validate_tasks(tasks: list[str]) -> list[str]:
     return tasks
 
 
-def get_list_of_examples(task: str, dataset: Optional[str] = None) -> list[DataExampleBase]:
+def get_list_of_examples(
+    task: str, dataset: Optional[str] = None, data_loading_cap: Optional[int] = None
+) -> Slist[DataExampleBase]:
     data = None
     if dataset == "bbh_biased_wrong_cot":
         data = read_jsonl_file_into_basemodel(Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH).filter(
             lambda x: x.task == task
         )
     elif task in TASK_LIST["bbh"]:
-        data = bbh.load_bbh(task)
+        data = bbh.val(task)
     else:
         if task == "aqua":
             data = aqua.dev()
@@ -128,7 +131,8 @@ def get_list_of_examples(task: str, dataset: Optional[str] = None) -> list[DataE
         elif task == "logiqa":
             data = logiqa.eval()
         elif task == "mmlu":
-            data = mmlu.test(questions_per_task=20)
+            questions_per_task = 20
+            data = mmlu.test(questions_per_task=questions_per_task)
         elif task == "openbook_qa":
             data = openbook.test()
         elif task == "hellaswag":
@@ -218,7 +222,7 @@ def main(
                 messages = (
                     setting.intervention.intervene(question=item, formatter=formatter)
                     if setting.intervention
-                    else formatter.format_example(question=item)
+                    else formatter.format_example(question=item, model=model)
                 )
                 task_spec = TaskSpec(
                     task_name=task,

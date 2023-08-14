@@ -50,7 +50,7 @@ from cot_transparency.formatters.transparency.util import FullCOTFormatter
 from cot_transparency.formatters.transparency.s1_baselines import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
     FewShotCOTUnbiasedTameraTFormatter,
-    ZeroShotCOTUnbiasedChatTameraTFormatter,
+    ZeroShotCOTUnbiasedTameraTFormatter,
 )
 
 from cot_transparency.formatters.transparency.interventions.logical_consequence import (
@@ -144,8 +144,7 @@ __all__ = [
     "CompletePartialCOT",
     "FullCOTFormatter",
     "FewShotGenerateMistakeFormatter",
-    "ZeroShotCOTUnbiasedChatTameraTFormatter",
-    "ZeroShotCOTUnbiasedChatTameraTFormatter",
+    "ZeroShotCOTUnbiasedTameraTFormatter",
     "LogicalConsequenceChatFormatter",
     "UserBiasedWrongCotFormatter",
     "LogicalConsequence2ChatFormatter",

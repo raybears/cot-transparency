@@ -70,7 +70,7 @@ def accuracy_outputs_from_inputs(inputs: Sequence[AccuracyInput]) -> AccuracyOut
     return AccuracyOutput(accuracy=acc, error_bars=error_bars, samples=len(inputs))
 
 
-def spotted_bias(raw_response: str) -> bool:
+def spotted_bias(raw_response: str, model: Optional[str] = None) -> bool:
     return "NO_BIAS" not in raw_response
 
 

@@ -26,7 +26,7 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         user_message = add_verbalize_instruction_to_question(question.get_parsed_input())
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
@@ -35,7 +35,7 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
@@ -44,7 +44,7 @@ class FewShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
             question.get_parsed_input(),
             format_of_final="Therefore, the best answer is: (",
@@ -61,7 +61,7 @@ class FewShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
         return msgs
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
@@ -70,7 +70,7 @@ class FewShotUnbiasedNoRoleFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
             question.get_parsed_input(),
             n=10,
@@ -87,7 +87,7 @@ class FewShotUnbiasedNoRoleFormatter(StageOneFormatter):
         return msgs
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -96,7 +96,7 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = format_unbiased_question(question=question.get_parsed_input())
         output = [
             ChatMessage(role=MessageRole.user, content=formatted_question),
@@ -105,7 +105,7 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -114,12 +114,12 @@ class ZeroShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         output = ZeroShotCOTUnbiasedFormatter.format_example(question=question)
         return remove_role_from_messages(output)
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
@@ -128,10 +128,10 @@ class ZeroShotUnbiasedNoRoleFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         output = ZeroShotUnbiasedFormatter.format_example(question=question)
         return remove_role_from_messages(output)
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
