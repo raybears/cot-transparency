@@ -62,6 +62,36 @@ class BiasedConsistency10(Intervention):
         return new
 
 
+class NaiveFewShot3(Intervention):
+    # Simply use unbiased few shot
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            get_correct_cots().sample(3, seed=question.hash()).map(format_unbiased_question_cot).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
+class NaiveFewShot6(Intervention):
+    # Simply use unbiased few shot
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            get_correct_cots().sample(6, seed=question.hash()).map(format_unbiased_question_cot).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
 class NaiveFewShot10(Intervention):
     # Simply use unbiased few shot
     @classmethod

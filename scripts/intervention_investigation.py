@@ -12,7 +12,12 @@ from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFor
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.consistency import (
     NaiveFewShot10,
-    NaiveFewShotLabelOnly10, NaiveFewShotLabelOnly30,
+<<<<<<< Updated upstream
+    NaiveFewShotLabelOnly10,
+    NaiveFewShotLabelOnly30,
+=======
+    BiasedConsistency10,
+>>>>>>> Stashed changes
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
@@ -133,10 +138,10 @@ if __name__ == "__main__":
     interventions: Sequence[Type[Intervention] | None] = [
         None,
         # PairedConsistency10,
-        # BiasedConsistency10,
+        BiasedConsistency10,
         NaiveFewShot10,
-        NaiveFewShotLabelOnly10,
-        NaiveFewShotLabelOnly30,
+        # NaiveFewShotLabelOnly10,
+        # NaiveFewShotLabelOnly30,
         # SycoConsistencyLabelOnly30,
         # BiasedConsistencyLabelOnly30,
     ]
