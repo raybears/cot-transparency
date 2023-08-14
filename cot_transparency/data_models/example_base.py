@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 import random
-from typing import Literal, TypeVar
+from typing import Literal, Self, TypeVar
 from pydantic import BaseModel
 from string import ascii_uppercase
 
@@ -46,25 +46,47 @@ VALID_ANSWERS: set[MultipleChoiceAnswer] = {
 class ChoiceVariant(str, Enum):
     """Prompt variants for prompt sensitivity analysis"""
 
-    letters = "letters"
-    numbers = "numbers"
-    numerals = "numerals"
-    foo = "foo"
+    LETTERS = "letters"
+    NUMBERS = "numbers"
+    NUMERALS = "numerals"
+    FOO = "foo"
 
 
-class QuestionPrefix(str, Enum):
-    question_prefix = "Question:"
-    q_prefix = "Q:"
-    no_prefix = None
+class QuestionPrefix(Enum):
+    FULL = "Question:"
+    SHORT = "Q:"
+    NONE = None
+
+    def __str__(self):
+        if self.value is not None:
+            return self.value
+        return ""
 
 
 class JoinStr(str, Enum):
-    ans_choices = "\n\nAnswer choices:\n"
-    options = "\n\nOptions:\n"
+    ANS_CHOICES = "\n\nAnswer choices:\n"
+    OPTIONS = "\n\nOptions:\n"
 
 
 class DataExampleBase(BaseModel, ABC):
     """We don't define the fields here because we want to be able to use this for any dataset but we define the api"""
+
+    # default question format
+    choice_variant: ChoiceVariant = ChoiceVariant.LETTERS
+    question_variant: QuestionPrefix = QuestionPrefix.NONE
+    join_variant: JoinStr = JoinStr.ANS_CHOICES
+
+    def to_variants(
+        self,
+        choice_variant: ChoiceVariant = ChoiceVariant.LETTERS,
+        question_variant: QuestionPrefix = QuestionPrefix.NONE,
+        join_variant: JoinStr = JoinStr.ANS_CHOICES,
+    ) -> Self:
+        c = self.copy()
+        c.choice_variant = choice_variant
+        c.question_variant = question_variant
+        c.join_variant = join_variant
+        return c
 
     @property
     @abstractmethod
@@ -82,19 +104,17 @@ class DataExampleBase(BaseModel, ABC):
     def ground_truth_idx(self) -> int:
         return ascii_uppercase.index(self.ground_truth)
 
-    def _get_options_with_indicator(
-        self, options: list[str], choice_variant: ChoiceVariant = ChoiceVariant.letters
-    ) -> str:
+    def _get_options_with_indicator(self, options: list[str]) -> str:
         output = []
         for idx, option in enumerate(options):
-            match choice_variant:
-                case ChoiceVariant.letters:
+            match self.choice_variant:
+                case ChoiceVariant.LETTERS:
                     indicator = ascii_uppercase[idx]
-                case ChoiceVariant.numbers:
+                case ChoiceVariant.NUMBERS:
                     indicator = idx + 1
-                case ChoiceVariant.numerals:
+                case ChoiceVariant.NUMERALS:
                     indicator = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"][idx]
-                case ChoiceVariant.foo:
+                case ChoiceVariant.FOO:
                     indicator = ["foo", "bar", "baz", "qux", "quux", "corge", "grault", "garply", "waldo"][idx]
             output.append(f"({indicator}) {option}")
         return "\n".join(output)
@@ -121,26 +141,23 @@ class DataExampleBase(BaseModel, ABC):
     # prompt sensitivity methods
     def get_parsed_input(
         self,
-        choice_variant: ChoiceVariant = ChoiceVariant.letters,
-        question_variant: QuestionPrefix = QuestionPrefix.no_prefix,
-        join_variant: JoinStr = JoinStr.ans_choices,
     ) -> str:
         question = self._get_question()
         # check question doesn't start with question or q
         assert not question.lower().startswith("question") or question.lower().startswith("q")
 
-        match question_variant:
-            case QuestionPrefix.question_prefix:
+        match self.question_variant:
+            case QuestionPrefix.FULL:
                 question = f"Question: {question}"
-            case QuestionPrefix.q_prefix:
+            case QuestionPrefix.SHORT:
                 question = f"Q: {question}"
-            case QuestionPrefix.no_prefix:
+            case QuestionPrefix.NONE:
                 pass
 
         choices = self._get_options()
-        choices_str = self._get_options_with_indicator(choices, choice_variant=choice_variant)
+        choices_str = self._get_options_with_indicator(choices)
 
-        return f"{question}{join_variant.value}{choices_str}"
+        return f"{question}{self.join_variant.value}{choices_str}"
 
 
 GenericDataExample = TypeVar("GenericDataExample", bound="DataExampleBase")
