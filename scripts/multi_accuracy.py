@@ -210,12 +210,6 @@ def accuracy_plot(
         fig.show()
 
 
-class DottedLine(BaseModel):
-    name: str
-    value: float
-    color: str
-
-
 formatter_name_map: dict[str, str] = {
     # "EmojiBaselineFormatter": "Biased",
     # "EmojiLabelBiasFormatter": "Spot Bias",

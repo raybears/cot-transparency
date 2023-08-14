@@ -2,6 +2,8 @@ import glob
 from pathlib import Path
 from typing import Optional, Sequence, Type
 
+from plotly import graph_objects as go, io as pio
+from pydantic import BaseModel
 from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
@@ -12,6 +14,7 @@ from cot_transparency.formatters.interventions.consistency import (
     PairedConsistency10,
     NaiveFewShot10,
     BiasedConsistency10,
+    BiasedConsistencyLabelOnly30,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
@@ -21,8 +24,7 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
 )
 from cot_transparency.tasks import read_done_experiment
-from scripts.bar_plots import bar_plot
-from scripts.multi_accuracy import PlotDots, accuracy_outputs, TaskAndPlotDots, DottedLine
+from scripts.multi_accuracy import PlotDots, accuracy_outputs, TaskAndPlotDots
 from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
 
 
@@ -59,6 +61,73 @@ def plot_dots_for_intervention(
     return PlotDots(acc=accuray, name=name)
 
 
+class DottedLine(BaseModel):
+    name: str
+    value: float
+    color: str
+
+
+def bar_plot(
+    plot_dots: list[PlotDots],
+    title: str,
+    subtitle: str = "",
+    save_file_path: Optional[str] = None,
+    dotted_line: Optional[DottedLine] = None,
+):
+    fig = go.Figure()
+
+    for dot in plot_dots:
+        fig.add_trace(
+            go.Bar(
+                name=dot.name,
+                x=[dot.name],
+                y=[dot.acc.accuracy],
+                error_y=dict(type="data", array=[dot.acc.error_bars], visible=True),
+                text=[f"          {dot.acc.accuracy:.2f}"],
+            )
+        )
+
+    fig.update_layout(
+        barmode="group",
+        title_text=title,
+        title_x=0.5,
+    )
+
+    if dotted_line is not None:
+        fig.add_trace(
+            go.Scatter(
+                x=[dot.name for dot in plot_dots],  # changes here
+                y=[dotted_line.value] * len(plot_dots),
+                mode="lines",
+                line=dict(
+                    color=dotted_line.color,
+                    width=4,
+                    dash="dashdot",
+                ),
+                name=dotted_line.name,
+                showlegend=True,
+            ),
+        )
+
+    if subtitle:
+        fig.add_annotation(
+            x=1,
+            y=0,
+            xref="paper",
+            yref="paper",
+            xanchor="right",
+            yanchor="top",
+            text=subtitle,
+            showarrow=False,
+            font=dict(size=12, color="#555"),
+        )
+
+    if save_file_path is not None:
+        pio.write_image(fig, save_file_path + ".png", scale=2)
+    else:
+        fig.show()
+
+
 if __name__ == "__main__":
     model = "gpt-3.5-turbo-16k"
     all_read = read_whole_exp_dir(exp_dir="experiments/interventions")
@@ -71,7 +140,7 @@ if __name__ == "__main__":
         # NaiveFewShotLabelOnly10,
         # NaiveFewShotLabelOnly30,
         # SycoConsistencyLabelOnly30,
-        # BiasedConsistencyLabelOnly30,
+        BiasedConsistencyLabelOnly30,
     ]
     # what formatters to include
     biased_formatters = [

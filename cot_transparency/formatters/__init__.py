@@ -36,7 +36,8 @@ from cot_transparency.formatters.verbalize.formatters import (
     CheckmarkNoCOTFormatter,
     StanfordNoCOTFormatter,
     CrossBiasedFormatter,
-    CheckmarkBiasedFormatter, StanfordBiasedLabelFormatter,
+    CheckmarkBiasedFormatter,
+    StanfordBiasedLabelFormatter,
 )
 
 from cot_transparency.formatters.transparency.mistakes import (
@@ -59,10 +60,14 @@ from cot_transparency.formatters.transparency.interventions.logical_consequence 
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
 )
-from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter, \
-    DeceptiveAssistantBiasedNoCOTFormatter
-from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter, \
-    MoreRewardBiasedNoCOTFormatter
+from cot_transparency.formatters.more_biases.deceptive_assistant import (
+    DeceptiveAssistantBiasedFormatter,
+    DeceptiveAssistantBiasedNoCOTFormatter,
+)
+from cot_transparency.formatters.more_biases.more_reward import (
+    MoreRewardBiasedFormatter,
+    MoreRewardBiasedNoCOTFormatter,
+)
 
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
