@@ -22,7 +22,8 @@ from cot_transparency.model_apis import Prompt
 
 class PairedConsistency6(Intervention):
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
         prompt: Prompt = get_correct_cots().sample(3, seed=question.hash()).map(format_pair_cot).sum_or_raise()
         new = prepend_to_front_first_user_message(
             messages=messages,
@@ -33,7 +34,8 @@ class PairedConsistency6(Intervention):
 
 class PairedConsistency10(Intervention):
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
         prompt: Prompt = get_correct_cots().sample(5, seed=question.hash()).map(format_pair_cot).sum_or_raise()
         new = prepend_to_front_first_user_message(
             messages=messages,
@@ -44,7 +46,8 @@ class PairedConsistency10(Intervention):
 
 class BiasedConsistency10(Intervention):
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
         prompt: Prompt = (
             # Not a pair so, sample 10
             get_correct_cots()
@@ -62,7 +65,8 @@ class BiasedConsistency10(Intervention):
 class NaiveFewShot10(Intervention):
     # Simply use unbiased few shot
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots().sample(10, seed=question.hash()).map(format_unbiased_question_cot).sum_or_raise()
         )
@@ -76,7 +80,8 @@ class NaiveFewShot10(Intervention):
 class NaiveFewShotLabelOnly10(Intervention):
     # Non cot, only the label
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots().sample(10, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
         )
@@ -90,7 +95,8 @@ class NaiveFewShotLabelOnly10(Intervention):
 class NaiveFewShotLabelOnly20(Intervention):
     # Non cot, only the label
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots().sample(20, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
         )
@@ -104,7 +110,8 @@ class NaiveFewShotLabelOnly20(Intervention):
 class NaiveFewShotLabelOnly30(Intervention):
     # Non cot, only the label
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots().sample(30, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
         )
@@ -117,7 +124,8 @@ class NaiveFewShotLabelOnly30(Intervention):
 
 class SycophancyConsistencyLabelOnly10(Intervention):
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots()
             .sample(10, seed=question.hash())
@@ -133,7 +141,8 @@ class SycophancyConsistencyLabelOnly10(Intervention):
 
 class SycoConsistencyLabelOnly30(Intervention):
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots()
             .sample(30, seed=question.hash())
@@ -221,7 +230,8 @@ class PairedFewShotLabelOnly10(Intervention):
 class PairedFewShotLabelOnly30(Intervention):
     # Non cot, only the label
     @classmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages: list[ChatMessage] = formatter.format_example(question)
         prompt: Prompt = get_correct_cots().sample(15, seed=question.hash()).map(format_pair_non_cot).sum_or_raise()
         new = prepend_to_front_first_user_message(
             messages=messages,
