@@ -11,10 +11,8 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.consistency import (
-    PairedConsistency10,
     NaiveFewShot10,
-    BiasedConsistency10,
-    BiasedConsistencyLabelOnly30,
+    NaiveFewShotLabelOnly10, NaiveFewShotLabelOnly30,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
@@ -129,18 +127,18 @@ def bar_plot(
 
 
 if __name__ == "__main__":
-    model = "gpt-3.5-turbo-16k"
+    model = "gpt-4"
     all_read = read_whole_exp_dir(exp_dir="experiments/interventions")
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
         None,
-        PairedConsistency10,
-        BiasedConsistency10,
+        # PairedConsistency10,
+        # BiasedConsistency10,
         NaiveFewShot10,
-        # NaiveFewShotLabelOnly10,
-        # NaiveFewShotLabelOnly30,
+        NaiveFewShotLabelOnly10,
+        NaiveFewShotLabelOnly30,
         # SycoConsistencyLabelOnly30,
-        BiasedConsistencyLabelOnly30,
+        # BiasedConsistencyLabelOnly30,
     ]
     # what formatters to include
     biased_formatters = [

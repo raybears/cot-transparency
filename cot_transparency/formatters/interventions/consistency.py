@@ -52,7 +52,7 @@ class BiasedConsistency10(Intervention):
             # Not a pair so, sample 10
             get_correct_cots()
             .sample(10, seed=question.hash())
-            .map(format_biased_question_cot)
+            .map(lambda task: format_biased_question_cot(task=task, formatter=formatter))
             .sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
