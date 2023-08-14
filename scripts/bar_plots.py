@@ -22,7 +22,7 @@ def bar_plot(
                 x=[dot.name],
                 y=[dot.acc.accuracy],
                 error_y=dict(type="data", array=[dot.acc.error_bars], visible=True),
-                text=[f"{dot.acc.accuracy:.2f}"],
+                text=[f"          {dot.acc.accuracy:.2f}"],
             )
         )
 
@@ -33,16 +33,18 @@ def bar_plot(
     )
 
     if dotted_line is not None:
-        fig.add_shape(
-            type="line",
-            x0=-0.5,
-            y0=dotted_line.value,
-            x1=len(plot_dots) - 0.5,
-            y1=dotted_line.value,
-            line=dict(
-                color=dotted_line.color,
-                width=4,
-                dash="dashdot",
+        fig.add_trace(
+            go.Scatter(
+                x=[dot.name for dot in plot_dots],  # changes here
+                y=[dotted_line.value] * len(plot_dots),
+                mode="lines",
+                line=dict(
+                    color=dotted_line.color,
+                    width=4,
+                    dash="dashdot",
+                ),
+                name=dotted_line.name,
+                showlegend=True,
             ),
         )
 

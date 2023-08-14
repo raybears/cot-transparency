@@ -23,6 +23,7 @@ from cot_transparency.formatters.verbalize.formatters import (
 from cot_transparency.tasks import read_done_experiment
 from scripts.bar_plots import bar_plot
 from scripts.multi_accuracy import PlotDots, accuracy_outputs, TaskAndPlotDots, DottedLine
+from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
 
 
 def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
@@ -53,18 +54,13 @@ def plot_dots_for_intervention(
     )
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
     accuray = accuracy_outputs(filtered)
-    name = (
-        name_override
-        if name_override
-        else intervention_name
-        if intervention_name
-        else "No intervention, just a biased context"
-    )
+    retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(intervention, None)
+    name: str = name_override or retrieved_simple_name or intervention_name or "No intervention, biased context"
     return PlotDots(acc=accuray, name=name)
 
 
 if __name__ == "__main__":
-    model = "gpt-4"
+    model = "gpt-3.5-turbo-16k"
     all_read = read_whole_exp_dir(exp_dir="experiments/interventions")
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
@@ -89,7 +85,7 @@ if __name__ == "__main__":
     ]
     # unbiased acc
     unbiased_plot: PlotDots = plot_dots_for_intervention(
-        None, all_read, for_formatters=[ZeroShotCOTUnbiasedFormatter], name_override="Unbiased", model=model
+        None, all_read, for_formatters=[ZeroShotCOTUnbiasedFormatter], name_override="Unbiased context", model=model
     )
 
     plot_dots: list[PlotDots] = [
@@ -98,9 +94,9 @@ if __name__ == "__main__":
     ]
     one_chart = TaskAndPlotDots(task_name="MMLU and aqua stuff", plot_dots=plot_dots)
     # accuracy_plot([one_chart], title="Accuracy of Interventions")
-    dotted = DottedLine(name="Unbiased", value=unbiased_plot.acc.accuracy, color="red")
+    dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
     bar_plot(
         plot_dots=plot_dots,
-        title="GPT4 accuracy using different few shot techniques, on aqua and mmlu",
+        title=f"{model} biased context accuracy using different 10 shot techniques. Dataset: Aqua and mmlu",
         dotted_line=dotted,
     )
