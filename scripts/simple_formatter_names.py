@@ -1,6 +1,12 @@
-from typing import Type
+from typing import Type, Optional
 
 from cot_transparency.formatters import PromptFormatter
+from cot_transparency.formatters.interventions.consistency import (
+    PairedConsistency10,
+    NaiveFewShot10,
+    BiasedConsistency10,
+)
+from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
@@ -13,4 +19,12 @@ FORMATTER_TO_SIMPLE_NAME: dict[Type[PromptFormatter], str] = {
     MoreRewardBiasedFormatter: "More reward for an option",
     UserBiasedWrongCotFormatter: "User says wrong reasoning",
     WrongFewShotBiasedFormatter: "Wrong label in the few shot",
+}
+
+
+INTERVENTION_TO_SIMPLE_NAME: dict[Optional[Type[Intervention]], str] = {
+    None: "No intervention, biased context",
+    PairedConsistency10: "Biased and Unbiased question pairs in few shot",
+    BiasedConsistency10: "Biased questions in few shot",
+    NaiveFewShot10: "Unbiased questions in few shot",
 }

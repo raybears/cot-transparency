@@ -5,6 +5,17 @@ from cot_transparency.formatters.interventions.consistency import (
     PairedConsistency10,
     BiasedConsistency10,
     NaiveFewShot10,
+    NaiveFewShotLabelOnly10,
+    NaiveFewShotLabelOnly20,
+    NaiveFewShotLabelOnly30,
+    BiasedConsistencyLabelOnly20,
+    BiasedConsistencyLabelOnly30,
+    PairedFewShotLabelOnly30,
+    PairedFewShotLabelOnly10,
+    BiasedConsistencyLabelOnly10,
+    SycoConsistencyLabelOnly30,
+    NaiveFewShot6,
+    NaiveFewShot3,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 
@@ -12,7 +23,18 @@ VALID_INTERVENTIONS: dict[str, Type[Intervention]] = {
     PairedConsistency6.name(): PairedConsistency6,
     PairedConsistency10.name(): PairedConsistency10,
     BiasedConsistency10.name(): BiasedConsistency10,
+    NaiveFewShot3.name(): NaiveFewShot10,
+    NaiveFewShot6.name(): NaiveFewShot10,
     NaiveFewShot10.name(): NaiveFewShot10,
+    NaiveFewShotLabelOnly10.name(): NaiveFewShotLabelOnly10,
+    NaiveFewShotLabelOnly20.name(): NaiveFewShotLabelOnly20,
+    NaiveFewShotLabelOnly30.name(): NaiveFewShotLabelOnly30,
+    BiasedConsistencyLabelOnly20.name(): BiasedConsistencyLabelOnly20,
+    BiasedConsistencyLabelOnly30.name(): BiasedConsistencyLabelOnly30,
+    PairedFewShotLabelOnly30.name(): PairedFewShotLabelOnly30,
+    PairedFewShotLabelOnly10.name(): PairedFewShotLabelOnly10,
+    BiasedConsistencyLabelOnly10.name(): BiasedConsistencyLabelOnly10,
+    SycoConsistencyLabelOnly30.name(): SycoConsistencyLabelOnly30,
 }
 
 

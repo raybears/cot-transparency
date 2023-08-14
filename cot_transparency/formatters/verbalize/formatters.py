@@ -46,6 +46,27 @@ class StanfordBiasedFormatter(StageOneFormatter):
         message = format_stanford_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
+        with_label_instruction = add_verbalize_instruction_to_question(message)
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, dump_failed=False)
+
+
+class StanfordBiasedLabelFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+        # Stanford biasing is one shot
+        message = format_stanford_biased_question(
+            question=question.get_parsed_input(), biased_answer=question.biased_ans
+        )
         with_label_instruction = f"""{message}
 {label_bias_instruction}"""
         messages = [
