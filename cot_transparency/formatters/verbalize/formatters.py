@@ -53,7 +53,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
@@ -62,7 +62,7 @@ class StanfordBiasedLabelFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         # Stanford biasing is one shot
         message = format_stanford_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
