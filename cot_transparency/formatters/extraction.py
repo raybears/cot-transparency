@@ -1,9 +1,10 @@
+import re
 from string import ascii_uppercase
 from typing import Optional
 
 from pydantic import BaseModel
 
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import ChoiceVariant, MultipleChoiceAnswer
 
 BREAK_WORDS: list[str] = [
     "best answer is (",
@@ -44,24 +45,34 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
     return None
 
 
-def extract_answer_non_cot(response: str, dump_failed: bool = False) -> Optional[MultipleChoiceAnswer]:
-    out: Optional[MultipleChoiceAnswer] = None
+def extract_answer_non_cot(
+    response: str, dump_failed: bool = False, input_format: ChoiceVariant = ChoiceVariant.LETTERS
+) -> Optional[str]:
+    ans_list = input_format.answers_list
     response = response.strip()
-    if len(response) >= 1:
-        if response[0].upper() in ascii_uppercase:
-            out = response[0]  # type: ignore
-            if len(response) > 1:
-                if response[1] != ")":
-                    out = None
 
-        elif response[0] == "(" and response[1].upper() in ascii_uppercase:
-            out = response[1]  # type: ignore
+    # Define a pattern that captures a string that starts with a
+    # "(" or a letter/number, followed by characters, and optionally followed by a ")".
+    pattern = re.compile(r"^\(?([a-zA-Z\d]+)\)?")
 
-        if out is None and dump_failed:
-            with open("failed_answers.txt", "a") as f:
-                f.write(response + "\n")
+    match = pattern.match(response)
+    if match:
+        candidate_ans = match.group(1)
 
-    return out
+        # Convert to uppercase for consistent matching, except for the FOO variant
+        if input_format != ChoiceVariant.FOO:
+            candidate_ans = candidate_ans.upper()
+
+        if candidate_ans in ans_list:
+            idx = ans_list.index(candidate_ans)
+            return ascii_uppercase[idx]
+
+    # If we reach here, the answer failed to match the expected patterns
+    if dump_failed:
+        with open("failed_answers.txt", "a") as f:
+            f.write(response + "\n")
+
+    return None
 
 
 def extract_multiple_choices(question: str) -> list[str]:

@@ -48,8 +48,18 @@ class ChoiceVariant(str, Enum):
 
     LETTERS = "letters"
     NUMBERS = "numbers"
-    NUMERALS = "numerals"
+    ROMAN = "numerals"
     FOO = "foo"
+
+    @property
+    def answers_list(self) -> list[str]:
+        choices_map = {
+            ChoiceVariant.LETTERS: list(ascii_uppercase),
+            ChoiceVariant.NUMBERS: [str(i) for i in range(1, 10)],
+            ChoiceVariant.ROMAN: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"],
+            ChoiceVariant.FOO: ["foo", "bar", "baz", "qux", "quux", "corge", "grault", "garply", "waldo"],
+        }
+        return choices_map[self]
 
 
 class QuestionPrefix(Enum):
@@ -68,24 +78,36 @@ class JoinStr(str, Enum):
     OPTIONS = "\n\nOptions:\n"
 
 
+class DataFormatSpec(BaseModel):
+    choice_variant: ChoiceVariant
+    question_variant: QuestionPrefix
+    join_variant: JoinStr
+
+
 class DataExampleBase(BaseModel, ABC):
     """We don't define the fields here because we want to be able to use this for any dataset but we define the api"""
 
     # default question format
-    choice_variant: ChoiceVariant = ChoiceVariant.LETTERS
-    question_variant: QuestionPrefix = QuestionPrefix.NONE
-    join_variant: JoinStr = JoinStr.ANS_CHOICES
+    data_format: DataFormatSpec = DataFormatSpec(
+        choice_variant=ChoiceVariant.LETTERS,
+        question_variant=QuestionPrefix.NONE,
+        join_variant=JoinStr.ANS_CHOICES,
+    )
 
-    def to_variants(
+    def to_variant(
         self,
         choice_variant: ChoiceVariant = ChoiceVariant.LETTERS,
-        question_variant: QuestionPrefix = QuestionPrefix.NONE,
-        join_variant: JoinStr = JoinStr.ANS_CHOICES,
+        question_prefix: QuestionPrefix = QuestionPrefix.NONE,
+        join_str: JoinStr = JoinStr.ANS_CHOICES,
     ) -> Self:
         c = self.copy()
-        c.choice_variant = choice_variant
-        c.question_variant = question_variant
-        c.join_variant = join_variant
+        new_question_format = DataFormatSpec(
+            choice_variant=choice_variant,
+            question_variant=question_prefix,
+            join_variant=join_str,
+        )
+        c.data_format = new_question_format
+
         return c
 
     @property
@@ -107,15 +129,8 @@ class DataExampleBase(BaseModel, ABC):
     def _get_options_with_indicator(self, options: list[str]) -> str:
         output = []
         for idx, option in enumerate(options):
-            match self.choice_variant:
-                case ChoiceVariant.LETTERS:
-                    indicator = ascii_uppercase[idx]
-                case ChoiceVariant.NUMBERS:
-                    indicator = idx + 1
-                case ChoiceVariant.NUMERALS:
-                    indicator = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"][idx]
-                case ChoiceVariant.FOO:
-                    indicator = ["foo", "bar", "baz", "qux", "quux", "corge", "grault", "garply", "waldo"][idx]
+            choice_variant = self.data_format.choice_variant
+            indicator = choice_variant.answers_list[idx]
             output.append(f"({indicator}) {option}")
         return "\n".join(output)
 
@@ -146,7 +161,7 @@ class DataExampleBase(BaseModel, ABC):
         # check question doesn't start with question or q
         assert not question.lower().startswith("question") or question.lower().startswith("q")
 
-        match self.question_variant:
+        match self.data_format.question_variant:
             case QuestionPrefix.FULL:
                 question = f"Question: {question}"
             case QuestionPrefix.SHORT:
@@ -157,7 +172,7 @@ class DataExampleBase(BaseModel, ABC):
         choices = self._get_options()
         choices_str = self._get_options_with_indicator(choices)
 
-        return f"{question}{self.join_variant.value}{choices_str}"
+        return f"{question}{self.data_format.join_variant.value}{choices_str}"
 
 
 GenericDataExample = TypeVar("GenericDataExample", bound="DataExampleBase")

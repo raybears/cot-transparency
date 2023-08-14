@@ -1,4 +1,4 @@
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import ChoiceVariant, MultipleChoiceAnswer
 from cot_transparency.data_models.models import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
@@ -107,6 +107,33 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
+
+
+class ZeroShotUnbiasedNumFormatter(ZeroShotUnbiasedFormatter):
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False, input_format=ChoiceVariant.NUMBERS)
+
+
+class ZeroShotUnbiasedRMFormatter(ZeroShotUnbiasedFormatter):
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False, input_format=ChoiceVariant.ROMAN)
+
+
+class ZeroShotUnbiasedFooFormatter(ZeroShotUnbiasedFormatter):
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False, input_format=ChoiceVariant.FOO)
 
 
 class ZeroShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):

@@ -1,7 +1,8 @@
 import pytest
 import yaml
+from cot_transparency.data_models.example_base import ChoiceVariant
 
-from cot_transparency.formatters.extraction import extract_answer
+from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 
 from scripts.biased_wrong_ans import cot_extraction
 
@@ -47,3 +48,35 @@ The best answer is: (B) False.
 
     none_test = """First, we start by facing forward."""
     assert cot_extraction(none_test) is None
+
+
+@pytest.mark.parametrize(
+    "response, input_variant, expected_output",
+    [
+        # Test with letters
+        ("A", ChoiceVariant.LETTERS, "A"),
+        ("b", ChoiceVariant.LETTERS, "B"),
+        ("(C)", ChoiceVariant.LETTERS, "C"),
+        ("D", ChoiceVariant.LETTERS, "D"),
+        # Test with numbers
+        ("1", ChoiceVariant.NUMBERS, "A"),
+        ("(2)", ChoiceVariant.NUMBERS, "B"),
+        ("4", ChoiceVariant.NUMBERS, "D"),
+        # Test with Roman numerals
+        ("I", ChoiceVariant.ROMAN, "A"),
+        ("ii", ChoiceVariant.ROMAN, "B"),
+        ("(III)", ChoiceVariant.ROMAN, "C"),
+        ("IV", ChoiceVariant.ROMAN, "D"),
+        # Test with foo
+        ("foo", ChoiceVariant.FOO, "A"),
+        ("bar", ChoiceVariant.FOO, "B"),
+        ("(baz)", ChoiceVariant.FOO, "C"),
+        ("baz)", ChoiceVariant.FOO, "C"),
+        ("(baz", ChoiceVariant.FOO, "C"),
+        ("(best", ChoiceVariant.FOO, None),
+        ("answer", ChoiceVariant.FOO, None),
+        ("None of the above", ChoiceVariant.FOO, None),
+    ],
+)
+def test_extract_answer_non_cot(response: str, input_variant: ChoiceVariant, expected_output: str):
+    assert extract_answer_non_cot(response, dump_failed=False, input_format=input_variant) == expected_output

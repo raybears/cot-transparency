@@ -57,13 +57,13 @@ def __call_or_raise(
 
 
 def call_model_and_raise_if_not_suitable(
-    messages: list[ChatMessage],
+    task: list[ChatMessage],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
     retries: int = 20,
 ) -> ModelOutput:
     response = retry(exceptions=AnswerNotFound, tries=retries)(__call_or_raise)(
-        messages=messages, config=config, formatter=formatter
+        messages=task, config=config, formatter=formatter
     )
 
     return response
@@ -77,7 +77,7 @@ def call_model_and_catch(
 ) -> ModelOutput:
     try:
         response = call_model_and_raise_if_not_suitable(
-            messages=messages, config=config, formatter=formatter, retries=retries
+            task=messages, config=config, formatter=formatter, retries=retries
         )
         return response
     except AnswerNotFound as e:
@@ -93,9 +93,10 @@ def task_function(
     raise_after_retries: bool,
 ) -> Union[TaskOutput, StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
+
     response = (
         call_model_and_raise_if_not_suitable(
-            messages=task.messages,
+            task=task.messages,
             config=task.model_config,
             formatter=formatter,
             retries=20,
