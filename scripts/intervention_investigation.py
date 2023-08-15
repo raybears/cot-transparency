@@ -12,7 +12,7 @@ from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFor
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.consistency import (
     NaiveFewShot10,
-    BiasedConsistency10,
+    NaiveFewShot3, NaiveFewShot6, NaiveFewShot16,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
@@ -133,8 +133,11 @@ if __name__ == "__main__":
     interventions: Sequence[Type[Intervention] | None] = [
         None,
         # PairedConsistency10,
-        BiasedConsistency10,
+        # BiasedConsistency10,
+        NaiveFewShot3,
+        NaiveFewShot6,
         NaiveFewShot10,
+        NaiveFewShot16
         # NaiveFewShotLabelOnly10,
         # NaiveFewShotLabelOnly30,
         # SycoConsistencyLabelOnly30,
@@ -164,6 +167,6 @@ if __name__ == "__main__":
     dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
     bar_plot(
         plot_dots=plot_dots,
-        title=f"{model} biased context accuracy using different 10 shot techniques. Dataset: Aqua and mmlu",
+        title=f"Does putting COT in few shots increases performance? Model: {model} Dataset: Aqua and mmlu",
         dotted_line=dotted,
     )
