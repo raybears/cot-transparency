@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Type
+from typing import Type, Self, Set
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
@@ -15,3 +15,13 @@ class Intervention(ABC):
     @abstractmethod
     def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
         raise NotImplementedError
+
+    @classmethod
+    def all_interventions(cls) -> dict[str, Type[Self]]:
+        return {s.name(): s for s in cls.all_subclasses()}
+
+    @classmethod
+    def all_subclasses(cls) -> Set[Type[Self]]:
+        # get all subclasses recursively
+        subclasses: set[Type[Intervention]] = set(cls.__subclasses__())
+        return subclasses.union([s for c in subclasses for s in c.all_subclasses()])

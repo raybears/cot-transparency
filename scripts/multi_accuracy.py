@@ -22,6 +22,27 @@ class AccuracyOutput(BaseModel):
     error_bars: float
     samples: int
 
+    def __sub__(self, other: "AccuracyOutput") -> "AccuracyOutput":
+        """If you have two independent estimates of accuracy, each with its own error bar (standard error),
+        the error bar of the difference between the two can be calculated as the square root of the sum of the squares
+         of the individual error bars (standard errors).
+
+        This comes from the fact that the variance (the square of the standard deviation or standard error)
+        for the sum or difference of two independent variables is the sum of their variances.
+        So if SE1 is the standard error of the first estimate and SE2 is the second estimate's standard error,
+        your new error bar (standard error for the difference) will be:
+
+        SE_difference = sqrt(SE1^2 + SE2^2)
+
+        This assumes that the estimates of accuracy for the two models are independent.
+        """
+        # assume n samples are the same
+        return AccuracyOutput(
+            accuracy=self.accuracy - other.accuracy,
+            error_bars=math.sqrt(self.error_bars**2 + other.error_bars**2),
+            samples=self.samples,
+        )
+
 
 def compute_error_bars(num_trials: int, num_successes: int, confidence_level: float = 1.96) -> float:
     p = num_successes / num_trials

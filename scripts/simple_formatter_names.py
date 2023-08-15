@@ -5,6 +5,11 @@ from cot_transparency.formatters.interventions.consistency import (
     PairedConsistency10,
     NaiveFewShot10,
     BiasedConsistency10,
+    NaiveFewShotLabelOnly10,
+    NaiveFewShotLabelOnly30,
+    NaiveFewShot16,
+    NaiveFewShot6,
+    NaiveFewShot3,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
@@ -26,5 +31,10 @@ INTERVENTION_TO_SIMPLE_NAME: dict[Optional[Type[Intervention]], str] = {
     None: "No intervention, biased context",
     PairedConsistency10: "Biased and Unbiased question pairs in few shot",
     BiasedConsistency10: "Biased questions in few shot",
-    NaiveFewShot10: "Unbiased questions in few shot",
+    NaiveFewShot3: "3 Unbiased questions with COT answer",
+    NaiveFewShot6: "6 Unbiased questions with COT answer",
+    NaiveFewShot10: "10 Unbiased questions with COT answer",
+    NaiveFewShot16: "16 Unbiased questions with COT answer",
+    NaiveFewShotLabelOnly10: "10 Unbiased questions, with ground truth labels",
+    NaiveFewShotLabelOnly30: "30 Unbiased questions, with ground truth labels",
 }
