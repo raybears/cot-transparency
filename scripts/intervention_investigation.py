@@ -12,7 +12,9 @@ from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFor
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.consistency import (
     NaiveFewShot10,
-    BiasedConsistency10,
+    NaiveFewShot3,
+    NaiveFewShot6,
+    NaiveFewShot16,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
@@ -126,6 +128,32 @@ def bar_plot(
         fig.show()
 
 
+def accuracy_diff_intervention(
+    interventions: Sequence[Type[Intervention] | None], unbiased_formatter: Type[StageOneFormatter]
+):
+    # Make chart of the diff in accuracy betwwen the unbiased and the biased, same interventio
+    unbiased_plot_dots: dict[str, PlotDots] = (
+        Slist(
+            [
+                plot_dots_for_intervention(intervention, all_read, for_formatters=[unbiased_formatter], model=model)
+                for intervention in interventions
+            ]
+        )
+        .map(lambda plot: (plot.name, plot))
+        .to_dict()
+    )
+    joined_plot_dots: list[PlotDots] = Slist(plot_dots).map(
+        lambda plot: PlotDots(
+            acc=plot.acc - unbiased_plot_dots[plot.name].acc,
+            name=plot.name,
+        )
+    )
+    bar_plot(
+        plot_dots=joined_plot_dots,
+        title="Does the accuracy gap between unbiased and biased context drop with more few shots?",
+    )
+
+
 if __name__ == "__main__":
     model = "gpt-4"
     all_read = read_whole_exp_dir(exp_dir="experiments/interventions")
@@ -133,8 +161,11 @@ if __name__ == "__main__":
     interventions: Sequence[Type[Intervention] | None] = [
         None,
         # PairedConsistency10,
-        BiasedConsistency10,
+        # BiasedConsistency10,
+        NaiveFewShot3,
+        NaiveFewShot6,
         NaiveFewShot10,
+        NaiveFewShot16
         # NaiveFewShotLabelOnly10,
         # NaiveFewShotLabelOnly30,
         # SycoConsistencyLabelOnly30,
@@ -150,20 +181,30 @@ if __name__ == "__main__":
         # CheckmarkBiasedFormatter,
         # CrossBiasedFormatter,
     ]
+    unbiased_formatter = ZeroShotCOTUnbiasedFormatter
     # unbiased acc
     unbiased_plot: PlotDots = plot_dots_for_intervention(
-        None, all_read, for_formatters=[ZeroShotCOTUnbiasedFormatter], name_override="Unbiased context", model=model
+        None, all_read, for_formatters=[unbiased_formatter], name_override="Unbiased context", model=model
+    )
+
+    sixteen_unbiased_plot: PlotDots = plot_dots_for_intervention(
+        NaiveFewShot16,
+        all_read,
+        for_formatters=[unbiased_formatter],
+        name_override="16 shot Unbiased context",
+        model=model,
     )
 
     plot_dots: list[PlotDots] = [
         plot_dots_for_intervention(intervention, all_read, for_formatters=biased_formatters, model=model)
         for intervention in interventions
-    ]
+    ] + [sixteen_unbiased_plot]
     one_chart = TaskAndPlotDots(task_name="MMLU and aqua stuff", plot_dots=plot_dots)
     # accuracy_plot([one_chart], title="Accuracy of Interventions")
     dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
     bar_plot(
         plot_dots=plot_dots,
-        title=f"{model} biased context accuracy using different 10 shot techniques. Dataset: Aqua and mmlu",
+        title=f"Do more few shots help to improve accuracy in a biased context? Model: {model} Dataset: Aqua and mmlu",
         dotted_line=dotted,
     )
+    # accuracy_diff_intervention(interventions=interventions, unbiased_formatter=unbiased_formatter)
