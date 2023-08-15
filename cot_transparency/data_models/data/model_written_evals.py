@@ -11,8 +11,10 @@ from cot_transparency.data_models.example_base import DataExampleBase, MultipleC
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
 
-class AnthropicSycophancyExample(DataExampleBase):
+class ModelWrittenEvalsExample(DataExampleBase):
     # https://huggingface.co/datasets/Anthropic/model-written-evals/viewer/Anthropic--model-written-evals
+    # Note that this dataset is already biased, there isn't an unbiased version of it
+    # We could strip out the bias to make it unbiased, but we don't need to do that for now
     question: str
     answer_matching_behavior: str
 
@@ -51,27 +53,25 @@ class AnthropicSycophancyExample(DataExampleBase):
         return before_answer
 
 
-# AnthropicUnbiased, AnthropicSandbag. COT, NoCot
 
-
-def get_anthropic_nlp() -> list[AnthropicSycophancyExample]:
+def get_anthropic_nlp() -> list[ModelWrittenEvalsExample]:
     return read_jsonl_file_into_basemodel(
-        Path("./data/anthropic/nlp.jsonl"),
-        AnthropicSycophancyExample,
+        Path("./data/model_written_evals/nlp.jsonl"),
+        ModelWrittenEvalsExample,
     )
 
 
-def get_anthropic_phil() -> list[AnthropicSycophancyExample]:
+def get_anthropic_phil() -> list[ModelWrittenEvalsExample]:
     return read_jsonl_file_into_basemodel(
-        Path("./data/anthropic/phil.jsonl"),
-        AnthropicSycophancyExample,
+        Path("./data/model_written_evals/phil.jsonl"),
+        ModelWrittenEvalsExample,
     )
 
 
-def get_anthropic_pol() -> list[AnthropicSycophancyExample]:
+def get_anthropic_pol() -> list[ModelWrittenEvalsExample]:
     return read_jsonl_file_into_basemodel(
-        Path("./data/anthropic/pol.jsonl"),
-        AnthropicSycophancyExample,
+        Path("./data/model_written_evals/pol.jsonl"),
+        ModelWrittenEvalsExample,
     )
 
 
@@ -91,7 +91,7 @@ def test_anthropic_nlp():
         ),
         "answer_matching_behavior": " (A)",
     }
-    parsed = AnthropicSycophancyExample(**single_data)
+    parsed = ModelWrittenEvalsExample(**single_data)
     assert parsed.ground_truth == "B"
     assert parsed._get_options() == ["Agree", "Disagree"]
 
@@ -111,7 +111,7 @@ def test_anthropic_nlp():
         "answer_matching_behavior": " (A)",
         "answer_not_matching_behavior": " (B)",
     }
-    second_parsed = AnthropicSycophancyExample(**second)
+    second_parsed = ModelWrittenEvalsExample(**second)
     assert second_parsed.ground_truth == "B"
     assert second_parsed._get_options() == ["Agree", "Disagree"]
 
@@ -127,7 +127,7 @@ def test_anthropic_phil():
         "answer_matching_behavior": " (A)",
         "answer_not_matching_behavior": [" (B), "],
     }
-    parsed = AnthropicSycophancyExample(**single_data)
+    parsed = ModelWrittenEvalsExample(**single_data)
     assert parsed.ground_truth == "B"
     assert parsed._get_options() == [
         "no",
@@ -149,7 +149,7 @@ def test_anthropic_pol():
         "answer_not_matching_behavior": " (A)",
         "user_affiliation": "liberal",
     }
-    parsed = AnthropicSycophancyExample(**single_data)
+    parsed = ModelWrittenEvalsExample(**single_data)
     assert parsed.ground_truth == "A"
     assert parsed._get_options() == [
         "A smaller government providing fewer services",

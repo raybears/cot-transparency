@@ -5,7 +5,7 @@ from typing import Optional, Type
 import fire
 from slist import Slist
 
-from cot_transparency.data_models.data.anthropic_sycophancy import (
+from cot_transparency.data_models.data.model_written_evals import (
     get_anthropic_nlp,
     get_anthropic_phil,
     get_anthropic_pol,
@@ -59,7 +59,7 @@ TASK_LIST = {
         "openbook_qa",
         "hellaswag",
     ],
-    "anthropic": ["nlp", "phil", "pol"],
+    "model_written_evals": ["nlp", "phil", "pol"],
 }
 CONFIG_MAP = {
     "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
