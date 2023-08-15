@@ -121,6 +121,7 @@ class NaiveFewShot16(Intervention):
         )
         return new
 
+
 class NaiveFewShotLabelOnly10(Intervention):
     # Non cot, only the label
     @classmethod

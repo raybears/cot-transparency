@@ -1,22 +1,5 @@
 from typing import Type
 
-from cot_transparency.formatters.interventions.consistency import (
-    PairedConsistency6,
-    PairedConsistency10,
-    BiasedConsistency10,
-    NaiveFewShot10,
-    NaiveFewShotLabelOnly10,
-    NaiveFewShotLabelOnly20,
-    NaiveFewShotLabelOnly30,
-    BiasedConsistencyLabelOnly20,
-    BiasedConsistencyLabelOnly30,
-    PairedFewShotLabelOnly30,
-    PairedFewShotLabelOnly10,
-    BiasedConsistencyLabelOnly10,
-    SycoConsistencyLabelOnly30,
-    NaiveFewShot6,
-    NaiveFewShot3,
-)
 from cot_transparency.formatters.interventions.intervention import Intervention
 
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = Intervention.all_interventions()
