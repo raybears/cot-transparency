@@ -5,6 +5,11 @@ from typing import Optional, Type
 import fire
 from slist import Slist
 
+from cot_transparency.data_models.data.anthropic_sycophancy import (
+    get_anthropic_nlp,
+    get_anthropic_phil,
+    get_anthropic_pol,
+)
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
@@ -54,6 +59,7 @@ TASK_LIST = {
         "openbook_qa",
         "hellaswag",
     ],
+    "anthropic": ["nlp", "phil", "pol"],
 }
 CONFIG_MAP = {
     "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
@@ -137,6 +143,12 @@ def get_list_of_examples(
             data = openbook.test()
         elif task == "hellaswag":
             data = hellaswag.val()
+        elif task == "nlp":
+            data = get_anthropic_nlp()
+        elif task == "phil":
+            data = get_anthropic_phil()
+        elif task == "pol":
+            data = get_anthropic_pol()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
