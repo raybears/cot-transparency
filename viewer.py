@@ -1,69 +1,65 @@
-from collections import defaultdict
-from enum import Enum
 from typing import Any, Callable, Optional, Union
 import fire
 from cot_transparency.model_apis import Prompt
 from cot_transparency.data_models.models import (
-    TaskSpec,
+    ExperimentJsonFormat,
+    StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
-    StageTwoTaskSpec,
     TaskOutput,
+    TaskSpec,
+    StageTwoTaskSpec,
 )
-from cot_transparency.data_models.io import ExpLoader
+from cot_transparency.data_models.io import LoadedJsonType, ExpLoader
 
 from tkinter import LEFT, Frame, Tk, Label, Button, Text, END, OptionMenu, StringVar
 from random import choice
 
-
-class ModificationType(str, Enum):
-    mistake = "mistake"
-    truncation = "truncation"
-    no_modification = "no_modification"
-
-
-StageTwoNestedDict = dict[tuple[str, str, str, str, ModificationType], dict[str, list[StageTwoTaskOutput]]]
-StageOneNestedDict = dict[tuple[str, str, str], dict[str, list[TaskOutput]]]
-
-# Dropdown names
-dropdown_names = ["Task", "Model", "Formatter", "Modification Type", "Stage One Formatter"]
+LoadedJsonTupleType = Union[
+    dict[tuple[str, str, str], ExperimentJsonFormat], dict[tuple[str, str, str], StageTwoExperimentJsonFormat]
+]
 
 
 class GUI:
     def __init__(
         self,
         frame: Frame,
-        json_dict: StageTwoNestedDict | StageOneNestedDict,
+        json_dict: LoadedJsonTupleType,
         width: int = 150,
-        update_callback: Optional[Callable[..., None]] = None,
-        stage=1,
+        update_callback: Optional[Callable[..., bool]] = None,
     ):
-        self.is_stage_two = stage == 2
-
         config_width = width // 3
         self.frame = frame
         self.json_dict = json_dict
         self.keys = list(self.json_dict.keys())
         self.index = 0
-        # these are the task specs available for the selected json
-        self.task_hashes = list(json_dict[self.keys[0]].keys())  # type: ignore
-        self.task_hash_idx = 0
         self.fontsize = 16
         self.alignment = "w"  # change to "center" to center align
         self.task_var = self.keys[0][0]
         self.update_callback = update_callback or (lambda: None)
         drop_down_width = 40
 
-        # make all the dropdowns
-        self.dropdowns = []
-        self.dropdown_vars = []
-        for i in range(1, len(self.keys[0])):
-            var = StringVar(frame)
-            var.set(self.keys[0][i])
-            self.dropdown_vars.append(var)
-            dropdown = OptionMenu(frame, var, *{key[i] for key in self.keys}, command=self.select_json)
-            dropdown.config(font=("Arial", self.fontsize), width=drop_down_width)
-            dropdown.pack(anchor="center")
-            self.dropdowns.append((var, dropdown))
+        self.show_cot_info = isinstance(self.json_dict[self.keys[0]], StageTwoExperimentJsonFormat)
+
+        self.file_label = Label(frame, text="Select a file:", font=("Arial", self.fontsize))
+        self.file_label.pack(anchor="center")
+
+        self.model_var = StringVar(frame)
+        self.model_var.set(self.keys[0][1])  # default value
+
+        self.formatter_var = StringVar(frame)
+        self.formatter_var.set(self.keys[0][2])  # default value
+
+        self.model_dropdown = OptionMenu(
+            frame, self.model_var, *{key[1] for key in self.keys}, command=self.select_json
+        )
+        self.model_dropdown.config(font=("Arial", self.fontsize), width=drop_down_width)
+        self.model_dropdown.pack(anchor="center")
+
+        self.formatter_dropdown = OptionMenu(
+            frame, self.formatter_var, *{key[2] for key in self.keys}, command=self.select_json
+        )
+        self.formatter_dropdown.config(font=("Arial", self.fontsize), width=drop_down_width)
+        self.formatter_dropdown.pack(anchor="center")
 
         self.label2 = Label(frame, text="Messages:", font=("Arial", self.fontsize))
         self.label2.pack(anchor=self.alignment)
@@ -98,7 +94,7 @@ class GUI:
 
         self.output_frame.pack(side=LEFT)
 
-        if self.is_stage_two:
+        if self.show_cot_info:
             self.cots_frame = Frame(frame)
             self.cot_texts = []
             self.cot_labels = []
@@ -120,15 +116,10 @@ class GUI:
         self.select_json()
         self.display_output()
 
-    def select_json(self, *args: Any, reset_index: bool = True):
-        key = [self.task_var]
-        for var in self.dropdown_vars:
-            key.append(var.get())
-        key = tuple(key)
+    def select_json(self, *args: Any):
+        key = (self.task_var, self.model_var.get(), self.formatter_var.get())
         try:
-            self.selected_exp = self.json_dict[key]  # type: ignore
-            if reset_index:
-                self.index = 0  # reset this as there may be fewer outputs
+            self.selected_exp = self.json_dict[key]
             self.display_output()
 
             # Do something with the data
@@ -137,28 +128,16 @@ class GUI:
             self.display_error()
 
     def prev_output(self):
-        if self.index == 0:
-            self.task_hash_idx = (self.task_hash_idx - 1) % len(self.task_hashes)
-            new_len = len(self.selected_exp[self.task_hashes[self.task_hash_idx]])
-            self.index = new_len - 1
-        else:
-            self.index = self.index - 1
-        self.select_json(reset_index=False)
+        self.index = (self.index - 1) % len(self.selected_exp.outputs)
+        self.display_output()
 
     def next_output(self):
-        len_of_current = len(self.selected_exp[self.task_hashes[self.task_hash_idx]])
-        if self.index == len_of_current - 1:
-            self.task_hash_idx = (self.task_hash_idx + 1) % len(self.task_hashes)
-            self.index = 0
-        else:
-            self.index = self.index + 1
+        self.index = (self.index + 1) % len(self.selected_exp.outputs)
         self.display_output()
-        self.select_json(reset_index=False)
 
-    def select_hash_index(self, idx: int):
-        self.task_hash_idx = idx
-        self.index = 0
-        self.select_json(reset_index=False)
+    def select_index(self, idx: int):
+        self.index = idx
+        self.display_output()
 
     def clear_fields(self):
         self.messages_text.delete("1.0", END)
@@ -166,7 +145,7 @@ class GUI:
         self.output_text.delete("1.0", END)
         self.parsed_ans_text.delete("1.0", END)
         # clear other fields as necessary
-        if self.is_stage_two:
+        if self.show_cot_info:
             for cot_text in self.cot_texts:
                 cot_text[0].delete("1.0", END)
                 cot_text[1].delete("1.0", END)
@@ -188,9 +167,7 @@ class GUI:
         self.clear_fields()
 
         # Insert new text
-        print("Task Hash Idx", self.task_hash_idx)
-        print("Index", self.index)
-        output = experiment[self.task_hashes[self.task_hash_idx]][self.index]
+        output = experiment.outputs[self.index]
 
         formatted_output = Prompt(messages=output.task_spec.messages).convert_to_completion_str()
         self.config_text.insert(END, str(output.task_spec.model_config.json(indent=2)))
@@ -209,94 +186,19 @@ class GUI:
                     self.cot_texts[1][1].insert(END, task_spec.trace_info.get_sentence_with_mistake())
                 except ValueError:
                     pass
-
-                self.cot_labels[1].config(
-                    text=(
-                        f"Modified COT, mistake_idx: {task_spec.trace_info.mistake_inserted_idx}, "
-                        f"CoT Length: {task_spec.n_steps_in_cot_trace}/{len(task_spec.trace_info.original_cot)}"
-                    )
-                )
-                try:
-                    complete_modified_cot = task_spec.trace_info.get_complete_modified_cot()
-                except ValueError:
-                    complete_modified_cot = ""
-                self.cot_texts[1][0].insert(END, complete_modified_cot)
+                self.cot_texts[1][0].insert(END, task_spec.trace_info.complete_modified_cot)
+                self.cot_labels[1].config(text=f"Modified COT, idx: {task_spec.trace_info.mistake_inserted_idx}")
 
         else:
             print("Not a stage two task spec")
 
 
-def convert_nested_dict_s2(
-    outputs: list[StageTwoTaskOutput],
-) -> StageTwoNestedDict:
-    out: StageTwoNestedDict = defaultdict(dict)
-    for output in outputs:
-        # use keys
-        task_name = output.task_spec.stage_one_output.task_spec.task_name
-        model = output.task_spec.stage_one_output.task_spec.model_config.model
-        stage_one_formatter = output.task_spec.stage_one_output.task_spec.formatter_name
-        stage_one_hash = output.task_spec.stage_one_output.task_spec.task_hash_with_repeat()
-        formatter = output.task_spec.formatter_name
-        if output.task_spec.trace_info.has_mistake:
-            modification_type = ModificationType.mistake
-        elif output.task_spec.trace_info.was_truncated:
-            modification_type = ModificationType.truncation
-        else:
-            modification_type = ModificationType.no_modification
-
-        exp = out[(task_name, model, stage_one_formatter, formatter, modification_type)]
-        if stage_one_hash not in exp:
-            exp[stage_one_hash] = [output]
-        else:
-            exp[stage_one_hash].append(output)
-
-    # convert from default_dict to normal dict
-    out = dict(out)
-    return out
-
-
-def convert_nested_dict_s1(outputs: list[TaskOutput]) -> StageOneNestedDict:
-    out: StageOneNestedDict = defaultdict(dict)
-    for output in outputs:
-        # use keys
-        task_name = output.task_spec.task_name
-        model = output.task_spec.model_config.model
-        stage_one_formatter = output.task_spec.formatter_name
-        stage_one_hash = output.task_spec.task_hash_with_repeat()
-
-        exp = out[(task_name, model, stage_one_formatter)]
-        if stage_one_hash not in exp:
-            exp[stage_one_hash] = [output]
-        else:
-            exp[stage_one_hash].append(output)
-
-    # convert from default_dict to normal dict
-    out = dict(out)
-    return out
-
-
 class CompareGUI:
-    def __init__(
-        self,
-        master: Tk,
-        task_list: list[StageTwoTaskOutput] | list[TaskOutput],
-        width: int = 150,
-        n_compare: int = 2,
-        stage=1,
-    ):
+    def __init__(self, master: Tk, json_dict: LoadedJsonTupleType, width: int = 150, n_compare: int = 2):
         width_of_each = width // n_compare
         self.fontsize = 16
         self.alignment = "center"  # change to "center" to center align
-
-        nested_dict: Union[StageTwoNestedDict, StageOneNestedDict]
-        if isinstance(task_list[0], StageTwoTaskOutput):
-            nested_dict = convert_nested_dict_s2(task_list)  # type: ignore
-        elif isinstance(task_list[0], TaskOutput):
-            nested_dict = convert_nested_dict_s1(task_list)  # type: ignore
-        else:
-            raise ValueError(f"Unknown task type {type(task_list[0])}")
-
-        self.keys = [i[0] for i in nested_dict.keys()]
+        self.keys = list(json_dict.keys())
 
         self.base_guis: list[GUI] = []
         for i in range(n_compare):
@@ -307,11 +209,11 @@ class CompareGUI:
             else:
                 callback = None
 
-            self.base_guis.append(GUI(frame, nested_dict, width_of_each, callback, stage=stage))
+            self.base_guis.append(GUI(frame, json_dict, width_of_each, callback))
             frame.grid(row=1, column=i)
 
         self.task_var = StringVar(master)
-        self.task_var.set(self.keys[0])  # default value
+        self.task_var.set(self.keys[0][0])  # default value
 
         self.task_dropdown = OptionMenu(
             master,
@@ -345,24 +247,35 @@ class CompareGUI:
 
         self.display_output()
 
-    def check_all_on_the_same_task(self):
+    def check_all_on_the_same_task(self) -> bool:
         # check that all gui's are on the same index and have the same task_hash
-        task_hashes = [gui.task_hashes[gui.task_hash_idx] for gui in self.base_guis]
-        assert len(set(task_hashes)) <= 1, "Not all on the same task hash"
+        task_hashes = []
+        for gui in self.base_guis:
+            task_spec = gui.selected_exp.outputs[gui.index].task_spec
+            if isinstance(task_spec, StageTwoTaskSpec):
+                task_hashes.append(task_spec.stage_one_output.task_spec.task_hash)
+        unique_task_hashes = set(task_hashes)
+        if len(unique_task_hashes) <= 1:
+            return True
+        else:
+            print("All GUIs must be on the same task_hash")
+            return False
 
     def display_output(self):
         # Insert new text
-        # exp: Union[ExperimentJsonFormat, StageTwoExperimentJsonFormat] = self.base_guis[0].selected_exp
-        task_hash: str = self.base_guis[0].task_hashes[self.base_guis[0].task_hash_idx]
-        is_stage_two = self.base_guis[0].is_stage_two
-        output = self.base_guis[0].selected_exp[task_hash][0]
+        exp: Union[ExperimentJsonFormat, StageTwoExperimentJsonFormat] = self.base_guis[0].selected_exp
+        index: int = self.base_guis[0].index
+        output: Union[TaskOutput, StageTwoTaskOutput] = exp.outputs[index]
 
-        if is_stage_two:
-            task_spec_s2: StageTwoTaskSpec = output.task_spec  # type: ignore
-            self.ground_truth_label.config(text=f"Ground Truth: {task_spec_s2.stage_one_output.task_spec.ground_truth}")
-        else:
-            task_spec: TaskSpec = output.task_spec  # type: ignore
-            self.ground_truth_label.config(text=f"Ground Truth: {task_spec.ground_truth}")
+        for gui in self.base_guis:
+            gui.display_output()
+
+        if isinstance(output.task_spec, TaskSpec):
+            self.ground_truth_label.config(text=f"Ground Truth: {output.task_spec.ground_truth}")
+        elif isinstance(output.task_spec, StageTwoTaskSpec):
+            self.ground_truth_label.config(
+                text=f"Ground Truth: {output.task_spec.stage_one_output.task_spec.ground_truth}"
+            )
 
     def prev_output(self):
         for gui in self.base_guis:
@@ -375,31 +288,62 @@ class CompareGUI:
         self.display_output()
 
     def random_output(self):
-        idx = choice(range(len(self.base_guis[0].task_hashes)))
+        idx = choice(range(len(self.base_guis[0].selected_exp.outputs)))
         for gui in self.base_guis:
-            gui.select_hash_index(idx)
+            gui.select_index(idx)
         self.display_output()
 
     def select_task(self, task_name: str):
         for gui in self.base_guis:
             gui.task_var = task_name
             gui.select_json()
+        self.display_output()
 
 
-def main(exp_dir: str, width: int = 175, n_compare: int = 1):
+def convert_loaded_json_keys_to_tuples(
+    loaded_dict: LoadedJsonType,
+) -> LoadedJsonTupleType:
+    # path_format is exp_dir/task_name/model/formatter.json
+    out = {}
+    for path, exp in loaded_dict.items():
+        out[(path.parent.parent.name, path.parent.name, path.name)] = exp
+    return out
+
+
+def sort_stage1(loaded_dict: dict[tuple[str, str, str], ExperimentJsonFormat]):
+    for exp in loaded_dict.values():
+        exp.outputs.sort(key=lambda x: x.task_spec_uid())
+
+
+def sort_stage2(loaded_dict: dict[tuple[str, str, str], StageTwoExperimentJsonFormat]):
+    for exp in loaded_dict.values():
+        exp.outputs.sort(
+            key=lambda x: (
+                x.task_spec.stage_one_output.task_spec.task_hash,
+                x.task_spec.stage_one_output.uid(),
+                x.task_spec.n_steps_in_cot_trace,
+            )
+        )  # type: ignore
+
+
+def main(exp_dir: str, width: int = 175, n_compare: int = 1, show_mistakes=True):
+    # Load the JSONs here
+    # establish if this stage one or stage two
+
     stage = ExpLoader.get_stage(exp_dir)
-
     if stage == 1:
         loaded_jsons = ExpLoader.stage_one(exp_dir)
+        loaded_jsons_with_tuples = convert_loaded_json_keys_to_tuples(loaded_jsons)
+        sort_stage1(loaded_jsons_with_tuples)  # type: ignore
     else:
+        # if show_mistakes:
+        #     loaded_jsons = ExpLoader.stage_two_mistake_generation(exp_dir)
         loaded_jsons = ExpLoader.stage_two(exp_dir)
-
-    list_of_all_outputs = []
-    for exp in loaded_jsons.values():
-        list_of_all_outputs.extend(exp.outputs)
+        loaded_jsons_with_tuples = convert_loaded_json_keys_to_tuples(loaded_jsons)
+        sort_stage2(loaded_jsons_with_tuples)  # type: ignore
 
     root = Tk()
-    CompareGUI(root, list_of_all_outputs, width, n_compare, stage=stage)
+    CompareGUI(root, loaded_jsons_with_tuples, width, n_compare)
     root.mainloop()
 
 

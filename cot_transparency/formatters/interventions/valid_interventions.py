@@ -1,7 +1,8 @@
+# hack to import all the interventions from consistency.py
 from typing import Type
 
-from cot_transparency.formatters.interventions.intervention import Intervention
-
+if True:
+    from cot_transparency.formatters.interventions.consistency import Intervention
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = Intervention.all_interventions()
 
 

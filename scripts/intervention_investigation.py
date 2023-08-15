@@ -38,7 +38,7 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     return read
 
 
-def plot_dots_for_intervention(
+def accuracy_plot_dots_for_intervention(
     intervention: Optional[Type[Intervention]],
     all_tasks: Slist[TaskOutput],
     for_formatters: Sequence[Type[StageOneFormatter]],
@@ -135,7 +135,9 @@ def accuracy_diff_intervention(
     unbiased_plot_dots: dict[str, PlotDots] = (
         Slist(
             [
-                plot_dots_for_intervention(intervention, all_read, for_formatters=[unbiased_formatter], model=model)
+                accuracy_plot_dots_for_intervention(
+                    intervention, all_read, for_formatters=[unbiased_formatter], model=model
+                )
                 for intervention in interventions
             ]
         )
@@ -183,11 +185,11 @@ if __name__ == "__main__":
     ]
     unbiased_formatter = ZeroShotCOTUnbiasedFormatter
     # unbiased acc
-    unbiased_plot: PlotDots = plot_dots_for_intervention(
+    unbiased_plot: PlotDots = accuracy_plot_dots_for_intervention(
         None, all_read, for_formatters=[unbiased_formatter], name_override="Unbiased context", model=model
     )
 
-    sixteen_unbiased_plot: PlotDots = plot_dots_for_intervention(
+    sixteen_unbiased_plot: PlotDots = accuracy_plot_dots_for_intervention(
         NaiveFewShot16,
         all_read,
         for_formatters=[unbiased_formatter],
@@ -196,7 +198,7 @@ if __name__ == "__main__":
     )
 
     plot_dots: list[PlotDots] = [
-        plot_dots_for_intervention(intervention, all_read, for_formatters=biased_formatters, model=model)
+        accuracy_plot_dots_for_intervention(intervention, all_read, for_formatters=biased_formatters, model=model)
         for intervention in interventions
     ] + [sixteen_unbiased_plot]
     one_chart = TaskAndPlotDots(task_name="MMLU and aqua stuff", plot_dots=plot_dots)
