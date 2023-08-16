@@ -3,8 +3,8 @@ from typing import Type
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
 from cot_transparency.formatters.more_biases.model_written_evals import (
-    ModelWrittenEvalsBiasedFormatter,
-    ModelWrittenEvalsBiasedCOTFormatter,
+    ModelWrittenBiasedFormatter,
+    ModelWrittenBiasedCOTFormatter,
 )
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
     UserBiasedWrongCotFormatter,
@@ -109,8 +109,8 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         MoreRewardBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         StanfordBiasedLabelFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
-        ModelWrittenEvalsBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
-        ModelWrittenEvalsBiasedCOTFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedCOTFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 

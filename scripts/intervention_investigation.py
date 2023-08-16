@@ -18,7 +18,10 @@ from cot_transparency.formatters.interventions.consistency import (
     NaiveFewShotLabelOnly6,
     NaiveFewShotLabelOnly10,
     NaiveFewShotLabelOnly16,
-    NaiveFewShotLabelOnly32, NaiveFewShotLabelOnly1,
+    NaiveFewShotLabelOnly32,
+    NaiveFewShotLabelOnly1,
+    NaiveFewShot12,
+    PairedConsistency12,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -41,6 +44,9 @@ from cot_transparency.tasks import read_done_experiment
 from scripts.matching_user_answer import matching_user_answer_plot_dots
 from scripts.multi_accuracy import PlotDots, accuracy_outputs, TaskAndPlotDots
 from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
+
+
+# ruff: noqa: E501
 
 
 def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
@@ -194,9 +200,10 @@ def run(
 
     bar_plot(
         plot_dots=plot_dots,
-        title=f"Do more few shots help to improve accuracy in a biased context? Model: {model} Dataset: Aqua and mmlu",
+        title=f"More efficient to prompt with only unbiased questions compared to consistency pairs Model: {model} Dataset: Aqua and mmlu",
         dotted_line=dotted,
         subtitle=subtitle,
+        y_axis_title="Accuracy",
     )
     # accuracy_diff_intervention(interventions=interventions, unbiased_formatter=unbiased_formatter)
     matching_user_answer: list[PlotDots] = [
@@ -209,7 +216,7 @@ def run(
         plot_dots=matching_user_answer,
         title=f"How often does {model} choose the user's view? Model: {model} Dataset: Aqua and mmlu",
         y_axis_title="Answers matching user's view (%)",
-        subtitle=subtitle
+        subtitle=subtitle,
     )
 
 
@@ -231,7 +238,30 @@ def run_for_cot():
         StanfordBiasedFormatter,
         MoreRewardBiasedFormatter,
         # ZeroShotCOTSycophancyFormatter,
-        # DeceptiveAssistantBiasedFormatter,
+        DeceptiveAssistantBiasedFormatter,
+    ]
+    unbiased_formatter = ZeroShotCOTUnbiasedFormatter
+    run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
+
+
+def run_for_cot_naive_vs_consistency():
+    """
+    python stage_one.py --exp_dir experiments/interventions --dataset transparency --models "['gpt-4']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 61 --interventions "['PairedConsistency12', 'NaiveFewShot6', 'NaiveFewShot12']"
+    """
+    # what interventions to plot
+    interventions: Sequence[Type[Intervention] | None] = [
+        None,
+        PairedConsistency12,
+        NaiveFewShot6,
+        NaiveFewShot12,
+    ]
+    # what formatters to include
+    biased_formatters = [
+        WrongFewShotBiasedFormatter,
+        StanfordBiasedFormatter,
+        MoreRewardBiasedFormatter,
+        # ZeroShotCOTSycophancyFormatter,
+        DeceptiveAssistantBiasedFormatter,
     ]
     unbiased_formatter = ZeroShotCOTUnbiasedFormatter
     run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
@@ -257,11 +287,12 @@ def run_for_non_cot():
         StanfordNoCOTFormatter,
         MoreRewardBiasedNoCOTFormatter,
         # ZeroShotSycophancyFormatter,
-        # DeceptiveAssistantBiasedNoCOTFormatter,
+        DeceptiveAssistantBiasedNoCOTFormatter,
     ]
     unbiased_formatter = ZeroShotUnbiasedFormatter
     run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
 
 
 if __name__ == "__main__":
-    run_for_cot()
+    # run_for_cot()
+    run_for_cot_naive_vs_consistency()
