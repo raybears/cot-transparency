@@ -20,12 +20,14 @@ from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedCOTWithNoneAssistantFormatter,
     ModelWrittenBiasedCOTWithNoneAssistantMoreFormatter,
 )
+from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
+from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
 )
-from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
-from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
+
+# ruff: noqa: E501
 
 # ruff: noqa: E501
 
