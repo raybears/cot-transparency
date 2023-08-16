@@ -21,10 +21,6 @@ from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantBiasedFormatter,
     DeceptiveAssistantBiasedNoCOTFormatter,
 )
-from cot_transparency.formatters.more_biases.model_written_evals import (
-    ModelWrittenBiasedFormatter,
-    ModelWrittenBiasedCOTFormatter,
-)
 from cot_transparency.formatters.more_biases.more_reward import (
     MoreRewardBiasedFormatter,
     MoreRewardBiasedNoCOTFormatter,
