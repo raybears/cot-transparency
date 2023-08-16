@@ -1,7 +1,7 @@
-# hack to import all the interventions from consistency.py
 from typing import Type
 
 if True:
+    # hack to register all the interventions from consistency.py, and make sure lint does not remove this import
     from cot_transparency.formatters.interventions.consistency import Intervention
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = Intervention.all_interventions()
 
