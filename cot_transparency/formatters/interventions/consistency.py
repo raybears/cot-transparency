@@ -137,13 +137,43 @@ class NaiveFewShotLabelOnly10(Intervention):
         return new
 
 
-class NaiveFewShotLabelOnly20(Intervention):
+class NaiveFewShotLabelOnly3(Intervention):
     # Non cot, only the label
     @classmethod
     def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
-            get_correct_cots().sample(20, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
+            get_correct_cots().sample(3, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
+class NaiveFewShotLabelOnly6(Intervention):
+    # Non cot, only the label
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            get_correct_cots().sample(6, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
+class NaiveFewShotLabelOnly16(Intervention):
+    # Non cot, only the label
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            get_correct_cots().sample(16, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
@@ -159,6 +189,21 @@ class NaiveFewShotLabelOnly30(Intervention):
         messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots().sample(30, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
+class NaiveFewShotLabelOnly32(Intervention):
+    # Non cot, only the label
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            get_correct_cots().sample(32, seed=question.hash()).map(format_unbiased_question_non_cot).sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
             messages=messages,

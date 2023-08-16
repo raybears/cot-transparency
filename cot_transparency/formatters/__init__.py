@@ -63,6 +63,7 @@ from cot_transparency.formatters.transparency.interventions.logical_consequence 
 )
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
+    WrongFewShotBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantBiasedFormatter,
@@ -98,6 +99,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         StanfordNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         UserBiasedWrongCotFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         WrongFewShotBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        WrongFewShotBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         MoreRewardBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         BeUnbiasedCOTSycophancyFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
