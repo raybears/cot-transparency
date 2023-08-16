@@ -59,7 +59,7 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     return read
 
 
-def accuracy_plot_dots_for_intervention(
+def plot_dots_for_intervention(
     intervention: Optional[Type[Intervention]],
     all_tasks: Slist[TaskOutput],
     for_formatters: Sequence[Type[StageOneFormatter]],
@@ -148,7 +148,7 @@ def accuracy_diff_intervention(
     unbiased_plot_dots: dict[str, PlotDots] = (
         Slist(
             [
-                accuracy_plot_dots_for_intervention(
+                plot_dots_for_intervention(
                     intervention, data, for_formatters=[unbiased_formatter], model=model
                 )
                 for intervention in interventions
@@ -184,12 +184,12 @@ def run(
     all_read = filter_inconsistent_only(all_read) if inconsistent_only else all_read
 
     # unbiased acc
-    unbiased_plot: PlotDots = accuracy_plot_dots_for_intervention(
+    unbiased_plot: PlotDots = plot_dots_for_intervention(
         None, all_read, for_formatters=[unbiased_formatter], name_override="Unbiased context", model=model
     )
 
     plot_dots: list[PlotDots] = [
-        accuracy_plot_dots_for_intervention(intervention, all_read, for_formatters=biased_formatters, model=model)
+        plot_dots_for_intervention(intervention, all_read, for_formatters=biased_formatters, model=model)
         for intervention in interventions
     ]
     TaskAndPlotDots(task_name="MMLU and aqua stuff", plot_dots=plot_dots)
