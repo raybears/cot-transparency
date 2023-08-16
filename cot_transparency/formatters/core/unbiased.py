@@ -1,4 +1,11 @@
-from cot_transparency.data_models.example_base import ChoiceVariant, MultipleChoiceAnswer
+import itertools
+from cot_transparency.data_models.example_base import (
+    ChoiceVariant,
+    DataFormatSpec,
+    JoinStr,
+    MultipleChoiceAnswer,
+    QuestionPrefix,
+)
 from cot_transparency.data_models.models import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
@@ -109,31 +116,38 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
         return extract_answer_non_cot(response, dump_failed=False)
 
 
-class ZeroShotUnbiasedNumFormatter(ZeroShotUnbiasedFormatter):
-    is_biased = False
-    is_cot = False
+def prompt_sensitivity_factory(data_format_spec: DataFormatSpec):
+    class ZeroShotPromptSenFormatter(ZeroShotUnbiasedFormatter):
+        is_biased = False
+        is_cot = False
 
-    @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
-        return extract_answer_non_cot(response, dump_failed=False, input_format=ChoiceVariant.NUMBERS)
+        @staticmethod
+        def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+            question = question.to_variant(data_format_spec)
+            return ZeroShotUnbiasedFormatter.format_example(question=question, model=model)
+
+        @staticmethod
+        def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+            return extract_answer_non_cot(response, dump_failed=False, input_format=data_format_spec.choice_variant)
+
+        @classmethod
+        def name(cls) -> str:
+            return f"{cls.__name__}_{data_format_spec.choice_variant.name}_{data_format_spec.question_variant.name}_{data_format_spec.join_variant.name}"
+
+    return ZeroShotPromptSenFormatter
 
 
-class ZeroShotUnbiasedRMFormatter(ZeroShotUnbiasedFormatter):
-    is_biased = False
-    is_cot = False
+def register_prompt_sensitivity_formatters():
+    choice_variants = [i for i in ChoiceVariant]
+    question_prefix = [i for i in QuestionPrefix]
+    join_str = [i for i in JoinStr]
 
-    @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
-        return extract_answer_non_cot(response, dump_failed=False, input_format=ChoiceVariant.ROMAN)
-
-
-class ZeroShotUnbiasedFooFormatter(ZeroShotUnbiasedFormatter):
-    is_biased = False
-    is_cot = False
-
-    @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
-        return extract_answer_non_cot(response, dump_failed=False, input_format=ChoiceVariant.FOO)
+    combinations = itertools.product(choice_variants, question_prefix, join_str)
+    formatters = [
+        prompt_sensitivity_factory(DataFormatSpec(choice_variant=c, question_variant=q, join_variant=j))
+        for c, q, j in combinations
+    ]
+    return formatters
 
 
 class ZeroShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):

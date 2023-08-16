@@ -55,9 +55,23 @@ class ChoiceVariant(str, Enum):
     def answers_list(self) -> list[str]:
         choices_map = {
             ChoiceVariant.LETTERS: list(ascii_uppercase),
-            ChoiceVariant.NUMBERS: [str(i) for i in range(1, 10)],
-            ChoiceVariant.ROMAN: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"],
-            ChoiceVariant.FOO: ["foo", "bar", "baz", "qux", "quux", "corge", "grault", "garply", "waldo"],
+            ChoiceVariant.NUMBERS: [str(i) for i in range(1, 15)],
+            ChoiceVariant.ROMAN: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII"],
+            ChoiceVariant.FOO: [
+                "foo",
+                "bar",
+                "baz",
+                "qux",
+                "quux",
+                "corge",
+                "grault",
+                "garply",
+                "waldo",
+                "fred",
+                "plugh",
+                "xyzzy",
+                "thud",
+            ],
         }
         return choices_map[self]
 
@@ -96,17 +110,10 @@ class DataExampleBase(BaseModel, ABC):
 
     def to_variant(
         self,
-        choice_variant: ChoiceVariant = ChoiceVariant.LETTERS,
-        question_prefix: QuestionPrefix = QuestionPrefix.NONE,
-        join_str: JoinStr = JoinStr.ANS_CHOICES,
+        data_format_spec=DataFormatSpec,
     ) -> Self:
         c = self.copy()
-        new_question_format = DataFormatSpec(
-            choice_variant=choice_variant,
-            question_variant=question_prefix,
-            join_variant=join_str,
-        )
-        c.data_format = new_question_format
+        c.data_format = data_format_spec
 
         return c
 

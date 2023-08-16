@@ -111,7 +111,8 @@ def validate_tasks(tasks: list[str]) -> list[str]:
 
 
 def get_list_of_examples(
-    task: str, dataset: Optional[str] = None, data_loading_cap: Optional[int] = None
+    task: str,
+    dataset: Optional[str] = None,
 ) -> Slist[DataExampleBase]:
     data = None
     if dataset == "bbh_biased_wrong_cot":
@@ -157,9 +158,6 @@ def main(
     batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
-    question_prefixes: list[str] = [QuestionPrefix.NONE.name],
-    choice_variants: list[str] = [ChoiceVariant.LETTERS.name],
-    join_strs: list[str] = [JoinStr.ANS_CHOICES.name],
 ):
     if dataset is not None:
         assert tasks is None, "dataset and tasks are mutually exclusive"
@@ -179,13 +177,6 @@ def main(
     task_settings: list[TaskSetting] = create_task_settings(
         tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
     )
-
-    # get combinations of question prefix, choice variant and join str
-    # convert the question, choice and join_str to enums
-    question_prefix_e = [QuestionPrefix[qp] for qp in question_prefixes]
-    choice_variant_e = [ChoiceVariant[cv] for cv in choice_variants]
-    join_str_e = [JoinStr[js] for js in join_strs]
-    question_style_combinations = itertools.product(question_prefix_e, choice_variant_e, join_str_e)
 
     tasks_to_run: list[TaskSpec] = []
     for setting in task_settings:
@@ -229,32 +220,28 @@ def main(
             config.max_tokens = 3
 
         for item in data:
-            for question_prefix, choice_variant, join_str in question_style_combinations:
-                item = item.to_variant(
-                    question_prefix=question_prefix, choice_variant=choice_variant, join_str=join_str
+            for i in range(repeats_per_question):
+                messages = (
+                    setting.intervention.intervene(question=item, formatter=formatter)
+                    if setting.intervention
+                    else formatter.format_example(question=item, model=model)
                 )
-                for i in range(repeats_per_question):
-                    messages = (
-                        setting.intervention.intervene(question=item, formatter=formatter)
-                        if setting.intervention
-                        else formatter.format_example(question=item, model=model)
-                    )
-                    task_spec = TaskSpec(
-                        task_name=task,
-                        model_config=config,
-                        messages=messages,
-                        out_file_path=out_file_path,
-                        ground_truth=item.ground_truth,
-                        formatter_name=formatter.name(),
-                        task_hash=item.hash(),
-                        biased_ans=item.biased_ans,
-                        data_example=item.dict(),
-                        repeat_idx=i,
-                        intervention_name=setting.intervention.name() if setting.intervention else None,
-                    )
-                    tasks_to_run.append(task_spec)
+                task_spec = TaskSpec(
+                    task_name=task,
+                    model_config=config,
+                    messages=messages,
+                    out_file_path=out_file_path,
+                    ground_truth=item.ground_truth,
+                    formatter_name=formatter.name(),
+                    task_hash=item.hash(),
+                    biased_ans=item.biased_ans,
+                    data_example=item.dict(),
+                    repeat_idx=i,
+                    intervention_name=setting.intervention.name() if setting.intervention else None,
+                )
+                tasks_to_run.append(task_spec)
 
-    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run)
+    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=False)
 
 
 def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneFormatter]]:
