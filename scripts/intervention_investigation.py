@@ -148,9 +148,7 @@ def accuracy_diff_intervention(
     unbiased_plot_dots: dict[str, PlotDots] = (
         Slist(
             [
-                plot_dots_for_intervention(
-                    intervention, data, for_formatters=[unbiased_formatter], model=model
-                )
+                plot_dots_for_intervention(intervention, data, for_formatters=[unbiased_formatter], model=model)
                 for intervention in interventions
             ]
         )
