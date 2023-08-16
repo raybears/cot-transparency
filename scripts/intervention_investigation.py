@@ -18,7 +18,7 @@ from cot_transparency.formatters.interventions.consistency import (
     NaiveFewShotLabelOnly6,
     NaiveFewShotLabelOnly10,
     NaiveFewShotLabelOnly16,
-    NaiveFewShotLabelOnly32,
+    NaiveFewShotLabelOnly32, NaiveFewShotLabelOnly1,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -59,14 +59,12 @@ def accuracy_plot_dots_for_intervention(
     for_formatters: Sequence[Type[StageOneFormatter]],
     model: str,
     name_override: Optional[str] = None,
-    inconsistent_only: bool = True,
 ) -> PlotDots:
     intervention_name: str | None = intervention.name() if intervention else None
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
         all_tasks.filter(lambda task: intervention_name == task.task_spec.intervention_name)
         .filter(lambda task: task.task_spec.formatter_name in formatters_names)
-        .filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth) if inconsistent_only else True)
         .filter(lambda task: task.task_spec.model_config.model == model)
     )
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
@@ -102,10 +100,10 @@ def bar_plot(
                 text=[f"          {dot.acc.accuracy:.2f}"],
             )
         )
-
+    title_text = f"{title}<br>{subtitle}" if subtitle else title
     fig.update_layout(
         barmode="group",
-        title_text=title,
+        title_text=title_text,
         title_x=0.5,
     )
     if y_axis_title is not None:
@@ -125,19 +123,6 @@ def bar_plot(
                 name=dotted_line.name,
                 showlegend=True,
             ),
-        )
-
-    if subtitle:
-        fig.add_annotation(
-            x=1,
-            y=0,
-            xref="paper",
-            yref="paper",
-            xanchor="right",
-            yanchor="top",
-            text=subtitle,
-            showarrow=False,
-            font=dict(size=12, color="#555"),
         )
 
     if save_file_path is not None:
@@ -178,38 +163,40 @@ def accuracy_diff_intervention(
     )
 
 
+def filter_inconsistent_only(data: Slist[TaskOutput]) -> Slist[TaskOutput]:
+    return data.filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth))
+
+
 def run(
     interventions: Sequence[Type[Intervention] | None],
     biased_formatters: Sequence[Type[StageOneFormatter]],
     unbiased_formatter: Type[StageOneFormatter],
+    inconsistent_only: bool = True,
 ):
     model = "gpt-4"
     all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/interventions")
+    all_read = filter_inconsistent_only(all_read) if inconsistent_only else all_read
 
     # unbiased acc
     unbiased_plot: PlotDots = accuracy_plot_dots_for_intervention(
         None, all_read, for_formatters=[unbiased_formatter], name_override="Unbiased context", model=model
     )
 
-    sixteen_unbiased_plot: PlotDots = accuracy_plot_dots_for_intervention(
-        NaiveFewShot16,
-        all_read,
-        for_formatters=[unbiased_formatter],
-        name_override="16 shot Unbiased context",
-        model=model,
-    )
-
     plot_dots: list[PlotDots] = [
         accuracy_plot_dots_for_intervention(intervention, all_read, for_formatters=biased_formatters, model=model)
         for intervention in interventions
-    ] + [sixteen_unbiased_plot]
+    ]
     TaskAndPlotDots(task_name="MMLU and aqua stuff", plot_dots=plot_dots)
     # accuracy_plot([one_chart], title="Accuracy of Interventions")
     dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
+
+    subtitle = "Bias is always on the wrong answer" if inconsistent_only else "Bias may be on the correct answer"
+
     bar_plot(
         plot_dots=plot_dots,
         title=f"Do more few shots help to improve accuracy in a biased context? Model: {model} Dataset: Aqua and mmlu",
         dotted_line=dotted,
+        subtitle=subtitle,
     )
     # accuracy_diff_intervention(interventions=interventions, unbiased_formatter=unbiased_formatter)
     matching_user_answer: list[PlotDots] = [
@@ -222,10 +209,14 @@ def run(
         plot_dots=matching_user_answer,
         title=f"How often does {model} choose the user's view? Model: {model} Dataset: Aqua and mmlu",
         y_axis_title="Answers matching user's view (%)",
+        subtitle=subtitle
     )
 
 
 def run_for_cot():
+    """
+    python stage_one.py --exp_dir experiments/interventions --dataset transparency --models "['gpt-4']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 61 --interventions "['NaiveFewShot3', 'NaiveFewShot6', 'NaiveFewShot16']"
+    """
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
         None,
@@ -240,16 +231,20 @@ def run_for_cot():
         StanfordBiasedFormatter,
         MoreRewardBiasedFormatter,
         # ZeroShotCOTSycophancyFormatter,
-        DeceptiveAssistantBiasedFormatter,
+        # DeceptiveAssistantBiasedFormatter,
     ]
     unbiased_formatter = ZeroShotCOTUnbiasedFormatter
     run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
 
 
 def run_for_non_cot():
+    """
+    python stage_one.py --exp_dir experiments/interventions --dataset transparency --models "['gpt-4']" --formatters '["ZeroShotSycophancyFormatter", "MoreRewardBiasedNoCOTFormatter", "StanfordNoCOTFormatter", "DeceptiveAssistantBiasedNoCOTFormatter", "WrongFewShotBiasedNoCOTFormatter", "ZeroShotUnbiasedFormatter"]' --example_cap 61 --interventions "['NaiveFewShotLabelOnly3','NaiveFewShotLabelOnly6','NaiveFewShotLabelOnly10','NaiveFewShotLabelOnly16','NaiveFewShotLabelOnly32']"
+    """
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
         None,
+        NaiveFewShotLabelOnly1,
         NaiveFewShotLabelOnly3,
         NaiveFewShotLabelOnly6,
         NaiveFewShotLabelOnly10,
@@ -262,7 +257,7 @@ def run_for_non_cot():
         StanfordNoCOTFormatter,
         MoreRewardBiasedNoCOTFormatter,
         # ZeroShotSycophancyFormatter,
-        DeceptiveAssistantBiasedNoCOTFormatter,
+        # DeceptiveAssistantBiasedNoCOTFormatter,
     ]
     unbiased_formatter = ZeroShotUnbiasedFormatter
     run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
