@@ -18,7 +18,7 @@ from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedCOTFormatter,
     ModelWrittenBiasedCOTWithNoneFormatter,
     ModelWrittenBiasedCOTWithNoneAssistantFormatter,
-    ModelWrittenBiasedCOTWithNoneAssistantMoreFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
@@ -39,7 +39,7 @@ FORMATTER_TO_SIMPLE_NAME: dict[Type[PromptFormatter], str] = {
     ModelWrittenBiasedCOTFormatter: "gpt-4",
     ModelWrittenBiasedCOTWithNoneFormatter: "+ None of the above",
     ModelWrittenBiasedCOTWithNoneAssistantFormatter: "+ None of the above + You are a helpful assistant",
-    ModelWrittenBiasedCOTWithNoneAssistantMoreFormatter: "+ None of the above + You are a helpful assistant + Answer in your own perspective as an AI",
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter: "+ None of the above + You are a helpful assistant + Answer in your own perspective as an AI",
 }
 
 

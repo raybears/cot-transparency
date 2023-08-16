@@ -8,19 +8,18 @@ from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question, COT_ASSISTANT_PROMPT
 
 
-# ModelWrittenBiasedFormatter and ModelWrittenBiasedCOTFormatter simply inherit from the unbiased formatters,
-# because the dat aexamples already have the bias inside them.
-
-
+# NOTE: For the model written evals dataset, the data examples already have the bias inside them
 class ModelWrittenBiasedFormatter(ZeroShotUnbiasedFormatter):
-    ...
+    is_biased = True
 
 
 class ModelWrittenBiasedCOTFormatter(ZeroShotCOTUnbiasedFormatter):
-    ...
+    is_biased = True
 
 
 class ModelWrittenBiasedCOTWithNoneFormatter(StageOneFormatter):
+    is_biased = True
+
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         user_message = add_verbalize_instruction_to_question(question.get_parsed_input_with_none_of_the_above())
@@ -36,6 +35,8 @@ class ModelWrittenBiasedCOTWithNoneFormatter(StageOneFormatter):
 
 
 class ModelWrittenBiasedCOTWithNoneAssistantFormatter(StageOneFormatter):
+    is_biased = True
+
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         # adds system prompt saying that "You are a helpful AI assistant"
@@ -54,7 +55,9 @@ class ModelWrittenBiasedCOTWithNoneAssistantFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class ModelWrittenBiasedCOTWithNoneAssistantMoreFormatter(StageOneFormatter):
+class ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter(StageOneFormatter):
+    is_biased = True
+
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         # adds system prompt saying that "You are a helpful AI assistant"

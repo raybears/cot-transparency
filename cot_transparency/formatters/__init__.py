@@ -5,6 +5,9 @@ from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbia
 from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedFormatter,
     ModelWrittenBiasedCOTFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantFormatter,
+    ModelWrittenBiasedCOTWithNoneFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
 )
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
     UserBiasedWrongCotFormatter,
@@ -109,8 +112,11 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         MoreRewardBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         StanfordBiasedLabelFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
-        ModelWrittenBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         ModelWrittenBiasedCOTFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedCOTWithNoneFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedCOTWithNoneAssistantFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 

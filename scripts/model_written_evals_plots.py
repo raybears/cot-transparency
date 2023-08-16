@@ -3,7 +3,7 @@ from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedCOTFormatter,
     ModelWrittenBiasedCOTWithNoneAssistantFormatter,
     ModelWrittenBiasedCOTWithNoneFormatter,
-    ModelWrittenBiasedCOTWithNoneAssistantMoreFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
 )
 from scripts.intervention_investigation import read_whole_exp_dir, bar_plot
 from scripts.matching_user_answer import matching_user_answer_plot_dots
@@ -20,7 +20,7 @@ def plot_model_written_evals():
         ModelWrittenBiasedCOTFormatter,
         ModelWrittenBiasedCOTWithNoneFormatter,
         ModelWrittenBiasedCOTWithNoneAssistantFormatter,
-        ModelWrittenBiasedCOTWithNoneAssistantMoreFormatter,
+        ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
     ]
     plot_dots: list[PlotDots] = [
         matching_user_answer_plot_dots(
