@@ -1,11 +1,6 @@
 from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
-from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
-from cot_transparency.formatters.more_biases.user_wrong_cot import (
-    UserBiasedWrongCotFormatter,
-    ModelBiasedWrongCotFormatter,
-)
 from cot_transparency.formatters.core.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
@@ -21,7 +16,37 @@ from cot_transparency.formatters.core.unbiased import (
     FewShotCOTUnbiasedNoRoleFormatter,
     FewShotUnbiasedNoRoleFormatter,
 )
-
+from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
+from cot_transparency.formatters.more_biases.deceptive_assistant import (
+    DeceptiveAssistantBiasedFormatter,
+    DeceptiveAssistantBiasedNoCOTFormatter,
+)
+from cot_transparency.formatters.more_biases.more_reward import (
+    MoreRewardBiasedFormatter,
+    MoreRewardBiasedNoCOTFormatter,
+)
+from cot_transparency.formatters.more_biases.user_wrong_cot import (
+    UserBiasedWrongCotFormatter,
+    ModelBiasedWrongCotFormatter,
+)
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotBiasedFormatter,
+    WrongFewShotBiasedNoCOTFormatter,
+)
+from cot_transparency.formatters.transparency.interventions.logical_consequence import (
+    LogicalConsequenceChatFormatter,
+    LogicalConsequence2ChatFormatter,
+)
+from cot_transparency.formatters.transparency.mistakes import (
+    CompletePartialCOT,
+    FewShotGenerateMistakeFormatter,
+)
+from cot_transparency.formatters.transparency.s1_baselines import (
+    FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
+    FewShotCOTUnbiasedTameraTFormatter,
+    ZeroShotCOTUnbiasedTameraTFormatter,
+)
+from cot_transparency.formatters.transparency.util import FullCOTFormatter
 from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
     StanfordTreatmentFormatter,
@@ -38,35 +63,6 @@ from cot_transparency.formatters.verbalize.formatters import (
     CrossBiasedFormatter,
     CheckmarkBiasedFormatter,
     StanfordBiasedLabelFormatter,
-)
-
-from cot_transparency.formatters.transparency.mistakes import (
-    CompletePartialCOT,
-    FewShotGenerateMistakeFormatter,
-)
-
-from cot_transparency.formatters.transparency.util import FullCOTFormatter
-
-from cot_transparency.formatters.transparency.s1_baselines import (
-    FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
-    FewShotCOTUnbiasedTameraTFormatter,
-    ZeroShotCOTUnbiasedTameraTFormatter,
-)
-
-from cot_transparency.formatters.transparency.interventions.logical_consequence import (
-    LogicalConsequenceChatFormatter,
-    LogicalConsequence2ChatFormatter,
-)
-from cot_transparency.formatters.more_biases.wrong_few_shot import (
-    WrongFewShotBiasedFormatter,
-)
-from cot_transparency.formatters.more_biases.deceptive_assistant import (
-    DeceptiveAssistantBiasedFormatter,
-    DeceptiveAssistantBiasedNoCOTFormatter,
-)
-from cot_transparency.formatters.more_biases.more_reward import (
-    MoreRewardBiasedFormatter,
-    MoreRewardBiasedNoCOTFormatter,
 )
 
 
@@ -94,6 +90,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         StanfordNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         UserBiasedWrongCotFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         WrongFewShotBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        WrongFewShotBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         MoreRewardBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         BeUnbiasedCOTSycophancyFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),

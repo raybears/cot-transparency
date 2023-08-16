@@ -5,10 +5,12 @@ from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import (
     extract_answer,
+    extract_answer_non_cot,
 )
 from cot_transparency.formatters.instructions import (
     add_verbalize_instruction_to_question,
     COT_ASSISTANT_PROMPT,
+    NON_COT_ASSISTANT_PROMPT,
 )
 
 
@@ -49,3 +51,21 @@ class WrongFewShotBiasedFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
+
+
+class WrongFewShotBiasedNoCOTFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+        formatted_question = format_wrong_few_shots_question(question=question)
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
