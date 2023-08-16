@@ -44,8 +44,9 @@ class GUI:
         self.json_dict = json_dict
         self.keys = list(self.json_dict.keys())
         self.index = 0
+
+        self.task_hashes: list = list(json_dict[self.keys[0]].keys())  # type: ignore
         # these are the task specs available for the selected json
-        self.task_hashes = list(json_dict[self.keys[0]].keys())  # type: ignore
         self.task_hash_idx = 0
         self.fontsize = 16
         self.alignment = "w"  # change to "center" to center align
@@ -120,6 +121,13 @@ class GUI:
         self.select_json()
         self.display_output()
 
+    def select_task(self, task_name: str):
+        self.task_var = task_name
+        self.select_json()
+        self.task_hashes = list(self.selected_exp.keys())
+        self.task_hash_idx = 0
+        self.display_output()
+
     def select_json(self, *args: Any, reset_index: bool = True):
         key = [self.task_var]
         for var in self.dropdown_vars:
@@ -188,8 +196,6 @@ class GUI:
         self.clear_fields()
 
         # Insert new text
-        print("Task Hash Idx", self.task_hash_idx)
-        print("Index", self.index)
         output = experiment[self.task_hashes[self.task_hash_idx]][self.index]
 
         formatted_output = Prompt(messages=output.task_spec.messages).convert_to_completion_str()
@@ -221,9 +227,6 @@ class GUI:
                 except ValueError:
                     complete_modified_cot = ""
                 self.cot_texts[1][0].insert(END, complete_modified_cot)
-
-        else:
-            print("Not a stage two task spec")
 
 
 def convert_nested_dict_s2(
@@ -316,7 +319,7 @@ class CompareGUI:
         self.task_dropdown = OptionMenu(
             master,
             self.task_var,
-            *{key[0] for key in self.keys},
+            *{i for i in self.keys},
             command=self.select_task,  # type: ignore
         )
         self.task_dropdown.config(font=("Arial", self.fontsize))
@@ -382,8 +385,7 @@ class CompareGUI:
 
     def select_task(self, task_name: str):
         for gui in self.base_guis:
-            gui.task_var = task_name
-            gui.select_json()
+            gui.select_task(task_name)
 
 
 def main(exp_dir: str, width: int = 175, n_compare: int = 1):

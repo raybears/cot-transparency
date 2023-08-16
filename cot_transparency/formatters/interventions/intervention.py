@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import final, Type
+from typing import Type, Self, Set
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
@@ -13,14 +13,15 @@ class Intervention(ABC):
 
     @classmethod
     @abstractmethod
-    def hook(cls, question: DataExampleBase, messages: list[ChatMessage]) -> list[ChatMessage]:
-        """Define a hook that can be used to intervene in the formatting process."""
-        pass
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        raise NotImplementedError
 
     @classmethod
-    @final
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
-        # Please don't override this method unless you know what you are doing. You should only need to override `hook`.
-        messages = formatter.format_example(question)
-        new_messages = cls.hook(question, messages)
-        return new_messages
+    def all_interventions(cls) -> dict[str, Type[Self]]:
+        return {s.name(): s for s in cls.all_subclasses()}
+
+    @classmethod
+    def all_subclasses(cls) -> Set[Type[Self]]:
+        # get all subclasses recursively
+        subclasses: set[Type[Intervention]] = set(cls.__subclasses__())
+        return subclasses.union([s for c in subclasses for s in c.all_subclasses()])
