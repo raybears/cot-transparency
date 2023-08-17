@@ -14,6 +14,15 @@ from cot_transparency.formatters.interventions.consistency import (
     NaiveFewShot12,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
+from cot_transparency.formatters.more_biases.model_written_evals import (
+    ModelWrittenBiasedCOTFormatter,
+    ModelWrittenBiasedCOTWithNoneFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedFormatter,
+    ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedWithNoneFormatter,
+)
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
@@ -23,11 +32,20 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
 
 # ruff: noqa: E501
 
+# ruff: noqa: E501
+
 FORMATTER_TO_SIMPLE_NAME: dict[Type[PromptFormatter], str] = {
     DeceptiveAssistantBiasedFormatter: "Tell model to be deceptive",
     MoreRewardBiasedFormatter: "More reward for an option",
     UserBiasedWrongCotFormatter: "User says wrong reasoning",
     WrongFewShotBiasedFormatter: "Wrong label in the few shot",
+    ModelWrittenBiasedCOTFormatter: "",
+    ModelWrittenBiasedCOTWithNoneFormatter: "+ None of the above",
+    ModelWrittenBiasedCOTWithNoneAssistantFormatter: "+ None of the above + You are a helpful assistant",
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter: "+ None of the above + You are a helpful assistant. Answer in your own perspective as an AI",
+    ModelWrittenBiasedFormatter: "",
+    ModelWrittenBiasedWithNoneFormatter: "+ None of the above",
+    ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter: "+ None of the above + You are a helpful assistant. Answer in your own perspective as an AI",
 }
 
 
