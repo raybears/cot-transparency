@@ -1,11 +1,12 @@
-import json
-from typing import List, Literal
+from pathlib import Path
+from typing import Literal
 from string import ascii_uppercase
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
 
-PROMPT = "Question: Which of the answer choices best completes the following sentence?"
+PROMPT = "Which of the answer choices best completes the following sentence?"
 
 
 class HellaSwagExample(DataExampleBase):
@@ -19,34 +20,22 @@ class HellaSwagExample(DataExampleBase):
     source_id: str
     label: int
 
-    def process_options(self, options: List[str]) -> str:
+    def _get_options(
+        self,
+    ) -> list[str]:
         outputs = []
-        for i, option in enumerate(options):
-            letter = ascii_uppercase[i]
-            outputs.append(f"({letter}) {option}")
-        return "\n".join(outputs)
+        for option in self.endings:
+            outputs.append(option)
+        return outputs
 
-    def get_parsed_input(self) -> str:
-        options = self.process_options(self.endings)
-        return f"{PROMPT}\n\n{self.ctx}\n\nAnswer choices:\n{options}"
-
-    @property
-    def n_choices(self) -> int:
-        return len(self.endings)
+    def _get_question(self) -> str:
+        return PROMPT + f" {self.ctx}"
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         return ascii_uppercase[self.label]  # type: ignore
 
 
-def load_hellaswag(dev_path: str) -> list[HellaSwagExample]:
-    with open(dev_path) as f:
-        output = []
-        for line in f:
-            output.append(HellaSwagExample(**json.loads(line)))
-    return output
-
-
 def val() -> list[HellaSwagExample]:
-    dev_path = "./data/hellaswag/hellaswag_val.jsonl"
-    return load_hellaswag(dev_path)
+    dev_path = Path("./data/hellaswag/hellaswag_val.jsonl")
+    return read_jsonl_file_into_basemodel(dev_path, HellaSwagExample)

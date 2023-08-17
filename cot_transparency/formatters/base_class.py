@@ -11,7 +11,7 @@ class PromptFormatter(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_answer(response: str) -> Optional[str]:
+    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
         raise NotImplementedError
 
     @classmethod
@@ -32,7 +32,7 @@ class PromptFormatter(ABC):
 class StageOneFormatter(PromptFormatter, ABC):
     @staticmethod
     @abstractmethod
-    def format_example(question: DataExampleBase) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         raise NotImplementedError
 
     @classmethod

@@ -100,3 +100,6 @@ tests:
       Therefore, the best answer is: 
       (A) The Shawshank Redemption
     answer: "A"
+  - text: |
+      The single most likely answer is: $\boxed{\text{(B) 25\%}}$.
+    answer: "B"

@@ -1,4 +1,3 @@
-import math
 import fire
 from matplotlib import pyplot as plt
 from cot_transparency.data_models.models import (
@@ -11,7 +10,6 @@ from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.formatters import name_to_formatter
 from scripts.multi_accuracy import plot_accuracy_for_exp
 import seaborn as sns
-import numpy as np
 
 from stage_one import TASK_LIST
 
@@ -71,13 +69,15 @@ def accuracy(
     model_filter: Optional[str] = None,
     formatters: Sequence[str] = [],
     check_counts: bool = True,
+    csv: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
     """
     exp_dir: path to directory containing experiment jsons
     inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
+    csv: if True, write to csv
     """
     df = get_data_frame_from_exp_dir(exp_dir)
-    accuracy_for_df(
+    done = accuracy_for_df(
         df,
         inconsistent_only=inconsistent_only,
         aggregate_over_tasks=aggregate_over_tasks,
@@ -85,6 +85,10 @@ def accuracy(
         model_filter=model_filter,
         check_counts=check_counts,
     )
+    if csv:
+        # write
+        print("Writing to csv at accuracy.csv")
+        done.to_csv("accuracy.csv")
 
 
 def apply_filters(
@@ -103,6 +107,7 @@ def apply_filters(
     if formatters:
         # check that df.formatter_name is in formatters
         df = df[df.formatter_name.isin(formatters)]
+        assert len(df) > 0, f"formatters {formatters} not found in {df.formatter_name.unique()}"
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
@@ -129,6 +134,12 @@ def accuracy_for_df(
         aggregate_over_tasks=aggregate_over_tasks,
         df=df,
     )
+    df["intervention_name"] = df["intervention_name"].fillna("")
+    # add "<-" if intervention_name is not null
+    df["intervention_name"] = df["intervention_name"].apply(lambda x: "<-" + x if x else x)
+
+    # add formatter_name and intervention_name together
+    df["formatter_name"] = df["formatter_name"] + df["intervention_name"]
 
     groups = ["task_name", "model", "formatter_name"]
     accuracy_df_grouped = df[["is_correct", "task_name", "model", "formatter_name"]].groupby(groups)
@@ -186,54 +197,6 @@ def counts_are_equal(count_df: pd.DataFrame) -> bool:
     return (count_df.nunique(axis=1) == 1).all()
 
 
-def generic_bar_plot(
-    df: pd.DataFrame,
-    x: str,
-    y: str,
-    hue: Optional[str] = None,
-    subplot: Optional[str] = None,
-    ncols: int = 2,
-    **kwargs: dict[str, Any],
-):
-    # assert all temperatures are the same
-    assert df.temperature.nunique() == 1
-    temperature = df.temperature.unique()[0]
-    # add temperature to model
-    df["model"] = df["model"] + f" (T={temperature})"
-
-    sns.set_theme(style="whitegrid")
-    if subplot is None:
-        sns.barplot(data=df, x=x, y=y, hue=hue)
-
-    n_subplots = len(df[subplot].unique())
-    nrows = math.ceil(n_subplots / ncols)
-    ncols = min(ncols, n_subplots)
-    fig, axs = plt.subplots(ncols=ncols, nrows=nrows, figsize=(4 * ncols, (4 * nrows) * 1 / 0.75))
-    if n_subplots == 1:
-        axs = np.array([axs])
-    flat_axs = axs.flatten()
-    for i, sp in enumerate(df[subplot].unique()):
-        ax = flat_axs[i]
-        sns.barplot(data=df[df.model == sp], x=x, y=y, hue=hue, ax=ax, capsize=0.05, **kwargs)  # type: ignore
-        ax.set_title(sp)
-
-    # grab legend from last plot and move it to the right
-    handles, labels = ax.get_legend_handles_labels()  # type: ignore
-    fig.legend(handles, labels, loc="lower center", ncol=2)
-
-    # delete legends on subplots
-    for i in range(n_subplots):
-        flat_axs[i].get_legend().remove()
-
-    # delete unused plots
-    for i in range(n_subplots, len(flat_axs)):
-        fig.delaxes(flat_axs[i])
-
-    fig.tight_layout()  # type: ignore
-    fig.subplots_adjust(bottom=0.25)
-    plt.show()
-
-
 def simple_plot(
     exp_dir: str,
     inconsistent_only: bool = True,
@@ -243,7 +206,7 @@ def simple_plot(
     x: str = "task_name",
     y: str = "Accuracy",
     hue: str = "formatter_name",
-    subplot: str = "model",
+    col: str = "model",
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
@@ -256,12 +219,15 @@ def simple_plot(
 
     # remove Unbiased or Sycophancy from formatter name
     df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
-    df["formatter_name"] = df["formatter_name"].str.replace("Unbiased", "")
-    df["formatter_name"] = df["formatter_name"].str.replace("Sycophancy", "")
+    df["formatter_name"] = df["formatter_name"].str.replace("ZeroShot", "0S: ")
+    df["formatter_name"] = df["formatter_name"].str.replace("ZeroShot", "FS: ")
 
     # rename is_correct to Accuracy
     df = df.rename(columns={"is_correct": "Accuracy"})
-    generic_bar_plot(df, x=x, y=y, hue=hue, subplot=subplot, ncols=2)
+    # add temperature to model name
+    df["model"] = df["model"] + " (T=" + df["temperature"].astype(str) + ")"
+    sns.catplot(data=df, x=x, y=y, hue=hue, col=col, capsize=0.05, errwidth=1, kind="bar")
+    plt.show()
 
 
 def point_plot(

@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from pathlib import Path
 import random
-from typing import Type, Union
+from typing import Type, Union, Optional
 
 from pydantic import BaseModel
 from retry import retry
@@ -16,6 +16,7 @@ from cot_transparency.data_models.models import (
     ModelOutput,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.interventions.intervention import Intervention
 
 from cot_transparency.model_apis import call_model_api
 from cot_transparency.data_models.models import ChatMessage
@@ -30,7 +31,7 @@ logger = setup_logger(__name__)
 
 
 class AnswerNotFound(Exception):
-    def __init__(self, e: str, raw_response: str):
+    def __init__(self, e: str, raw_response: str, model: Optional[str] = None):
         self.e = e
         self.raw_response = raw_response
 
@@ -41,13 +42,14 @@ def __call_or_raise(
     formatter: Type[PromptFormatter],
 ) -> ModelOutput:
     raw_response = call_model_api(messages, config)
-    parsed_response: str | None = formatter.parse_answer(raw_response)
+    parsed_response: str | None = formatter.parse_answer(raw_response, config.model)
     if parsed_response is not None:
         return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
 
+    maybe_second_last = messages[-2] if len(messages) >= 2 else None
     msg = (
-        f"Formatter: {formatter}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
-        f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+        f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
+        f"last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
     )
     logger.warning(msg)
 
@@ -79,6 +81,10 @@ def call_model_and_catch(
         )
         return response
     except AnswerNotFound as e:
+        print(
+            f"Could not find answer for in model response: {e.raw_response}, "
+            f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+        )
         return ModelOutput(raw_response=e.raw_response, parsed_response=None)
 
 
@@ -99,7 +105,7 @@ def task_function(
             messages=task.messages,
             config=task.model_config,
             formatter=formatter,
-            retries=5,
+            retries=10,
         )
     )
 
@@ -143,10 +149,7 @@ def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
 
 
 def run_with_caching(
-    save_every: int,
-    batch: int,
-    task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
-    raise_after_retries: bool = True,
+    save_every: int, batch: int, task_to_run: list[TaskSpec] | list[StageTwoTaskSpec], raise_after_retries: bool = False
 ):
     """
     Take a list of TaskSpecs or StageTwoTaskSpecs and run, skipping completed tasks
@@ -237,4 +240,5 @@ def run_tasks_multi_threaded(
 class TaskSetting(BaseModel):
     task: str
     formatter: Type[StageOneFormatter]
+    intervention: Optional[Type[Intervention]] = None
     model: str

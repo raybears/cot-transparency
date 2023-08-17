@@ -9,6 +9,7 @@ from pydantic import BaseModel, conlist
 
 from typing import Optional, Union, Any, Type
 
+
 from cot_transparency.util import deterministic_hash
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer, GenericDataExample
 
@@ -109,7 +110,14 @@ def deterministic_task_hash(
     return deterministic_hash(hashes)
 
 
-class TaskSpec(BaseModel):
+class BaseTaskSpec(BaseModel):
+    model_config: OpenaiInferenceConfig
+    messages: list[ChatMessage]
+    out_file_path: Path
+    formatter_name: str
+
+
+class TaskSpec(BaseTaskSpec):
     # This is a dataclass because a PromptFormatter isn't serializable
     task_name: str
     model_config: OpenaiInferenceConfig
@@ -117,6 +125,7 @@ class TaskSpec(BaseModel):
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
     formatter_name: str
+    intervention_name: Optional[str] = None
     repeat_idx: int = 0
     task_hash: str  # linked to the orignal question
     biased_ans: Optional[MultipleChoiceAnswer] = None
@@ -130,11 +139,23 @@ class TaskSpec(BaseModel):
     def uid(self) -> str:
         return deterministic_task_hash(self.task_name, self.messages, self.model_config, self.repeat_idx)
 
+    def task_hash_with_repeat(self) -> str:
+        return deterministic_hash(self.task_hash + str(self.repeat_idx))
 
-class TaskOutput(BaseModel):
+
+class BaseTaskOuput(BaseModel):
+    task_spec: BaseTaskSpec
+    model_output: ModelOutput
+
+
+class TaskOutput(BaseTaskOuput):
     # This is one single experiment
     task_spec: TaskSpec
     model_output: ModelOutput
+
+    @property
+    def is_correct(self) -> bool:
+        return self.model_output.parsed_response == self.task_spec.ground_truth
 
     @property
     def first_parsed_response(self) -> Optional[str]:
@@ -158,6 +179,7 @@ class TraceInfo(BaseModel):
     complete_modified_cot: Optional[str] = None
     mistake_inserted_idx: Optional[int] = None
     sentence_with_mistake: Optional[str] = None
+    regenerated_cot_post_mistake: Optional[str] = None
 
     def get_mistake_inserted_idx(self) -> int:
         if self.mistake_inserted_idx is None:
@@ -167,14 +189,9 @@ class TraceInfo(BaseModel):
     def get_sentence_with_mistake(self) -> str:
         if self.sentence_with_mistake is None:
             raise ValueError("Sentence with mistake is None")
-        return self.sentence_with_mistake
+        return self.sentence_with_mistake.lstrip()
 
-    def get_complete_modified_cot(self) -> str:
-        if self.complete_modified_cot is None:
-            raise ValueError("Complete modified cot is None")
-        return self.complete_modified_cot
-
-    def get_trace_upto_mistake(self):
+    def get_trace_upto_mistake(self) -> str:
         original_cot = self.original_cot
         mistake_inserted_idx = self.get_mistake_inserted_idx()
         reasoning_step_with_mistake = self.get_sentence_with_mistake()
@@ -193,6 +210,31 @@ class TraceInfo(BaseModel):
         partial_cot_trace = "".join(partial_cot) + leading_chars + reasoning_step_with_mistake
         return partial_cot_trace
 
+    def get_complete_modified_cot(self) -> str:
+        if self.complete_modified_cot is not None:
+            return self.complete_modified_cot
+        else:
+            if self.regenerated_cot_post_mistake is None:
+                raise ValueError("Regenerated cot post mistake is None")
+
+            if self.get_mistake_inserted_idx() == len(self.original_cot) - 1:
+                # mistake was inserted at the end of the cot so just return that
+                return self.get_trace_upto_mistake()
+
+            # if self.regenerated_cot_post_mistake already has leading chars, then we don't need to add them
+            if self.regenerated_cot_post_mistake.startswith("\n") or self.regenerated_cot_post_mistake.startswith(" "):
+                return self.get_trace_upto_mistake() + self.regenerated_cot_post_mistake
+
+            original_sentence = self.original_cot[self.get_mistake_inserted_idx() + 1]
+            if original_sentence.startswith("\n"):
+                leading_chars = original_sentence[: len(original_sentence) - len(original_sentence.lstrip("\n"))]
+            elif original_sentence.startswith(" "):
+                leading_chars = original_sentence[: len(original_sentence) - len(original_sentence.lstrip(" "))]
+            else:
+                leading_chars = ""
+
+            return self.get_trace_upto_mistake() + leading_chars + self.regenerated_cot_post_mistake
+
     @property
     def has_mistake(self) -> bool:
         return self.mistake_inserted_idx is not None
@@ -204,7 +246,7 @@ class TraceInfo(BaseModel):
         return False
 
 
-class StageTwoTaskSpec(BaseModel):
+class StageTwoTaskSpec(BaseTaskSpec):
     stage_one_output: TaskOutput
     model_config: OpenaiInferenceConfig
     messages: list[ChatMessage]
@@ -215,10 +257,13 @@ class StageTwoTaskSpec(BaseModel):
 
     def uid(self) -> str:
         task_name = self.stage_one_output.task_spec.task_name
-        return deterministic_task_hash(task_name, self.messages, self.model_config)
+        original_cot = self.trace_info.original_cot
+        stage_one_repeat = self.stage_one_output.task_spec.repeat_idx
+        h = deterministic_task_hash(task_name, self.messages, self.model_config, repeat_idx=stage_one_repeat)
+        return deterministic_hash(h + "".join(original_cot))
 
 
-class StageTwoTaskOutput(BaseModel):
+class StageTwoTaskOutput(BaseTaskOuput):
     task_spec: StageTwoTaskSpec
     model_output: ModelOutput
 

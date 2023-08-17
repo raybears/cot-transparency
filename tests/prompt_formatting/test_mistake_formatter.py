@@ -9,6 +9,7 @@ from cot_transparency.formatters.transparency.mistakes import (
     FewShotGenerateMistakeFormatter,
     START_PROMPT,
     CompletePartialCOT,
+    format_string_to_dicts,
 )
 from cot_transparency.formatters.transparency.s1_baselines import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
@@ -22,6 +23,12 @@ from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPL
 EXAMPLE_SENTENCE = "This is a sentence with some reasoning, 5 x 20 = 100."
 
 
+def test_format_string_to_dicts():
+    dialogues = format_string_to_dicts(FEW_SHOT_PROMPT)
+    for dialogue in dialogues:
+        assert dialogue["human"].startswith("Question: ")
+
+
 def test_mistake_formatter_anthropic():
     prompt: list[ChatMessage] = FewShotGenerateMistakeFormatter.format_example(
         EMPIRE_OF_PANTS_EXAMPLE.get_parsed_input(), EXAMPLE_SENTENCE
@@ -29,11 +36,16 @@ def test_mistake_formatter_anthropic():
 
     anthropic_format = Prompt(messages=prompt).convert_to_completion_str()
 
-    expected = f"""\n\n{FEW_SHOT_PROMPT}
+    few_shot_prompts = format_string_to_dicts(FEW_SHOT_PROMPT)
+    out = ""
+    for i in few_shot_prompts:
+        out += f"\n\nHuman: {START_PROMPT}\n\n{i['human']}\n\nAssistant: {i['assistant']}"
+
+    expected = f"""{out}
 
 Human: {START_PROMPT}
 
-{EMPIRE_OF_PANTS_EXAMPLE.get_parsed_input()}
+Question: {EMPIRE_OF_PANTS_EXAMPLE.get_parsed_input()}
 
 Original sentence: {EXAMPLE_SENTENCE}
 
@@ -66,7 +78,7 @@ def test_complete_partial_cot_formatter_no_role():
 
 @pytest.mark.parametrize("cot", ["This is some CoT.", " This is some CoT."])
 def test_complete_partial_anthropic_format(cot: str):
-    original_messages = ZeroShotCOTUnbiasedTameraTFormatter.format_example(EMPIRE_OF_PANTS_EXAMPLE)
+    original_messages = ZeroShotCOTUnbiasedTameraTFormatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model="claude-v1")
 
     prompt: list[ChatMessage] = CompletePartialCOT.format_example(original_messages, cot, "claude-v1")
     anthropic_str = Prompt(messages=prompt).convert_to_anthropic_str()
@@ -80,6 +92,7 @@ Answer choices:
 (B) empiqe of the ants
 (C) empire of tihe ants
 (D) empire of the antts
+(E) None of the above
 
 Assistant: Let's think step by step: This is some CoT."""
 
