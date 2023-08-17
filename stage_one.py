@@ -62,7 +62,7 @@ CONFIG_MAP = {
     "claude-2": OpenaiInferenceConfig(model="claude-1", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
-    "llama-2-7b-chat-hf": OpenaiInferenceConfig(model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
+    "Llama-2-7b-chat-hf": OpenaiInferenceConfig(model="Llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
 }
 
 

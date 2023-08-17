@@ -99,7 +99,7 @@ def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -
         formatted = prompt.convert_to_anthropic_str()
         return anthropic_chat(config=config, prompt=formatted)
 
-    elif "llama" in model_name:
+    elif "llama" in model_name.lower():
         if "chat" in model_name:
             formatted = prompt.convert_to_llama_chat()
             return call_llama_chat(formatted, config=config)

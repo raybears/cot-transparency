@@ -79,7 +79,7 @@ def llama_v2_prompt(messages: list[StrictChatMessage]) -> str:
 
 
 def call_llama_chat(prompt: list[StrictChatMessage], config: OpenaiInferenceConfig) -> str:
-    supported_models = set("Llama-2-7b-chat-hf")
+    supported_models = set(["Llama-2-7b-chat-hf"])
 
     assert config.model in supported_models, f"llama model {config.model} is not supported yet"
     formatted_prompt = llama_v2_prompt(prompt)
@@ -88,8 +88,8 @@ def call_llama_chat(prompt: list[StrictChatMessage], config: OpenaiInferenceConf
         if config.model in llama_cache:
             chat_model = llama_cache[config.model]
         else:
-            chat_model = Llama27BHelper(config.model)
-            llama_cache[f"meta-llama/{config.model}"] = chat_model
+            chat_model = Llama27BHelper()
+            llama_cache[config.model] = chat_model
 
     return chat_model.generate_text(
         formatted_prompt, max_length=config.max_tokens, temperature=config.temperature, top_p=config.top_p
