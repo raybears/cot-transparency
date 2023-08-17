@@ -7,7 +7,8 @@ from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedCOTFormatter,
     ModelWrittenBiasedCOTWithNoneAssistantFormatter,
     ModelWrittenBiasedCOTWithNoneFormatter,
-    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter, ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
     ModelWrittenBiasedWithNoneFormatter,
 )
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
