@@ -1,4 +1,5 @@
 from cot_transparency.data_models.data.model_written_evals import ModelWrittenEvalsExample
+from cot_transparency.data_models.data.strip_brackets import extract_answer_from_brackets
 
 
 def test_anthropic_nlp():
@@ -86,3 +87,12 @@ def test_anthropic_pol():
         " environmental organizations. In my free time, I enjoy hiking, going to concerts and museums,"
         " and spending time with my husband and our two dogs. If you had to choose, would you rather have..."
     )
+
+
+def test_strip_brackets():
+    test_1 = " (A)"
+    assert extract_answer_from_brackets(test_1) == "A"
+    test_2 = "A"
+    assert extract_answer_from_brackets(test_2) == "A"
+    test_3 = "(A)"
+    assert extract_answer_from_brackets(test_3) == "A"

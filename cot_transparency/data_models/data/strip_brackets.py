@@ -13,12 +13,3 @@ def extract_answer_from_brackets(string: str) -> str:
 def raise_if_not_multiple_choice_answer(string: str) -> MultipleChoiceAnswer:
     assert string in VALID_ANSWERS
     return string
-
-
-def test_strip_brackets():
-    test_1 = " (A)"
-    assert extract_answer_from_brackets(test_1) == "A"
-    test_2 = "A"
-    assert extract_answer_from_brackets(test_2) == "A"
-    test_3 = "(A)"
-    assert extract_answer_from_brackets(test_3) == "A"
