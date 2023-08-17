@@ -7,7 +7,8 @@ from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedCOTFormatter,
     ModelWrittenBiasedCOTWithNoneAssistantFormatter,
     ModelWrittenBiasedCOTWithNoneFormatter,
-    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter, ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedWithNoneFormatter,
 )
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
     UserBiasedWrongCotFormatter,
@@ -117,6 +118,8 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ModelWrittenBiasedCOTWithNoneFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         ModelWrittenBiasedCOTWithNoneAssistantFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        ModelWrittenBiasedWithNoneFormatter.name(): ZeroShotUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 
