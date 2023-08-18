@@ -18,6 +18,7 @@ from cot_transparency.formatters.more_biases.more_reward import (
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordNoCOTFormatter, StanfordBiasedFormatter
 from cot_transparency.model_apis import Prompt
+from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
 
 
 def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> list[ChatMessage]:
@@ -115,6 +116,15 @@ def format_biased_question_cot(task: TaskOutput, formatter: Type[StageOneFormatt
         new_message=" " + task.model_output.raw_response + END_SINGLE_SHOT_SEP,
     )
     return Prompt(messages=messages)
+
+
+def format_big_brain_question_cot(task: BiasedQuestionUnbiasedCOT) -> Prompt:
+    biased_messages: list[ChatMessage] = task.biased_question
+    with_correct = add_to_final_assistant(
+        biased_messages,
+        new_message=" " + task.correct_full_response + END_SINGLE_SHOT_SEP,
+    )
+    return Prompt(messages=with_correct)
 
 
 def get_formatter_for_few_shot_cot(answer_formatter: Type[StageOneFormatter], seed: str) -> Type[StageOneFormatter]:
