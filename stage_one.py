@@ -5,6 +5,11 @@ from typing import Optional, Type
 import fire
 from slist import Slist
 
+from cot_transparency.data_models.data.john_math import (
+    get_john_math_level_3,
+    get_john_math_level_4,
+    get_john_math_level_5,
+)
 from cot_transparency.data_models.data.model_written_evals import (
     get_anthropic_nlp,
     get_anthropic_phil,
@@ -60,6 +65,7 @@ TASK_LIST = {
         "hellaswag",
     ],
     "model_written_evals": ["nlp", "phil", "pol"],
+    "john_math": ["john_level_3", "john_level_4", "john_level_5"],
 }
 CONFIG_MAP = {
     "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
@@ -149,6 +155,12 @@ def get_list_of_examples(
             data = get_anthropic_phil()
         elif task == "pol":
             data = get_anthropic_pol()
+        elif task == "john_level_3":
+            data = get_john_math_level_3()
+        elif task == "john_level_4":
+            data = get_john_math_level_4()
+        elif task == "john_level_5":
+            data = get_john_math_level_5()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
