@@ -1,10 +1,15 @@
 from pathlib import Path
 from string import ascii_uppercase
 
+import pandas as pd
 from slist import Slist
 
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
-from cot_transparency.json_utils.read_write import read_base_model_from_csv
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
+    raise_if_not_multiple_choice_answer,
+)
+from cot_transparency.formatters.extraction import LetterAndAnswer
 
 
 class JohnMath(DataExampleBase):
@@ -16,42 +21,62 @@ class JohnMath(DataExampleBase):
     correct_answer: str
     negative_answer: str
     negative_solution: str
+    biased_answer: MultipleChoiceAnswer
 
-    def deterministic_randomized_options(self) -> Slist[str]:
+    def deterministic_randomized_options(self) -> Slist[LetterAndAnswer]:
+        answers = Slist([self.correct_answer, self.negative_answer])
         # 50% chance for correct answer to be A
-        answer_list: Slist[str] = Slist([self.correct_answer, self.negative_answer]).shuffle(seed=self.question)
+        answer_list: Slist[LetterAndAnswer] = (
+            Slist(["A", "B"])
+            .shuffle(seed=self.question)
+            .zip(answers)
+            .map(
+                lambda tup: LetterAndAnswer(
+                    letter=raise_if_not_multiple_choice_answer(tup[0]),
+                    answer=tup[1],
+                )
+            )
+        ).shuffle(seed=self.question)
         return answer_list
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         found_answer: int = self.deterministic_randomized_options().find_one_idx_or_raise(
-            lambda x: x == self.correct_answer
+            lambda x: x.answer == self.correct_answer
         )
         return ascii_uppercase[found_answer]  # type: ignore
 
     def _get_options(self) -> list[str]:
-        return self.deterministic_randomized_options()
+        return self.deterministic_randomized_options().map(lambda x: x.answer)
 
     def _get_question(self) -> str:
         return self.question
 
 
+def get_john_math(path: Path) -> Slist[JohnMath]:
+    # this big brain code makes two examples for each row.
+    # One with A as the biased answer, and one with B as the biased answer
+    df = pd.read_csv(path)
+    biased_a = {"biased_answer": "A"}
+    biased_b = {"biased_answer": "B"}
+    return Slist(
+        [JohnMath(**dict(**row) | biased_a), JohnMath(**dict(**row) | biased_b)] for _, row in df.iterrows()
+    ).flatten_list()
+
+
 def get_john_math_level_3() -> Slist[JohnMath]:
-    return read_base_model_from_csv(
+    return get_john_math(
         Path("./data/john_math/train_balanced_level3.csv"),
-        JohnMath,
     )
 
 
 def get_john_math_level_4() -> Slist[JohnMath]:
-    return read_base_model_from_csv(
+    return get_john_math(
         Path("./data/john_math/train_balanced_level4.csv"),
-        JohnMath,
     )
 
 
 def get_john_math_level_5() -> Slist[JohnMath]:
-    return read_base_model_from_csv(
+    return get_john_math(
         Path("./data/john_math/train_balanced_level5.csv"),
-        JohnMath,
     )

@@ -42,6 +42,11 @@ VALID_ANSWERS: set[MultipleChoiceAnswer] = {
 }
 
 
+def raise_if_not_multiple_choice_answer(string: str) -> MultipleChoiceAnswer:
+    assert string in VALID_ANSWERS
+    return string
+
+
 class DataExampleBase(BaseModel, ABC):
     """We don't define the fields here because we want to be able to use this for any dataset but we define the api"""
 
