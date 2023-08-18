@@ -48,20 +48,28 @@ To run tests
 pytest tests
 ```
 
-## Usage
+## Running an experiment
 
 Set your OpenAI API key as `OPENAI_API_KEY` and anthropic key as `ANTHROPIC_API_KEY` in a `.env` file.
 
 To generate examples e.g. this will compare 20 samples for each task in bbh for sycophancy
 
 ```python
-python stage_one.py --exp_dir experiments/stage_one/dummy_run --models "['text-davinci-003']" --formatters "['ZeroShotCOTUnbiasedFormatter', 'ZeroShotCOTSycophancyFormatter']" --repeats_per_question 1 --batch=10 --example_cap 20
+python stage_one.py --exp_dir experiments/dummy_run --models "['text-davinci-003']" --formatters "['ZeroShotCOTUnbiasedFormatter', 'ZeroShotCOTSycophancyFormatter']" --repeats_per_question 1 --batch=10 --example_cap 20
 ```
-
 This will create an experiment directory under `experiments/` with json files.
+
+## Viewing accuracy
 
 To run analysis
 
 ```python
-python analysis.py accuracy --exp_dir experiments/stage_one/dummy_run
+python analysis.py accuracy --exp_dir experiments/dummy_run
 ```
+
+## Viewing experiment samples
+```
+python viewer.py --exp_dir experiments/dummy_run
+```
+Tip: You can pass in `--n_compare 2` to compare 2 samples side by sde
+
