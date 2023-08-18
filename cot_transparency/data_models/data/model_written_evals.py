@@ -5,9 +5,12 @@ from slist import Slist
 
 from cot_transparency.data_models.data.strip_brackets import (
     extract_answer_from_brackets,
+)
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
     raise_if_not_multiple_choice_answer,
 )
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
 
