@@ -23,6 +23,11 @@ class JohnMath(DataExampleBase):
     negative_solution: str
     biased_answer: MultipleChoiceAnswer
 
+    @property
+    def biased_ans(self) -> MultipleChoiceAnswer:
+        # override the biased answer to be the one that is in the dataset
+        return self.biased_answer
+
     def deterministic_randomized_options(self) -> Slist[LetterAndAnswer]:
         answers = Slist([self.correct_answer, self.negative_answer])
         # 50% chance for correct answer to be A

@@ -65,13 +65,16 @@ def plot_dots_for_intervention(
     for_formatters: Sequence[Type[StageOneFormatter]],
     model: str,
     name_override: Optional[str] = None,
+    include_tasks: Sequence[str] = [],
 ) -> PlotDots:
+    assert all_tasks, "No tasks found"
     intervention_name: str | None = intervention.name() if intervention else None
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
         all_tasks.filter(lambda task: intervention_name == task.task_spec.intervention_name)
         .filter(lambda task: task.task_spec.formatter_name in formatters_names)
         .filter(lambda task: task.task_spec.model_config.model == model)
+        .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
     accuray = accuracy_outputs(filtered)
