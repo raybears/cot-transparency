@@ -108,6 +108,11 @@ class DataFormatSpec(BaseModel):
         return f"{self.choice_variant.name}_{self.question_variant.name}_{self.join_variant.name}_{self.indicator_separator.name}"
 
 
+def raise_if_not_multiple_choice_answer(string: str) -> MultipleChoiceAnswer:
+    assert string in VALID_ANSWERS
+    return string
+
+
 class DataExampleBase(BaseModel, ABC):
     """We don't define the fields here because we want to be able to use this for any dataset but we define the api"""
 

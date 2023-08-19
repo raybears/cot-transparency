@@ -71,11 +71,10 @@ class MoreRewardBiasedNoCOTFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = question.get_parsed_input()
-        with_instruction = add_verbalize_instruction_to_question(formatted_question)
         system_prompt = create_more_reward_system_prompt(question=formatted_question, biased_ans=question.biased_ans)
         output = [
             ChatMessage(role=MessageRole.system, content=system_prompt),
-            ChatMessage(role=MessageRole.user, content=with_instruction),
+            ChatMessage(role=MessageRole.user, content=formatted_question),
             ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
         ]
         return output

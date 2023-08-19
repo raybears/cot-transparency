@@ -27,6 +27,7 @@ from cot_transparency.json_utils.read_write import (
 from cot_transparency.model_apis import call_model_api, Prompt
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.tasks import read_done_experiment
+from cot_transparency.util import assert_not_none
 from scripts.multi_accuracy import (
     bbh_task_list,
     accuracy_outputs_from_inputs,
@@ -37,17 +38,11 @@ from scripts.multi_accuracy import (
     AccuracyOutput,
 )
 
-
 A = TypeVar("A")
 
 # ruff: noqa: E501
 seed = "42"
 MIN_SAMPLES = 10
-
-
-def assert_not_none(x: A | None) -> A:
-    assert x is not None, "Expected not None"
-    return x
 
 
 def read_all_for_formatters(exp_dir: Path, formatter: str, model: str) -> list[TaskOutput]:

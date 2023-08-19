@@ -264,7 +264,7 @@ def convert_nested_dict_s1(outputs: list[TaskOutput]) -> StageOneNestedDict:
         # use keys
         task_name = output.task_spec.task_name
         model = output.task_spec.model_config.model
-        stage_one_formatter = output.task_spec.formatter_name
+        stage_one_formatter = output.task_spec.formatter_name + (output.task_spec.intervention_name or "")
         stage_one_hash = output.task_spec.task_hash_with_repeat()
 
         exp = out[(task_name, model, stage_one_formatter)]

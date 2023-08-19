@@ -25,8 +25,9 @@ BREAK_WORDS: list[str] = [
     "answer is: (",
     "answer is $\\boxed{\\text{(",
     "answer is: $\\boxed{\\text{(",
-    "is: $\\boxed{\\textbf{(",
-    "is $\\boxed{\\textbf{(",
+    r"is: $\boxed{\textbf{(",
+    r"is $\boxed{\textbf{(",
+    r"is: $\boxed{\text{(",
 ]
 
 
@@ -44,7 +45,6 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
         ans = last_item[0]
         if ans in ascii_uppercase:
             return ans
-        break
     if dump_failed:
         with open("failed_answers.txt", "a") as f:
             f.write(model_answer + "\n")

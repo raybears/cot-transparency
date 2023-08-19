@@ -3,7 +3,9 @@ import hashlib
 import logging
 import os
 import tempfile
-from typing import Optional
+from typing import Optional, TypeVar
+
+A = TypeVar("A")
 
 
 def get_exp_dir_name(
@@ -47,3 +49,8 @@ def safe_file_write(filename: str, data: str):
 
 def deterministic_hash(something: str) -> str:
     return hashlib.sha1(something.encode()).hexdigest()
+
+
+def assert_not_none(x: A | None) -> A:
+    assert x is not None, "Expected not None"
+    return x

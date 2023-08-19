@@ -2,6 +2,15 @@ from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
+from cot_transparency.formatters.more_biases.model_written_evals import (
+    ModelWrittenBiasedFormatter,
+    ModelWrittenBiasedCOTFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantFormatter,
+    ModelWrittenBiasedCOTWithNoneFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedWithNoneFormatter,
+)
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
     UserBiasedWrongCotFormatter,
     ModelBiasedWrongCotFormatter,
@@ -60,6 +69,7 @@ from cot_transparency.formatters.transparency.interventions.logical_consequence 
 )
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
+    WrongFewShotBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantBiasedFormatter,
@@ -97,6 +107,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         StanfordNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         UserBiasedWrongCotFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         WrongFewShotBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        WrongFewShotBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         MoreRewardBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         BeUnbiasedCOTSycophancyFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
@@ -106,6 +117,13 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         MoreRewardBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         StanfordBiasedLabelFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        ModelWrittenBiasedCOTFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedCOTWithNoneFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedCOTWithNoneAssistantFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        ModelWrittenBiasedWithNoneFormatter.name(): ZeroShotUnbiasedFormatter.name(),
     }
 
     prompt_sensitivity_formatters = register_prompt_sensitivity_formatters()
