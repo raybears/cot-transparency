@@ -6,10 +6,7 @@ from cot_transparency.data_models.example_base import (
     IndicatorSeparator,
     JoinStr,
     QuestionPrefix,
-    IndicatorSeparator,
-    JoinStr,
     MultipleChoiceAnswer,
-    QuestionPrefix,
 )
 from cot_transparency.data_models.models import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
@@ -122,10 +119,9 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
 
 
 class PromptSensitivtyFormatter(StageOneFormatter, ABC):
-    @abstractmethod
     @classmethod
-    @property
-    def data_format_spec(cls) -> DataFormatSpec:
+    @abstractmethod
+    def get_data_format_spec(cls) -> DataFormatSpec:
         raise NotImplementedError
 
 
@@ -135,8 +131,7 @@ def prompt_sensitivity_factory(data_format_spec: DataFormatSpec):
         is_cot = False
 
         @classmethod
-        @property
-        def data_format_spec(cls) -> DataFormatSpec:
+        def get_data_format_spec(cls) -> DataFormatSpec:
             return data_format_spec
 
         @staticmethod

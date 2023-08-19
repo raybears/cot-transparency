@@ -12,7 +12,7 @@ from cot_transparency.formatters.interventions.formatting import (
     format_unbiased_question_cot,
     format_biased_question_cot,
     prepend_to_front_first_user_message,
-    format_unbiased_question_non_cot,
+    format_few_shot_for_prompt_sen,
     format_biased_question_non_cot_random_formatter,
     format_pair_non_cot,
     format_biased_question_non_cot_sycophancy,
@@ -157,7 +157,7 @@ class NaiveFewShotLabelOnly1(Intervention):
         prompt: Prompt = (
             get_correct_cots()
             .sample(cls.n_samples, seed=question.hash())
-            .map(format_unbiased_question_non_cot)
+            .map(format_few_shot_for_prompt_sen)
             .sum_or_raise()
         )
         new = prepend_to_front_first_user_message(

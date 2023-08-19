@@ -1,4 +1,3 @@
-import itertools
 import random
 from pathlib import Path
 from typing import Optional, Type
@@ -18,7 +17,7 @@ from cot_transparency.data_models.data.model_written_evals import (
     get_anthropic_pol,
 )
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
-from cot_transparency.data_models.example_base import ChoiceVariant, DataExampleBase, JoinStr, QuestionPrefix
+from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter

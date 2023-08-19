@@ -226,10 +226,20 @@ def simple_plot(
     df = df.rename(columns={"is_correct": "Accuracy"})
     # add temperature to model name
     df["model"] = df["model"] + " (T=" + df["temperature"].astype(str) + ")"
-    sns.catplot(data=df, x=x, y=y, hue=hue, col=col, capsize=0.01, errwidth=1, kind="bar", legend=legend)
+    sns.catplot(
+        data=df,
+        x=x,
+        y=y,
+        hue=hue,
+        col=col,
+        capsize=0.01,
+        errwidth=1,
+        kind="bar",
+        legend=legend,  # type: ignore
+    )
 
     # plot the counts for the above
-    g = sns.catplot(data=df, x=x, hue=hue, col=col, kind="count", legend=legend)
+    g = sns.catplot(data=df, x=x, hue=hue, col=col, kind="count", legend=legend)  # type: ignore
     g.fig.suptitle("Counts")
 
     plt.show()

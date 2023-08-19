@@ -42,7 +42,7 @@ def prompt_metrics(
     def fleiss_kappa_on_group(group: pd.DataFrame):
         # we need subjects in rows, categories in columns, where subjects are task_hash
         # and categories are the formatter_name and the value is the parsed_response
-        pt = group.pivot(index="task_hash", columns="formatter_name", values="parsed_response")
+        pt = group.pivot(index="task_hash", columns="formatter_name", values="parsed_response")  # type: ignore
         # drop any rows that have None
         pt = pt.dropna()
         agg = aggregate_raters(pt.to_numpy())
@@ -66,10 +66,12 @@ def prompt_metrics(
     df_same_ans = df.groupby([group1, "task_hash", group3]).apply(is_same_answer)
     df_fk = df.groupby([group1, group3]).apply(fleiss_kappa_on_group)
 
-    df_same_ans = df_same_ans.drop_duplicates(subset=["task_hash", group1, "formatter_name", group3])
+    df_same_ans: pd.DataFrame = df_same_ans.drop_duplicates(
+        subset=["task_hash", group1, "formatter_name", group3], inplace=False
+    )  # type: ignore
     # drop none
     df_same_ans = df_same_ans[df_same_ans["parsed_response"] != "None"]
-    df_fk = df_fk.drop_duplicates(subset=["task_hash", group1, "formatter_name", group3])
+    df_fk: pd.DataFrame = df_fk.drop_duplicates(subset=["task_hash", group1, "formatter_name", group3], inplace=False)  # type: ignore
 
     g = sns.catplot(data=df_same_ans, x=group1, y="modal_agreement_score", hue=group3, kind="bar")
     g.fig.suptitle("Modal Agreement Score")

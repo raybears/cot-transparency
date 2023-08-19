@@ -105,7 +105,10 @@ class DataFormatSpec(BaseModel):
     indicator_separator: IndicatorSeparator = IndicatorSeparator.PAREN
 
     def __str__(self):
-        return f"{self.choice_variant.name}_{self.question_variant.name}_{self.join_variant.name}_{self.indicator_separator.name}"
+        return (
+            f"{self.choice_variant.name}_{self.question_variant.name}_"
+            f"{self.join_variant.name}_{self.indicator_separator.name}"
+        )
 
 
 def raise_if_not_multiple_choice_answer(string: str) -> MultipleChoiceAnswer:
@@ -116,12 +119,11 @@ def raise_if_not_multiple_choice_answer(string: str) -> MultipleChoiceAnswer:
 class DataExampleBase(BaseModel, ABC):
     """We don't define the fields here because we want to be able to use this for any dataset but we define the api"""
 
-    # default question format
     data_format: DataFormatSpec = DataFormatSpec()
 
     def to_variant(
         self,
-        data_format_spec=DataFormatSpec,
+        data_format_spec: DataFormatSpec,
     ) -> Self:
         c = self.copy()
         c.data_format = data_format_spec

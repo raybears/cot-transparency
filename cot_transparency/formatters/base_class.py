@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Self, Set, Type
 
 from cot_transparency.data_models.data.bbh import DataExampleBase
+from cot_transparency.data_models.example_base import DataFormatSpec
 from cot_transparency.data_models.models import ChatMessage
 
 
@@ -38,3 +39,7 @@ class StageOneFormatter(PromptFormatter, ABC):
     @classmethod
     def all_formatters(cls) -> dict[str, Type[Self]]:
         return super().all_formatters()  # type: ignore
+
+    @classmethod
+    def get_data_format_spec(cls) -> Optional[DataFormatSpec]:
+        return None
