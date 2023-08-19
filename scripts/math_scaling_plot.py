@@ -67,7 +67,7 @@ def accuracy_diff_math(
     )
     bar_plot(
         plot_dots=joined_plot_dots,
-        title="Does the accuracy gap between unbiased and biased context widen with more few shots?",
+        title="Does the accuracy gap between unbiased and biased context widen with harder questions?<br>Biased with MoreReward, Stanford, WrongFewShot, Sycophancy. 140 questions per math level",
         y_axis_title="Biased context accuracy minus unbiased context accuracy",
     )
 
