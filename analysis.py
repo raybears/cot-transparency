@@ -199,7 +199,6 @@ def counts_are_equal(count_df: pd.DataFrame) -> bool:
 
 def simple_plot(
     exp_dir: str,
-    inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
     model_filter: Optional[str] = None,
     formatters: Sequence[str] = [],
@@ -207,10 +206,11 @@ def simple_plot(
     y: str = "Accuracy",
     hue: str = "formatter_name",
     col: str = "model",
+    legend: bool = True,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
-        inconsistent_only=inconsistent_only,
+        inconsistent_only=False,
         model_filter=model_filter,
         formatters=formatters,
         aggregate_over_tasks=aggregate_over_tasks,
@@ -226,7 +226,12 @@ def simple_plot(
     df = df.rename(columns={"is_correct": "Accuracy"})
     # add temperature to model name
     df["model"] = df["model"] + " (T=" + df["temperature"].astype(str) + ")"
-    sns.catplot(data=df, x=x, y=y, hue=hue, col=col, capsize=0.05, errwidth=1, kind="bar")
+    sns.catplot(data=df, x=x, y=y, hue=hue, col=col, capsize=0.01, errwidth=1, kind="bar", legend=legend)
+
+    # plot the counts for the above
+    g = sns.catplot(data=df, x=x, hue=hue, col=col, kind="count", legend=legend)
+    g.fig.suptitle("Counts")
+
     plt.show()
 
 

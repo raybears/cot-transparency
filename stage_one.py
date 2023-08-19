@@ -2,6 +2,7 @@ import itertools
 import random
 from pathlib import Path
 from typing import Optional, Type
+import fnmatch
 
 import fire
 from slist import Slist
@@ -95,6 +96,7 @@ def create_task_settings(
                     intervention=intervention,
                 )
             )
+
     return task_settings + with_interventions
 
 
@@ -169,6 +171,12 @@ def main(
         if "llama" in model.lower():
             assert batch == 1, "Llama only supports batch size of 1"
 
+    # match formatter name wildcard
+    for formatter in formatters:
+        if "*" in formatter:
+            formatters.remove(formatter)
+            formatters += fnmatch.filter(StageOneFormatter.all_formatters().keys(), formatter)
+
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
     validated_interventions = get_valid_stage1_interventions(interventions)
@@ -206,8 +214,10 @@ def main(
             config.max_tokens = 300
             config.temperature = 0.8
             config.top_p = 0.95
+
         # if you are using an intervention, we need to add SINGLE_SHOT_SEP to the stop list
         if setting.intervention:
+            print("using intervention")
             if isinstance(config.stop, list):
                 config.stop += [FEW_SHOT_STOP_TOKEN]
             else:

@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Optional, Type
 
 from slist import Slist
 
@@ -75,16 +75,25 @@ def format_unbiased_question_cot(task: TaskOutput) -> Prompt:
     return Prompt(messages=messages)
 
 
-def format_unbiased_question_non_cot(task: TaskOutput) -> Prompt:
+def format_unbiased_question_non_cot(task: TaskOutput, Formatter: Optional[Type[StageOneFormatter]] = ZeroShotUnbiasedFormatter) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     resp = task.model_output.parsed_response
     assert resp is not None, "This should be a valid response"
     messages: list[ChatMessage] = add_to_final_assistant(
-        ZeroShotUnbiasedFormatter.format_example(read),
+        Formatter.format_example(read),
         new_message=resp + END_SINGLE_SHOT_SEP,
     )
     return Prompt(messages=messages)
 
+def format_unbiased_question_non_cot_add_(task: TaskOutput, Formatter: Optional[Type[StageOneFormatter]] = ZeroShotUnbiasedFormatter) -> Prompt:
+    read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
+    resp = task.model_output.parsed_response
+    assert resp is not None, "This should be a valid response"
+    messages: list[ChatMessage] = add_to_final_assistant(
+        Formatter.format_example(read),
+        new_message=resp + END_SINGLE_SHOT_SEP,
+    )
+    return Prompt(messages=messages)
 
 def format_biased_question_non_cot_sycophancy(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)

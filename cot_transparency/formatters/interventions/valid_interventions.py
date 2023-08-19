@@ -1,6 +1,7 @@
 from typing import Type
 
 from cot_transparency.formatters.interventions.intervention import Intervention
+from cot_transparency.formatters.interventions.vanilla import *
 
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = Intervention.all_interventions()
 

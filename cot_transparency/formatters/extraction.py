@@ -4,7 +4,11 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from cot_transparency.data_models.example_base import ChoiceVariant, MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import (
+    ChoiceVariant,
+    DataFormatSpec,
+    MultipleChoiceAnswer,
+)
 
 BREAK_WORDS: list[str] = [
     "best answer is (",
@@ -48,21 +52,26 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
 
 
 def extract_answer_non_cot(
-    response: str, dump_failed: bool = False, input_format: ChoiceVariant = ChoiceVariant.LETTERS
+    response: str, dump_failed: bool = False, input_format: DataFormatSpec = DataFormatSpec()
 ) -> Optional[str]:
-    ans_list = input_format.answers_list
+    ans_list = input_format.choice_variant.answers_list
     response = response.strip()
 
-    # Define a pattern that captures a string that starts with a
     # "(" or a letter/number, followed by characters, and optionally followed by a ")".
     pattern = re.compile(r"^\(?([a-zA-Z\d]+)\)?")
+    # match input_format.indicator_separator:
+    #     case IndicatorSeparator.PAREN:
+    #     case IndicatorSeparator.SPACE:
+    #         pattern = re.compile(r"^([a-zA-Z\d]+)\s")
+    #     case IndicatorSeparator.DOT:
+    #         pattern = re.compile(r"^([a-zA-Z\d]+)\.")
 
     match = pattern.match(response)
     if match:
         candidate_ans = match.group(1)
 
         # Convert to uppercase for consistent matching, except for the FOO variant
-        if input_format != ChoiceVariant.FOO:
+        if input_format.choice_variant != ChoiceVariant.FOO:
             candidate_ans = candidate_ans.upper()
 
         if candidate_ans in ans_list:

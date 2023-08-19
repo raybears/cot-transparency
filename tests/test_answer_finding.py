@@ -1,6 +1,6 @@
 import pytest
 import yaml
-from cot_transparency.data_models.example_base import ChoiceVariant
+from cot_transparency.data_models.example_base import ChoiceVariant, DataFormatSpec
 
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 
@@ -79,4 +79,5 @@ The best answer is: (B) False.
     ],
 )
 def test_extract_answer_non_cot(response: str, input_variant: ChoiceVariant, expected_output: str):
-    assert extract_answer_non_cot(response, dump_failed=False, input_format=input_variant) == expected_output
+    data_format = DataFormatSpec(choice_variant=input_variant)
+    assert extract_answer_non_cot(response, dump_failed=False, input_format=data_format) == expected_output

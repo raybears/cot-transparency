@@ -1,7 +1,12 @@
+from abc import ABC, abstractmethod
 import itertools
 from cot_transparency.data_models.example_base import (
     ChoiceVariant,
     DataFormatSpec,
+    IndicatorSeparator,
+    JoinStr,
+    QuestionPrefix,
+    IndicatorSeparator,
     JoinStr,
     MultipleChoiceAnswer,
     QuestionPrefix,
@@ -116,23 +121,41 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
         return extract_answer_non_cot(response, dump_failed=False)
 
 
+class PromptSensitivtyFormatter(StageOneFormatter, ABC):
+    @abstractmethod
+    @classmethod
+    @property
+    def data_format_spec(cls) -> DataFormatSpec:
+        raise NotImplementedError
+
+
 def prompt_sensitivity_factory(data_format_spec: DataFormatSpec):
-    class ZeroShotPromptSenFormatter(ZeroShotUnbiasedFormatter):
+    class ZeroShotPromptSenFormatter(PromptSensitivtyFormatter):
         is_biased = False
         is_cot = False
+
+        @classmethod
+        @property
+        def data_format_spec(cls) -> DataFormatSpec:
+            return data_format_spec
 
         @staticmethod
         def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
             question = question.to_variant(data_format_spec)
-            return ZeroShotUnbiasedFormatter.format_example(question=question, model=model)
+            formatted_question = format_unbiased_question(question=question.get_parsed_input())
+            output = [
+                ChatMessage(role=MessageRole.user, content=formatted_question),
+                ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+            ]
+            return output
 
         @staticmethod
         def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
-            return extract_answer_non_cot(response, dump_failed=False, input_format=data_format_spec.choice_variant)
+            return extract_answer_non_cot(response, dump_failed=False, input_format=data_format_spec)
 
         @classmethod
         def name(cls) -> str:
-            return f"{cls.__name__}_{data_format_spec.choice_variant.name}_{data_format_spec.question_variant.name}_{data_format_spec.join_variant.name}"
+            return f"{cls.__name__}_{str(data_format_spec)}"
 
     return ZeroShotPromptSenFormatter
 
@@ -141,11 +164,14 @@ def register_prompt_sensitivity_formatters():
     choice_variants = [i for i in ChoiceVariant]
     question_prefix = [i for i in QuestionPrefix]
     join_str = [i for i in JoinStr]
+    sep_variants = [i for i in IndicatorSeparator]
 
-    combinations = itertools.product(choice_variants, question_prefix, join_str)
+    combinations = itertools.product(choice_variants, question_prefix, join_str, sep_variants)
     formatters = [
-        prompt_sensitivity_factory(DataFormatSpec(choice_variant=c, question_variant=q, join_variant=j))
-        for c, q, j in combinations
+        prompt_sensitivity_factory(
+            DataFormatSpec(choice_variant=c, question_variant=q, join_variant=j, indicator_separator=s)
+        )
+        for c, q, j, s in combinations
     ]
     return formatters
 

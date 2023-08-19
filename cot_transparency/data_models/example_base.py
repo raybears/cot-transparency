@@ -92,21 +92,27 @@ class JoinStr(str, Enum):
     OPTIONS = "\n\nOptions:\n"
 
 
+class IndicatorSeparator(str, Enum):
+    SPACE = "space"
+    DOT = "dot"
+    PAREN = "paren"
+
+
 class DataFormatSpec(BaseModel):
-    choice_variant: ChoiceVariant
-    question_variant: QuestionPrefix
-    join_variant: JoinStr
+    choice_variant: ChoiceVariant = ChoiceVariant.LETTERS
+    question_variant: QuestionPrefix = QuestionPrefix.NONE
+    join_variant: JoinStr = JoinStr.ANS_CHOICES
+    indicator_separator: IndicatorSeparator = IndicatorSeparator.PAREN
+
+    def __str__(self):
+        return f"{self.choice_variant.name}_{self.question_variant.name}_{self.join_variant.name}_{self.indicator_separator.name}"
 
 
 class DataExampleBase(BaseModel, ABC):
     """We don't define the fields here because we want to be able to use this for any dataset but we define the api"""
 
     # default question format
-    data_format: DataFormatSpec = DataFormatSpec(
-        choice_variant=ChoiceVariant.LETTERS,
-        question_variant=QuestionPrefix.NONE,
-        join_variant=JoinStr.ANS_CHOICES,
-    )
+    data_format: DataFormatSpec = DataFormatSpec()
 
     def to_variant(
         self,
@@ -121,6 +127,10 @@ class DataExampleBase(BaseModel, ABC):
     @abstractmethod
     def ground_truth(self) -> MultipleChoiceAnswer:
         raise NotImplementedError
+
+    @property
+    def ground_truth_indicator(self) -> str:
+        return self.data_format.choice_variant.answers_list[self.ground_truth_idx()]
 
     @abstractmethod
     def _get_options(self) -> list[str]:
@@ -138,7 +148,13 @@ class DataExampleBase(BaseModel, ABC):
         for idx, option in enumerate(options):
             choice_variant = self.data_format.choice_variant
             indicator = choice_variant.answers_list[idx]
-            output.append(f"({indicator}) {option}")
+            match self.data_format.indicator_separator:
+                case IndicatorSeparator.SPACE:
+                    output.append(f"{indicator} {option}")
+                case IndicatorSeparator.DOT:
+                    output.append(f"{indicator}. {option}")
+                case IndicatorSeparator.PAREN:
+                    output.append(f"({indicator}) {option}")
         return "\n".join(output)
 
     def get_parsed_input_with_none_of_the_above(self) -> str:
