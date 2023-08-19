@@ -18,6 +18,7 @@ from cot_transparency.formatters.more_biases.more_reward import (
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordNoCOTFormatter, StanfordBiasedFormatter
 from cot_transparency.model_apis import Prompt
+from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
 
 
 def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> list[ChatMessage]:
@@ -39,6 +40,24 @@ def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: st
             new_messages.append(ChatMessage(role=MessageRole.user, content=prepend + m.content))
         else:
             new_messages.append(m)
+    return new_messages
+
+
+def insert_to_after_system_message(messages: list[ChatMessage], to_insert: list[ChatMessage]) -> list[ChatMessage]:
+    """
+    if there is a system message, insert the to_insert after the system message
+    otherwise, just insert at the start
+    """
+    new_messages = []
+    first_message = messages[0]
+    if first_message.role == MessageRole.system:
+        new_messages.append(first_message)
+        new_messages.extend(to_insert)
+        new_messages.extend(messages[1:])
+    else:
+        new_messages.extend(to_insert)
+        new_messages.extend(messages)
+
     return new_messages
 
 
@@ -117,10 +136,19 @@ def format_biased_question_cot(task: TaskOutput, formatter: Type[StageOneFormatt
     return Prompt(messages=messages)
 
 
+def format_big_brain_question_cot(task: BiasedQuestionUnbiasedCOT) -> Prompt:
+    biased_messages: list[ChatMessage] = task.biased_question
+    with_correct = add_to_final_assistant(
+        biased_messages,
+        new_message=" " + task.correct_full_response + END_SINGLE_SHOT_SEP,
+    )
+    return Prompt(messages=with_correct)
+
+
 def get_formatter_for_few_shot_cot(answer_formatter: Type[StageOneFormatter], seed: str) -> Type[StageOneFormatter]:
     formatter_used: Type[StageOneFormatter] = (
         # We don't want to use the same formatter for few shot
-        BIASED_FORMATTERS_FEW_SHOT_NON_COT.filter(lambda f: f is not answer_formatter)
+        BIASED_FORMATTERS_FEW_SHOT_COT.filter(lambda f: f is not answer_formatter)
         .shuffle(seed=seed)
         .first_or_raise()
     )

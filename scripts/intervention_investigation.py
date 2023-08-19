@@ -22,6 +22,9 @@ from cot_transparency.formatters.interventions.consistency import (
     NaiveFewShotLabelOnly1,
     NaiveFewShot12,
     PairedConsistency12,
+    BiasedConsistency10,
+    BigBrainBiasedConsistency10,
+    BigBrainBiasedConsistencySeparate10,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -245,6 +248,27 @@ def run_for_cot():
     run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
 
 
+def run_for_cot_different_10_shots():
+    # what interventions to plot
+    interventions: Sequence[Type[Intervention] | None] = [
+        None,
+        BigBrainBiasedConsistencySeparate10,
+        BigBrainBiasedConsistency10,
+        NaiveFewShot10,
+        BiasedConsistency10,
+    ]
+    # what formatters to include
+    biased_formatters = [
+        WrongFewShotBiasedFormatter,
+        StanfordBiasedFormatter,
+        MoreRewardBiasedFormatter,
+        # ZeroShotCOTSycophancyFormatter,
+        DeceptiveAssistantBiasedFormatter,
+    ]
+    unbiased_formatter = ZeroShotCOTUnbiasedFormatter
+    run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
+
+
 def run_for_cot_naive_vs_consistency():
     """
     python stage_one.py --exp_dir experiments/interventions --dataset transparency --models "['gpt-4']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 61 --interventions "['PairedConsistency12', 'NaiveFewShot6', 'NaiveFewShot12']"
@@ -296,4 +320,5 @@ def run_for_non_cot():
 
 if __name__ == "__main__":
     # run_for_cot()
-    run_for_cot_naive_vs_consistency()
+    # run_for_cot_naive_vs_consistency()
+    run_for_cot_different_10_shots()

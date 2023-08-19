@@ -5,6 +5,7 @@ from cot_transparency.formatters.extraction import extract_answer
 
 from scripts.biased_wrong_ans import cot_extraction
 
+
 # ruff: noqa: E501
 
 
@@ -37,6 +38,11 @@ Actually I made a mistake
 The best answer is: (B) 05/31/2021.
 """
     assert extract_answer(long) == "B"
+
+
+def test_extract_latex():
+    answer = r"Therefore, the best answer is: $\boxed{\text{(B) } 432}$."
+    assert extract_answer(answer) == "B"
 
 
 def test_cot_extraction():
