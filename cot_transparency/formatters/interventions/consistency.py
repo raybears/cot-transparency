@@ -17,6 +17,7 @@ from cot_transparency.formatters.interventions.formatting import (
     format_pair_non_cot,
     format_biased_question_non_cot_sycophancy,
     format_big_brain_question_cot,
+    insert_to_after_system_message,
 )
 from cot_transparency.model_apis import Prompt
 
@@ -81,6 +82,23 @@ class BigBrainBiasedConsistency10(Intervention):
             messages=messages,
             prepend=prompt.convert_to_completion_str(),
         )
+        return new
+
+
+class BigBrainBiasedConsistencySeparate10(BigBrainBiasedConsistency10):
+    """Separate the few shots into messages rather than in the single message"""
+
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            # Not a pair so, sample 10
+            get_big_brain_cots()
+            .sample(10, seed=question.hash())
+            .map(format_big_brain_question_cot)
+            .sum_or_raise()
+        )
+        new = insert_to_after_system_message(messages=messages, to_insert=prompt.messages)
         return new
 
 

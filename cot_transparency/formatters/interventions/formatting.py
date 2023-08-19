@@ -43,6 +43,24 @@ def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: st
     return new_messages
 
 
+def insert_to_after_system_message(messages: list[ChatMessage], to_insert: list[ChatMessage]) -> list[ChatMessage]:
+    """
+    if there is a system message, insert the to_insert after the system message
+    otherwise, just insert at the start
+    """
+    new_messages = []
+    first_message = messages[0]
+    if first_message.role == MessageRole.system:
+        new_messages.append(first_message)
+        new_messages.extend(to_insert)
+        new_messages.extend(messages[1:])
+    else:
+        new_messages.extend(to_insert)
+        new_messages.extend(messages)
+
+    return new_messages
+
+
 def format_pair_cot(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     messages: list[ChatMessage] = add_to_final_assistant(
@@ -130,7 +148,7 @@ def format_big_brain_question_cot(task: BiasedQuestionUnbiasedCOT) -> Prompt:
 def get_formatter_for_few_shot_cot(answer_formatter: Type[StageOneFormatter], seed: str) -> Type[StageOneFormatter]:
     formatter_used: Type[StageOneFormatter] = (
         # We don't want to use the same formatter for few shot
-        BIASED_FORMATTERS_FEW_SHOT_NON_COT.filter(lambda f: f is not answer_formatter)
+        BIASED_FORMATTERS_FEW_SHOT_COT.filter(lambda f: f is not answer_formatter)
         .shuffle(seed=seed)
         .first_or_raise()
     )
