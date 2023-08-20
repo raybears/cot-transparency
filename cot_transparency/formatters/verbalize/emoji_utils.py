@@ -1,7 +1,7 @@
 from cot_transparency.formatters.extraction import (
     extract_lettered_multiple_choices,
-    LetterAndAnswer,
 )
+from cot_transparency.data_models.example_base import LetterAndAnswer
 
 # ruff: noqa: E501
 

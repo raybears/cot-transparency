@@ -2,11 +2,10 @@ from typing import Optional
 
 from slist import Slist
 
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer, DataExampleBase
+from cot_transparency.data_models.example_base import MultipleChoiceAnswer, DataExampleBase, LetterAndAnswer
 from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import (
-    LetterAndAnswer,
     extract_lettered_multiple_choices,
     extract_answer,
     extract_answer_non_cot,

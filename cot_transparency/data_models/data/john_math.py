@@ -8,8 +8,8 @@ from cot_transparency.data_models.example_base import (
     DataExampleBase,
     MultipleChoiceAnswer,
     raise_if_not_multiple_choice_answer,
+    LetterAndAnswer,
 )
-from cot_transparency.formatters.extraction import LetterAndAnswer
 
 
 class JohnMath(DataExampleBase):

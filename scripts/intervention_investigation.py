@@ -25,6 +25,10 @@ from cot_transparency.formatters.interventions.consistency import (
     BiasedConsistency10,
     BigBrainBiasedConsistency10,
     BigBrainBiasedConsistencySeparate10,
+    RepeatedConsistency10,
+    PairedConsistency10,
+    NaiveFewShot5,
+    NaiveFewShotSeparate10,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -44,7 +48,7 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordNoCOTFormatter,
 )
 from cot_transparency.tasks import read_done_experiment
-from scripts.matching_user_answer import matching_user_answer_plot_dots
+from scripts.matching_user_answer import matching_user_answer_plot_dots, baseline_matching_answer_plot_dots
 from scripts.multi_accuracy import PlotDots, accuracy_outputs, TaskAndPlotDots
 from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
 
@@ -182,8 +186,8 @@ def run(
     biased_formatters: Sequence[Type[StageOneFormatter]],
     unbiased_formatter: Type[StageOneFormatter],
     inconsistent_only: bool = True,
+    model: str = "gpt-4",
 ):
-    model = "gpt-4"
     all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/interventions")
     all_read = filter_inconsistent_only(all_read) if inconsistent_only else all_read
 
@@ -216,11 +220,16 @@ def run(
         )
         for intervention in interventions
     ]
+    random_chance: PlotDots = baseline_matching_answer_plot_dots(
+        all_tasks=all_read, model=model, name_override="Random chance", formatter=unbiased_formatter
+    )
+    dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
     bar_plot(
         plot_dots=matching_user_answer,
         title=f"How often does {model} choose the user's view? Model: {model} Dataset: Aqua and mmlu",
         y_axis_title="Answers matching user's view (%)",
         subtitle=subtitle,
+        dotted_line=dotted_line,
     )
 
 
@@ -248,13 +257,20 @@ def run_for_cot():
     run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
 
 
-def run_for_cot_different_10_shots():
+def run_for_cot_different_10_shots(model: str, inconsistent_only: bool = True, ):
+    """
+    python stage_one.py --exp_dir experiments/interventions --dataset transparency --models "['gpt-4']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 61 --interventions "['BigBrainBiasedConsistency10', 'BigBrainBiasedConsistencySeparate10', 'NaiveFewShot10', 'BiasedConsistency10', 'RepeatedConsistency10', 'PairedConsistency10']"
+    """
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
         None,
         BigBrainBiasedConsistencySeparate10,
         BigBrainBiasedConsistency10,
+        PairedConsistency10,
+        NaiveFewShot5,
+        RepeatedConsistency10,
         NaiveFewShot10,
+        NaiveFewShotSeparate10,
         BiasedConsistency10,
     ]
     # what formatters to include
@@ -263,10 +279,16 @@ def run_for_cot_different_10_shots():
         StanfordBiasedFormatter,
         MoreRewardBiasedFormatter,
         # ZeroShotCOTSycophancyFormatter,
-        DeceptiveAssistantBiasedFormatter,
+        # DeceptiveAssistantBiasedFormatter,
     ]
     unbiased_formatter = ZeroShotCOTUnbiasedFormatter
-    run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
+    run(
+        interventions=interventions,
+        biased_formatters=biased_formatters,
+        unbiased_formatter=unbiased_formatter,
+        inconsistent_only=inconsistent_only,
+        model=model,
+    )
 
 
 def run_for_cot_naive_vs_consistency():
@@ -321,4 +343,4 @@ def run_for_non_cot():
 if __name__ == "__main__":
     # run_for_cot()
     # run_for_cot_naive_vs_consistency()
-    run_for_cot_different_10_shots()
+    run_for_cot_different_10_shots(inconsistent_only=False, model="gpt-4")
