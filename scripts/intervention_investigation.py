@@ -103,6 +103,7 @@ def bar_plot(
     save_file_path: Optional[str] = None,
     dotted_line: Optional[DottedLine] = None,
     y_axis_title: Optional[str] = None,
+    max_y: Optional[float] = None,
 ):
     fig = go.Figure()
 
@@ -124,6 +125,8 @@ def bar_plot(
     )
     if y_axis_title is not None:
         fig.update_yaxes(title_text=y_axis_title)
+    if max_y is not None:
+        fig.update_yaxes(range=[0, max_y])
 
     if dotted_line is not None:
         fig.add_trace(
