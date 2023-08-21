@@ -49,6 +49,27 @@ class PairedConsistency10(PairedConsistency6):
     n_samples: int = 5
 
 
+class RepeatedConsistency10(Intervention):
+    # Just the naive few shot, but repeated 5 * 2 = 10
+    n_samples: int = 5
+
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        cots = get_correct_cots().sample(cls.n_samples, seed=question.hash())
+        duplicated = cots + cots
+        prompt: Prompt = duplicated.map(format_unbiased_question_cot).sum_or_raise()
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
+class RepeatedConsistency12(RepeatedConsistency10):
+    n_samples: int = 6
+
+
 class BiasedConsistency10(Intervention):
     @classmethod
     def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
@@ -68,13 +89,15 @@ class BiasedConsistency10(Intervention):
 
 
 class BigBrainBiasedConsistency10(Intervention):
+    n_samples: int = 10
+
     @classmethod
     def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             # Not a pair so, sample 10
             get_big_brain_cots()
-            .sample(10, seed=question.hash())
+            .sample(cls.n_samples, seed=question.hash())
             .map(format_big_brain_question_cot)
             .sum_or_raise()
         )
@@ -83,6 +106,10 @@ class BigBrainBiasedConsistency10(Intervention):
             prepend=prompt.convert_to_completion_str(),
         )
         return new
+
+
+class BigBrainBiasedConsistency12(BigBrainBiasedConsistency10):
+    n_samples: int = 12
 
 
 class BigBrainBiasedConsistencySeparate10(BigBrainBiasedConsistency10):
@@ -132,6 +159,11 @@ class NaiveFewShot6(NaiveFewShot1):
     n_samples: int = 6
 
 
+class NaiveFewShot5(NaiveFewShot1):
+    # Simply use unbiased few shot
+    n_samples: int = 5
+
+
 class NaiveFewShot10(NaiveFewShot1):
     # Simply use unbiased few shot
     n_samples: int = 10
@@ -145,6 +177,26 @@ class NaiveFewShot12(NaiveFewShot1):
 class NaiveFewShot16(NaiveFewShot1):
     # Simply use unbiased few shot
     n_samples: int = 16
+
+
+class NaiveFewShotSeparate10(Intervention):
+    # Simply use unbiased few shot
+    n_samples: int = 10
+
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            get_correct_cots()
+            .sample(cls.n_samples, seed=question.hash())
+            .map(format_unbiased_question_cot)
+            .sum_or_raise()
+        )
+        new = insert_to_after_system_message(
+            messages=messages,
+            to_insert=prompt.messages,
+        )
+        return new
 
 
 class NaiveFewShotLabelOnly1(Intervention):

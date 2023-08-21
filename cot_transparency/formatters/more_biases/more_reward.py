@@ -2,11 +2,10 @@ from typing import Optional
 
 from slist import Slist
 
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer, DataExampleBase
+from cot_transparency.data_models.example_base import MultipleChoiceAnswer, DataExampleBase, LetterAndOption
 from cot_transparency.data_models.models import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import (
-    LetterAndAnswer,
     extract_lettered_multiple_choices,
     extract_answer,
     extract_answer_non_cot,
@@ -19,7 +18,7 @@ from cot_transparency.formatters.instructions import (
 
 
 def create_more_reward_system_prompt(question: str, biased_ans: MultipleChoiceAnswer) -> str:
-    options: list[LetterAndAnswer] = extract_lettered_multiple_choices(question=question)
+    options: list[LetterAndOption] = extract_lettered_multiple_choices(question=question)
     # if it is a biased answer, set the historical reward to be high,
     # otherwise set it to be low
     formatted_options = (

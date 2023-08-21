@@ -69,6 +69,7 @@ from cot_transparency.formatters.transparency.interventions.logical_consequence 
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
     WrongFewShotBiasedNoCOTFormatter,
+    WrongFewShotIgnoreMistakesBiasedFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantBiasedFormatter,
@@ -121,6 +122,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         ModelWrittenBiasedWithNoneFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        WrongFewShotIgnoreMistakesBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 

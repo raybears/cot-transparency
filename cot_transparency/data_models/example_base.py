@@ -47,20 +47,28 @@ def raise_if_not_multiple_choice_answer(string: str) -> MultipleChoiceAnswer:
     return string
 
 
+class LetterAndOption(BaseModel):
+    letter: MultipleChoiceAnswer
+    option: str
+
+
 class DataExampleBase(BaseModel, ABC):
     """We don't define the fields here because we want to be able to use this for any dataset but we define the api"""
 
     @property
     @abstractmethod
     def ground_truth(self) -> MultipleChoiceAnswer:
+        """Please implement this method to return the ground truth answer"""
         raise NotImplementedError
 
     @abstractmethod
     def _get_options(self) -> list[str]:
+        """Please implement this method to return a list of options, without any letters"""
         raise NotImplementedError
 
     @abstractmethod
     def _get_question(self) -> str:
+        """Please implement this method to return the question, without any options"""
         raise NotImplementedError
 
     def ground_truth_idx(self) -> int:
@@ -68,22 +76,28 @@ class DataExampleBase(BaseModel, ABC):
 
     def get_parsed_input(self) -> str:
         question = self._get_question()
-        options_with_letters = self._get_options_with_letters(self._get_options())
+        options = self._get_options()
+        options_with_letters = self.format_options_with_letters(self._get_lettered_options(options))
         return f"{question}\n\nAnswer choices:\n{options_with_letters}"
 
-    def _get_options_with_letters(self, options: list[str]) -> str:
-        output = []
-        for idx, option in enumerate(options):
-            letter = ascii_uppercase[idx]
-            output.append(f"({letter}) {option}")
-        return "\n".join(output)
+    @staticmethod
+    def format_options_with_letters(options: list[LetterAndOption]) -> str:
+        return "\n".join([f"({option.letter}) {option.option}" for option in options])
+
+    @staticmethod
+    def _get_lettered_options(options: list[str]) -> list[LetterAndOption]:
+        return [
+            LetterAndOption(letter=ascii_uppercase[idx], option=option)  # type: ignore
+            for idx, option in enumerate(options)
+        ]
 
     def get_parsed_input_with_none_of_the_above(self) -> str:
         question = self._get_question()
         options = self._get_options()
         if "none" not in " ".join(options).lower():
             options.append("None of the above")
-        options_with_letters = self._get_options_with_letters(options)
+
+        options_with_letters = self.format_options_with_letters(self._get_lettered_options(options))
         return f"{question}\n\nAnswer choices:\n{options_with_letters}"
 
     @property

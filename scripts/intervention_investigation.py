@@ -25,6 +25,10 @@ from cot_transparency.formatters.interventions.consistency import (
     BiasedConsistency10,
     BigBrainBiasedConsistency10,
     BigBrainBiasedConsistencySeparate10,
+    RepeatedConsistency10,
+    PairedConsistency10,
+    NaiveFewShot5,
+    NaiveFewShotSeparate10,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -99,6 +103,7 @@ def bar_plot(
     save_file_path: Optional[str] = None,
     dotted_line: Optional[DottedLine] = None,
     y_axis_title: Optional[str] = None,
+    max_y: Optional[float] = None,
 ):
     fig = go.Figure()
 
@@ -120,6 +125,8 @@ def bar_plot(
     )
     if y_axis_title is not None:
         fig.update_yaxes(title_text=y_axis_title)
+    if max_y is not None:
+        fig.update_yaxes(range=[0, max_y])
 
     if dotted_line is not None:
         fig.add_trace(
@@ -173,8 +180,8 @@ def accuracy_diff_intervention(
     )
 
 
-def filter_inconsistent_only(data: Slist[TaskOutput]) -> Slist[TaskOutput]:
-    return data.filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth))
+def filter_inconsistent_only(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
+    return Slist(data).filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth))
 
 
 def run(
@@ -182,10 +189,13 @@ def run(
     biased_formatters: Sequence[Type[StageOneFormatter]],
     unbiased_formatter: Type[StageOneFormatter],
     inconsistent_only: bool = True,
+    tasks: Sequence[str] = [],
+    model: str = "gpt-4",
 ):
-    model = "gpt-4"
     all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/interventions")
-    all_read = filter_inconsistent_only(all_read) if inconsistent_only else all_read
+    all_read = (filter_inconsistent_only(all_read) if inconsistent_only else all_read).filter(
+        lambda task: task.task_spec.task_name in tasks if tasks else True
+    )
 
     # unbiased acc
     unbiased_plot: PlotDots = plot_dots_for_intervention(
@@ -216,11 +226,18 @@ def run(
         )
         for intervention in interventions
     ]
+    unbiased_matching_baseline = matching_user_answer_plot_dots(
+        intervention=None, all_tasks=all_read, for_formatters=[unbiased_formatter], model=model
+    )
+    dotted_line = DottedLine(
+        name="Zeroshot Unbiased context", value=unbiased_matching_baseline.acc.accuracy, color="red"
+    )
     bar_plot(
         plot_dots=matching_user_answer,
         title=f"How often does {model} choose the user's view? Model: {model} Dataset: Aqua and mmlu",
         y_axis_title="Answers matching user's view (%)",
         subtitle=subtitle,
+        dotted_line=dotted_line,
     )
 
 
@@ -248,13 +265,23 @@ def run_for_cot():
     run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
 
 
-def run_for_cot_different_10_shots():
+def run_for_cot_different_10_shots(
+    model: str,
+    inconsistent_only: bool = True,
+):
+    """
+    python stage_one.py --exp_dir experiments/interventions --tasks "['truthful_qa', 'john_level_5', 'logiqa', 'hellaswag', 'mmlu']" --models "['gpt-4']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 61 --interventions "['BigBrainBiasedConsistency10', 'BigBrainBiasedConsistencySeparate10', 'NaiveFewShot10', 'BiasedConsistency10', 'RepeatedConsistency10', 'PairedConsistency10']"
+    """
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
         None,
         BigBrainBiasedConsistencySeparate10,
         BigBrainBiasedConsistency10,
+        PairedConsistency10,
+        NaiveFewShot5,
+        RepeatedConsistency10,
         NaiveFewShot10,
+        NaiveFewShotSeparate10,
         BiasedConsistency10,
     ]
     # what formatters to include
@@ -263,10 +290,17 @@ def run_for_cot_different_10_shots():
         StanfordBiasedFormatter,
         MoreRewardBiasedFormatter,
         # ZeroShotCOTSycophancyFormatter,
-        DeceptiveAssistantBiasedFormatter,
+        # DeceptiveAssistantBiasedFormatter,
     ]
     unbiased_formatter = ZeroShotCOTUnbiasedFormatter
-    run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
+    run(
+        interventions=interventions,
+        biased_formatters=biased_formatters,
+        unbiased_formatter=unbiased_formatter,
+        inconsistent_only=inconsistent_only,
+        model=model,
+        tasks=["truthful_qa", "john_level_5", "logiqa", "hellaswag", "mmlu"],
+    )
 
 
 def run_for_cot_naive_vs_consistency():
@@ -321,4 +355,4 @@ def run_for_non_cot():
 if __name__ == "__main__":
     # run_for_cot()
     # run_for_cot_naive_vs_consistency()
-    run_for_cot_different_10_shots()
+    run_for_cot_different_10_shots(inconsistent_only=True, model="gpt-4")
