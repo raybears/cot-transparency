@@ -200,6 +200,8 @@ def main(
             formatters.remove(formatter)
             formatters += fnmatch.filter(StageOneFormatter.all_formatters().keys(), formatter)
 
+    assert len(formatters) > 0, "You must define at least one formatter"
+
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
     validated_interventions = get_valid_stage1_interventions(interventions)
@@ -250,12 +252,12 @@ def main(
             config.temperature = temperature
         assert config.model == model
         if not formatter.is_cot:
-            config.max_tokens = 3
+            config.max_tokens = 50
 
         for item in data:
             for i in range(repeats_per_question):
                 messages = (
-                    setting.intervention.intervene(question=item, formatter=formatter)
+                    setting.intervention.intervene(question=item, formatter=formatter, model=model)
                     if setting.intervention
                     else formatter.format_example(question=item, model=model)
                 )
@@ -274,7 +276,7 @@ def main(
                 )
                 tasks_to_run.append(task_spec)
 
-    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=False)
+    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=True)
 
 
 def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneFormatter]]:

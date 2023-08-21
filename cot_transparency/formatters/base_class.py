@@ -12,7 +12,7 @@ class PromptFormatter(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(response: str, options: list[str], model: Optional[str] = None) -> Optional[str]:
         raise NotImplementedError
 
     @classmethod
@@ -27,7 +27,8 @@ class PromptFormatter(ABC):
 
     @classmethod
     def all_formatters(cls) -> dict[str, Type[Self]]:
-        return {s.name(): s for s in cls.all_subclasses()}
+        # return all subclasses thare are not abstract
+        return {s.name(): s for s in cls.all_subclasses() if not s.__abstractmethods__}
 
 
 class StageOneFormatter(PromptFormatter, ABC):

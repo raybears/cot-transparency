@@ -4,10 +4,10 @@ from cot_transparency.model_apis import Prompt
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
-def main(formatter_name: str):
+def main(formatter_name: str, model="gpt-4"):
     formatter = name_to_formatter(formatter_name)
 
-    example = formatter.format_example(EMPIRE_OF_PANTS_EXAMPLE)  # type: ignore
+    example = formatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model=model)  # type: ignore
     prompt = Prompt(messages=example)
 
     try:

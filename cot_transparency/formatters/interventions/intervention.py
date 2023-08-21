@@ -12,6 +12,10 @@ class Intervention(ABC):
         return cls.__name__
 
     @classmethod
+    def formatted_name(cls) -> str:
+        return cls.name()
+
+    @classmethod
     @abstractmethod
     def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
         raise NotImplementedError

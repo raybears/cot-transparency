@@ -93,7 +93,6 @@ class JoinStr(str, Enum):
 
 
 class IndicatorSeparator(str, Enum):
-    SPACE = "space"
     DOT = "dot"
     PAREN = "paren"
 
@@ -110,10 +109,32 @@ class DataFormatSpec(BaseModel):
             f"{self.join_variant.name}_{self.indicator_separator.name}"
         )
 
+    @classmethod
+    def get_random(seed: int):
+        rng = random.Random(seed)
+        choice_variant = rng.choice(list(ChoiceVariant))
+        question_variant = rng.choice(list(QuestionPrefix))
+        join_variant = rng.choice(list(JoinStr))
+        indicator_separator = rng.choice(list(IndicatorSeparator))
+        return DataFormatSpec(
+            choice_variant=choice_variant,
+            question_variant=question_variant,
+            join_variant=join_variant,
+            indicator_separator=indicator_separator,
+        )
+
 
 def raise_if_not_multiple_choice_answer(string: str) -> MultipleChoiceAnswer:
     assert string in VALID_ANSWERS
     return string
+
+
+def combine_indicator_with_separator(indicator: str, separator: IndicatorSeparator) -> str:
+    match separator:
+        case IndicatorSeparator.DOT:
+            return f"{indicator}. "
+        case IndicatorSeparator.PAREN:
+            return f"({indicator}) "
 
 
 class DataExampleBase(BaseModel, ABC):
@@ -143,6 +164,13 @@ class DataExampleBase(BaseModel, ABC):
     def _get_options(self) -> list[str]:
         raise NotImplementedError
 
+    def get_options(self, include_none_of_the_above: bool = False) -> list[str]:
+        options = self._get_options()
+        if include_none_of_the_above:
+            if "none" not in " ".join(options).lower():
+                options.append("None of the above")
+        return options
+
     @abstractmethod
     def _get_question(self) -> str:
         raise NotImplementedError
@@ -155,20 +183,13 @@ class DataExampleBase(BaseModel, ABC):
         for idx, option in enumerate(options):
             choice_variant = self.data_format.choice_variant
             indicator = choice_variant.answers_list[idx]
-            match self.data_format.indicator_separator:
-                case IndicatorSeparator.SPACE:
-                    output.append(f"{indicator} {option}")
-                case IndicatorSeparator.DOT:
-                    output.append(f"{indicator}. {option}")
-                case IndicatorSeparator.PAREN:
-                    output.append(f"({indicator}) {option}")
+            combined = combine_indicator_with_separator(indicator, self.data_format.indicator_separator)
+            output.append(f"{combined}{option}")
         return "\n".join(output)
 
     def get_parsed_input_with_none_of_the_above(self) -> str:
         question = self._get_question()
-        options = self._get_options()
-        if "none" not in " ".join(options).lower():
-            options.append("None of the above")
+        options = self.get_options(include_none_of_the_above=True)
         options_with_letters = self._get_options_with_indicator(options)
         return f"{question}\n\nAnswer choices:\n{options_with_letters}"
 

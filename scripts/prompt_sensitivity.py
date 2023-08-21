@@ -7,6 +7,20 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from statsmodels.stats.inter_rater import fleiss_kappa, aggregate_raters
 
+from cot_transparency.formatters.interventions.valid_interventions import VALID_INTERVENTIONS
+
+
+def fleiss_kappa_on_group(group: pd.DataFrame):
+    # we need subjects in rows, categories in columns, where subjects are task_hash
+    # and categories are the formatter_name and the value is the parsed_response
+    pt = group.pivot(index="task_hash", columns="formatter_name", values="parsed_response")  # type: ignore
+    # drop any rows that have None
+    pt = pt.dropna()
+    agg = aggregate_raters(pt.to_numpy())
+    fk = fleiss_kappa(agg[0])
+    group["fleiss_kappa"] = fk
+    return group
+
 
 def prompt_metrics(
     exp_dir: str,
@@ -39,21 +53,20 @@ def prompt_metrics(
         group["modal_agreement_score"] = group["is_same_as_mode"].mean()
         return group
 
-    def fleiss_kappa_on_group(group: pd.DataFrame):
-        # we need subjects in rows, categories in columns, where subjects are task_hash
-        # and categories are the formatter_name and the value is the parsed_response
-        pt = group.pivot(index="task_hash", columns="formatter_name", values="parsed_response")  # type: ignore
-        # drop any rows that have None
-        pt = pt.dropna()
-        agg = aggregate_raters(pt.to_numpy())
-        fk = fleiss_kappa(agg[0])
-        group["fleiss_kappa"] = fk
-        return group
-
     # replace parsed answers that were None with "None" and print out the number of None answers
     df["parsed_response"] = df["parsed_response"].fillna("None")
     df["parsed_response"] = df["parsed_response"].astype(str)
     df["intervention_name"] = df["intervention_name"].fillna("None")
+
+    def get_intervention_name(row: pd.Series) -> str:  # type: ignore
+        if row.intervention_name == "None":
+            if "nocot" in row.formatter_name.lower():
+                return "None No COT"
+            else:
+                return "None COT"
+        return VALID_INTERVENTIONS[row.intervention_name].formatted_name()
+
+    df["intervention_name"] = df.apply(get_intervention_name, axis=1)
 
     print("Number of responses", len(df))
     try:
@@ -63,21 +76,35 @@ def prompt_metrics(
 
     # is consistent across formatters
     # drop on task_hash
-    df_same_ans = df.groupby([group1, "task_hash", group3]).apply(is_same_answer)
-    df_fk = df.groupby([group1, group3]).apply(fleiss_kappa_on_group)
-
+    df_same_ans = df.groupby([group1, "task_hash", group3]).apply(is_same_answer).reset_index(drop=True)
     df_same_ans: pd.DataFrame = df_same_ans.drop_duplicates(
         subset=["task_hash", group1, "formatter_name", group3], inplace=False
     )  # type: ignore
     # drop none
     df_same_ans = df_same_ans[df_same_ans["parsed_response"] != "None"]
-    df_fk: pd.DataFrame = df_fk.drop_duplicates(subset=["task_hash", group1, "formatter_name", group3], inplace=False)  # type: ignore
 
-    g = sns.catplot(data=df_same_ans, x=group1, y="modal_agreement_score", hue=group3, kind="bar")
-    g.fig.suptitle("Modal Agreement Score")
+    n_questions = df_same_ans.groupby(["intervention_name"])["task_hash"].nunique().mean()
+    df_none = df[df.intervention_name == "None"]
+    n_formatter = len(df_none["formatter_name"].unique())
+    n_formatter = df_same_ans.groupby(["intervention_name"])["formatter_name"].nunique().mean()
 
-    g = sns.catplot(data=df_fk, x=group1, y="fleiss_kappa", hue=group3, kind="bar")
-    g.fig.suptitle("Fleiss Kappa Score")
+    # how do we order the hues
+    hue_order = ["None No COT", "10 Few Shot No COT", "20 Few Shot No COT", "None COT", "10 Few Shot COT"]
+    
+    g = sns.catplot(
+        data=df_same_ans, x=group1, y="modal_agreement_score", hue=group3, kind="bar", capsize=0.01, errwidth=1, hue_order=hue_order
+    )
+    g.fig.suptitle(f"Modal Agreement Score [{n_questions} questions, {n_formatter} prompts]")
+    g.set_axis_labels("Model", "Modal Agreement Score")
+    g._legend.set_title("Intervention")
+
+    # df_fk = df.groupby([group1, group3]).apply(fleiss_kappa_on_group)
+    # df_fk: pd.DataFrame = df_fk.drop_duplicates(subset=["task_hash", group1, "formatter_name", group3], inplace=False)  # type: ignore
+
+    # g = sns.catplot(data=df_fk, x=group1, y="fleiss_kappa", hue=group3, kind="bar")
+    # g.fig.suptitle("Fleiss Kappa Score")
+    # g.set_axis_labels("Model", "Fleiss Kappa Score")
+    # g._legend.set_title("Intervention")
 
     plt.show()
 
