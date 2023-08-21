@@ -9,7 +9,7 @@ from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatt
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotBiasedFormatter
 from scripts.intervention_investigation import read_whole_exp_dir, DottedLine, bar_plot, filter_inconsistent_only
-from scripts.matching_user_answer import matching_user_answer_plot_dots, baseline_matching_answer_plot_dots
+from scripts.matching_user_answer import matching_user_answer_plot_dots, random_chance_matching_answer_plot_dots
 from scripts.multi_accuracy import PlotDots, AccuracyOutput
 from scripts.overall_accuracy import overall_accuracy_for_formatter
 
@@ -168,7 +168,7 @@ def plot_matching(
             name_override="I think the answer is (X)",
         ),
     ]
-    random_chance: PlotDots = baseline_matching_answer_plot_dots(
+    random_chance: PlotDots = random_chance_matching_answer_plot_dots(
         all_tasks=all_read,
         model=model,
         name_override="Random chance",

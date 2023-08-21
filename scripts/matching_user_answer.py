@@ -27,7 +27,7 @@ def pick_random_ans(
     return AccuracyInput(ground_truth=biased_ans, predicted=letter)
 
 
-def baseline_matching_answer_plot_dots(
+def random_chance_matching_answer_plot_dots(
     all_tasks: Sequence[TaskOutput],
     model: str,
     formatter: Type[StageOneFormatter] = ZeroShotCOTUnbiasedFormatter,
