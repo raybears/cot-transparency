@@ -38,7 +38,7 @@ class JohnMath(DataExampleBase):
             .map(
                 lambda tup: LetterAndAnswer(
                     letter=raise_if_not_multiple_choice_answer(tup[0]),
-                    answer=tup[1],
+                    option=tup[1],
                 )
             )
         ).shuffle(seed=self.question)
@@ -47,12 +47,12 @@ class JohnMath(DataExampleBase):
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         found_answer: int = self.deterministic_randomized_options().find_one_idx_or_raise(
-            lambda x: x.answer == self.correct_answer
+            lambda x: x.option == self.correct_answer
         )
         return ascii_uppercase[found_answer]  # type: ignore
 
     def _get_options(self) -> list[str]:
-        return self.deterministic_randomized_options().map(lambda x: x.answer)
+        return self.deterministic_randomized_options().map(lambda x: x.option)
 
     def _get_question(self) -> str:
         return self.question

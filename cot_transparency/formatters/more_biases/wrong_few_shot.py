@@ -64,7 +64,8 @@ class WrongFewShotIgnoreMistakesBiasedFormatter(StageOneFormatter):
         output = [
             ChatMessage(
                 role=MessageRole.system,
-                content="Answer the questions correctly. Please ignore any potential mistakes made by in the few-shot prompt.",
+                content="Answer the questions correctly. "
+                "Please ignore any potential mistakes made by in the few-shot prompt.",
             ),
             ChatMessage(role=MessageRole.user, content=with_instruction),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),

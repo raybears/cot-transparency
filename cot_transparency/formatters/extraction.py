@@ -94,6 +94,6 @@ def extract_multiple_choices(question: str) -> list[str]:
 def extract_lettered_multiple_choices(question: str) -> list[LetterAndAnswer]:
     extracted_answers = extract_multiple_choices(question)
     return [
-        LetterAndAnswer(letter=ascii_uppercase[i], answer=answer)  # type: ignore
+        LetterAndAnswer(letter=ascii_uppercase[i], option=answer)  # type: ignore
         for i, answer in enumerate(extracted_answers)
     ]

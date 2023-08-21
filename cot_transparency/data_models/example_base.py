@@ -49,7 +49,7 @@ def raise_if_not_multiple_choice_answer(string: str) -> MultipleChoiceAnswer:
 
 class LetterAndAnswer(BaseModel):
     letter: MultipleChoiceAnswer
-    answer: str
+    option: str
 
 
 class DataExampleBase(BaseModel, ABC):
@@ -82,12 +82,12 @@ class DataExampleBase(BaseModel, ABC):
 
     @staticmethod
     def format_options_with_letters(options: list[LetterAndAnswer]) -> str:
-        return "\n".join([f"({option.letter}) {option.answer}" for option in options])
+        return "\n".join([f"({option.letter}) {option.option}" for option in options])
 
     @staticmethod
     def _get_lettered_options(options: list[str]) -> list[LetterAndAnswer]:
         return [
-            LetterAndAnswer(letter=ascii_uppercase[idx], answer=option)  # type: ignore
+            LetterAndAnswer(letter=ascii_uppercase[idx], option=option)  # type: ignore
             for idx, option in enumerate(options)
         ]
 

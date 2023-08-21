@@ -21,9 +21,9 @@ def question_with_checkmark_bias(parsed_input: str, biased_ans: str, bias_emoji:
     options: list[LetterAndAnswer] = extract_lettered_multiple_choices(question=parsed_input)
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
-        f"({option.letter}) {option.answer} {bias_emoji}"
+        f"({option.letter}) {option.option} {bias_emoji}"
         if option.letter == biased_ans
-        else f"({option.letter}) {option.answer}"
+        else f"({option.letter}) {option.option}"
         for option in options
     ]
     # join the options with newlines
@@ -50,9 +50,9 @@ def question_with_cross_bias(parsed_input: str, biased_ans: str, bias_emoji: str
     options: list[LetterAndAnswer] = extract_lettered_multiple_choices(question=parsed_input)
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
-        f"({option.letter}) {option.answer} {bias_emoji}"
+        f"({option.letter}) {option.option} {bias_emoji}"
         if option.letter != biased_ans
-        else f"({option.letter}) {option.answer}"
+        else f"({option.letter}) {option.option}"
         for option in options
     ]
     # join the options with newlines
