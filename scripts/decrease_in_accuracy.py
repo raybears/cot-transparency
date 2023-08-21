@@ -86,7 +86,7 @@ def decrease_in_accuracy(exp_dir: str, model: str):
         "hellaswag",
         "john_level_5",
     ]
-    all_read = filter_inconsistent_only(read_whole_exp_dir(exp_dir="experiments/interventions"))
+    all_read = filter_inconsistent_only(read_whole_exp_dir(exp_dir=exp_dir))
     unbiased_formatter = ZeroShotCOTUnbiasedFormatter
 
     for task in tasks:
