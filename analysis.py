@@ -104,7 +104,6 @@ def apply_filters(
     if model_filter:
         # check that df.model contains model_filter
         df = df[df.model.str.contains(model_filter)]
-
     if formatters:
         # check that df.formatter_name is in formatters
         df = df[df.formatter_name.isin(formatters)]
@@ -182,8 +181,6 @@ def accuracy_for_df(
 
 
 def pivot_df(df: pd.DataFrame, values: List[str] = ["is_correct"]):
-    print("here2")
-    print(df)
     df = df.copy()
     df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
 
