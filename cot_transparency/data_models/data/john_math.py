@@ -8,7 +8,7 @@ from cot_transparency.data_models.example_base import (
     DataExampleBase,
     MultipleChoiceAnswer,
     raise_if_not_multiple_choice_answer,
-    LetterAndAnswer,
+    LetterAndOption,
 )
 
 
@@ -28,15 +28,15 @@ class JohnMath(DataExampleBase):
         # override the biased answer to be the one that is in the dataset
         return self.biased_answer
 
-    def deterministic_randomized_options(self) -> Slist[LetterAndAnswer]:
+    def deterministic_randomized_options(self) -> Slist[LetterAndOption]:
         answers = Slist([self.correct_answer, self.negative_answer])
         # 50% chance for correct answer to be A
-        answer_list: Slist[LetterAndAnswer] = (
+        answer_list: Slist[LetterAndOption] = (
             Slist(["A", "B"])
             .shuffle(seed=self.question)
             .zip(answers)
             .map(
-                lambda tup: LetterAndAnswer(
+                lambda tup: LetterAndOption(
                     letter=raise_if_not_multiple_choice_answer(tup[0]),
                     option=tup[1],
                 )
