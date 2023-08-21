@@ -177,8 +177,8 @@ def accuracy_diff_intervention(
     )
 
 
-def filter_inconsistent_only(data: Slist[TaskOutput]) -> Slist[TaskOutput]:
-    return data.filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth))
+def filter_inconsistent_only(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
+    return Slist(data).filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth))
 
 
 def run(
@@ -257,7 +257,10 @@ def run_for_cot():
     run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
 
 
-def run_for_cot_different_10_shots(model: str, inconsistent_only: bool = True, ):
+def run_for_cot_different_10_shots(
+    model: str,
+    inconsistent_only: bool = True,
+):
     """
     python stage_one.py --exp_dir experiments/interventions --dataset transparency --models "['gpt-4']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 61 --interventions "['BigBrainBiasedConsistency10', 'BigBrainBiasedConsistencySeparate10', 'NaiveFewShot10', 'BiasedConsistency10', 'RepeatedConsistency10', 'PairedConsistency10']"
     """

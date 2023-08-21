@@ -32,6 +32,7 @@ def baseline_matching_answer_plot_dots(
     model: str,
     formatter: Type[StageOneFormatter] = ZeroShotCOTUnbiasedFormatter,
     name_override: Optional[str] = None,
+    for_task: Sequence[str] = [],
 ) -> PlotDots:
     intervention_name = None
     filtered: Slist[TaskOutput] = (
@@ -39,6 +40,7 @@ def baseline_matching_answer_plot_dots(
         .filter(lambda task: intervention_name == task.task_spec.intervention_name)
         .filter(lambda task: task.task_spec.formatter_name == formatter.name())
         .filter(lambda task: task.task_spec.model_config.model == model)
+        .filter(lambda task: task.task_spec.task_name in for_task if for_task else True)
     )
     assert filtered, f"Intervention None has no tasks in {formatter.name()}"
     transformed = Slist(filtered).map(pick_random_ans)
@@ -51,6 +53,7 @@ def matching_user_answer_plot_dots(
     all_tasks: Sequence[TaskOutput],
     for_formatters: Sequence[Type[StageOneFormatter]],
     model: str,
+    for_task: Sequence[str] = [],
     name_override: Optional[str] = None,
 ) -> PlotDots:
     intervention_name: str | None = intervention.name() if intervention else None
@@ -60,6 +63,7 @@ def matching_user_answer_plot_dots(
         .filter(lambda task: intervention_name == task.task_spec.intervention_name)
         .filter(lambda task: task.task_spec.formatter_name in formatters_names)
         .filter(lambda task: task.task_spec.model_config.model == model)
+        .filter(lambda task: task.task_spec.task_name in for_task if for_task else True)
     )
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
     transformed = (
