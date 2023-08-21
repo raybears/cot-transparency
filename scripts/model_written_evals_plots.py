@@ -51,8 +51,8 @@ def plot_model_written_evals_add_perspective_non_cot():
     """
     python stage_one.py --exp_dir experiments/model_written_scaling --dataset model_written_evals --models "['gpt-4', 'gpt-3.5-turbo']" --formatters '["ModelWrittenBiasedCOTFormatter", "ModelWrittenBiasedCOTWithNoneFormatter", "ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter"]' --example_cap 200
     """
-    models = ["gpt-3.5-turbo", "gpt-4"]
-    all_read = read_whole_exp_dir(exp_dir="experiments/model_written_scaling")
+    models = ["Llama-7b-chat-hf", "Llama-13b-chat-hf"]
+    all_read = read_whole_exp_dir(exp_dir="remote_experiments")
     formatters = [
         ModelWrittenBiasedFormatter,
         ModelWrittenBiasedWithNoneFormatter,

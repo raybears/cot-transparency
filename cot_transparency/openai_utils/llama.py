@@ -7,13 +7,14 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, StrictCha
 
 
 class Llama27BHelper:
-    def __init__(self, pretrained_model: str = "meta-llama/Llama-2-7b-chat-hf"):
+    def __init__(self, pretrained_model: str = "Llama-2-7b-chat-hf"):
+        pretrained_model = f"meta-llama/{pretrained_model}"
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         token = os.getenv("HF_TOKEN", None)
         if token is None:
             raise ValueError("No HF_TOKEN environment variable found. Must be specifed in env")
         self.tokenizer = AutoTokenizer.from_pretrained(pretrained_model, use_auth_token=token)
-        self.model = AutoModelForCausalLM.from_pretrained(pretrained_model, use_auth_token=token).to(self.device)
+        self.model = AutoModelForCausalLM.from_pretrained(pretrained_model, use_auth_token=token, device_map="auto")
 
     def generate_text(
         self, prompt: str, max_length: int = 100, temperature: float = 1.0, top_p: Optional[float] = 1.0
@@ -79,7 +80,7 @@ def llama_v2_prompt(messages: list[StrictChatMessage]) -> str:
 
 
 def call_llama_chat(prompt: list[StrictChatMessage], config: OpenaiInferenceConfig) -> str:
-    supported_models = set(["Llama-2-7b-chat-hf"])
+    supported_models = set(["Llama-2-7b-chat-hf", "Llama-2-13b-chat-hf", "Llama-2-70b-chat-hf"])
 
     assert config.model in supported_models, f"llama model {config.model} is not supported yet"
     formatted_prompt = llama_v2_prompt(prompt)
@@ -88,7 +89,7 @@ def call_llama_chat(prompt: list[StrictChatMessage], config: OpenaiInferenceConf
         if config.model in llama_cache:
             chat_model = llama_cache[config.model]
         else:
-            chat_model = Llama27BHelper()
+            chat_model = Llama27BHelper(config.model)
             llama_cache[config.model] = chat_model
 
     return chat_model.generate_text(
