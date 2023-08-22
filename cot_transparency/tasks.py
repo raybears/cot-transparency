@@ -96,14 +96,14 @@ def task_function(
     response = (
         call_model_and_raise_if_not_suitable(
             messages=task.messages,
-            config=task.model_config,
+            config=task.inference_config,
             formatter=formatter,
             retries=20,
         )
         if raise_after_retries
         else call_model_and_catch(
             messages=task.messages,
-            config=task.model_config,
+            config=task.inference_config,
             formatter=formatter,
             retries=10,
         )
@@ -112,12 +112,12 @@ def task_function(
     if isinstance(task, StageTwoTaskSpec):
         return StageTwoTaskOutput(
             task_spec=task,
-            model_output=response,
+            inference_output=response,
         )
     elif isinstance(task, TaskSpec):
         return TaskOutput(
             task_spec=task,
-            model_output=response,
+            inference_output=response,
         )
     else:
         raise ValueError(f"Unknown task type {type(task)}")

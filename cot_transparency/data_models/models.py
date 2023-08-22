@@ -4,8 +4,7 @@ from enum import Enum
 from pathlib import Path
 
 
-from pydantic import BaseModel, conlist
-
+from pydantic import BaseModel, conlist, Field, AliasChoices, ConfigDict
 
 from typing import Optional, Union, Any, Type
 
@@ -16,7 +15,7 @@ from cot_transparency.data_models.example_base import MultipleChoiceAnswer, Gene
 
 class HashableBaseModel(BaseModel):
     def d_hash(self) -> str:
-        as_json = self.json()
+        as_json = self.model_dump_json()
         return deterministic_hash(as_json)
 
 
@@ -28,7 +27,7 @@ class OpenaiInferenceConfig(HashableBaseModel):
     max_tokens: int
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
-    stop: Union[None, str, conlist(str, min_items=1, max_items=4)] = None  # type: ignore
+    stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
 
 
 class MessageRole(str, Enum):
@@ -54,9 +53,7 @@ class StrictMessageRole(str, Enum):
 class ChatMessage(HashableBaseModel):
     role: MessageRole
     content: str
-
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
     def __str__(self) -> str:
         return f"{self.role}: {self.content}"
@@ -78,10 +75,7 @@ class ChatMessage(HashableBaseModel):
 class StrictChatMessage(HashableBaseModel):
     role: StrictMessageRole
     content: str
-
-    class Config:
-        frozen = True
-        validate_assignment = True
+    model_config = ConfigDict(frozen=True)
 
     def __str__(self) -> str:
         return f"{self.role}: {self.content}"
@@ -111,7 +105,8 @@ def deterministic_task_hash(
 
 
 class BaseTaskSpec(BaseModel):
-    model_config: OpenaiInferenceConfig
+    # We've called this model_config but that clashes with model_config of pydantic v2
+    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: list[ChatMessage]
     out_file_path: Path
     formatter_name: str
@@ -120,7 +115,8 @@ class BaseTaskSpec(BaseModel):
 class TaskSpec(BaseTaskSpec):
     # This is a dataclass because a PromptFormatter isn't serializable
     task_name: str
-    model_config: OpenaiInferenceConfig
+    # We've called this model_config but that clashes with model_config of pydantic v2
+    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: list[ChatMessage]
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
@@ -137,7 +133,7 @@ class TaskSpec(BaseTaskSpec):
         return data_type(**self.data_example)
 
     def uid(self) -> str:
-        return deterministic_task_hash(self.task_name, self.messages, self.model_config, self.repeat_idx)
+        return deterministic_task_hash(self.task_name, self.messages, self.inference_config, self.repeat_idx)
 
     def task_hash_with_repeat(self) -> str:
         return deterministic_hash(self.task_hash + str(self.repeat_idx))
@@ -145,32 +141,32 @@ class TaskSpec(BaseTaskSpec):
 
 class BaseTaskOuput(BaseModel):
     task_spec: BaseTaskSpec
-    model_output: ModelOutput
+    inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
 
 
 class TaskOutput(BaseTaskOuput):
     # This is one single experiment
     task_spec: TaskSpec
-    model_output: ModelOutput
+    inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
 
     @property
     def is_correct(self) -> bool:
-        return self.model_output.parsed_response == self.task_spec.ground_truth
+        return self.inference_output.parsed_response == self.task_spec.ground_truth
 
     @property
     def first_parsed_response(self) -> Optional[str]:
-        return self.model_output.parsed_response
+        return self.inference_output.parsed_response
 
     @property
     def first_raw_response(self) -> str:
-        return self.model_output.raw_response
+        return self.inference_output.raw_response
 
     def task_spec_uid(self) -> str:
         return self.task_spec.uid()
 
     def uid(self) -> str:
         inp = self.task_spec_uid()
-        response = self.model_output
+        response = self.inference_output
         return deterministic_hash(inp + response.raw_response)
 
 
@@ -248,7 +244,8 @@ class TraceInfo(BaseModel):
 
 class StageTwoTaskSpec(BaseTaskSpec):
     stage_one_output: TaskOutput
-    model_config: OpenaiInferenceConfig
+    # We've called this model_config but that clashes with model_config of pydantic v2
+    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: list[ChatMessage]
     out_file_path: Path
     formatter_name: str
@@ -259,25 +256,25 @@ class StageTwoTaskSpec(BaseTaskSpec):
         task_name = self.stage_one_output.task_spec.task_name
         original_cot = self.trace_info.original_cot
         stage_one_repeat = self.stage_one_output.task_spec.repeat_idx
-        h = deterministic_task_hash(task_name, self.messages, self.model_config, repeat_idx=stage_one_repeat)
+        h = deterministic_task_hash(task_name, self.messages, self.inference_config, repeat_idx=stage_one_repeat)
         return deterministic_hash(h + "".join(original_cot))
 
 
 class StageTwoTaskOutput(BaseTaskOuput):
     task_spec: StageTwoTaskSpec
-    model_output: ModelOutput
+    inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
 
     def uid(self) -> str:
         inp = self.task_spec.uid()
-        return deterministic_hash(inp + self.model_output.raw_response)
+        return deterministic_hash(inp + self.inference_output.raw_response)
 
     @property
     def first_raw_response(self) -> str:
-        return self.model_output.raw_response
+        return self.inference_output.raw_response
 
     @property
     def first_parsed_response(self) -> Optional[str]:
-        return self.model_output.parsed_response
+        return self.inference_output.parsed_response
 
 
 class ExperimentJsonFormat(BaseModel):

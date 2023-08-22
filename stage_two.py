@@ -94,7 +94,7 @@ def get_early_answering_tasks(
         else:
             Formatter = FullCOTFormatter
 
-        config = stage_one_output.task_spec.model_config.copy()
+        config = stage_one_output.task_spec.inference_config.copy()
         out_file_path: Path = Path(
             f"{exp_dir}/early_answering_final/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json"
         )
@@ -108,7 +108,7 @@ def get_early_answering_tasks(
 
         task = StageTwoTaskSpec(
             stage_one_output=stage_one_output,
-            model_config=config,
+            inference_config=config,
             formatter_name=Formatter.name(),
             messages=messages,
             out_file_path=out_file_path,
@@ -159,7 +159,7 @@ def get_mistakes(
         config.temperature = mistake_adding_temperature
         config.stop = ["\n", "```"]
 
-        original_model_that_generated_cot = stage_one_output.task_spec.model_config.model
+        original_model_that_generated_cot = stage_one_output.task_spec.inference_config.model
         path = Path(
             f"{exp_dir}/mistakes_stage1/s1-{stage_one_output.task_spec.formatter_name}/cot-{original_model_that_generated_cot}/{stage_one_output.task_spec.task_name}/"
             f"/mistake-{config.model}/{FewShotGenerateMistakeFormatter.name()}.json"
@@ -170,7 +170,7 @@ def get_mistakes(
             )
             task_spec = StageTwoTaskSpec(
                 stage_one_output=stage_one_output,
-                model_config=config,
+                inference_config=config,
                 formatter_name=FewShotGenerateMistakeFormatter.name(),
                 messages=messages,
                 out_file_path=path,
@@ -227,7 +227,7 @@ def recomplete_cot_with_inserted_mistake(
             continue
 
         stage_one_output = generated_mistake.task_spec.stage_one_output
-        config = stage_one_output.task_spec.model_config.copy()
+        config = stage_one_output.task_spec.inference_config.copy()
 
         path = Path(
             f"{exp_dir}/mistakes_stage2/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{CompletePartialCOT.name()}.json"
@@ -244,7 +244,7 @@ def recomplete_cot_with_inserted_mistake(
 
         task_spec = StageTwoTaskSpec(
             stage_one_output=stage_one_output,
-            model_config=config,
+            inference_config=config,
             formatter_name=CompletePartialCOT.name(),
             messages=messages,
             out_file_path=path,
@@ -255,7 +255,7 @@ def recomplete_cot_with_inserted_mistake(
         # so just make a task output with no response
         if trace_info.mistake_inserted_idx == len(trace_info.original_cot) - 1:
             output = StageTwoTaskOutput(
-                task_spec=task_spec, model_output=ModelOutput(raw_response="", parsed_response="")
+                task_spec=task_spec, inference_output=ModelOutput(raw_response="", parsed_response="")
             )
             mistakes_inserted_at_last_position.append(output)
         else:
@@ -275,7 +275,7 @@ def get_best_single_answer_tasks_given_mistakes(
     specs: List[StageTwoTaskSpec] = []
     for output in cots_with_mistakes_outputs:
         stage_one_output = output.task_spec.stage_one_output
-        config = stage_one_output.task_spec.model_config.copy()
+        config = stage_one_output.task_spec.inference_config.copy()
         config.max_tokens = 30  # code-davinci-002 doesn't return answer unless we set this to greater than 1
         if temperature is not None:
             config.temperature = temperature
@@ -299,7 +299,7 @@ def get_best_single_answer_tasks_given_mistakes(
 
         final_task = StageTwoTaskSpec(
             stage_one_output=output.task_spec.stage_one_output,
-            model_config=config,
+            inference_config=config,
             formatter_name=Formatter.name(),
             messages=Formatter.format_example(
                 stage_one_output.task_spec.messages, cot_trace_with_mistake, config.model
@@ -375,7 +375,7 @@ def filter_stage1_outputs(
             continue
         task_spec = exp_json.outputs[0].task_spec
         if task_spec.formatter_name in [i.name() for i in stage_one_formatters]:
-            if task_spec.model_config.model in models:
+            if task_spec.inference_config.model in models:
                 outputs[k] = exp_json
     return outputs
 

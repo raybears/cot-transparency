@@ -65,10 +65,10 @@ def format_pair_cot(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     messages: list[ChatMessage] = add_to_final_assistant(
         ZeroShotCOTSycophancyFormatter.format_example(read),
-        new_message=" " + task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+        new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
     ) + add_to_final_assistant(
         ZeroShotCOTUnbiasedFormatter.format_example(read),
-        new_message=" " + task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+        new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
     )
     return Prompt(messages=messages)
 
@@ -87,14 +87,14 @@ def format_unbiased_question_cot(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     messages: list[ChatMessage] = add_to_final_assistant(
         ZeroShotCOTUnbiasedFormatter.format_example(read),
-        new_message=" " + task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+        new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
     )
     return Prompt(messages=messages)
 
 
 def format_unbiased_question_non_cot(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    resp = task.model_output.parsed_response
+    resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
     messages: list[ChatMessage] = add_to_final_assistant(
         ZeroShotUnbiasedFormatter.format_example(read),
@@ -105,7 +105,7 @@ def format_unbiased_question_non_cot(task: TaskOutput) -> Prompt:
 
 def format_biased_question_non_cot_sycophancy(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    resp = task.model_output.parsed_response
+    resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
     messages: list[ChatMessage] = add_to_final_assistant(
         ZeroShotSycophancyFormatter.format_example(read),
@@ -116,7 +116,7 @@ def format_biased_question_non_cot_sycophancy(task: TaskOutput) -> Prompt:
 
 def format_biased_question_non_cot_random_formatter(task: TaskOutput, formatter: Type[StageOneFormatter]) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    resp = task.model_output.parsed_response
+    resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
     formatter_to_use = get_formatter_for_few_shot_non_cot(answer_formatter=formatter, seed=read.hash())
     messages: list[ChatMessage] = add_to_final_assistant(
@@ -131,7 +131,7 @@ def format_biased_question_cot(task: TaskOutput, formatter: Type[StageOneFormatt
     formatter_to_use = get_formatter_for_few_shot_cot(answer_formatter=formatter, seed=read.hash())
     messages: list[ChatMessage] = add_to_final_assistant(
         formatter_to_use.format_example(read),
-        new_message=" " + task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+        new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
     )
     return Prompt(messages=messages)
 

@@ -80,7 +80,7 @@ def plot_dots_for_intervention(
     filtered: Slist[TaskOutput] = (
         all_tasks.filter(lambda task: intervention_name == task.task_spec.intervention_name)
         .filter(lambda task: task.task_spec.formatter_name in formatters_names)
-        .filter(lambda task: task.task_spec.model_config.model == model)
+        .filter(lambda task: task.task_spec.inference_config.model == model)
         .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
@@ -270,7 +270,7 @@ def run_for_cot_different_10_shots(
     inconsistent_only: bool = True,
 ):
     """
-    python stage_one.py --exp_dir experiments/interventions --tasks "['truthful_qa', 'john_level_5', 'logiqa', 'hellaswag', 'mmlu']" --models "['gpt-4']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 61 --interventions "['BigBrainBiasedConsistency10', 'BigBrainBiasedConsistencySeparate10', 'NaiveFewShot10', 'BiasedConsistency10', 'RepeatedConsistency10', 'PairedConsistency10']"
+    python stage_one.py --exp_dir experiments/interventions --tasks "['truthful_qa', 'john_level_5', 'logiqa', 'hellaswag', 'mmlu']" --models "['gpt-4']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 61 --interventions "['BigBrainBiasedConsistency10', 'BigBrainBiasedConsistencySeparate10', 'NaiveFewShot10', 'BiasedConsistency10', 'RepeatedConsistency10', 'PairedConsistency10', 'NaiveFewShot1', 'NaiveFewShot3', 'NaiveFewShot6']"
     """
     # what interventions to plot
     interventions: Sequence[Type[Intervention] | None] = [
