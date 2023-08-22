@@ -3,6 +3,7 @@ import pandas as pd
 from typing import Optional
 import random
 
+from pydantic import Field
 from slist import Slist
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
@@ -37,7 +38,7 @@ def test(questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
 
         for i, (_, line) in enumerate(df.iterrows()):
             question: str = line[0]  # type: ignore
-            options: list[str] = list(line[1:5])  # type: ignore
+            options: list[str] = list([str(item) for item in line[1:5]])  # type: ignore
             correct_ans_letter: MultipleChoiceAnswer = line[5]  # type: ignore
 
             example = MMLUExample(

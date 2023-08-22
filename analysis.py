@@ -31,14 +31,14 @@ sns.set_style(
 
 
 def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> dict[str, Any]:
-    d = task_output.dict()
+    d = task_output.model_dump()
     d["input_hash"] = task_output.task_spec.uid()
     d["output_hash"] = task_output.uid()
-    config = task_output.task_spec.model_config
+    config = task_output.task_spec.inference_config
     task_spec = task_output.task_spec
     d.pop("task_spec")
-    d.pop("model_output")
-    d_with_config = {**d, **config.dict(), **task_spec.dict()}
+    d.pop("inference_output")
+    d_with_config = {**d, **config.model_dump(), **task_spec.model_dump()}
     return d_with_config
 
 
@@ -48,8 +48,8 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
     for exp in loaded_dict.values():
         for task_output in exp.outputs:
             d_with_config = get_general_metrics(task_output)
-            model_output = task_output.model_output
-            combined_d = {**d_with_config, **model_output.dict()}
+            model_output = task_output.inference_output
+            combined_d = {**d_with_config, **model_output.model_dump()}
             out.append(combined_d)
     df = pd.DataFrame(out)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)

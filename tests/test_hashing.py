@@ -15,7 +15,7 @@ def test_taskspec_and_taskoutput_give_same():
     task_hash = deterministic_hash("dummy input for hash function")
     task_spec = TaskSpec(
         task_name="task_name",
-        model_config=config,
+        inference_config=config,
         messages=messages,
         out_file_path=Path("out_file_path"),
         ground_truth="A",
@@ -27,7 +27,7 @@ def test_taskspec_and_taskoutput_give_same():
     dummy_output = ModelOutput(raw_response="The best answer is: (A)", parsed_response="A")
     task_output = TaskOutput(
         task_spec=task_spec,
-        model_output=dummy_output,
+        inference_output=dummy_output,
     )
 
     assert task_output.task_spec_uid() == task_spec.uid()

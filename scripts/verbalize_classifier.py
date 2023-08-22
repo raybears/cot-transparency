@@ -103,7 +103,7 @@ def make_classification_task(
     return ClassificationTaskSpec(
         stage_one_output=task_output,
         messages=classifier.format_for_classification(
-            messages=task_output.task_spec.messages, completion=task_output.model_output.raw_response
+            messages=task_output.task_spec.messages, completion=task_output.inference_output.raw_response
         ),
         out_file_path=out_file_path,
         feature_description=classifier.feature_description,
@@ -137,7 +137,7 @@ def get_proportion_mentioned_bias(path: Path) -> AccuracyOutput:
     read: Slist[ClassificationTaskOutput] = read_done_classification(path)
     print(f"len(read) = {len(read)}")
     # get the percentage of spotted bias
-    a_and_bs: Slist[AB] = read.map(lambda x: x.model_output).flatten_option()  # type: ignore[reportGeneralTypeIssues]
+    a_and_bs: Slist[AB] = read.map(lambda x: x.inference_output).flatten_option()  # type: ignore[reportGeneralTypeIssues]
     percentage_spotted_bias = get_percentage_spotted_bias(a_and_bs)
     return percentage_spotted_bias
 

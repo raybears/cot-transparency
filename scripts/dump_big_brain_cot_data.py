@@ -16,10 +16,10 @@ from scripts.intervention_investigation import read_whole_exp_dir
 def to_biased_question_unbiased_cot(biased: TaskOutput, unbiased: TaskOutput) -> BiasedQuestionUnbiasedCOT:
     return BiasedQuestionUnbiasedCOT(
         biased_question=biased.task_spec.messages,
-        correct_full_response=unbiased.model_output.raw_response,
-        correct_parsed_response=assert_not_none(unbiased.model_output.parsed_response),
-        incorrect_full_response=biased.model_output.raw_response,
-        incorrect_parsed_response=assert_not_none(biased.model_output.parsed_response),
+        correct_full_response=unbiased.inference_output.raw_response,
+        correct_parsed_response=assert_not_none(unbiased.inference_output.parsed_response),
+        incorrect_full_response=biased.inference_output.raw_response,
+        incorrect_parsed_response=assert_not_none(biased.inference_output.parsed_response),
         original_biased_task=biased,
         original_unbiased_task=unbiased,
     )

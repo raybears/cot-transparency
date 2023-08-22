@@ -59,7 +59,7 @@ class LeakyBucketRateLimiter:
 
 def get_num_tokens(config: OpenaiInferenceConfig, messages: list[StrictChatMessage]):
     completion_tokens = config.max_tokens
-    messages_as_dicts = [chat.dict() for chat in messages]
+    messages_as_dicts = [chat.model_dump() for chat in messages]
     encoding = tiktoken.get_encoding("cl100k_base")
 
     num_tokens = 0

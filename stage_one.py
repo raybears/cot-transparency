@@ -218,7 +218,7 @@ def main(
             data = data[:example_cap]
 
         # Possible config overrides
-        config = CONFIG_MAP[model].copy()
+        config = CONFIG_MAP[model].model_copy()
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):
@@ -250,14 +250,14 @@ def main(
                 )
                 task_spec = TaskSpec(
                     task_name=task,
-                    model_config=config,
+                    inference_config=config,
                     messages=messages,
                     out_file_path=out_file_path,
                     ground_truth=item.ground_truth,
                     formatter_name=formatter.name(),
                     task_hash=item.hash(),
                     biased_ans=item.biased_ans,
-                    data_example=item.dict(),
+                    data_example=item.model_dump(),
                     repeat_idx=i,
                     intervention_name=setting.intervention.name() if setting.intervention else None,
                 )

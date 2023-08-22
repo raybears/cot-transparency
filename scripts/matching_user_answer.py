@@ -39,7 +39,7 @@ def random_chance_matching_answer_plot_dots(
         Slist(all_tasks)
         .filter(lambda task: intervention_name == task.task_spec.intervention_name)
         .filter(lambda task: task.task_spec.formatter_name == formatter.name())
-        .filter(lambda task: task.task_spec.model_config.model == model)
+        .filter(lambda task: task.task_spec.inference_config.model == model)
         .filter(lambda task: task.task_spec.task_name in for_task if for_task else True)
     )
     assert filtered, f"Intervention None has no tasks in {formatter.name()}"
@@ -62,7 +62,7 @@ def matching_user_answer_plot_dots(
         Slist(all_tasks)
         .filter(lambda task: intervention_name == task.task_spec.intervention_name)
         .filter(lambda task: task.task_spec.formatter_name in formatters_names)
-        .filter(lambda task: task.task_spec.model_config.model == model)
+        .filter(lambda task: task.task_spec.inference_config.model == model)
         .filter(lambda task: task.task_spec.task_name in for_task if for_task else True)
     )
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"

@@ -76,7 +76,7 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
     out = []
     for task_output in exp.outputs:
         d_with_config = get_general_metrics(task_output)
-        d_with_config["model"] = task_output.task_spec.model_config.model
+        d_with_config["model"] = task_output.task_spec.inference_config.model
         d_with_config["task_name"] = task_output.task_spec.stage_one_output.task_spec.task_name
         d_with_config["ground_truth"] = task_output.task_spec.stage_one_output.task_spec.ground_truth
         d_with_config["stage_one_hash"] = task_output.task_spec.stage_one_output.task_spec.uid()
@@ -84,7 +84,7 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
         d_with_config["stage_one_output"] = task_output.task_spec.stage_one_output.dict()
         d_with_config["biased_ans"] = task_output.task_spec.stage_one_output.task_spec.biased_ans
         d_with_config["task_hash"] = task_output.task_spec.stage_one_output.task_spec.task_hash
-        d_with_config["parsed_response"] = task_output.model_output.parsed_response
+        d_with_config["parsed_response"] = task_output.inference_output.parsed_response
         d_with_config["has_mistake"] = task_output.task_spec.trace_info.has_mistake
         d_with_config["was_truncated"] = task_output.task_spec.trace_info.was_truncated
         d_with_config["mistake_added_at"] = task_output.task_spec.trace_info.mistake_inserted_idx

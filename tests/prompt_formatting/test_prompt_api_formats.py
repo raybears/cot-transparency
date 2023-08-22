@@ -85,7 +85,7 @@ def test_openai_chat_no_cot():
     formatted_prompt: list[ChatMessage] = ZeroShotSycophancyFormatter().format_example(test_example)
     prompt = Prompt(messages=formatted_prompt)
     prompt_sent_to_openai_chat = [
-        chat.dict() for chat in prompt.get_strict_messages(ModelType.from_model_name("gpt-4"))
+        chat.model_dump() for chat in prompt.get_strict_messages(ModelType.from_model_name("gpt-4"))
     ]
 
     user_prompt = """Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?

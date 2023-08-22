@@ -30,7 +30,7 @@ if __name__ == "__main__":
         .distinct_by(
             lambda x: x.task_spec.task_name
             + x.task_spec.task_hash
-            + x.task_spec.model_config.d_hash()
+            + x.task_spec.inference_config.d_hash()
             + x.task_spec.formatter_name
         )
     )
@@ -39,8 +39,8 @@ if __name__ == "__main__":
         lambda x: (
             x.task_spec.formatter_name,
             x.task_spec.task_name,
-            x.model_output.raw_response,
-            x.model_output.parsed_response,
+            x.inference_output.raw_response,
+            x.inference_output.parsed_response,
             x.task_spec.ground_truth,
             extract_answer(x.task_spec.messages),
         )

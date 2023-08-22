@@ -82,7 +82,7 @@ def filter_for_biased_wrong(jsons_tasks: Slist[TaskOutput], selected_formatter: 
         .distinct_by(
             lambda x: x.task_spec.task_name
             + x.task_spec.task_hash
-            + x.task_spec.model_config.d_hash()
+            + x.task_spec.inference_config.d_hash()
             + x.task_spec.formatter_name
         )
         # only get the ones that are wrong
