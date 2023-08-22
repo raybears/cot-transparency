@@ -19,6 +19,7 @@ def get_correct_cots() -> Slist[TaskOutput]:
     only_correct_cots: Slist[TaskOutput] = jsons_tasks
     return only_correct_cots
 
+
 @lru_cache
 def get_correct_cots_claude_2() -> Slist[TaskOutput]:
     jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
