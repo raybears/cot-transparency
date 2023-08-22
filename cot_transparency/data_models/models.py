@@ -4,7 +4,7 @@ from enum import Enum
 from pathlib import Path
 
 
-from pydantic import BaseModel, conlist, Field, AliasChoices
+from pydantic import BaseModel, conlist, Field, AliasChoices, ConfigDict
 
 from typing import Optional, Union, Any, Type
 
@@ -53,9 +53,7 @@ class StrictMessageRole(str, Enum):
 class ChatMessage(HashableBaseModel):
     role: MessageRole
     content: str
-
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
     def __str__(self) -> str:
         return f"{self.role}: {self.content}"
@@ -77,10 +75,7 @@ class ChatMessage(HashableBaseModel):
 class StrictChatMessage(HashableBaseModel):
     role: StrictMessageRole
     content: str
-
-    class Config:
-        frozen = True
-        validate_assignment = True
+    model_config = ConfigDict(frozen=True)
 
     def __str__(self) -> str:
         return f"{self.role}: {self.content}"
@@ -111,7 +106,7 @@ def deterministic_task_hash(
 
 class BaseTaskSpec(BaseModel):
     # We've called this model_config but that clashes with model_config of pydantic v2
-    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices('inference_config', 'model_config'))
+    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: list[ChatMessage]
     out_file_path: Path
     formatter_name: str
@@ -121,7 +116,7 @@ class TaskSpec(BaseTaskSpec):
     # This is a dataclass because a PromptFormatter isn't serializable
     task_name: str
     # We've called this model_config but that clashes with model_config of pydantic v2
-    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices('inference_config', 'model_config'))
+    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: list[ChatMessage]
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
@@ -146,13 +141,13 @@ class TaskSpec(BaseTaskSpec):
 
 class BaseTaskOuput(BaseModel):
     task_spec: BaseTaskSpec
-    inference_output: ModelOutput = Field(validation_alias=AliasChoices('inference_output', 'model_output'))
+    inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
 
 
 class TaskOutput(BaseTaskOuput):
     # This is one single experiment
     task_spec: TaskSpec
-    inference_output: ModelOutput = Field(validation_alias=AliasChoices('inference_output', 'model_output'))
+    inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
 
     @property
     def is_correct(self) -> bool:
@@ -250,7 +245,7 @@ class TraceInfo(BaseModel):
 class StageTwoTaskSpec(BaseTaskSpec):
     stage_one_output: TaskOutput
     # We've called this model_config but that clashes with model_config of pydantic v2
-    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices('inference_config', 'model_config'))
+    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: list[ChatMessage]
     out_file_path: Path
     formatter_name: str
@@ -267,7 +262,7 @@ class StageTwoTaskSpec(BaseTaskSpec):
 
 class StageTwoTaskOutput(BaseTaskOuput):
     task_spec: StageTwoTaskSpec
-    inference_output: ModelOutput = Field(validation_alias=AliasChoices('inference_output', 'model_output'))
+    inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
 
     def uid(self) -> str:
         inp = self.task_spec.uid()

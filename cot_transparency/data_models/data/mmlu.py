@@ -3,7 +3,6 @@ import pandas as pd
 from typing import Optional
 import random
 
-from pydantic import Field
 from slist import Slist
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
