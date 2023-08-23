@@ -31,6 +31,8 @@ from cot_transparency.formatters.core.unbiased import (
     FewShotUnbiasedNoRoleFormatter,
 )
 
+from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import BBQSymbolTuningCOTFewShot
+
 from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
     StanfordTreatmentFormatter,
@@ -123,6 +125,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         ModelWrittenBiasedWithNoneFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         WrongFewShotIgnoreMistakesBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        BBQSymbolTuningCOTFewShot.name(): BBQSymbolTuningCOTFewShot.name(),
     }
     return mapping[biased_formatter_name]
 
@@ -168,4 +171,5 @@ __all__ = [
     "LogicalConsequenceChatFormatter",
     "UserBiasedWrongCotFormatter",
     "LogicalConsequence2ChatFormatter",
+    "BBQSymbolTuningCOTFewShot",
 ]
