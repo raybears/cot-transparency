@@ -3,7 +3,7 @@ set -euxo pipefail
 
 example_cap=300
 dataset='transparency'
-exp_dir=experiments/stage_one/prompt_sensitivity/cot_try4_with_none_option
+exp_dir=experiments/stage_one/prompt_sensitivity/cot_try4_with_none_option.copy
 
 # Declare the initial name as a variable
 initial_name="NoCotPromptSenFormatter"
