@@ -3,7 +3,11 @@ from typing import Type
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots, get_big_brain_cots
+from cot_transparency.formatters.interventions.few_shots_loading import (
+    get_correct_cots,
+    get_big_brain_cots,
+    get_correct_cots_claude_2,
+)
 from cot_transparency.formatters.interventions.intervention import (
     Intervention,
 )
@@ -94,6 +98,7 @@ class BigBrainBiasedConsistency10(Intervention):
     @classmethod
     def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
         messages = formatter.format_example(question)
+        # TODO: filter out to not sample the same biased formatter
         prompt: Prompt = (
             # Not a pair so, sample 10
             get_big_brain_cots()
@@ -176,6 +181,70 @@ class NaiveFewShot12(NaiveFewShot1):
 
 class NaiveFewShot16(NaiveFewShot1):
     # Simply use unbiased few shot
+    n_samples: int = 16
+
+
+class NaiveFewShot32(NaiveFewShot1):
+    # Simply use unbiased few shot
+    n_samples: int = 32
+
+
+class ClaudeFewShot1(Intervention):
+    n_samples: int = 1
+
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            get_correct_cots_claude_2()
+            .sample(cls.n_samples, seed=question.hash())
+            .map(format_unbiased_question_cot)
+            .sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=prompt.convert_to_completion_str(),
+        )
+        return new
+
+
+class ClaudeFewShot3(ClaudeFewShot1):
+    n_samples: int = 3
+
+
+class ClaudeFewShot6(ClaudeFewShot1):
+    n_samples: int = 6
+
+
+class ClaudeFewShot10(ClaudeFewShot1):
+    n_samples: int = 10
+
+
+class ClaudeSeparate10(Intervention):
+    # Simply use unbiased few shot
+    n_samples: int = 10
+
+    @classmethod
+    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            get_correct_cots_claude_2()
+            .sample(cls.n_samples, seed=question.hash())
+            .map(format_unbiased_question_cot)
+            .sum_or_raise()
+        )
+        new = insert_to_after_system_message(
+            messages=messages,
+            to_insert=prompt.messages,
+        )
+        return new
+
+
+class ClaudeFewShot16(ClaudeFewShot1):
+    n_samples: int = 16
+
+
+class ClaudeFewShot32(ClaudeFewShot1):
     n_samples: int = 16
 
 
