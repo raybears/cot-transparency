@@ -111,7 +111,7 @@ def apply_filters(
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
-        df["task_name"] = df["task_name"].replace(TASK_MAP)
+        df.loc[:, "task_name"] = df["task_name"].replace(TASK_MAP)
 
     return df
 
