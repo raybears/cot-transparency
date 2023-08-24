@@ -10,7 +10,15 @@ from cot_transparency.data_models.models import (
     StrictMessageRole,
 )
 from cot_transparency.model_apis import Prompt, ModelType
-from scripts.better_viewer_cache import cached_read_whole_exp_dir, cached_search, get_drop_downs, DropDowns
+from scripts.better_viewer_cache import (
+    cached_read_whole_exp_dir,
+    cached_search,
+    get_drop_downs,
+    DropDowns,
+    make_tree,
+    TreeCache,
+    TreeCacheKey,
+)
 import streamlit.components.v1 as components
 
 components.html(
@@ -83,6 +91,7 @@ Slist.__hash__ = __hash__
 # Ask the user to enter experiment_dir
 exp_dir = st.text_input("Enter experiment_dir", "experiments/math_scale")
 everything: Slist[TaskOutput] = cached_read_whole_exp_dir(exp_dir=exp_dir)
+tree: TreeCache = make_tree(everything)
 st.markdown(f"Loaded {len(everything)} tasks")
 # Optional text input
 completion_search: str = st.text_input("Search for text in final completion")
@@ -113,13 +122,15 @@ with left:
     model_drop_down_selection: str = st.selectbox("Select model", drop_downs.models, key=f"model_{i}")
     filtered = cached_search(
         completion_search=completion_search,
-        everything=everything,
-        formatter_selection=formatter_drop_down_selection,
-        intervention_selection=intervention_drop_down_selection,
-        task_selection=task_selection,
+        tree_cache_key=TreeCacheKey(
+            task=task_selection,
+            model=model_drop_down_selection,
+            formatter=formatter_drop_down_selection,
+            intervention=intervention_drop_down_selection,
+        ),
+        tree_cache=tree,
         only_bias_on_wrong_answer=bias_on_wrong_answer,
         task_hash=None,
-        model_selection=model_drop_down_selection,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     show_item_idx = st.session_state.count % len(filtered)
@@ -133,13 +144,15 @@ with right:
     model_drop_down_selection: str = st.selectbox("Select model", drop_downs.models, key=f"model_{i}")
     filtered = cached_search(
         completion_search=completion_search,
-        everything=everything,
-        formatter_selection=formatter_drop_down_selection,
-        intervention_selection=intervention_drop_down_selection,
-        task_selection=task_selection,
+        tree_cache_key=TreeCacheKey(
+            task=task_selection,
+            model=model_drop_down_selection,
+            formatter=formatter_drop_down_selection,
+            intervention=intervention_drop_down_selection,
+        ),
+        tree_cache=tree,
         only_bias_on_wrong_answer=bias_on_wrong_answer,
         task_hash=first_task_hash,
-        model_selection=model_drop_down_selection,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     first: TaskOutput | None = filtered.first_option

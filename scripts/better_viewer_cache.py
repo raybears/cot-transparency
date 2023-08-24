@@ -16,27 +16,47 @@ def cached_read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     return read_whole_exp_dir(exp_dir=exp_dir)
 
 
+class TreeCacheKey(BaseModel):
+    task: str
+    model: str
+    formatter: str
+    intervention: str | None
+
+    def __hash__(self):  # type: ignore
+        return hash((self.task, self.model, self.formatter, str(self.intervention)))
+
+
+TaskHash = str
+
+
+class TreeCache(BaseModel):
+    # # for looking up when comparing
+    # items: dict[TreeCacheKey, dict[TaskHash, TaskOutput]]
+    # for the normal first view
+    items_list: dict[TreeCacheKey, Sequence[TaskOutput]]
+
+    def __hash__(self):
+        # this is a hack to make it hashable
+        return id(self)
+
+
 @lru_cache(maxsize=32)
 def cached_search(
     completion_search: str,
-    everything: Slist[TaskOutput],
-    formatter_selection: str,
-    intervention_selection: str | None,
-    task_selection: str,
     only_bias_on_wrong_answer: bool,
     task_hash: str | None,
-    model_selection: str,
+    tree_cache_key: TreeCacheKey,
+    tree_cache: TreeCache,
 ) -> Slist[TaskOutput]:
+    items_list: dict[TreeCacheKey, Sequence[TaskOutput]] = tree_cache.items_list
+    items = Slist(items_list[tree_cache_key])
     return (
-        everything.filter(lambda task: completion_search in task.inference_output.raw_response)
-        .filter(lambda task: task.task_spec.formatter_name == formatter_selection)
-        .filter(lambda task: task.task_spec.intervention_name == intervention_selection)
-        .filter(lambda task: task.task_spec.task_name == task_selection)
+        items.filter(lambda task: completion_search in task.inference_output.raw_response)
         .filter(
             lambda task: task.bias_on_wrong_answer == only_bias_on_wrong_answer if only_bias_on_wrong_answer else True
         )
         .filter(lambda task: task.task_spec.task_hash == task_hash if task_hash else True)
-        .filter(lambda task: task.task_spec.inference_config.model == model_selection)
+        .filter(lambda task: task.task_spec.inference_config.model == tree_cache_key.model)
     )
 
 
@@ -54,3 +74,20 @@ def get_drop_downs(items: Slist[TaskOutput]) -> DropDowns:
     tasks = items.map(lambda task: task.task_spec.task_name).distinct_unsafe()
     models = items.map(lambda task: task.task_spec.inference_config.model).distinct_unsafe()
     return DropDowns(formatters=formatters, interventions=interventions, tasks=tasks, models=models)
+
+
+@lru_cache()
+def make_tree(everything: Slist[TaskOutput]) -> TreeCache:
+    grouped: Slist[tuple[TreeCacheKey, Sequence[TaskOutput]]] = everything.group_by(
+        lambda task: TreeCacheKey(
+            task=task.task_spec.task_name,
+            model=task.task_spec.inference_config.model,
+            formatter=task.task_spec.formatter_name,
+            intervention=task.task_spec.intervention_name,
+        )
+    )
+    # grouped_more: Slist[tuple[TreeCacheKey, dict[TaskHash, TaskOutput]]] = grouped.map_2(
+    #     lambda key, tasks: (key, tasks.group_by(lambda task: task.task_spec.task_hash).to_dict())
+    # )
+    # to_dict = grouped_more.to_dict()
+    return TreeCache(items_list=grouped.to_dict())
