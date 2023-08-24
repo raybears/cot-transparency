@@ -1,21 +1,33 @@
-from functools import lru_cache
-from typing import List, Sequence
-
 import streamlit as st
-import numpy as np
-from pydantic import BaseModel
-from slist import Slist, identity
+from slist import Slist
+from streamlit.delta_generator import DeltaGenerator
 
 from cot_transparency.data_models.models import TaskOutput, ChatMessage, StrictChatMessage, MessageRole
 from cot_transparency.model_apis import Prompt, ModelType
-from scripts.intervention_investigation import read_whole_exp_dir
-
-
-@lru_cache(maxsize=32)
-def cached_read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
-    # everything you click a button, streamlit reruns the whole script
-    # so we need to cache the results of read_whole_exp_dir
-    return read_whole_exp_dir(exp_dir=exp_dir)
+from scripts.better_viewer_cache import cached_read_whole_exp_dir, cached_search, get_drop_downs, DropDowns
+import streamlit.components.v1 as components
+components.html(
+    r"""
+<script>
+const doc = window.parent.document;
+buttons = Array.from(doc.querySelectorAll('button[kind=secondary]'));
+const left_button = buttons.find(el => el.innerText.includes('Previous'));
+const right_button = buttons.find(el => el.innerText.includes('Next'));
+doc.addEventListener('keydown', function(e) {
+    switch (e.keyCode) {
+        case 37: // (37 = left arrow)
+            left_button.click();
+            break;
+        case 39: // (39 = right arrow)
+            right_button.click();
+            break;
+    }
+});
+</script>
+""",
+    height=0,
+    width=0,
+)
 
 
 def display_task(task: TaskOutput):
@@ -26,23 +38,23 @@ def display_task(task: TaskOutput):
         # pattern match on msg.role
         match msg.role:
             case MessageRole.none:
-                st.write(msg.content)
+                st.code(msg.content)
             case MessageRole.system:
                 st.markdown(f"### System")
-                st.code(msg.content)
+                st.code(msg.content, None)
             case MessageRole.user:
                 with st.chat_message("user"):
                     st.markdown(f"### User")
-                    st.code(msg.content)
+                    st.code(msg.content, None)
             case MessageRole.assistant:
                 with st.chat_message("assistant"):
                     st.markdown(f"### Assistant")
-                    st.code(msg.content)
+                    st.code(msg.content, None)
 
     # write the final response
     with st.chat_message("assistant"):
         st.markdown(f"### Assistant")
-        st.code(task.inference_output.raw_response)
+        st.code(task.inference_output.raw_response, None)
 
 
 # naughty Slist patch to add __hash__ by id
@@ -52,39 +64,6 @@ def __hash__(self):
 
 Slist.__hash__ = __hash__
 
-
-@lru_cache(maxsize=32)
-def cached_search(
-    completion_search: str,
-    everything: Slist[TaskOutput],
-    formatter_selection: str,
-    intervention_selection: str | None,
-    task_selection: str,
-    only_bias_on_wrong_answer: bool,
-) -> Slist[TaskOutput]:
-    return (
-        everything.filter(lambda task: completion_search in task.inference_output.raw_response)
-        .filter(lambda task: task.task_spec.formatter_name == formatter_selection)
-        .filter(lambda task: task.task_spec.intervention_name == intervention_selection)
-        .filter(lambda task: task.task_spec.task_name == task_selection)
-        .filter(lambda task: task.bias_on_wrong_answer == only_bias_on_wrong_answer if only_bias_on_wrong_answer else True)
-    )
-
-
-class DropDowns(BaseModel):
-    formatters: Sequence[str]
-    interventions: Sequence[str | None]
-    tasks: Sequence[str]
-
-
-@lru_cache()
-def get_drop_downs(items: Slist[TaskOutput]) -> DropDowns:
-    formatters = items.map(lambda task: task.task_spec.formatter_name).distinct_unsafe()
-    interventions = items.map(lambda task: task.task_spec.intervention_name).distinct_unsafe()
-    tasks = items.map(lambda task: task.task_spec.task_name).distinct_unsafe()
-    return DropDowns(formatters=formatters, interventions=interventions, tasks=tasks)
-
-
 # Ask the user to enter experiment_dir
 exp_dir = st.text_input("Enter experiment_dir", "experiments/math_scale")
 everything: Slist[TaskOutput] = cached_read_whole_exp_dir(exp_dir=exp_dir)
@@ -93,18 +72,62 @@ st.markdown(f"Loaded {len(everything)} tasks")
 completion_search: str = st.text_input("Search for text in final completion")
 drop_downs: DropDowns = get_drop_downs(everything)
 task_selection: str = st.selectbox("Select task", drop_downs.tasks)
-formatter_drop_down_selection: str = st.selectbox("Select formatter", drop_downs.formatters)
 intervention_drop_down_selection: str | None = st.selectbox("Select intervention", drop_downs.interventions)
 bias_on_wrong_answer: bool = st.checkbox("Show only bias on wrong answer", value=True)
-filtered = cached_search(
-    completion_search=completion_search,
-    everything=everything,
-    formatter_selection=formatter_drop_down_selection,
-    intervention_selection=intervention_drop_down_selection,
-    task_selection=task_selection,
-    only_bias_on_wrong_answer=bias_on_wrong_answer,
-)
-st.markdown(f"Showing {len(filtered)} tasks matching criteria")
-first: TaskOutput | None = filtered.first_option
-if first:
-    display_task(first)
+
+# Create a button which will increment the counter
+increment = st.button("Next")
+if "count" not in st.session_state:
+    st.session_state.count = 0
+if increment:
+    st.session_state.count += 1
+
+# A button to decrement the counter
+decrement = st.button("Previous")
+if decrement:
+    st.session_state.count -= 1
+
+# split into two columns
+left: DeltaGenerator
+right: DeltaGenerator
+left, right = st.columns(2)
+with left:
+    i = 0
+    formatter_drop_down_selection: str = st.selectbox("Select formatter", drop_downs.formatters, key=f"formatter_{i}")
+    model_drop_down_selection: str = st.selectbox("Select model", drop_downs.models, key=f"model_{i}")
+    filtered = cached_search(
+        completion_search=completion_search,
+        everything=everything,
+        formatter_selection=formatter_drop_down_selection,
+        intervention_selection=intervention_drop_down_selection,
+        task_selection=task_selection,
+        only_bias_on_wrong_answer=bias_on_wrong_answer,
+        task_hash=None,
+        model_selection=model_drop_down_selection,
+    )
+    st.markdown(f"Showing {len(filtered)} tasks matching criteria")
+    show_item_idx = st.session_state.count % len(filtered)
+    first = filtered[show_item_idx]
+    first_task_hash: str | None = filtered[show_item_idx].task_spec.task_hash
+    if first:
+        display_task(first)
+with right:
+    i = 1
+    formatter_drop_down_selection: str = st.selectbox("Select formatter", drop_downs.formatters, key=f"formatter_{i}")
+    model_drop_down_selection: str = st.selectbox("Select model", drop_downs.models, key=f"model_{i}")
+    filtered = cached_search(
+        completion_search=completion_search,
+        everything=everything,
+        formatter_selection=formatter_drop_down_selection,
+        intervention_selection=intervention_drop_down_selection,
+        task_selection=task_selection,
+        only_bias_on_wrong_answer=bias_on_wrong_answer,
+        task_hash=first_task_hash,
+        model_selection=model_drop_down_selection,
+    )
+    st.markdown(f"Showing {len(filtered)} tasks matching criteria")
+    first: TaskOutput | None = filtered.first_option
+    if first:
+        display_task(first)
+    else:
+        st.write("No tasks matching")
