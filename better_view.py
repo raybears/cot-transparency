@@ -2,10 +2,17 @@ import streamlit as st
 from slist import Slist
 from streamlit.delta_generator import DeltaGenerator
 
-from cot_transparency.data_models.models import TaskOutput, ChatMessage, StrictChatMessage, MessageRole
+from cot_transparency.data_models.models import (
+    TaskOutput,
+    ChatMessage,
+    StrictChatMessage,
+    MessageRole,
+    StrictMessageRole,
+)
 from cot_transparency.model_apis import Prompt, ModelType
 from scripts.better_viewer_cache import cached_read_whole_exp_dir, cached_search, get_drop_downs, DropDowns
 import streamlit.components.v1 as components
+
 components.html(
     r"""
 <script>
@@ -31,30 +38,39 @@ doc.addEventListener('keydown', function(e) {
 
 
 def display_task(task: TaskOutput):
+    model_output = task.inference_output.parsed_response
+    ground_truth = task.task_spec.ground_truth
+    is_correct = model_output == ground_truth
+    emoji = "✔️" if is_correct else "❌"
+    st.markdown(f"Ground truth: {ground_truth}")
+    st.markdown(f"Model output: {model_output} {emoji}")
+
     messages: list[ChatMessage] = task.task_spec.messages
     model_type: ModelType = ModelType.from_model_name(task.task_spec.inference_config.model)
-    strict: list[StrictChatMessage] = Prompt(messages=messages).get_strict_messages(model_type=model_type)
+    strict: list[StrictChatMessage] = Prompt(
+        messages=messages + [ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
+    ).get_strict_messages(model_type=model_type)
     for msg in strict:
         # pattern match on msg.role
         match msg.role:
-            case MessageRole.none:
+            case StrictMessageRole.none:
                 st.code(msg.content)
-            case MessageRole.system:
-                st.markdown(f"### System")
+            case StrictMessageRole.system:
+                st.markdown("### System")
                 st.code(msg.content, None)
-            case MessageRole.user:
+            case StrictMessageRole.user:
                 with st.chat_message("user"):
-                    st.markdown(f"### User")
+                    st.markdown("### User")
                     st.code(msg.content, None)
-            case MessageRole.assistant:
+            case StrictMessageRole.assistant:
                 with st.chat_message("assistant"):
-                    st.markdown(f"### Assistant")
+                    st.markdown("### Assistant")
                     st.code(msg.content, None)
 
-    # write the final response
-    with st.chat_message("assistant"):
-        st.markdown(f"### Assistant")
-        st.code(task.inference_output.raw_response, None)
+    # # write the final response
+    # with st.chat_message("assistant"):
+    #     st.markdown("### Assistant")
+    #     st.code(task.inference_output.raw_response, None)
 
 
 # naughty Slist patch to add __hash__ by id
