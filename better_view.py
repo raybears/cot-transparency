@@ -21,28 +21,7 @@ from scripts.better_viewer_cache import (
 )
 import streamlit.components.v1 as components
 
-components.html(
-    r"""
-<script>
-const doc = window.parent.document;
-buttons = Array.from(doc.querySelectorAll('button[kind=secondary]'));
-const left_button = buttons.find(el => el.innerText.includes('Previous'));
-const right_button = buttons.find(el => el.innerText.includes('Next'));
-doc.addEventListener('keydown', function(e) {
-    switch (e.keyCode) {
-        case 37: // (37 = left arrow)
-            left_button.click();
-            break;
-        case 39: // (39 = right arrow)
-            right_button.click();
-            break;
-    }
-});
-</script>
-""",
-    height=0,
-    width=0,
-)
+
 
 
 def display_task(task: TaskOutput):
@@ -111,6 +90,31 @@ if increment:
 decrement = st.button("Previous")
 if decrement:
     st.session_state.count -= 1
+
+# needs to happen after the buttons
+components.html(
+    r"""
+<script>
+const doc = window.parent.document;
+buttons = Array.from(doc.querySelectorAll('button[kind=secondary]'));
+const left_button = buttons.find(el => el.innerText.includes('Previous'));
+const right_button = buttons.find(el => el.innerText.includes('Next'));
+doc.addEventListener('keydown', function(e) {
+    switch (e.keyCode) {
+        case 37: // (37 = left arrow)
+            left_button.click();
+            break;
+        case 39: // (39 = right arrow)
+            right_button.click();
+            break;
+    }
+});
+</script>
+""",
+    height=0,
+    width=0,
+)
+
 
 # split into two columns
 left: DeltaGenerator
