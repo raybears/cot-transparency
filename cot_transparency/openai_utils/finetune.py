@@ -6,7 +6,6 @@ from typing import Any
 
 import openai
 from pydantic import BaseModel
-from slist import Slist
 
 from cot_transparency.data_models.models import (
     StrictChatMessage,
@@ -15,7 +14,6 @@ from cot_transparency.data_models.models import (
     ChatMessage,
     MessageRole,
 )
-from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.model_apis import Prompt, ModelType
 from cot_transparency.openai_utils.set_key import set_keys_from_env
@@ -85,6 +83,18 @@ def cancel_finetune(finetune_id: str) -> None:
     print(openai.FineTuningJob.cancel(id=finetune_id))
 
 
+def confirm_to_continue(file_path: Path) -> None:
+    # nice string like /home/.../file.jsonl
+    file_path_str = file_path.absolute().as_posix()
+    print(f"About to upload {file_path_str}. Continue? (y/n)")
+    response = input()
+    while response not in ["y", "n"]:
+        print("Please enter y or n")
+    if response == "n":
+        exit(0)
+    return None
+
+
 def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
     # get time for file name
     now_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -92,12 +102,13 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
     write_jsonl_path = Path(file_name)
     # write to file
     write_jsonl_file_from_basemodel(path=write_jsonl_path, basemodels=samples)
+    confirm_to_continue(write_jsonl_path)
     # write to buffer cos openai wants a buffer
     buffer = io.StringIO()
     for item in samples:
         buffer.write(item.model_dump_json() + "\n")
     buffer.seek(0)
-    file_upload_resp: dict[str, Any] = openai.File.create( # type: ignore[reportGeneralTypeIssues]
+    file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
         file=buffer,
         purpose="fine-tune",
         user_provided_filename=file_name,
@@ -110,7 +121,7 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
     print(f"Started finetune job. {finetune_job_resp}")
     parsed_job_resp: FinetuneJob = FinetuneJob.model_validate(finetune_job_resp)
     model_id: str = wait_until_finetune_job_is_ready(finetune_job_id=parsed_job_resp.id)
-    print(f"Fine tuned model id: {model_id}")
+    print(f"Fine tuned model id: {model_id}. You can now use this model in the API")
     return model_id
 
 
@@ -126,18 +137,3 @@ def example_main():
     ] * 10
     params = FineTuneParams(model="gpt-3.5-turbo")
     run_finetune(params=params, samples=messages)
-
-
-def fine_tune_with_gpt4_cots():
-    cots: Slist[TaskOutput] = get_correct_cots()
-    messages = [FinetuneSample.from_task_output(task) for task in cots]
-    params = FineTuneParams(model="gpt-3.5-turbo")
-    _id = run_finetune(params=params, samples=messages)
-
-
-if __name__ == "__main__":
-    fine_tune_with_gpt4_cots()
-    # example_main()
-    # list_finetunes()
-    # cancel_finetune("ftjob-Or0LQD1IrKLh4fWOVcXQHYBS")
-    # wait_until_finetune_job_is_ready("ftjob-ktQb6K5b83PnJfpklFX9lGYr")
