@@ -33,6 +33,13 @@ from cot_transparency.formatters.core.unbiased import (
 
 from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import BBQSymbolTuningCOTFewShot
 
+from cot_transparency.formatters.task_decomposition.decompose_step_by_step import (
+    DecomposeUnbiasedFormatter,
+    DecomposeBiasedFormatter,
+    DecomposeStanfordBiasedFormatter,
+    DecomposeMoreRewardBiasedFormatter,
+)
+
 from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
     StanfordTreatmentFormatter,
@@ -126,6 +133,10 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ModelWrittenBiasedWithNoneFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         WrongFewShotIgnoreMistakesBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         BBQSymbolTuningCOTFewShot.name(): BBQSymbolTuningCOTFewShot.name(),
+        DecomposeUnbiasedFormatter.name(): DecomposeUnbiasedFormatter.name(),
+        DecomposeBiasedFormatter.name(): DecomposeBiasedFormatter.name(),
+        DecomposeStanfordBiasedFormatter.name(): DecomposeStanfordBiasedFormatter.name(),
+        DecomposeMoreRewardBiasedFormatter.name(): DecomposeMoreRewardBiasedFormatter.name(),
     }
     return mapping[biased_formatter_name]
 
@@ -172,4 +183,8 @@ __all__ = [
     "UserBiasedWrongCotFormatter",
     "LogicalConsequence2ChatFormatter",
     "BBQSymbolTuningCOTFewShot",
+    "DecomposeUnbiasedFormatter",
+    "DecomposeBiasedFormatter",
+    "DecomposeStanfordBiasedFormatter",
+    "DecomposeMoreRewardBiasedFormatter",
 ]
