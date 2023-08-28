@@ -21,12 +21,16 @@ from cot_transparency.openai_utils.set_key import set_keys_from_env
 set_keys_from_env()
 
 
-class FineTuneParams(BaseModel):
-    model: str
+class FineTuneHyperParams(BaseModel):
+    n_epochs: int = 1
     # todo: the new api doesn't have these params???
-    # n_epochs: int = 1
     # batch_size: int = 1
     # learning_rate_multiplier: float = 1.0
+
+
+class FineTuneParams(BaseModel):
+    model: str
+    hyperparameters: FineTuneHyperParams
 
 
 def join_assistant_preferred_to_completion(messages: list[ChatMessage], completion: str) -> list[ChatMessage]:
@@ -117,7 +121,10 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
     print("Starting file upload")
     wait_until_uploaded_file_id_is_ready(file_id=file_id)
     print(f"Uploaded file to openai. {file_upload_resp}")
-    finetune_job_resp = openai.FineTuningJob.create(training_file=file_id, model=params.model)
+    finetune_job_resp = openai.FineTuningJob.create(
+        training_file=file_id, model=params.model, hyperparameters=params.hyperparameters.model_dump()
+    )
+
     print(f"Started finetune job. {finetune_job_resp}")
     parsed_job_resp: FinetuneJob = FinetuneJob.model_validate(finetune_job_resp)
     model_id: str = wait_until_finetune_job_is_ready(finetune_job_id=parsed_job_resp.id)
@@ -135,5 +142,5 @@ def example_main():
             ]
         )
     ] * 10
-    params = FineTuneParams(model="gpt-3.5-turbo")
+    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
     run_finetune(params=params, samples=messages)
