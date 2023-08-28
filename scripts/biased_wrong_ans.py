@@ -7,9 +7,13 @@ from slist import Slist
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.models import ExperimentJsonFormat
+from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.extraction import BREAK_WORDS
+from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
+from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
+from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
 
-from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
+from cot_transparency.json_utils.read_write import write_csv_file_from_basemodel
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.model_apis import Prompt
@@ -19,6 +23,8 @@ from cot_transparency.model_apis import Prompt
 
 class FlatSimple(BaseModel):
     prompt: str
+    task: str
+    formatter: str
     full_response: str
     parsed_response: str | None
     ground_truth: str
@@ -70,14 +76,15 @@ def task_output_to_flat(task: TaskOutput) -> FlatSimple:
         parsed_response=task.first_parsed_response,
         ground_truth=task.task_spec.ground_truth,
         biased_ans=task.task_spec.biased_ans,  # type: ignore
+        formatter=task.task_spec.formatter_name,
+        task=task.task_spec.task_name,
     )
 
 
-def filter_for_biased_wrong(jsons_tasks: Slist[TaskOutput], selected_formatter: str) -> Slist[TaskOutput]:
+def filter_for_biased_wrong(jsons_tasks: Slist[TaskOutput]) -> Slist[TaskOutput]:
     results: Slist[TaskOutput] = (
-        jsons_tasks.filter(lambda x: x.task_spec.formatter_name == selected_formatter)
         # only get the ones that are biased
-        .filter(lambda x: x.task_spec.biased_ans == x.first_parsed_response)
+        jsons_tasks.filter(lambda x: x.task_spec.biased_ans == x.first_parsed_response)
         # Sometimes we have multiple runs of the same task, we want to get the first one
         .distinct_by(
             lambda x: x.task_spec.task_name
@@ -105,20 +112,47 @@ if __name__ == "__main__":
     5. Run the following to get the overall accuracy
     python analysis.py accuracy experiments/biased_wrong
     """
-    jsons = ExpLoader.stage_one("experiments/bad_cot")
+    jsons = ExpLoader.stage_one("experiments/interventions")
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
 
     jsons_tasks: Slist[TaskOutput] = Slist(jsons.values()).map(lambda x: x.outputs).flatten_list()  # type: ignore
-    selected_formatter = "ZeroShotCOTSycophancyFormatter"
+    selected_formatters = Slist(
+        [
+            WrongFewShotIgnoreMistakesBiasedFormatter,
+            MoreRewardBiasedFormatter,
+            ZeroShotCOTSycophancyFormatter,
+            StanfordBiasedFormatter,
+        ]
+    ).map(lambda x: x.name())
+    tasks = [
+        "aqua",
+        "arc_easy",
+        "arc_challenge",
+        "truthful_qa",
+        "logiqa",
+        "mmlu",
+        "openbook_qa",
+        "hellaswag",
+        "john_level_5",
+    ]
+    intervention = None
     print(f"Number of jsons: {len(jsons_tasks)}")
-    results: Slist[TaskOutput] = filter_for_biased_wrong(jsons_tasks, selected_formatter)
+    model = "claude-2"
+    filtered_for_formatters = (
+        jsons_tasks.filter(lambda x: x.task_spec.formatter_name in selected_formatters)
+        .filter(lambda x: x.task_spec.intervention_name == intervention)
+        .filter(lambda x: x.task_spec.task_name in tasks)
+        .filter(lambda x: x.task_spec.inference_config.model == model)
+    )
+    results: Slist[TaskOutput] = filter_for_biased_wrong(filtered_for_formatters)
 
     # convert to MilesBBHWithBadCot
-    converted: Slist[BiasedWrongCOTBBH] = results.map(task_output_to_bad_cot).flatten_option()
+    # converted: Slist[BiasedWrongCOTBBH] = results.map(task_output_to_bad_cot).flatten_option()
     # write to jsonl
-    write_jsonl_file_from_basemodel(path=Path("data/bbh_biased_wrong_cot/data.jsonl"), basemodels=converted)
+    # write_jsonl_file_from_basemodel(path=Path("data/bbh_biased_wrong_cot/data.jsonl"), basemodels=converted)
 
     # This is if you want to view them as a CSV
-    # flattened: Slist[FlatSimple] = results.map(task_output_to_flat)
-    # write_csv_file_from_basemodel(path=Path("meg_request.csv"), basemodels=flattened)
+    flattened: Slist[FlatSimple] = results.map(task_output_to_flat)
+    print(f"Number of flattened: {len(flattened)}")
+    write_csv_file_from_basemodel(path=Path(f"miles_{model}.csv"), basemodels=flattened)

@@ -36,11 +36,13 @@ class AccuracyOutput(BaseModel):
 
         This assumes that the estimates of accuracy for the two models are independent.
         """
-        # assume n samples are the same
+        # assume n samples are the same for calculating error bars
+        # take the min of samples for samples
+        samples = min(self.samples, other.samples)
         return AccuracyOutput(
             accuracy=self.accuracy - other.accuracy,
             error_bars=math.sqrt(self.error_bars**2 + other.error_bars**2),
-            samples=self.samples,
+            samples=samples,
         )
 
 
@@ -258,7 +260,7 @@ bbh_task_list = TASK_LIST["bbh"]
 
 def plot_accuracy_for_exp(
     exp_dir: str,
-    model_filter: Optional[str] = None,
+    models: Sequence[str] = [],
     save_file_path: Optional[str] = None,
     formatters: Sequence[str] = [],
     inconsistent_only: bool = True,
@@ -270,7 +272,7 @@ def plot_accuracy_for_exp(
     should_filter_formatter: bool = len(formatters) > 0
     formatters_found: set[str] = set()
     tasks: set[str] = set()
-    models: set[str] = set()
+    models_found: set[str] = set()
     for i in json_files:
         base_name = os.path.basename(i)  # First get the basename: 'file.txt'
         name_without_ext = os.path.splitext(base_name)[0]  # Then remove the extension
@@ -282,17 +284,16 @@ def plot_accuracy_for_exp(
         tasks.add(task)
         model = i.split("/")[-2]
 
-        if model_filter is not None:
-            if model != model_filter:
-                continue
-        models.add(model)
+        if models and model not in models:
+            continue
+        models_found.add(model)
 
     print(f"formatters: {formatters_found}")
 
-    if len(set(models)) > 1:
-        if model_filter is None:
-            raise ValueError(f"Multiple models found: {set(models)}. Please specify a model to filter on.")
-    model: str = list(models)[0]
+    if len(models_found) > 1:
+        if len(models) == 0:
+            raise ValueError(f"Multiple models found: {models_found}. Please specify a model to filter on.")
+    model: str = models[0]
 
     tasks_and_plots_dots: list[TaskAndPlotDots] = []
     for task in tasks:
