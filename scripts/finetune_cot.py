@@ -1,12 +1,69 @@
+from typing import Type
+
 from slist import Slist
 
+from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
-from cot_transparency.openai_utils.finetune import FinetuneSample, FineTuneParams, run_finetune
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots_gpt_35
+from cot_transparency.formatters.interventions.formatting import get_formatter_for_few_shot_cot
+from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
+from cot_transparency.model_apis import Prompt, ModelType
+from cot_transparency.openai_utils.finetune import (
+    FinetuneSample,
+    FineTuneParams,
+    run_finetune,
+    FineTuneHyperParams,
+    join_assistant_preferred_to_completion,
+)
 
 
-def fine_tune_with_gpt4_cots():
-    cots: Slist[TaskOutput] = get_correct_cots()
+def task_output_to_biased_question_with_correct_answer(
+    task: TaskOutput, exclude_formattter: Type[StageOneFormatter] | None
+) -> FinetuneSample:
+    read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
+    formatter_to_use = get_formatter_for_few_shot_cot(exclude_formattter=exclude_formattter, seed=read.hash())
+    prompt_messages = formatter_to_use.format_example(read)
+    joined = join_assistant_preferred_to_completion(
+        messages=prompt_messages, completion=task.inference_output.raw_response
+    )
+    strict = Prompt(messages=joined)
+    return FinetuneSample(messages=strict.get_strict_messages(ModelType.chat))
+
+
+def fine_tune_with_naive_cots(n: int):
+    cots: Slist[TaskOutput] = get_correct_cots_gpt_35().shuffle(seed="42").take(n)
+    print(f"Number of cots: {len(cots)}")
     messages = [FinetuneSample.from_task_output(task) for task in cots]
-    params = FineTuneParams(model="gpt-3.5-turbo")
+    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
     _id = run_finetune(params=params, samples=messages)
+
+
+def distinct_at_front_shuffle(items: Slist[TaskOutput], limit: int) -> Slist[TaskOutput]:
+    """Shuffles the items, but puts the distinct task hash items at the front"""
+    already_seen: set[str] = set()
+    distinct_items = Slist[TaskOutput]()
+    non_distinct_items = Slist[TaskOutput]()
+    for item in items:
+        if item.task_spec.task_hash not in already_seen:
+            distinct_items.append(item)
+            already_seen.add(item.task_spec.task_hash)
+        else:
+            non_distinct_items.append(item)
+    print(f"Number of distinct items: {len(distinct_items)}")
+    return (distinct_items.shuffle(seed="42") + non_distinct_items.shuffle(seed="42")).take(limit)
+
+
+def fine_tune_with_biased_cots(n: int, exclude_formattter: Type[StageOneFormatter] | None):
+    cots: Slist[TaskOutput] = distinct_at_front_shuffle(items=get_correct_cots_gpt_35(), limit=n)
+    print(f"Number of cots: {len(cots)}")
+    messages = [
+        task_output_to_biased_question_with_correct_answer(task, exclude_formattter=exclude_formattter) for task in cots
+    ]
+    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
+    _id = run_finetune(params=params, samples=messages)
+
+
+if __name__ == "__main__":
+    fine_tune_with_biased_cots(6000, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
+    # fine_tune_with_naive_cots(2000)
