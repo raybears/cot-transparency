@@ -66,8 +66,9 @@ def accuracy(
     exp_dir: str,
     inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
     formatters: Sequence[str] = [],
+    models: Sequence[str] = [],
+    tasks: Sequence[str] = [],
     check_counts: bool = True,
     csv: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
@@ -82,7 +83,8 @@ def accuracy(
         inconsistent_only=inconsistent_only,
         aggregate_over_tasks=aggregate_over_tasks,
         formatters=formatters,
-        model_filter=model_filter,
+        models=models,
+        tasks=tasks,
         check_counts=check_counts,
     )
     if csv:
@@ -93,21 +95,26 @@ def accuracy(
 
 def apply_filters(
     inconsistent_only: Optional[bool],
-    model_filter: Optional[str],
+    models: Sequence[str],
     formatters: Sequence[str],
     aggregate_over_tasks: bool,
     df: pd.DataFrame,
+    tasks: Sequence[str] = [],
 ) -> pd.DataFrame:
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]
 
-    if model_filter:
+    if models:
         # check that df.model contains model_filter
-        df = df[df.model.str.contains(model_filter)]
+        df = df[df.model.isin(models)]
     if formatters:
         # check that df.formatter_name is in formatters
         df = df[df.formatter_name.isin(formatters)]
         assert len(df) > 0, f"formatters {formatters} not found in {df.formatter_name.unique()}"
+
+    if tasks:
+        df = df[df.task_name.isin(tasks)]
+        assert len(df) > 0, f"tasks {tasks} not found in {df.task_name.unique()}"
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
@@ -120,18 +127,20 @@ def accuracy_for_df(
     df: pd.DataFrame,
     inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
     check_counts: bool = True,
     formatters: Sequence[str] = [],
+    models: Sequence[str] = [],
+    tasks: Sequence[str] = [],
 ) -> pd.DataFrame:
     """
     inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
     """
     df = apply_filters(
         inconsistent_only=inconsistent_only,
-        model_filter=model_filter,
+        models=models,
         formatters=formatters,
         aggregate_over_tasks=aggregate_over_tasks,
+        tasks=tasks,
         df=df,
     )
     df.loc[:, "intervention_name"] = df["intervention_name"].fillna("")
@@ -199,7 +208,7 @@ def simple_plot(
     exp_dir: str,
     inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
+    models: Sequence[str] = [],
     formatters: Sequence[str] = [],
     x: str = "task_name",
     y: str = "Accuracy",
@@ -209,7 +218,7 @@ def simple_plot(
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
         inconsistent_only=inconsistent_only,
-        model_filter=model_filter,
+        models=models,
         formatters=formatters,
         aggregate_over_tasks=aggregate_over_tasks,
         df=df,
@@ -229,12 +238,12 @@ def simple_plot(
 
 
 def point_plot(
-    exp_dir: str, inconsistent_only: bool = True, model_filter: Optional[str] = None, formatters: Sequence[str] = []
+    exp_dir: str, inconsistent_only: bool = True, models: Sequence[str] = [], formatters: Sequence[str] = []
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
         inconsistent_only=inconsistent_only,
-        model_filter=model_filter,
+        models=models,
         formatters=formatters,
         aggregate_over_tasks=False,
         df=df,
