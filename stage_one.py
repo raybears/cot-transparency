@@ -17,7 +17,7 @@ from cot_transparency.data_models.data.model_written_evals import (
 )
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
+from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec, is_openai_finetuned
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -81,6 +81,14 @@ CONFIG_MAP = {
     "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
     "llama-2-7b-chat-hf": OpenaiInferenceConfig(model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
 }
+
+
+def get_config(model: str) -> OpenaiInferenceConfig:
+    if is_openai_finetuned(model):
+        # Allow user to specify any OpenAI finetuned model
+        return OpenaiInferenceConfig(model=model, temperature=1, max_tokens=1000, top_p=1.0)
+    else:
+        return CONFIG_MAP[model].model_copy()
 
 
 def create_task_settings(
@@ -219,7 +227,7 @@ def main(
             data = data[:example_cap]
 
         # Possible config overrides
-        config = CONFIG_MAP[model].model_copy()
+        config = get_config(model)
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):
