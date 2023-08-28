@@ -6,15 +6,15 @@ from slist import Slist
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
-from cot_transparency.data_models.models import ExperimentJsonFormat
+from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.extraction import BREAK_WORDS
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
 
 from cot_transparency.json_utils.read_write import write_csv_file_from_basemodel
-from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.model_apis import Prompt
 
@@ -22,13 +22,15 @@ from cot_transparency.model_apis import Prompt
 
 
 class FlatSimple(BaseModel):
-    prompt: str
+    biased_prompt: str
     task: str
-    formatter: str
-    full_response: str
-    parsed_response: str | None
+    biased_formatter: str
+    biased_context_response: str
+    unbiased_context_response: str
+    unbiased_prompt: str
+    biased_context_parsed_response: str | None
     ground_truth: str
-    biased_ans: str
+    biased_on_ans: str
 
 
 def cot_extraction(completion: str) -> Optional[str]:
@@ -68,16 +70,18 @@ def task_output_to_bad_cot(task: TaskOutput) -> Optional[BiasedWrongCOTBBH]:
     )
 
 
-def task_output_to_flat(task: TaskOutput) -> FlatSimple:
-    converted = Prompt(messages=task.task_spec.messages).convert_to_completion_str()
+def task_output_to_flat(biased_task: TaskOutput, unbiased_task: TaskOutput) -> FlatSimple:
+    converted = Prompt(messages=biased_task.task_spec.messages).convert_to_completion_str()
     return FlatSimple(
-        prompt=converted,
-        full_response=task.first_raw_response,
-        parsed_response=task.first_parsed_response,
-        ground_truth=task.task_spec.ground_truth,
-        biased_ans=task.task_spec.biased_ans,  # type: ignore
-        formatter=task.task_spec.formatter_name,
-        task=task.task_spec.task_name,
+        biased_prompt=converted,
+        biased_context_response=biased_task.first_raw_response,
+        ground_truth=biased_task.task_spec.ground_truth,
+        biased_on_ans=biased_task.task_spec.biased_ans,  # type: ignore
+        biased_formatter=biased_task.task_spec.formatter_name,
+        biased_context_parsed_response=biased_task.first_parsed_response,
+        task=biased_task.task_spec.task_name,
+        unbiased_context_response=unbiased_task.first_raw_response,
+        unbiased_prompt=Prompt(messages=unbiased_task.task_spec.messages).convert_to_completion_str(),
     )
 
 
@@ -113,6 +117,7 @@ if __name__ == "__main__":
     python analysis.py accuracy experiments/biased_wrong
     """
     jsons = ExpLoader.stage_one("experiments/interventions")
+    model = "gpt-4"
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
 
@@ -138,7 +143,7 @@ if __name__ == "__main__":
     ]
     intervention = None
     print(f"Number of jsons: {len(jsons_tasks)}")
-    model = "claude-2"
+
     filtered_for_formatters = (
         jsons_tasks.filter(lambda x: x.task_spec.formatter_name in selected_formatters)
         .filter(lambda x: x.task_spec.intervention_name == intervention)
@@ -147,12 +152,24 @@ if __name__ == "__main__":
     )
     results: Slist[TaskOutput] = filter_for_biased_wrong(filtered_for_formatters)
 
+    unbiased_formatter = ZeroShotCOTUnbiasedFormatter.name()
+    unbiased_results: Slist[TaskOutput] = jsons_tasks.filter(
+        lambda x: x.task_spec.formatter_name == unbiased_formatter
+        and x.task_spec.intervention_name is None
+        and x.task_spec.inference_config.model == model
+    ).filter(lambda x: x.is_correct)
+    unbiased_hash: dict[str, TaskOutput] = unbiased_results.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
+    joined: Slist[tuple[TaskOutput, TaskOutput]] = results.map(
+        lambda x: (x, unbiased_hash[x.task_spec.task_hash]) if x.task_spec.task_hash in unbiased_hash else None
+    ).flatten_option()
+    print(f"Number of joined: {len(joined)}")
+
     # convert to MilesBBHWithBadCot
     # converted: Slist[BiasedWrongCOTBBH] = results.map(task_output_to_bad_cot).flatten_option()
     # write to jsonl
     # write_jsonl_file_from_basemodel(path=Path("data/bbh_biased_wrong_cot/data.jsonl"), basemodels=converted)
 
     # This is if you want to view them as a CSV
-    flattened: Slist[FlatSimple] = results.map(task_output_to_flat)
+    flattened: Slist[FlatSimple] = joined.map(lambda x: task_output_to_flat(x[0], x[1]))
     print(f"Number of flattened: {len(flattened)}")
     write_csv_file_from_basemodel(path=Path(f"miles_{model}.csv"), basemodels=flattened)
