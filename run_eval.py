@@ -344,14 +344,14 @@ def main(
     exp_dir=None,
     experiment_suffix="",
     example_cap=5,
-    blank_cot=True,
-    truncated_cot=True,
-    cot_with_mistake=True,
-    paraphrase_cot=True,
+    blank_cot=False,
+    truncated_cot=False,
+    cot_with_mistake=False,
+    paraphrase_cot=False,
     log_metrics_every=1,
     run_few_shot=False,
 ):
-    apikey = os.getenv("OPENAI_API_KEY")
+    apikey = os.getenv("NYU_OPENAI_API_KEY")
     if apikey is None:
         print("OPENAI_API_KEY environment variable not set")
         exit(1)

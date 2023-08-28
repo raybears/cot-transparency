@@ -4,13 +4,13 @@ import traceback
 from functools import update_wrapper, wraps
 from time import sleep
 
-import anthropic
+# import anthropic
 import openai
 from pyrate_limiter import Duration, Limiter, RequestRate
 
 SEP = "\n\n###\n\n"
 
-apikey = os.getenv("OPENAI_API_KEY")
+apikey = os.getenv("NYU_OPENAI_API_KEY")
 openai.api_key = apikey
 
 OAI_rate = RequestRate(50, Duration.MINUTE)
@@ -71,16 +71,16 @@ def generate_chat(prompt, model="gpt-3.5-turbo", temperature=1, n=1, system_prom
         return [x["message"]["content"] for x in resp["choices"]]
 
 
-def aformat(s):
-    return f"{anthropic.HUMAN_PROMPT} {s}{anthropic.AI_PROMPT}"
+# def aformat(s):
+#     return f"{anthropic.HUMAN_PROMPT} {s}{anthropic.AI_PROMPT}"
 
 
 def generate_response(inp, config, tokens_per_ex=256):
     # Get generations and predictions
-    if config.anthropic_model:
-        resp = generate_anth(inp, model=config.model, max_tokens_to_sample=tokens_per_ex)
-        out = resp["completion"]
-    elif config.model == "gpt-3.5-turbo":
+    # if config.anthropic_model:
+    # resp = generate_anth(inp, model=config.model, max_tokens_to_sample=tokens_per_ex)
+    # out = resp["completion"]
+    if config.model == "gpt-3.5-turbo":
         out = generate_chat(inp, model=config.model)
     else:
         resp = generate_openai(inp, model=config.model, max_tokens=tokens_per_ex)
@@ -88,22 +88,22 @@ def generate_response(inp, config, tokens_per_ex=256):
     return out
 
 
-@add_retries
-def generate_anth(prompt, model="claude-v1", max_tokens_to_sample=256, apply_aformat=False):
-    if apply_aformat:
-        prompt = aformat(prompt)
-    c = anthropic.Client(os.environ["ANTHROPIC_API_KEY"])
-    resp = c.completion(
-        prompt=prompt,
-        stop_sequences=[anthropic.HUMAN_PROMPT],
-        model=model,
-        max_tokens_to_sample=max_tokens_to_sample,
-    )
-    if "exception" not in resp:
-        raise Exception(str(resp))
-    if resp["exception"] is not None:
-        raise Exception(resp["exception"])
-    return resp
+# @add_retries
+# def generate_anth(prompt, model="claude-v1", max_tokens_to_sample=256, apply_aformat=False):
+#     # if apply_aformat:
+#     #     prompt = aformat(prompt)
+#     # c = anthropic.Client(os.environ["ANTHROPIC_API_KEY"])
+#     resp = c.completion(
+#         prompt=prompt,
+#         # stop_sequences=[anthropic.HUMAN_PROMPT],
+#         model=model,
+#         max_tokens_to_sample=max_tokens_to_sample,
+#     )
+#     if "exception" not in resp:
+#         raise Exception(str(resp))
+#     if resp["exception"] is not None:
+#         raise Exception(resp["exception"])
+#     return resp
 
 
 class Config:
@@ -112,8 +112,8 @@ class Config:
         self.time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         for k, v in kwargs.items():
             setattr(self, k, v)
-        if hasattr(self, "model"):
-            self.anthropic_model = "claude" in self.model
+        # if hasattr(self, "model"):
+        # self.anthropic_model = "claude" in self.model
 
     def __str__(self):
         base_str = self.time + "-" + self.task + "-" + self.model
