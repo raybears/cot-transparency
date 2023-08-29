@@ -1,6 +1,5 @@
 from pathlib import Path
 from string import ascii_uppercase
-from typing import Optional
 
 from pydantic import BaseModel
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
