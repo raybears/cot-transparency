@@ -104,7 +104,7 @@ if __name__ == "__main__":
     bias_to_leave_out_model_map = {
         WrongFewShotIgnoreMistakesBiasedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8",
         StanfordBiasedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7smTRQCv",
-        MoreRewardBiasedFormatter: None,  # none yet
+        # MoreRewardBiasedFormatter: None,  # none yet
         ZeroShotCOTSycophancyFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7skb05DZ",
     }
 
