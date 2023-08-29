@@ -50,7 +50,8 @@ BBH_TASK_LIST = [
     "logical_deduction_five_objects",
     "hyperbaton",
 ]
-
+COT_TRAINING_TASKS = BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
 TASK_LIST = {
     "bbh": BBH_TASK_LIST,
     "bbh_biased_wrong_cot": BBH_TASK_LIST,
@@ -64,6 +65,8 @@ TASK_LIST = {
         "openbook_qa",
         "hellaswag",
     ],
+    "cot_training": COT_TRAINING_TASKS,
+    "cot_testing": COT_TESTING_TASKS,
     "model_written_evals": ["nlp", "phil", "pol"],
     "john_math": ["john_level_3", "john_level_4", "john_level_5"],
 }
@@ -145,8 +148,12 @@ def get_list_of_examples(
             data = aqua.dev()
         elif task == "arc_easy":
             data = arc.arc_easy_dev()
+        elif task == "arc_easy_train":
+            data = arc.arc_easy_train()
         elif task == "arc_challenge":
             data = arc.arc_challenge_dev()
+        elif task == "arc_challenge_train":
+            data = arc.arc_challenge_train()
         elif task == "truthful_qa":
             data = truthful_qa.eval()
         elif task == "logiqa":
@@ -156,6 +163,8 @@ def get_list_of_examples(
             data = mmlu.test(questions_per_task=questions_per_task)
         elif task == "openbook_qa":
             data = openbook.test()
+        elif task == "openbook_qa_train":
+            data = openbook.openbook_train()
         elif task == "hellaswag":
             data = hellaswag.val()
         elif task == "nlp":
