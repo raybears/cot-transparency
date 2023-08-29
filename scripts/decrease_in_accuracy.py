@@ -273,8 +273,9 @@ if __name__ == "__main__":
     #     exp_dir="experiments/finetune", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr", tasks=tasks_ran
     # )
     # left out WrongFewShotIgnoreMistakesBiasedFormatter
-    decrease_in_accuracy(
-        exp_dir="experiments/finetune", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7s4U75Iu", tasks=tasks_ran
-    )
+    # decrease_in_accuracy(
+    #     exp_dir="experiments/finetune", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7s4U75Iu", tasks=tasks_ran
+    # )
     # decrease_in_accuracy_per_bias(exp_dir="experiments/gpt_35_cot", model="gpt-3.5-turbo")
-    # decrease_in_accuracy(exp_dir="experiments/finetune", model="gpt-3.5-turbo")
+    decrease_in_accuracy(exp_dir="experiments/finetune", model="gpt-3.5-turbo")
+

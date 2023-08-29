@@ -1,4 +1,5 @@
 import glob
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Sequence, Type, Mapping
 
@@ -82,7 +83,7 @@ def plot_dots_for_intervention(
         .filter(lambda task: task.task_spec.inference_config.model == model)
         .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
-    assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
+    assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters} for model {model}"
     accuray = accuracy_outputs(filtered)
     retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(intervention, None)
     name: str = name_override or retrieved_simple_name or intervention_name or "No intervention, biased context"
@@ -179,8 +180,54 @@ def accuracy_diff_intervention(
     )
 
 
+class TaskOutputFilter(ABC):
+    @staticmethod
+    @abstractmethod
+    def filter(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
+        raise NotImplementedError()
+
+    @classmethod
+    @abstractmethod
+    def name(cls) -> str:
+        return cls.__name__
+
+
+class InconsistentOnly(TaskOutputFilter):
+    @staticmethod
+    def filter(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
+        return filter_inconsistent_only(data)
+
+    @classmethod
+    def name(cls) -> str:
+        return "Bias always on wrong answer"
+
+
+class ConsistentOnly(TaskOutputFilter):
+    @staticmethod
+    def filter(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
+        return filter_consistent_only(data)
+
+    @classmethod
+    def name(cls) -> str:
+        return "Bias on correct answer"
+
+
+class NoFilter(TaskOutputFilter):
+    @staticmethod
+    def filter(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
+        return Slist(data)
+
+    @classmethod
+    def name(cls) -> str:
+        return "Bias may be on correct or wrong answer"
+
+
 def filter_inconsistent_only(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
     return Slist(data).filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth))
+
+
+def filter_consistent_only(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
+    return Slist(data).filter(lambda task: (task.task_spec.biased_ans == task.task_spec.ground_truth))
 
 
 def run(

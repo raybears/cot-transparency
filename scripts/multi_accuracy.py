@@ -126,6 +126,10 @@ class PlotDots(BaseModel):
     acc: AccuracyOutput
     name: str
 
+    def add_n_samples_to_name(self) -> "PlotDots":
+        n = self.acc.samples
+        return PlotDots(acc=self.acc, name=f"{self.name} (n={n})")
+
 
 class TaskAndPlotDots(BaseModel):
     task_name: str

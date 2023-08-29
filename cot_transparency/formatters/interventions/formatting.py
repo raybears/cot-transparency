@@ -150,6 +150,8 @@ def format_big_brain_question_cot(task: BiasedQuestionUnbiasedCOT) -> Prompt:
 def get_formatter_for_few_shot_cot(
     exclude_formattter: Type[StageOneFormatter] | None, seed: str
 ) -> Type[StageOneFormatter]:
+    if exclude_formattter:
+        assert exclude_formattter in BIASED_FORMATTERS_FEW_SHOT_COT
     formatter_used: Type[StageOneFormatter] = (
         # We don't want to use the same formatter for few shot
         BIASED_FORMATTERS_FEW_SHOT_COT.filter(lambda f: f is not exclude_formattter)
