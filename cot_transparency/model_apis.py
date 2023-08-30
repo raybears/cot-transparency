@@ -88,11 +88,14 @@ class Prompt(BaseModel):
 
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
-    set_opeani_org_from_env_rand()
+    if not config.is_openai_finetuned():
+        # we should only switch between orgs if we are not finetuned
+        # TODO: just pass the org explicitly to the api?
+        set_opeani_org_from_env_rand()
     prompt = Prompt(messages=messages)
 
     model_name = config.model
-    if model_name == "gpt-3.5-turbo" or model_name == "gpt-3.5-turbo-16k":
+    if "gpt-3.5-turbo" in model_name:
         return gpt3_5_rate_limited(config=config, messages=prompt.convert_to_openai_chat()).completion
 
     elif model_name == "gpt-4" or model_name == "gpt-4-32k":

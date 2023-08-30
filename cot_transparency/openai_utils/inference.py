@@ -50,6 +50,7 @@ class TokenProba(BaseModel):
 class FinishReasons(str, Enum):
     stop = "stop"
     length = "length"
+    content_filter = "content_filter"
 
 
 class TokenInfo(BaseModel):
