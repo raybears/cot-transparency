@@ -17,7 +17,8 @@ from scripts.intervention_investigation import (
     DottedLine,
     bar_plot,
     ConsistentOnly,
-    TaskOutputFilter, InconsistentOnly,
+    TaskOutputFilter,
+    NoFilter,
 )
 from scripts.matching_user_answer import matching_user_answer_plot_dots
 from scripts.multi_accuracy import PlotDots
@@ -28,20 +29,24 @@ def make_finetune_graph(
     finetuned_models: Sequence[str],
     unbiased_model: str,
     unbiased_formatter: Type[StageOneFormatter],
-    exp_dir: str,
+    all_read: Slist[TaskOutput],
     accuracy_plot_name: Optional[str] = None,
     percent_matching_plot_name: Optional[str] = None,
     filterer: Type[TaskOutputFilter] = ConsistentOnly,
     tasks: Sequence[str] = [],
     model_name_override: Mapping[str | None, str] = {},
+    must_include_task_hashes: set[str] = set(),
 ):
-    all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir=exp_dir)
-    all_read = filterer.filter(all_read).filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
+    filtered_read = (
+        filterer.filter(all_read)
+        .filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
+        .filter(lambda task: task.task_spec.task_hash in must_include_task_hashes if must_include_task_hashes else True)
+    )
 
     # unbiased acc
     unbiased_plot: PlotDots = plot_dots_for_intervention(
         None,
-        all_read,
+        filtered_read,
         for_formatters=[unbiased_formatter],
         name_override=f"Unbiased context, {unbiased_model}",
         model=unbiased_model,
@@ -50,7 +55,7 @@ def make_finetune_graph(
     plot_dots: Slist[PlotDots] = Slist(finetuned_models).map(
         lambda m: plot_dots_for_intervention(
             None,
-            all_read,
+            filtered_read,
             for_formatters=biased_formatters,
             model=m,
             name_override=model_name_override.get(m, m),
@@ -68,7 +73,7 @@ def make_finetune_graph(
     matching_user_answer: list[PlotDots] = [
         matching_user_answer_plot_dots(
             intervention=None,
-            all_tasks=all_read,
+            all_tasks=filtered_read,
             for_formatters=biased_formatters,
             model=model,
             name_override=model_name_override.get(model, model),
@@ -76,7 +81,7 @@ def make_finetune_graph(
         for model in finetuned_models
     ]
     unbiased_matching_baseline = matching_user_answer_plot_dots(
-        intervention=None, all_tasks=all_read, for_formatters=[unbiased_formatter], model=unbiased_model
+        intervention=None, all_tasks=filtered_read, for_formatters=[unbiased_formatter], model=unbiased_model
     )
     dotted_line = DottedLine(
         name="gpt-3.5-turbo in Unbiased context,zeroshot", value=unbiased_matching_baseline.acc.accuracy, color="red"
@@ -91,49 +96,72 @@ def make_finetune_graph(
 
 
 if __name__ == "__main__":
-    filterer = InconsistentOnly
+    filterer = NoFilter
     tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
     dataset_str = Slist(tasks).mk_string(", ")
-    selected_bias = WrongFewShotIgnoreMistakesBiasedFormatter
+    selected_bias = ZeroShotCOTUnbiasedFormatter
+
     bias_name_map = {
-        WrongFewShotIgnoreMistakesBiasedFormatter: "Wrong Fewshot",
-        StanfordBiasedFormatter: "Stanford Professor Opinion",
-        MoreRewardBiasedFormatter: "More Reward for (X)",
-        ZeroShotCOTSycophancyFormatter: "I think the answer is (X)",
+        WrongFewShotIgnoreMistakesBiasedFormatter: "biased by Wrong Fewshot",
+        StanfordBiasedFormatter: "biased by Stanford Professor Opinion",
+        MoreRewardBiasedFormatter: "biased by More Reward for (X)",
+        ZeroShotCOTSycophancyFormatter: "biased by I think the answer is (X)",
+        ZeroShotCOTUnbiasedFormatter: "on unbiased questions",
     }
     bias_to_leave_out_model_map = {
         WrongFewShotIgnoreMistakesBiasedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8",
         StanfordBiasedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7smTRQCv",
-        # MoreRewardBiasedFormatter: None,  # none yet
+        MoreRewardBiasedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7soRFrpt",
         ZeroShotCOTSycophancyFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7skb05DZ",
+        # this is the model across all biases
+        ZeroShotCOTUnbiasedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV",
     }
+    biased_model_name = bias_to_leave_out_model_map[selected_bias]
+    all_read = read_whole_exp_dir(exp_dir="experiments/finetune")
+    biased_task_hashes = (
+        all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
+        .filter(
+            # intervention is None
+            lambda task: task.task_spec.intervention_name
+            is None
+        )
+        .filter(
+            # model is the biased model
+            lambda task: task.task_spec.inference_config.model
+            == biased_model_name
+        )
+        .map(lambda task: task.task_spec.task_hash)
+    ).to_set()
 
+    print(f"Number of biased task hashes: {len(biased_task_hashes)}")
     bias_name = bias_name_map[selected_bias]
     make_finetune_graph(
+        must_include_task_hashes=biased_task_hashes,
         biased_formatters=[selected_bias],
         finetuned_models=[
             "gpt-3.5-turbo",
             bias_to_leave_out_model_map[selected_bias],
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8"
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7skb05DZ",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7smTRQCv",
         ],
         unbiased_model="gpt-3.5-turbo",
         unbiased_formatter=ZeroShotCOTUnbiasedFormatter,
-        exp_dir="experiments/finetune",
-        accuracy_plot_name=f"Accuracy on questions biased by a {bias_name}<br>Train Dataset: BBH, Test Dataset: {dataset_str}<br>{filterer.name()}",
-        percent_matching_plot_name=f"Percentage of times the model chooses the answer biased by a {bias_name}?<br>Train Dataset: BBH, Test Dataset: {dataset_str}<br>{filterer.name()}",
+        all_read=all_read,
+        accuracy_plot_name=f"Accuracy on questions {bias_name}<br>Train Dataset: BBH, Test Dataset: {dataset_str}<br>{filterer.name()}",
+        percent_matching_plot_name=f"Percentage of times the model chooses the answer {bias_name}?<br>Train Dataset: BBH, Test Dataset: {dataset_str}<br>{filterer.name()}",
         filterer=filterer,
         tasks=tasks,
         model_name_override={
             "gpt-3.5-turbo": "gpt-3.5-turbo ",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr": "Finetuned 6000 COTs with unbiased questions",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8": "Finetuned 6000 COTs with biased questions, leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV": "Finetuned 6000 COTs with biased questions, including bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV": "Finetuned 6000 COTs with biased questions, including ALL biases",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7skb05DZ": "Finetuned 6000 COTs with biased questions, leaving out bias of I think the answer is (X)",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7smTRQCv": "Finetuned 6000 COTs with biased questions, leaving out bias of Stanford Professor opinion",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7soRFrpt": "Finetuned 6000 COTs with biased questions, leaving out bias of More Reward for (X)",
         },
     )

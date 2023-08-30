@@ -219,7 +219,7 @@ class NoFilter(TaskOutputFilter):
 
     @classmethod
     def name(cls) -> str:
-        return "Bias may be on correct or wrong answer"
+        return "No bias in context"
 
 
 def filter_inconsistent_only(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:

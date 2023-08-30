@@ -259,10 +259,11 @@ def plot_matching(
 if __name__ == "__main__":
     # decrease_in_accuracy(exp_dir="experiments/gpt_35_cot", model="gpt-3.5-turbo")
     tasks_ran = [
+        # "aqua"
         "mmlu",
         "hellaswag",
         "truthful_qa",
-        "logiqa",
+        # "logiqa",
     ]
     # trained with bias in prompt
     # decrease_in_accuracy(
@@ -276,6 +277,5 @@ if __name__ == "__main__":
     # decrease_in_accuracy(
     #     exp_dir="experiments/finetune", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7s4U75Iu", tasks=tasks_ran
     # )
-    # decrease_in_accuracy_per_bias(exp_dir="experiments/gpt_35_cot", model="gpt-3.5-turbo")
-    decrease_in_accuracy(exp_dir="experiments/finetune", model="gpt-3.5-turbo")
-
+    decrease_in_accuracy_per_bias(exp_dir="experiments/finetune", model="gpt-3.5-turbo")
+    # decrease_in_accuracy(exp_dir="experiments/finetune", model="gpt-3.5-turbo")

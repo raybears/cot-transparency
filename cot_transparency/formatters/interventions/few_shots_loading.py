@@ -22,6 +22,7 @@ def get_correct_cots() -> Slist[TaskOutput]:
 
 @lru_cache
 def get_correct_cots_claude_2() -> Slist[TaskOutput]:
+    # bbh only
     jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
         Path("data/bbh_correct_cots/claude-2_data.jsonl"), TaskOutput
     )
@@ -32,6 +33,7 @@ def get_correct_cots_claude_2() -> Slist[TaskOutput]:
 
 @lru_cache
 def get_correct_cots_gpt_35() -> Slist[TaskOutput]:
+    # bbh only
     jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
         Path("data/bbh_correct_cots/gpt-35-turbo.jsonl"), TaskOutput
     )
@@ -45,8 +47,20 @@ def get_correct_cots_gpt_35() -> Slist[TaskOutput]:
 
 @lru_cache
 def get_big_brain_cots() -> Slist[BiasedQuestionUnbiasedCOT]:
+    # bbh only
     jsons_tasks: Slist[BiasedQuestionUnbiasedCOT] = read_jsonl_file_into_basemodel(
         Path("data/bbh_big_brain_cots/data.jsonl"), BiasedQuestionUnbiasedCOT
     )
 
     return jsons_tasks
+
+
+@lru_cache
+def get_training_cots_gpt_35() -> Slist[TaskOutput]:
+    # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt-35-turbo.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
