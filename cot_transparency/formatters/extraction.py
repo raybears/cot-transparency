@@ -12,18 +12,16 @@ from cot_transparency.data_models.example_base import (
 )
 
 BREAK_WORDS: list[str] = [
-    "best answer is (",
-    "best answer is  (",
-    "best answer is: (",
-    "best answer is:(",
-    "best answer is:  (",
-    "best answer is:\n(",
-    "best answer is: \n(",
-    "best answer is:\n\n(",
-    "best answer is: ",
-    "best answer is ",
     "answer is (",
+    "answer is  (",
     "answer is: (",
+    "answer is:(",
+    "answer is:  (",
+    "answer is:\n(",
+    "answer is: \n(",
+    "answer is:\n\n(",
+    "answer is: ",
+    "answer is ",
     "answer is $\\boxed{\\text{(",
     "answer is: $\\boxed{\\text{(",
     "choices is: "
@@ -78,7 +76,6 @@ def extract_answer_for_format(
         for ans in ans_list:
             # match if the ans is in a \textbf{()} box with optional parentheses
             pattern = r"\\text(bf)?{{\s*\({}\)?\}}".format(ans)
-            print(pattern)
             match = re.search(pattern, tmp[-1])
             if match:
                 idx = ans_list.index(ans)

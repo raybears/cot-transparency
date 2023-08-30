@@ -129,6 +129,13 @@ class PromptSensitivtyFormatter(StageOneFormatter, ABC):
     def name(cls) -> str:
         return f"{cls.__name__}_{str(cls.get_data_format_spec())}"
 
+    @staticmethod
+    @abstractmethod
+    def format_example_to_data_format(
+        question: DataExampleBase, model: str, data_format_spec: DataFormatSpec
+    ) -> list[ChatMessage]:
+        raise NotImplementedError
+
 
 def prompt_sensitivity_factory(data_format_spec: DataFormatSpec) -> list[PromptSensitivtyFormatter]:
     class NoCotPromptSenFormatter(PromptSensitivtyFormatter):
@@ -142,7 +149,14 @@ def prompt_sensitivity_factory(data_format_spec: DataFormatSpec) -> list[PromptS
         @staticmethod
         def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
             assert model is not None
+            return NoCotPromptSenFormatter.format_example_to_data_format(
+                question, model, data_format_spec=data_format_spec
+            )
 
+        @staticmethod
+        def format_example_to_data_format(
+            question: DataExampleBase, model: str, data_format_spec: DataFormatSpec
+        ) -> list[ChatMessage]:
             question = question.to_variant(data_format_spec)
             formatted_question = format_unbiased_question(question=question.get_parsed_input_with_none_of_the_above())
             model_type = ModelType.from_model_name(model)
@@ -175,7 +189,14 @@ def prompt_sensitivity_factory(data_format_spec: DataFormatSpec) -> list[PromptS
         @staticmethod
         def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
             assert model is not None
+            return CotPromptSenFormatter.format_example_to_data_format(
+                question, model, data_format_spec=data_format_spec
+            )
 
+        @staticmethod
+        def format_example_to_data_format(
+            question: DataExampleBase, model: str, data_format_spec: DataFormatSpec
+        ) -> list[ChatMessage]:
             question = question.to_variant(data_format_spec)
             formatted_question = format_unbiased_question(question=question.get_parsed_input_with_none_of_the_above())
             model_type = ModelType.from_model_name(model)

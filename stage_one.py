@@ -1,5 +1,6 @@
 import random
 from pathlib import Path
+import shutil
 from typing import Optional, Type
 import fnmatch
 
@@ -207,6 +208,13 @@ def main(
     validated_interventions = get_valid_stage1_interventions(interventions)
 
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
+
+    # p = Path(exp_dir)
+    # if p.exists() and p.is_dir():  # Check if the path exists and is a directory
+    #     print("Backing up existing experiment directory to prevent overwriting")
+    #     backup_path = p.with_name(f"{p.name}.auto_backup")
+    #     shutil.copytree(p, backup_path)
+
     task_settings: list[TaskSetting] = create_task_settings(
         tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
     )
@@ -242,7 +250,6 @@ def main(
 
         # if you are using an intervention, we need to add SINGLE_SHOT_SEP to the stop list
         if setting.intervention:
-            print("using intervention")
             if isinstance(config.stop, list):
                 config.stop += [FEW_SHOT_STOP_TOKEN]
             else:

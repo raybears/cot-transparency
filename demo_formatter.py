@@ -1,13 +1,20 @@
+from typing import Optional
 import fire
 from cot_transparency.formatters import name_to_formatter
 from cot_transparency.model_apis import Prompt
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
+from stage_one import get_valid_stage1_interventions
 
 
-def main(formatter_name: str, model="gpt-4"):
+def main(formatter_name: str, intervention_name: Optional[str] = None, model="gpt-4"):
     formatter = name_to_formatter(formatter_name)
 
-    example = formatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model=model)  # type: ignore
+    if intervention_name:
+        Intervention = get_valid_stage1_interventions([intervention_name])[0]
+        example = Intervention.intervene(question=EMPIRE_OF_PANTS_EXAMPLE, formatter=formatter, model=model)
+    else:
+        example = formatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model=model)  # type: ignore
+
     prompt = Prompt(messages=example)
 
     try:

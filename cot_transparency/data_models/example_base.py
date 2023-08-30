@@ -110,7 +110,7 @@ class DataFormatSpec(BaseModel):
         )
 
     @classmethod
-    def get_random(seed: int):
+    def init_random(cls, seed: int):
         rng = random.Random(seed)
         choice_variant = rng.choice(list(ChoiceVariant))
         question_variant = rng.choice(list(QuestionPrefix))
