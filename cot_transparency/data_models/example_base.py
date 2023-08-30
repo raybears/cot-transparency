@@ -137,6 +137,11 @@ def combine_indicator_with_separator(indicator: str, separator: IndicatorSeparat
             return f"({indicator}) "
 
 
+class LetterAndOption(BaseModel):
+    letter: MultipleChoiceAnswer
+    option: str
+
+
 class DataExampleBase(BaseModel, ABC):
     """We don't define the fields here because we want to be able to use this for any dataset but we define the api"""
 
@@ -154,6 +159,7 @@ class DataExampleBase(BaseModel, ABC):
     @property
     @abstractmethod
     def ground_truth(self) -> MultipleChoiceAnswer:
+        """Please implement this method to return the ground truth answer"""
         raise NotImplementedError
 
     @property
@@ -162,6 +168,7 @@ class DataExampleBase(BaseModel, ABC):
 
     @abstractmethod
     def _get_options(self) -> list[str]:
+        """Please implement this method to return a list of options, without any letters"""
         raise NotImplementedError
 
     def get_options(self, include_none_of_the_above: bool = False) -> list[str]:
@@ -173,6 +180,7 @@ class DataExampleBase(BaseModel, ABC):
 
     @abstractmethod
     def _get_question(self) -> str:
+        """Please implement this method to return the question, without any options"""
         raise NotImplementedError
 
     def ground_truth_idx(self) -> int:
@@ -187,11 +195,16 @@ class DataExampleBase(BaseModel, ABC):
             output.append(f"{combined}{option}")
         return "\n".join(output)
 
-    def get_parsed_input_with_none_of_the_above(self) -> str:
-        question = self._get_question()
-        options = self.get_options(include_none_of_the_above=True)
-        options_with_letters = self._get_options_with_indicator(options)
-        return f"{question}\n\nAnswer choices:\n{options_with_letters}"
+    @staticmethod
+    def format_options_with_letters(options: list[LetterAndOption]) -> str:
+        return "\n".join([f"({option.letter}) {option.option}" for option in options])
+
+    @staticmethod
+    def _get_lettered_options(options: list[str]) -> list[LetterAndOption]:
+        return [
+            LetterAndOption(letter=ascii_uppercase[idx], option=option)  # type: ignore
+            for idx, option in enumerate(options)
+        ]
 
     @property
     def biased_ans(self) -> MultipleChoiceAnswer:
@@ -204,9 +217,13 @@ class DataExampleBase(BaseModel, ABC):
     def hash(self) -> str:
         return deterministic_hash(self.get_parsed_input())
 
+    def get_parsed_input_with_none_of_the_above(self) -> str:
+        return self.get_parsed_input(include_none_of_the_above=True)
+
     # prompt sensitivity methods
     def get_parsed_input(
         self,
+        include_none_of_the_above: bool = False,
     ) -> str:
         question = self._get_question()
         # check question doesn't start with question or q
@@ -220,7 +237,7 @@ class DataExampleBase(BaseModel, ABC):
             case QuestionPrefix.NONE:
                 pass
 
-        choices = self._get_options()
+        choices = self._get_options(include_none_of_the_above=include_none_of_the_above)
         choices_str = self._get_options_with_indicator(choices)
 
         return f"{question}{self.data_format.join_variant.value}{choices_str}"

@@ -61,5 +61,5 @@ def save_loaded_dict(loaded_dict: LoadedJsonType):
     for file_out, loaded in loaded_dict.items():
         # create the directory if it doesn't exist
         file_out.parent.mkdir(parents=True, exist_ok=True)
-        _json = loaded.json(indent=2)
+        _json = loaded.model_dump_json(indent=2)
         safe_file_write(str(file_out), _json)

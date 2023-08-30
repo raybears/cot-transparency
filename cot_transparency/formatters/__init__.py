@@ -32,6 +32,8 @@ from cot_transparency.formatters.core.unbiased import (
     register_prompt_sensitivity_formatters,
 )
 
+from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import BBQSymbolTuningCOTFewShot
+
 from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
     StanfordTreatmentFormatter,
@@ -70,6 +72,7 @@ from cot_transparency.formatters.transparency.interventions.logical_consequence 
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
     WrongFewShotBiasedNoCOTFormatter,
+    WrongFewShotIgnoreMistakesBiasedFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantBiasedFormatter,
@@ -124,6 +127,8 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         ModelWrittenBiasedWithNoneFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        WrongFewShotIgnoreMistakesBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        BBQSymbolTuningCOTFewShot.name(): BBQSymbolTuningCOTFewShot.name(),
     }
 
     prompt_sensitivity_formatters = register_prompt_sensitivity_formatters()
@@ -174,4 +179,5 @@ __all__ = [
     "LogicalConsequenceChatFormatter",
     "UserBiasedWrongCotFormatter",
     "LogicalConsequence2ChatFormatter",
+    "BBQSymbolTuningCOTFewShot",
 ]

@@ -199,7 +199,7 @@ class GUI:
         output = experiment[self.task_hashes[self.task_hash_idx]][self.index]
 
         formatted_output = Prompt(messages=output.task_spec.messages).convert_to_completion_str()
-        self.config_text.insert(END, str(output.task_spec.model_config.json(indent=2)))
+        self.config_text.insert(END, str(output.task_spec.inference_config.model_dump_json(indent=2)))
         self.messages_text.insert(END, formatted_output)
         self.output_text.insert(END, str(output.first_raw_response))
         self.parsed_ans_text.insert(END, str(output.first_parsed_response))
@@ -236,7 +236,7 @@ def convert_nested_dict_s2(
     for output in outputs:
         # use keys
         task_name = output.task_spec.stage_one_output.task_spec.task_name
-        model = output.task_spec.stage_one_output.task_spec.model_config.model
+        model = output.task_spec.stage_one_output.task_spec.inference_config.model
         stage_one_formatter = output.task_spec.stage_one_output.task_spec.formatter_name
         stage_one_hash = output.task_spec.stage_one_output.task_spec.task_hash_with_repeat()
         formatter = output.task_spec.formatter_name
@@ -263,7 +263,7 @@ def convert_nested_dict_s1(outputs: list[TaskOutput]) -> StageOneNestedDict:
     for output in outputs:
         # use keys
         task_name = output.task_spec.task_name
-        model = output.task_spec.model_config.model
+        model = output.task_spec.inference_config.model
         stage_one_formatter = output.task_spec.formatter_name + (output.task_spec.intervention_name or "")
         stage_one_hash = output.task_spec.task_hash_with_repeat()
 

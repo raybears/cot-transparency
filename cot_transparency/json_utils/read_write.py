@@ -10,7 +10,7 @@ GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
 
 def caught_base_model_parse(basemodel: Type[GenericBaseModel], line: str) -> GenericBaseModel:
     try:
-        return basemodel.parse_raw(line)
+        return basemodel.model_validate_json(line)
     except Exception as e:
         print(f"Error parsing line: {line}")
         raise e
@@ -52,7 +52,7 @@ def write_jsonl_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel])
 
 def write_csv_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel]) -> None:
     """Uses pandas"""
-    df = pd.DataFrame([model.dict() for model in basemodels])
+    df = pd.DataFrame([model.model_dump() for model in basemodels])
     df.to_csv(path)
 
 

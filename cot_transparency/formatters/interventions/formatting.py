@@ -10,11 +10,13 @@ from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatt
 from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantBiasedNoCOTFormatter,
-    DeceptiveAssistantBiasedFormatter,
 )
 from cot_transparency.formatters.more_biases.more_reward import (
     MoreRewardBiasedNoCOTFormatter,
     MoreRewardBiasedFormatter,
+)
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordNoCOTFormatter, StanfordBiasedFormatter
 from cot_transparency.model_apis import Prompt
@@ -65,10 +67,10 @@ def format_pair_cot(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     messages: list[ChatMessage] = add_to_final_assistant(
         ZeroShotCOTSycophancyFormatter.format_example(read),
-        new_message=" " + task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+        new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
     ) + add_to_final_assistant(
         ZeroShotCOTUnbiasedFormatter.format_example(read),
-        new_message=" " + task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+        new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
     )
     return Prompt(messages=messages)
 
@@ -87,7 +89,7 @@ def format_unbiased_question_cot(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     messages: list[ChatMessage] = add_to_final_assistant(
         ZeroShotCOTUnbiasedFormatter.format_example(read),
-        new_message=" " + task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+        new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
     )
     return Prompt(messages=messages)
 
@@ -96,7 +98,7 @@ def format_few_shot_for_prompt_sen(
     task: TaskOutput, Formatter: Type[StageOneFormatter] = ZeroShotUnbiasedFormatter
 ) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    resp = task.model_output.parsed_response
+    resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
     messages: list[ChatMessage] = add_to_final_assistant(
         Formatter.format_example(read),
@@ -120,7 +122,7 @@ def format_unbiased_question_non_cot_add_(
 
 def format_biased_question_non_cot_sycophancy(task: TaskOutput) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    resp = task.model_output.parsed_response
+    resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
     messages: list[ChatMessage] = add_to_final_assistant(
         ZeroShotSycophancyFormatter.format_example(read),
@@ -131,7 +133,7 @@ def format_biased_question_non_cot_sycophancy(task: TaskOutput) -> Prompt:
 
 def format_biased_question_non_cot_random_formatter(task: TaskOutput, formatter: Type[StageOneFormatter]) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    resp = task.model_output.parsed_response
+    resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
     formatter_to_use = get_formatter_for_few_shot_non_cot(answer_formatter=formatter, seed=read.hash())
     messages: list[ChatMessage] = add_to_final_assistant(
@@ -143,10 +145,10 @@ def format_biased_question_non_cot_random_formatter(task: TaskOutput, formatter:
 
 def format_biased_question_cot(task: TaskOutput, formatter: Type[StageOneFormatter]) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    formatter_to_use = get_formatter_for_few_shot_cot(answer_formatter=formatter, seed=read.hash())
+    formatter_to_use = get_formatter_for_few_shot_cot(exclude_formattter=formatter, seed=read.hash())
     messages: list[ChatMessage] = add_to_final_assistant(
         formatter_to_use.format_example(read),
-        new_message=" " + task.model_output.raw_response + END_SINGLE_SHOT_SEP,
+        new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
     )
     return Prompt(messages=messages)
 
@@ -160,10 +162,12 @@ def format_big_brain_question_cot(task: BiasedQuestionUnbiasedCOT) -> Prompt:
     return Prompt(messages=with_correct)
 
 
-def get_formatter_for_few_shot_cot(answer_formatter: Type[StageOneFormatter], seed: str) -> Type[StageOneFormatter]:
+def get_formatter_for_few_shot_cot(
+    exclude_formattter: Type[StageOneFormatter] | None, seed: str
+) -> Type[StageOneFormatter]:
     formatter_used: Type[StageOneFormatter] = (
         # We don't want to use the same formatter for few shot
-        BIASED_FORMATTERS_FEW_SHOT_COT.filter(lambda f: f is not answer_formatter)
+        BIASED_FORMATTERS_FEW_SHOT_COT.filter(lambda f: f is not exclude_formattter)
         .shuffle(seed=seed)
         .first_or_raise()
     )
@@ -193,7 +197,8 @@ BIASED_FORMATTERS_FEW_SHOT_COT: Slist[Type[StageOneFormatter]] = Slist(
     [
         ZeroShotCOTSycophancyFormatter,
         StanfordBiasedFormatter,
-        DeceptiveAssistantBiasedFormatter,
+        # DeceptiveAssistantBiasedFormatter,
+        WrongFewShotIgnoreMistakesBiasedFormatter,
         MoreRewardBiasedFormatter,
     ]
 )

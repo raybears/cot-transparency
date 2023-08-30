@@ -2,14 +2,13 @@ import re
 from string import ascii_uppercase
 from typing import Optional
 
-from pydantic import BaseModel
 
 from cot_transparency.data_models.example_base import (
     ChoiceVariant,
     DataFormatSpec,
-    MultipleChoiceAnswer,
     combine_indicator_with_separator,
 )
+from cot_transparency.data_models.example_base import LetterAndOption
 
 BREAK_WORDS: list[str] = [
     "answer is (",
@@ -24,8 +23,7 @@ BREAK_WORDS: list[str] = [
     "answer is ",
     "answer is $\\boxed{\\text{(",
     "answer is: $\\boxed{\\text{(",
-    "choices is: "
-    r"is: $\boxed{\textbf{(",
+    "choices is: " r"is: $\boxed{\textbf{(",
     r"is $\boxed{\textbf{(",
     r"is: $\boxed{\text{(",
 ]
@@ -149,14 +147,9 @@ def extract_multiple_choices(question: str) -> list[str]:
     return stripped
 
 
-class LetterAndAnswer(BaseModel):
-    letter: MultipleChoiceAnswer
-    answer: str
-
-
-def extract_lettered_multiple_choices(question: str) -> list[LetterAndAnswer]:
+def extract_lettered_multiple_choices(question: str) -> list[LetterAndOption]:
     extracted_answers = extract_multiple_choices(question)
     return [
-        LetterAndAnswer(letter=ascii_uppercase[i], answer=answer)  # type: ignore
+        LetterAndOption(letter=ascii_uppercase[i], option=answer)  # type: ignore
         for i, answer in enumerate(extracted_answers)
     ]

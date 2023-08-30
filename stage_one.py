@@ -1,6 +1,5 @@
 import random
 from pathlib import Path
-import shutil
 from typing import Optional, Type
 import fnmatch
 
@@ -19,7 +18,7 @@ from cot_transparency.data_models.data.model_written_evals import (
 )
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
+from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec, is_openai_finetuned
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -52,7 +51,8 @@ BBH_TASK_LIST = [
     "logical_deduction_five_objects",
     "hyperbaton",
 ]
-
+COT_TRAINING_TASKS = BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
 TASK_LIST = {
     "bbh": BBH_TASK_LIST,
     "bbh_biased_wrong_cot": BBH_TASK_LIST,
@@ -66,6 +66,8 @@ TASK_LIST = {
         "openbook_qa",
         "hellaswag",
     ],
+    "cot_training": COT_TRAINING_TASKS,
+    "cot_testing": COT_TESTING_TASKS,
     "model_written_evals": ["nlp", "phil", "pol"],
     "john_math": ["john_level_3", "john_level_4", "john_level_5"],
 }
@@ -78,10 +80,19 @@ CONFIG_MAP = {
     "davinci": OpenaiInferenceConfig(model="davinci", temperature=1, max_tokens=1000, top_p=1.0),
     "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
     "claude-2": OpenaiInferenceConfig(model="claude-2", temperature=1, max_tokens=1000, top_p=1.0),
+    "claude-instant-1": OpenaiInferenceConfig(model="claude-instant-1", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
     "llama-2-7b-chat-hf": OpenaiInferenceConfig(model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
 }
+
+
+def get_config(model: str) -> OpenaiInferenceConfig:
+    if is_openai_finetuned(model):
+        # Allow user to specify any OpenAI finetuned model
+        return OpenaiInferenceConfig(model=model, temperature=1, max_tokens=1000, top_p=1.0)
+    else:
+        return CONFIG_MAP[model].model_copy()
 
 
 def create_task_settings(
@@ -140,8 +151,12 @@ def get_list_of_examples(
             data = aqua.dev()
         elif task == "arc_easy":
             data = arc.arc_easy_dev()
+        elif task == "arc_easy_train":
+            data = arc.arc_easy_train()
         elif task == "arc_challenge":
             data = arc.arc_challenge_dev()
+        elif task == "arc_challenge_train":
+            data = arc.arc_challenge_train()
         elif task == "truthful_qa":
             data = truthful_qa.eval()
         elif task == "logiqa":
@@ -151,6 +166,8 @@ def get_list_of_examples(
             data = mmlu.test(questions_per_task=questions_per_task)
         elif task == "openbook_qa":
             data = openbook.test()
+        elif task == "openbook_qa_train":
+            data = openbook.openbook_train()
         elif task == "hellaswag":
             data = hellaswag.val()
         elif task == "nlp":
@@ -237,7 +254,7 @@ def main(
             data = data[:example_cap]
 
         # Possible config overrides
-        config = CONFIG_MAP[model].copy()
+        config = get_config(model)
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):
@@ -270,14 +287,14 @@ def main(
                 )
                 task_spec = TaskSpec(
                     task_name=task,
-                    model_config=config,
+                    inference_config=config,
                     messages=messages,
                     out_file_path=out_file_path,
                     ground_truth=item.ground_truth,
                     formatter_name=formatter.name(),
                     task_hash=item.hash(),
                     biased_ans=item.biased_ans,
-                    data_example=item.dict(),
+                    data_example=item.model_dump(),
                     repeat_idx=i,
                     intervention_name=setting.intervention.name() if setting.intervention else None,
                 )

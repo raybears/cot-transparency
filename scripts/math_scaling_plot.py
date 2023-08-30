@@ -15,6 +15,7 @@ from scripts.intervention_investigation import (
     read_whole_exp_dir,
     filter_inconsistent_only,
 )
+from scripts.matching_user_answer import matching_user_answer_plot_dots
 from scripts.multi_accuracy import PlotDots
 from stage_one import TASK_LIST
 
@@ -67,10 +68,55 @@ def accuracy_diff_math(
     )
     bar_plot(
         plot_dots=joined_plot_dots,
-        title="Does the accuracy gap between unbiased and biased context widen with harder questions?<br>Biased with MoreReward, Stanford, WrongFewShot, Sycophancy. 140 questions per math level",
+        title=f"{model}: Does the accuracy gap between unbiased and biased context widen with harder questions?<br>Biased with MoreReward, Stanford, WrongFewShot, Sycophancy. 140 questions per math level",
         y_axis_title="Biased context accuracy minus unbiased context accuracy",
+    )
+
+    matching_user_answer: Slist[PlotDots] = Slist(
+        matching_user_answer_plot_dots(
+            intervention=None,
+            all_tasks=all_read,
+            for_task=[task],
+            for_formatters=biased_formatters,
+            model=model,
+            name_override=task,
+        )
+        for task in tasks
+    )
+    bar_plot(
+        plot_dots=matching_user_answer,
+        title=f"Does {model} follow the bias more on harder questions?<br>Biased with MoreReward, Stanford, WrongFewShot, Sycophancy.<br> 140 questions per math level. Two options per question. Bias always on wrong option.",
+        y_axis_title="Answers matching bias's view (%)",
+    )
+
+    # Make chart of the diff in matching betwwen the unbiased and the biased
+    unbiased_matching_answer: dict[str, PlotDots] = (
+        tasks.map(
+            lambda task: matching_user_answer_plot_dots(
+                intervention=None,
+                all_tasks=all_read,
+                for_formatters=[unbiased_formatter],
+                model=model,
+                for_task=[task],
+                name_override=task,
+            )
+        )
+        .map(lambda plot: (plot.name, plot))
+        .to_dict()
+    )
+    joined_matching_answer: list[PlotDots] = matching_user_answer.map(
+        lambda plot: PlotDots(
+            acc=plot.acc - unbiased_matching_answer[plot.name].acc,
+            name=plot.name,
+        )
+    )
+    bar_plot(
+        plot_dots=joined_matching_answer,
+        title=f"Does {model} follow the bias more on harder questions?<br>Increase in % of answers matching bias in biased context vs unbiased context<br>Biased with MoreReward, Stanford, WrongFewShot, Sycophancy.<br> 140 questions per math level. Two options per question. Bias always on wrong option.",
+        y_axis_title="Adjusted answers matching bias's view (%)",
     )
 
 
 if __name__ == "__main__":
-    accuracy_diff_math(model="gpt-4")
+    # accuracy_diff_math(model="gpt-4")
+    accuracy_diff_math(model="claude-2")

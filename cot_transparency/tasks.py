@@ -20,7 +20,6 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.intervention import Intervention
 
 from cot_transparency.model_apis import call_model_api
-from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters import PromptFormatter, name_to_formatter
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.models import StageTwoTaskSpec
@@ -106,14 +105,14 @@ def task_function(
     response = (
         call_model_and_raise_if_not_suitable(
             task=task,
-            config=task.model_config,
+            config=task.inference_config,
             formatter=formatter,
             retries=20,
         )
         if raise_after_retries
         else call_model_and_catch(
             messages=task,
-            config=task.model_config,
+            config=task.inference_config,
             formatter=formatter,
             retries=10,
         )
@@ -122,12 +121,12 @@ def task_function(
     if isinstance(task, StageTwoTaskSpec):
         return StageTwoTaskOutput(
             task_spec=task,
-            model_output=response,
+            inference_output=response,
         )
     elif isinstance(task, TaskSpec):
         return TaskOutput(
             task_spec=task,
-            model_output=response,
+            inference_output=response,
         )
     else:
         raise ValueError(f"Unknown task type {type(task)}")

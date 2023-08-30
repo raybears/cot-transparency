@@ -50,6 +50,7 @@ class TokenProba(BaseModel):
 class FinishReasons(str, Enum):
     stop = "stop"
     length = "length"
+    content_filter = "content_filter"
 
 
 class TokenInfo(BaseModel):
@@ -192,7 +193,7 @@ def __get_chat_response_dict(
 ) -> Dict[Any, Any]:
     return openai.ChatCompletion.create(  # type: ignore
         model=config.model,
-        messages=[chat.dict() for chat in prompt],
+        messages=[chat.model_dump() for chat in prompt],
         max_tokens=config.max_tokens,
         temperature=config.temperature,
         presence_penalty=config.presence_penalty,

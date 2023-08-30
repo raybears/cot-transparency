@@ -10,7 +10,7 @@ PROMPT = "Which of the answer choices best completes the following sentence?"
 
 
 class HellaSwagExample(DataExampleBase):
-    ind: str
+    ind: int
     activity_label: str
     ctx_a: str
     ctx_b: str

@@ -18,7 +18,8 @@ class Intervention(ABC):
     @classmethod
     @abstractmethod
     def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
-        raise NotImplementedError
+        cls_name = cls.__name__
+        raise NotImplementedError(f"Intervention {cls_name} has not implemented intervene.")
 
     @classmethod
     def all_interventions(cls) -> dict[str, Type[Self]]:

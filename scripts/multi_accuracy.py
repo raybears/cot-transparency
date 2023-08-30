@@ -98,15 +98,15 @@ def spotted_bias(raw_response: str, model: Optional[str] = None) -> bool:
 def filter_only_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
     new_list: list[TaskOutput] = []
     for output in outputs:
-        if spotted_bias(output.model_output.raw_response):
+        if spotted_bias(output.inference_output.raw_response):
             new_list.append(output)
-    return [output for output in new_list if output.model_output]
+    return [output for output in new_list if output.inference_output]
 
 
 def extract_labelled_bias(outputs: list[TaskOutput]) -> list[BiasAndExplanation]:
     new_list: list[BiasAndExplanation] = []
     for output in outputs:
-        bias_and_explanation = parse_out_bias_explanation(output.model_output.raw_response)
+        bias_and_explanation = parse_out_bias_explanation(output.inference_output.raw_response)
         new_list.append(bias_and_explanation)
     return new_list
 
@@ -115,9 +115,9 @@ def filter_no_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
     new_list: list[TaskOutput] = []
     for output in outputs:
         new_output = output.copy()
-        if not spotted_bias(output.model_output.raw_response):
+        if not spotted_bias(output.inference_output.raw_response):
             new_list.append(new_output)
-    return [output for output in new_list if output.model_output]
+    return [output for output in new_list if output.inference_output]
 
 
 class PlotDots(BaseModel):
