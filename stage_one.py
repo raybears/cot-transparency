@@ -116,6 +116,8 @@ def validate_tasks(tasks: list[str]) -> list[str]:
     for dataset in TASK_LIST:
         all_tasks += TASK_LIST[dataset]
     for task in tasks:
+        if "mmlu" in task:
+            continue
         if task not in all_tasks:
             raise ValueError(f"task {task} is not valid. Valid tasks are {all_tasks}")
     return tasks
@@ -142,9 +144,10 @@ def get_list_of_examples(
             data = truthful_qa.eval()
         elif task == "logiqa":
             data = logiqa.eval()
-        elif task == "mmlu":
-            questions_per_task = 20
-            data = mmlu.test(questions_per_task=questions_per_task)
+        elif "mmlu" in task:
+            questions_per_task = 200
+            print(task)
+            data = mmlu.test(questions_per_task=questions_per_task, task=task)
         elif task == "openbook_qa":
             data = openbook.test()
         elif task == "hellaswag":
@@ -206,6 +209,8 @@ def main(
         model = setting.model
         formatter = setting.formatter
         data: list[DataExampleBase] = get_list_of_examples(task, dataset=dataset)
+
+        # import ipdb; ipdb.set_trace()
         out_file_path: Path = (
             Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
             if setting.intervention is None

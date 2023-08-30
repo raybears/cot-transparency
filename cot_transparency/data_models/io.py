@@ -14,6 +14,7 @@ LoadedJsonType = Union[dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExpe
 class ExpLoader:
     @staticmethod
     def get_paths(exp_dir: str, subpath="*/*/*.json") -> list[str]:
+        # import ipdb; ipdb.set_trace()
         paths = glob(f"{exp_dir}/{subpath}", recursive=True)
         if paths:
             print(f"Found {len(paths)} json files")

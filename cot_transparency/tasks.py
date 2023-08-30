@@ -212,6 +212,8 @@ def run_tasks_multi_threaded(
         executor.shutdown(wait=False, cancel_futures=True)
         exit_event.set()  # notify rate limiter to exit
 
+    # import ipdb; ipdb.set_trace()
+
     for task in tasks_to_run:
         future_instance_outputs.append(executor.submit(task_function, task, raise_after_retries=raise_after_retries))
 

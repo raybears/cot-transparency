@@ -90,7 +90,7 @@ class GUI:
             font=("Arial", self.fontsize),
         )
         self.label3.pack(anchor=self.alignment)
-        self.output_text = Text(self.output_frame, width=width - config_width, height=6, font=("Arial", self.fontsize))
+        self.output_text = Text(self.output_frame, width=width - config_width, height=26, font=("Arial", self.fontsize))
         self.output_text.pack(anchor=self.alignment)
         self.parsed_ans_text = Text(
             self.output_frame, width=width - config_width, height=4, font=("Arial", self.fontsize)
@@ -109,9 +109,9 @@ class GUI:
                 cot_label = Label(cot_frame, text=cot, font=("Arial", self.fontsize))
                 self.cot_labels.append(cot_label)
                 cot_label.pack(anchor=self.alignment)
-                cot_text = Text(cot_frame, width=width // 2, height=5, font=("Arial", self.fontsize))
+                cot_text = Text(cot_frame, width=width // 2, height=25, font=("Arial", self.fontsize))
                 cot_text.pack(anchor=self.alignment)
-                cot_text2 = Text(cot_frame, width=width // 2, height=5, font=("Arial", self.fontsize))
+                cot_text2 = Text(cot_frame, width=width // 2, height=25, font=("Arial", self.fontsize))
                 cot_text2.pack(anchor=self.alignment)
                 self.cot_texts.append((cot_text, cot_text2))
                 cot_frame.pack(side=LEFT)
