@@ -101,6 +101,6 @@ if __name__ == "__main__":
         ]
     )
     fine_tune_with_biased_cots(
-        18000, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter, use_formatters=use_formatters
+        18000, exclude_formattter=StanfordBiasedFormatter, use_formatters=use_formatters
     )
-    # fine_tune_with_naive_cots(2000)
+    # fine_tune_with_biased_cots(18000)
