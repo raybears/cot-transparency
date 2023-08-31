@@ -9,7 +9,10 @@ from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFor
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotBiasedFormatter
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotBiasedFormatter,
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+)
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
 from scripts.intervention_investigation import (
     read_whole_exp_dir,
@@ -94,6 +97,7 @@ def plot_dot_diff(
         .filter(lambda task: task.task_spec.inference_config.model == model)
         .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
+    assert len(nonbiased) > 0, f"Found no tasks for {name} on {model} with {unbiased_formatter.name()}"
     nonbiased_acc: AccuracyOutput = accuracy_outputs(nonbiased)
     biased: PlotDots = plot_dots_for_intervention(
         intervention=None,
@@ -106,12 +110,10 @@ def plot_dot_diff(
     return PlotDots(acc=nonbiased_acc - biased.acc, name=name)
 
 
-def decrease_in_accuracy(exp_dir: str, model: str):
-    """
-    python stage_one.py --exp_dir experiments/interventions --tasks '["aqua","arc_easy","arc_challenge","truthful_qa","logiqa","mmlu","openbook_qa","hellaswag","john_level_5"]' --models "['claude-2']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 600
-    """
-    # tasks: list[str] = TASK_LIST["transparency"]
-    tasks = [
+def decrease_in_accuracy(
+    exp_dir: str,
+    model: str,
+    tasks: Sequence[str] = [
         "aqua",
         "arc_easy",
         "arc_challenge",
@@ -121,7 +123,13 @@ def decrease_in_accuracy(exp_dir: str, model: str):
         "openbook_qa",
         "hellaswag",
         "john_level_5",
-    ]
+    ],
+):
+    """
+    python stage_one.py --exp_dir experiments/interventions --tasks '["aqua","arc_easy","arc_challenge","truthful_qa","logiqa","mmlu","openbook_qa","hellaswag","john_level_5"]' --models "['claude-2']" --formatters '["ZeroShotCOTSycophancyFormatter", "MoreRewardBiasedFormatter", "StanfordBiasedFormatter", "DeceptiveAssistantBiasedFormatter", "WrongFewShotIgnoreMistakesBiasedFormatter", "ZeroShotCOTUnbiasedFormatter"]' --example_cap 600
+    """
+    # tasks: list[str] = TASK_LIST["transparency"]
+
     all_read = filter_inconsistent_only(read_whole_exp_dir(exp_dir=exp_dir))
 
     decrease_plot_dots = [
@@ -129,7 +137,7 @@ def decrease_in_accuracy(exp_dir: str, model: str):
             intervention=None,
             all_tasks=all_read,
             for_formatters=[
-                WrongFewShotBiasedFormatter,
+                WrongFewShotIgnoreMistakesBiasedFormatter,
                 MoreRewardBiasedFormatter,
                 ZeroShotCOTSycophancyFormatter,
                 StanfordBiasedFormatter,
@@ -141,31 +149,6 @@ def decrease_in_accuracy(exp_dir: str, model: str):
         )
         for task in tasks
     ]
-    # PlotDots(
-    #     acc=overall_accuracy_for_formatter(
-    #         "DeceptiveAssistantBiasedFormatter", exp_dir=exp_dir, model=model, tasks=[task]
-    #     ),
-    #     name="Tell model to be deceptive",
-    # ),
-    # PlotDots(
-    #     acc=overall_accuracy_for_formatter(
-    #         "WrongFewShotBiasedFormatter", exp_dir=exp_dir, model=model, tasks=[task]
-    #     ),
-    #     name="Wrong label in the few shot",
-    # ),
-    # PlotDots(
-    #     acc=overall_accuracy_for_formatter(
-    #         "MoreRewardBiasedFormatter", exp_dir=exp_dir, model=model, tasks=[task]
-    #     ),
-    #     name="More reward for an option",
-    # ),
-    # PlotDots(
-    #     acc=overall_accuracy_for_formatter(
-    #         "ZeroShotCOTSycophancyFormatter", exp_dir=exp_dir, model=model, tasks=[task]
-    #     ),
-    #     name="Sycophancy",
-    # ),
-    # ]
     bar_plot(
         plot_dots=decrease_plot_dots,
         title=f"How much do biases decrease {model} performance on tasks?<br>With COT completion<br>Biases always on wrong answer<br>Biases: Wrong label in the few shot, More reward for an option, I think the answer is (X)",
@@ -179,6 +162,48 @@ def decrease_in_accuracy(exp_dir: str, model: str):
     #     task=task,
     #     unbiased_formatter=unbiased_formatter,
     # )
+
+
+def decrease_in_accuracy_per_bias(exp_dir: str, model: str):
+    tasks = [
+        "aqua",
+        "arc_easy",
+        "arc_challenge",
+        "truthful_qa",
+        "logiqa",
+        "mmlu",
+        "openbook_qa",
+        "hellaswag",
+        "john_level_5",
+    ]
+    all_read = filter_inconsistent_only(read_whole_exp_dir(exp_dir=exp_dir))
+    for_formatters = [
+        WrongFewShotIgnoreMistakesBiasedFormatter,
+        MoreRewardBiasedFormatter,
+        ZeroShotCOTSycophancyFormatter,
+        StanfordBiasedFormatter,
+    ]
+    for task in tasks:
+        decrease_plot_dots = [
+            plot_dot_diff(
+                intervention=None,
+                all_tasks=all_read,
+                for_formatters=[formatter],
+                unbiased_formatter=ZeroShotCOTUnbiasedFormatter,
+                model=model,
+                include_tasks=[task],
+                name=formatter.name(),
+            )
+            for formatter in for_formatters
+        ]
+
+        bar_plot(
+            plot_dots=decrease_plot_dots,
+            title=f"How much do biases decrease {model} performance on {task}?<br>With COT completion<br>Biases always on wrong answer<br>Biases: Wrong label in the few shot, More reward for an option, I think the answer is (X)",
+            subtitle=f"n={decrease_plot_dots[0].acc.samples}",
+            # save_file_path=f"{model}_decrease_in_accuracy",
+            max_y=1.0,
+        )
 
 
 def plot_matching(
@@ -232,5 +257,25 @@ def plot_matching(
 
 
 if __name__ == "__main__":
-    decrease_in_accuracy(exp_dir="experiments/interventions", model="gpt-4")
-    decrease_in_accuracy(exp_dir="experiments/interventions", model="claude-2")
+    # decrease_in_accuracy(exp_dir="experiments/gpt_35_cot", model="gpt-3.5-turbo")
+    tasks_ran = [
+        # "aqua"
+        "mmlu",
+        "hellaswag",
+        "truthful_qa",
+        # "logiqa",
+    ]
+    # trained with bias in prompt
+    # decrease_in_accuracy(
+    #     exp_dir="experiments/finetune", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV", tasks=tasks_ran
+    # )
+    # trained w/o bias in prompt
+    # decrease_in_accuracy(
+    #     exp_dir="experiments/finetune", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr", tasks=tasks_ran
+    # )
+    # left out WrongFewShotIgnoreMistakesBiasedFormatter
+    # decrease_in_accuracy(
+    #     exp_dir="experiments/finetune", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7s4U75Iu", tasks=tasks_ran
+    # )
+    decrease_in_accuracy_per_bias(exp_dir="experiments/finetune", model="gpt-3.5-turbo")
+    # decrease_in_accuracy(exp_dir="experiments/finetune", model="gpt-3.5-turbo")

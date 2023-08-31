@@ -1,10 +1,12 @@
 import datetime
 import io
+import json
 import time
 from pathlib import Path
 from typing import Any
 
 import openai
+import pandas as pd
 from pydantic import BaseModel
 
 from cot_transparency.data_models.models import (
@@ -83,6 +85,13 @@ def list_finetunes() -> None:
     print(finetunes)
 
 
+def delete_all_files() -> None:
+    files = openai.File.list().data  # type: ignore
+    for file in files:
+        openai.File.delete(file["id"])
+    print("deleted all files")
+
+
 def cancel_finetune(finetune_id: str) -> None:
     print(openai.FineTuningJob.cancel(id=finetune_id))
 
@@ -144,3 +153,27 @@ def example_main():
     ] * 10
     params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
     run_finetune(params=params, samples=messages)
+
+
+def download_result_file(result_file_id: str) -> None:
+    # file-aME95HrZg20XOBTtemqjyeax for 60000, 2000 rows
+    file = openai.File.retrieve(result_file_id)
+    downloaded: bytes = openai.File.download(result_file_id)
+    # use pandas
+    pd.read_csv(io.BytesIO(downloaded))
+    print(file["filename"])
+    print(file["bytes"])
+    print(file["purpose"])
+
+
+def download_training_file(training_file_id: str) -> None:
+    openai.File.retrieve(training_file_id)
+    downloaded: bytes = openai.File.download(training_file_id)
+    # these are jsonl files, so its a list of dicts
+    output = [json.loads(line) for line in downloaded.decode().split("\n") if line]
+    print(len(output))
+
+
+if __name__ == "__main__":
+    list_finetunes()
+    # download_training_file("file-xW8EUgwSv2yhct4BqckphK83")
