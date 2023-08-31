@@ -1,3 +1,4 @@
+import time
 from functools import lru_cache
 from typing import Sequence
 
@@ -48,9 +49,10 @@ def cached_search(
     tree_cache_key: TreeCacheKey,
     tree_cache: TreeCache,
 ) -> Slist[TaskOutput]:
+    time_start = time.time()
     items_list: dict[TreeCacheKey, Sequence[TaskOutput]] = tree_cache.items_list
-    items = Slist(items_list[tree_cache_key])
-    return (
+    items = Slist(items_list.get(tree_cache_key, []))
+    result = (
         items.filter(lambda task: completion_search in task.inference_output.raw_response)
         .filter(
             lambda task: task.bias_on_wrong_answer == only_bias_on_wrong_answer if only_bias_on_wrong_answer else True
@@ -58,6 +60,9 @@ def cached_search(
         .filter(lambda task: task.task_spec.task_hash == task_hash if task_hash else True)
         .filter(lambda task: task.task_spec.inference_config.model == tree_cache_key.model)
     )
+    time_end = time.time()
+    print(f"Search took {time_end - time_start} seconds")
+    return result
 
 
 class DropDowns(BaseModel):

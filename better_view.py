@@ -1,3 +1,5 @@
+import time
+
 import streamlit as st
 from slist import Slist
 from streamlit.delta_generator import DeltaGenerator
@@ -68,6 +70,7 @@ def __hash__(self):
 Slist.__hash__ = __hash__
 
 # Ask the user to enter experiment_dir
+time_now = time.time()
 exp_dir = st.text_input("Enter experiment_dir", "experiments/math_scale")
 everything: Slist[TaskOutput] = cached_read_whole_exp_dir(exp_dir=exp_dir)
 tree: TreeCache = make_tree(everything)
@@ -78,6 +81,8 @@ drop_downs: DropDowns = get_drop_downs(everything)
 task_selection: str = st.selectbox("Select task", drop_downs.tasks)
 intervention_drop_down_selection: str | None = st.selectbox("Select intervention", drop_downs.interventions)
 bias_on_wrong_answer: bool = st.checkbox("Show only bias on wrong answer", value=True)
+time_taken = time.time() - time_now
+print(f"Time taken: {time_taken} seconds")
 
 # Create a button which will increment the counter
 increment = st.button("Next")
@@ -124,6 +129,7 @@ with left:
     i = 0
     formatter_drop_down_selection: str = st.selectbox("Select formatter", drop_downs.formatters, key=f"formatter_{i}")
     model_drop_down_selection: str = st.selectbox("Select model", drop_downs.models, key=f"model_{i}")
+    time_now = time.time()
     filtered = cached_search(
         completion_search=completion_search,
         tree_cache_key=TreeCacheKey(
@@ -137,12 +143,15 @@ with left:
         task_hash=None,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
-    show_item_idx = st.session_state.count % len(filtered)
-    first = filtered[show_item_idx]
-    first_task_hash: str | None = filtered[show_item_idx].task_spec.task_hash
-    if first:
-        display_task(first)
+    show_item_idx = st.session_state.count % len(filtered) if len(filtered) > 0 else 0
+    first = filtered[show_item_idx] if len(filtered) > 0 else None
+    first_task_hash: str | None = filtered[show_item_idx].task_spec.task_hash if len(filtered) > 0 else None
+    time_taken = time.time() - time_now
+    # if first:
+    #     display_task(first)
+    print(f"Time taken for left: {time_taken} seconds")
 with right:
+    time_now = time.time()
     i = 1
     formatter_drop_down_selection: str = st.selectbox("Select formatter", drop_downs.formatters, key=f"formatter_{i}")
     model_drop_down_selection: str = st.selectbox("Select model", drop_downs.models, key=f"model_{i}")
@@ -160,7 +169,9 @@ with right:
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     first: TaskOutput | None = filtered.first_option
-    if first:
-        display_task(first)
-    else:
-        st.write("No tasks matching")
+    # if first:
+    #     display_task(first)
+    # else:
+    #     st.write("No tasks matching")
+    time_taken = time.time() - time_now
+    print(f"Time taken for right: {time_taken} seconds")
