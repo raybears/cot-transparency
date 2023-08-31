@@ -36,7 +36,7 @@ class TreeCache(BaseModel):
     # for the normal first view
     items_list: dict[TreeCacheKey, Sequence[TaskOutput]]
 
-    def __hash__(self):
+    def __hash__(self):  # type: ignore
         # this is a hack to make it hashable
         return id(self)
 
@@ -45,13 +45,14 @@ class TreeCache(BaseModel):
 def cached_search(
     completion_search: str,
     only_bias_on_wrong_answer: bool,
+    only_results_the_model_got_wrong: bool,
     task_hash: str | None,
     tree_cache_key: TreeCacheKey,
     tree_cache: TreeCache,
 ) -> Slist[TaskOutput]:
     time_start = time.time()
     items_list: dict[TreeCacheKey, Sequence[TaskOutput]] = tree_cache.items_list
-    items = Slist(items_list.get(tree_cache_key, []))
+    items: Slist[TaskOutput] = Slist(items_list.get(tree_cache_key, []))
     result = (
         items.filter(lambda task: completion_search in task.inference_output.raw_response)
         .filter(
@@ -59,6 +60,8 @@ def cached_search(
         )
         .filter(lambda task: task.task_spec.task_hash == task_hash if task_hash else True)
         .filter(lambda task: task.task_spec.inference_config.model == tree_cache_key.model)
+        # only_results_the_model_got_wrong
+        .filter(lambda task: task.is_correct is False if only_results_the_model_got_wrong else True)
     )
     time_end = time.time()
     print(f"Search took {time_end - time_start} seconds")
@@ -83,7 +86,7 @@ def get_drop_downs(items: Slist[TaskOutput]) -> DropDowns:
 
 @lru_cache()
 def make_tree(everything: Slist[TaskOutput]) -> TreeCache:
-    grouped: Slist[tuple[TreeCacheKey, Sequence[TaskOutput]]] = everything.group_by(
+    grouped: Slist[tuple[TreeCacheKey, Sequence[TaskOutput]]] = everything.group_by(  # type: ignore
         lambda task: TreeCacheKey(
             task=task.task_spec.task_name,
             model=task.task_spec.inference_config.model,
@@ -91,8 +94,4 @@ def make_tree(everything: Slist[TaskOutput]) -> TreeCache:
             intervention=task.task_spec.intervention_name,
         )
     )
-    # grouped_more: Slist[tuple[TreeCacheKey, dict[TaskHash, TaskOutput]]] = grouped.map_2(
-    #     lambda key, tasks: (key, tasks.group_by(lambda task: task.task_spec.task_hash).to_dict())
-    # )
-    # to_dict = grouped_more.to_dict()
     return TreeCache(items_list=grouped.to_dict())
