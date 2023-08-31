@@ -103,5 +103,7 @@ if __name__ == "__main__":
             CrossBiasedFormatter,
         ]
     )
-    fine_tune_with_biased_cots(72000, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter, use_formatters=use_formatters)
+    fine_tune_with_biased_cots(
+        72000, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter, use_formatters=use_formatters
+    )
     # fine_tune_with_biased_cots(18000)

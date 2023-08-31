@@ -18,7 +18,7 @@ from scripts.intervention_investigation import (
     bar_plot,
     ConsistentOnly,
     TaskOutputFilter,
-    NoFilter, InconsistentOnly,
+    InconsistentOnly,
 )
 from scripts.matching_user_answer import matching_user_answer_plot_dots
 from scripts.multi_accuracy import PlotDots
@@ -120,19 +120,23 @@ if __name__ == "__main__":
     all_read = read_whole_exp_dir(exp_dir="experiments/finetune")
     enforce_all_same = False
     biased_task_hashes = (
-        all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
-        .filter(
-            # intervention is None
-            lambda task: task.task_spec.intervention_name
-            is None
-        )
-        .filter(
-            # model is the biased model
-            lambda task: task.task_spec.inference_config.model
-            == biased_model_name
-        )
-        .map(lambda task: task.task_spec.task_hash)
-    ).to_set() if enforce_all_same else set()
+        (
+            all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
+            .filter(
+                # intervention is None
+                lambda task: task.task_spec.intervention_name
+                is None
+            )
+            .filter(
+                # model is the biased model
+                lambda task: task.task_spec.inference_config.model
+                == biased_model_name
+            )
+            .map(lambda task: task.task_spec.task_hash)
+        ).to_set()
+        if enforce_all_same
+        else set()
+    )
 
     print(f"Number of biased task hashes: {len(biased_task_hashes)}")
     bias_name = bias_name_map[selected_bias]

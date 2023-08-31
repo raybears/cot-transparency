@@ -86,7 +86,7 @@ def list_finetunes() -> None:
 
 
 def delete_all_files() -> None:
-    files = openai.File.list().data
+    files = openai.File.list().data  # type: ignore
     for file in files:
         openai.File.delete(file["id"])
     print("deleted all files")
