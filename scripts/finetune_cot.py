@@ -32,6 +32,7 @@ from cot_transparency.openai_utils.finetune import (
 def task_output_to_biased_question_with_correct_answer(
     task: TaskOutput,
     exclude_formattter: Type[StageOneFormatter] | None,
+    idx: int,
     use_formatters: Sequence[Type[StageOneFormatter]] = Slist(),
 ) -> FinetuneSample:
     try:
@@ -39,7 +40,7 @@ def task_output_to_biased_question_with_correct_answer(
     except ValidationError:
         read = task.task_spec.read_data_example_or_raise(ArcExample)
     formatter_to_use = get_formatter_for_few_shot_cot(
-        exclude_formattter=exclude_formattter, seed=read.hash(), use_formatters=use_formatters
+        exclude_formattter=exclude_formattter, seed=read.hash() + str(idx), use_formatters=use_formatters
     )
     prompt_messages = formatter_to_use.format_example(read)
     joined = join_assistant_preferred_to_completion(
@@ -77,13 +78,15 @@ def fine_tune_with_biased_cots(
     exclude_formattter: Type[StageOneFormatter] | None,
     use_formatters: Sequence[Type[StageOneFormatter]],
 ):
-    cots: Slist[TaskOutput] = distinct_at_front_shuffle(items=get_training_cots_gpt_35(), limit=n)
+    cots: Slist[TaskOutput] = distinct_at_front_shuffle(
+        items=get_training_cots_gpt_35(), limit=n
+    ).repeat_until_size_or_raise(n)
     print(f"Number of cots: {len(cots)}")
     messages = [
         task_output_to_biased_question_with_correct_answer(
-            task, exclude_formattter=exclude_formattter, use_formatters=use_formatters
+            task, exclude_formattter=exclude_formattter, use_formatters=use_formatters, idx=idx
         )
-        for task in cots
+        for idx, task in enumerate(cots)
     ]
     params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
     _id = run_finetune(params=params, samples=messages)
@@ -100,7 +103,5 @@ if __name__ == "__main__":
             CrossBiasedFormatter,
         ]
     )
-    fine_tune_with_biased_cots(
-        18000, exclude_formattter=StanfordBiasedFormatter, use_formatters=use_formatters
-    )
+    fine_tune_with_biased_cots(72000, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter, use_formatters=use_formatters)
     # fine_tune_with_biased_cots(18000)
