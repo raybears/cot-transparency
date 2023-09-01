@@ -7,7 +7,6 @@ from typing import Type, Union, Optional
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
-from cot_transparency.data_models.data import task_name_to_data_example
 from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
@@ -46,19 +45,20 @@ def __call_or_raise(
         stage_one_task_spec = task.stage_one_output.task_spec
     else:
         stage_one_task_spec = task
-    DataExample = task_name_to_data_example(stage_one_task_spec.task_name)
-    data_example = stage_one_task_spec.read_data_example_or_raise(DataExample)
-    options = data_example.get_options(include_none_of_the_above=True)
 
-    parsed_response: str | None = formatter.parse_answer(raw_response, model=config.model, options=options)
+    parsed_response: str | None = formatter.parse_answer(
+        raw_response,
+        model=config.model,
+        question=stage_one_task_spec.get_data_example_obj(),
+    )
     if parsed_response is not None:
         return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
 
     messages = task.messages
     maybe_second_last = messages[-2] if len(messages) >= 2 else None
     msg = (
-        f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer:\n\n'{raw_response}\n\n'"
-        f"last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
+        f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer:"
+        f"\n\n'{raw_response}\n\n'last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
     )
     logger.warning(msg)
 
@@ -111,7 +111,7 @@ def task_function(
         )
         if raise_after_retries
         else call_model_and_catch(
-            messages=task,
+            task=task,
             config=task.inference_config,
             formatter=formatter,
             retries=10,

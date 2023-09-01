@@ -1,11 +1,11 @@
 from functools import partial
+import random
 from typing import Optional, Type
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
-from cot_transparency.data_models.example_base import DataExampleBase, DataFormatSpec, combine_indicator_with_separator
+from cot_transparency.data_models.example_base import DataExampleBase, combine_indicator_with_separator
 from cot_transparency.data_models.models import ChatMessage, MessageRole, TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.core.unbiased import PromptSensitivtyFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.model_apis import Prompt
@@ -13,29 +13,30 @@ from cot_transparency.model_apis import Prompt
 
 def format_few_shot_for_prompt_sen(
     task: TaskOutput,
-    Formatter: Type[PromptSensitivtyFormatter],
+    Formatter: Type[StageOneFormatter],
     model: Optional[str] = None,
     randomize_question_format: bool = False,
-    seed: int = 42,
+    seed: str = "42",
 ) -> Prompt:
     read: MilesBBHRawData = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    resp = task.model_output.parsed_response
+    resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
 
     if randomize_question_format:
-        specific_data_format = DataFormatSpec.init_random(seed + resp)
+        d = StageOneFormatter.all_formatters()
+        rng = random.Random(seed + resp)
+        Formatter = rng.choice(list(d.values()))
+
+    specific_data_format = Formatter.get_data_format_spec()
+    if specific_data_format:
         read = read.to_variant(specific_data_format)
-    else:
-        specific_data_format = Formatter.get_data_format_spec()
-        if specific_data_format:
-            read = read.to_variant(specific_data_format)
 
     ground_truth = read.ground_truth_indicator
     combined = combine_indicator_with_separator(ground_truth, read.data_format.indicator_separator)
     opt_string = read._get_options()[read.ground_truth_idx()]
     ans = f"The best answer is: {combined}{opt_string}"
 
-    q = Formatter.format_example_to_data_format(read, model, specific_data_format)
+    q = Formatter.format_example(read, model)
     a = ChatMessage(role=MessageRole.assistant, content=ans)
     messages = q + [a]
     return Prompt(messages=messages)
@@ -43,34 +44,34 @@ def format_few_shot_for_prompt_sen(
 
 def format_few_shot_for_prompt_sen_cot(
     task: TaskOutput,
-    Formatter: Type[PromptSensitivtyFormatter],
+    Formatter: Type[StageOneFormatter],
     model: Optional[str] = None,
     randomize_question_format: bool = False,
-    seed: int = 42,
+    seed: str = "42",
 ) -> Prompt:
     read: MilesBBHRawData = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    resp = task.model_output.parsed_response
+    resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
 
     if randomize_question_format:
-        specific_data_format = DataFormatSpec.init_random(seed + resp)
+        d = StageOneFormatter.all_formatters()
+        rng = random.Random(seed + resp)
+        Formatter = rng.choice(list(d.values()))
+
+    specific_data_format = Formatter.get_data_format_spec()
+    if specific_data_format:
         read = read.to_variant(specific_data_format)
-    else:
-        specific_data_format = Formatter.get_data_format_spec()
-        if specific_data_format:
-            read = read.to_variant(specific_data_format)
 
     ground_truth = read.ground_truth_indicator
     combined = combine_indicator_with_separator(ground_truth, read.data_format.indicator_separator)
     opt_string = read._get_options()[read.ground_truth_idx()]
     ans = f"Therefore, the best answer is: {combined}{opt_string}"
 
-    cot = task.model_output.raw_response
+    cot = task.inference_output.raw_response
     cot_pre = cot.split("Therefore, the best")[0]  # remove the part as we want to make sure the answer is in our format
     cot = cot_pre + ans
-    # want to remove
 
-    q = Formatter.format_example_to_data_format(read, model, specific_data_format)
+    q = Formatter.format_example(read, model)
     a = ChatMessage(role=MessageRole.assistant, content=cot)
     messages = q + [a]
     return Prompt(messages=messages)

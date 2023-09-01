@@ -237,7 +237,7 @@ class DataExampleBase(BaseModel, ABC):
             case QuestionPrefix.NONE:
                 pass
 
-        choices = self._get_options(include_none_of_the_above=include_none_of_the_above)
+        choices = self.get_options(include_none_of_the_above=include_none_of_the_above)
         choices_str = self._get_options_with_indicator(choices)
 
         return f"{question}{self.data_format.join_variant.value}{choices_str}"

@@ -1,12 +1,3 @@
-from cot_transparency.data_models.models import MessageRole
-from cot_transparency.formatters.core.unbiased import PromptSensitivtyFormatter
-from cot_transparency.formatters.interventions.vanilla import VanillaFewShotLabelOnly20
-from cot_transparency.formatters import name_to_formatter
-import pytest
-from cot_transparency.model_apis import Prompt
-
-from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
-
 # Parametrize over ZeroShotPromptSenFormatter_NUMBERS_FULL_ANS_CHOICES
 
 
@@ -21,7 +12,7 @@ from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPL
 #     question = EMPIRE_OF_PANTS_EXAMPLE
 
 #     formatter = name_to_formatter(formatter_name)
-#     if issubclass(formatter, PromptSensitivtyFormatter):
+#     if issubclass(formatter, PromptSenBaseFormatter):
 #         data_format_spec = formatter.get_data_format_spec()
 #     else:
 #         raise ValueError(f"Formatter {formatter_name} is not a PromptSensitivityFormatter")

@@ -12,7 +12,9 @@ class PromptFormatter(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_answer(response: str, options: list[str], model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         raise NotImplementedError
 
     @classmethod
@@ -32,6 +34,11 @@ class PromptFormatter(ABC):
 
 
 class StageOneFormatter(PromptFormatter, ABC):
+    @classmethod
+    def get_data_format_spec(cls) -> DataFormatSpec:
+        # return the default one
+        return DataFormatSpec()
+
     @staticmethod
     @abstractmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -40,7 +47,3 @@ class StageOneFormatter(PromptFormatter, ABC):
     @classmethod
     def all_formatters(cls) -> dict[str, Type[Self]]:
         return super().all_formatters()  # type: ignore
-
-    @classmethod
-    def get_data_format_spec(cls) -> Optional[DataFormatSpec]:
-        return None

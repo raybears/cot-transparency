@@ -111,7 +111,7 @@ def format_unbiased_question_non_cot_add_(
     task: TaskOutput, Formatter: Type[StageOneFormatter] = ZeroShotUnbiasedFormatter
 ) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    resp = task.model_output.parsed_response
+    resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
     messages: list[ChatMessage] = add_to_final_assistant(
         Formatter.format_example(read),

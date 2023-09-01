@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Optional, Type
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
@@ -31,7 +31,9 @@ class PairedConsistency6(Intervention):
     n_samples: int = 3
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots().sample(cls.n_samples, seed=question.hash()).map(format_pair_cot).sum_or_raise()
@@ -58,7 +60,9 @@ class RepeatedConsistency10(Intervention):
     n_samples: int = 5
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         cots = get_correct_cots().sample(cls.n_samples, seed=question.hash())
         duplicated = cots + cots
@@ -76,7 +80,9 @@ class RepeatedConsistency12(RepeatedConsistency10):
 
 class BiasedConsistency10(Intervention):
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             # Not a pair so, sample 10
@@ -96,7 +102,9 @@ class BigBrainBiasedConsistency10(Intervention):
     n_samples: int = 10
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         # TODO: filter out to not sample the same biased formatter
         prompt: Prompt = (
@@ -121,7 +129,9 @@ class BigBrainBiasedConsistencySeparate10(BigBrainBiasedConsistency10):
     """Separate the few shots into messages rather than in the single message"""
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             # Not a pair so, sample 10
@@ -139,7 +149,9 @@ class NaiveFewShot1(Intervention):
     n_samples: int = 1
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots()
@@ -193,7 +205,9 @@ class ClaudeFewShot1(Intervention):
     n_samples: int = 1
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots_claude_2()
@@ -225,7 +239,9 @@ class ClaudeSeparate10(Intervention):
     n_samples: int = 10
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots_claude_2()
@@ -253,7 +269,9 @@ class NaiveFewShotSeparate10(Intervention):
     n_samples: int = 10
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots()
@@ -273,7 +291,9 @@ class NaiveFewShotLabelOnly1(Intervention):
     n_samples: int = 1
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots()
@@ -316,7 +336,9 @@ class SycophancyConsistencyLabelOnly10(Intervention):
     n_samples: int = 10
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots()
@@ -339,7 +361,9 @@ class BiasedConsistencyLabelOnly10(Intervention):
     n_samples: int = 10
 
     @classmethod
-    def intervene(cls, question: DataExampleBase, formatter: Type[StageOneFormatter]) -> list[ChatMessage]:
+    def intervene(
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
             get_correct_cots()

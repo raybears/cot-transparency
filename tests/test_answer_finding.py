@@ -101,7 +101,11 @@ def test_extract_answer_non_cot(response: str, input_variant: ChoiceVariant, exp
             DataFormatSpec(choice_variant=ChoiceVariant.NUMBERS, indicator_separator=IndicatorSeparator.DOT),
             "E",
         ),
-        ("The best answer is: $\\boxed{\\textbf{(5)}\ 945}$.", DataFormatSpec(choice_variant=ChoiceVariant.NUMBERS), "E"),
+        (
+            "The best answer is: $\\boxed{\\textbf{(5)} 945}$.",
+            DataFormatSpec(choice_variant=ChoiceVariant.NUMBERS),
+            "E",
+        ),
         ("Therefore, the best answer is: $\\boxed{\\text{(B) } 905}$.", DataFormatSpec(), "B"),
     ],
 )

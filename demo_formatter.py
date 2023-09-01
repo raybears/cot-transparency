@@ -1,13 +1,15 @@
-from typing import Optional
+from typing import Optional, Type
 import fire
 from cot_transparency.formatters import name_to_formatter
+from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.model_apis import Prompt
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 from stage_one import get_valid_stage1_interventions
 
 
 def main(formatter_name: str, intervention_name: Optional[str] = None, model="gpt-4"):
-    formatter = name_to_formatter(formatter_name)
+    formatter: Type[StageOneFormatter]
+    formatter = name_to_formatter(formatter_name)  # type: ignore
 
     if intervention_name:
         Intervention = get_valid_stage1_interventions([intervention_name])[0]

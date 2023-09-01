@@ -34,7 +34,7 @@ def prompt_metrics(
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
         inconsistent_only=inconsistent_only,
-        model_filter=model_filter,
+        models=[model_filter] if model_filter else [],
         formatters=formatters,
         aggregate_over_tasks=aggregate_over_tasks,
         df=df,
@@ -89,7 +89,15 @@ def prompt_metrics(
     n_formatter = df_same_ans.groupby(["intervention_name"])["formatter_name"].nunique().mean()
 
     # how do we order the hues
-    hue_order = ["None No COT", "10 Few Shot No COT", "20 Few Shot No COT", "10 Few Shot No COT (Mixed Format)", "None COT", "10 Few Shot COT", "10 Few Shot COT (Mixed Format)"]
+    hue_order = [
+        "None No COT",
+        "10 Few Shot No COT",
+        "20 Few Shot No COT",
+        "10 Few Shot No COT (Mixed Format)",
+        "None COT",
+        "10 Few Shot COT",
+        "10 Few Shot COT (Mixed Format)",
+    ]
 
     g = sns.catplot(
         data=df_same_ans,
