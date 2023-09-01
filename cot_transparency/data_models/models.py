@@ -8,7 +8,6 @@ from pydantic import BaseModel, conlist, Field, AliasChoices, ConfigDict
 
 from typing import Optional, Union, Any, Type
 
-
 from cot_transparency.util import deterministic_hash
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer, GenericDataExample
 

@@ -146,10 +146,12 @@ if __name__ == "__main__":
         finetuned_models=[
             "gpt-3.5-turbo",
             bias_to_leave_out_model_map[selected_bias],
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t5OEDT9",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8"
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t8IvMic"
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t5OEDT9",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t5OEDT9",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7skb05DZ",
@@ -159,15 +161,16 @@ if __name__ == "__main__":
         unbiased_formatter=ZeroShotCOTUnbiasedFormatter,
         all_read=all_read,
         accuracy_plot_name=f"Accuracy on questions {bias_name}<br>Train Dataset: BBH, aqua, arc, Test Dataset: {dataset_str}<br>{filterer.name()}",
-        percent_matching_plot_name=f"Percentage of times the model chooses the answer {bias_name}?<br>Train Dataset: BBH, Test Dataset: {dataset_str}<br>{filterer.name()}",
+        percent_matching_plot_name=f"Percentage of times the model chooses the answer {bias_name}?<br>Train Dataset: BBH, aqua, arc, Test Dataset: {dataset_str}<br>{filterer.name()}",
         filterer=filterer,
         tasks=tasks,
         model_name_override={
             "gpt-3.5-turbo": "gpt-3.5-turbo ",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr": "Finetuned 6000 COTs with unbiased questions",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8": "Finetuned 6000 COTs with biased questions,<br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t8IvMic": "Finetuned 18000 COTs with unbiased questions",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t5OEDT9": "Finetuned 18000 COTs with biased questions,<br> leaving out bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg": "Finetuned 72000 COTS with biased questions,<br> leaving out bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t8IvMic": "Finetuned 18000 COTs with unbiased questions",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV": "Finetuned 6000 COTs with biased questions,<br> including ALL biases",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7skb05DZ": "Finetuned 6000 COTs with biased questions,<br> leaving out bias of I think the answer is (X)",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7smTRQCv": "Finetuned 6000 COTs with biased questions,<br> leaving out bias of Stanford Professor opinion",

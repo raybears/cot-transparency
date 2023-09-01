@@ -77,6 +77,8 @@ def fine_tune_with_biased_cots(
     n: int,
     exclude_formattter: Type[StageOneFormatter] | None,
     use_formatters: Sequence[Type[StageOneFormatter]],
+    n_epochs: int,
+    model: str = "gpt-3.5-turbo",
 ):
     cots: Slist[TaskOutput] = distinct_at_front_shuffle(
         items=get_training_cots_gpt_35(), limit=n
@@ -88,7 +90,7 @@ def fine_tune_with_biased_cots(
         )
         for idx, task in enumerate(cots)
     ]
-    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     _id = run_finetune(params=params, samples=messages)
 
 
@@ -104,6 +106,10 @@ if __name__ == "__main__":
         ]
     )
     fine_tune_with_biased_cots(
-        72000, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter, use_formatters=use_formatters
+        72000,
+        exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter,
+        use_formatters=use_formatters,
+        n_epochs=1,
+        model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
     )
     # fine_tune_with_biased_cots(18000)
