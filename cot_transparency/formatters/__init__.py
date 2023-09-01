@@ -76,6 +76,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantBiasedFormatter,
     DeceptiveAssistantBiasedNoCOTFormatter,
+    DeceptiveAssistantTargetedFormatter,
 )
 from cot_transparency.formatters.more_biases.more_reward import (
     MoreRewardBiasedFormatter,
@@ -116,6 +117,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         CheckmarkBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         MoreRewardBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        DeceptiveAssistantTargetedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         StanfordBiasedLabelFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         ModelWrittenBiasedFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         ModelWrittenBiasedCOTFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
