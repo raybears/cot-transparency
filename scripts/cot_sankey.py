@@ -149,12 +149,12 @@ def main(exp_dir: str, filter_on_same_start: bool = True, inconsistent_only: boo
     df["task_unbiased_hash"] = df.apply(lambda x: deterministic_hash(x["task_hash"] + x["unbiased_formatter"]), axis=1)
     df["task_along_cot_hash"] = df.apply(lambda x: deterministic_hash(x["task_hash"] + str(x["bias_type"])), axis=1)
 
-    unbiased_responses = df[df.formatter_name == df.unbiased_formatter][["task_unbiased_hash", "parsed_response"]]
-    unbiased_responses = unbiased_responses.rename(columns={"parsed_response": "unbiased_response"})
+    unbiased_responses = df[df.formatter_name == df.unbiased_formatter][["task_unbiased_hash", "parsed_response"]]  # type: ignore
+    unbiased_responses = unbiased_responses.rename(columns={"parsed_response": "unbiased_response"})  # type: ignore
     unbiased_responses = unbiased_responses.drop_duplicates()
 
-    biased_responses = df[df.formatter_name != df.unbiased_formatter][["task_unbiased_hash", "parsed_response"]]
-    biased_responses = biased_responses.rename(columns={"parsed_response": "biased_response"})
+    biased_responses = df[df.formatter_name != df.unbiased_formatter][["task_unbiased_hash", "parsed_response"]]  # type: ignore
+    biased_responses = biased_responses.rename(columns={"parsed_response": "biased_response"})  # type: ignore
     biased_responses = biased_responses.drop_duplicates()
 
     df = pd.merge(df, unbiased_responses, on="task_unbiased_hash", how="left")
@@ -173,14 +173,14 @@ def main(exp_dir: str, filter_on_same_start: bool = True, inconsistent_only: boo
     if filter_on_same_start:
         df_same_answer = df[df.same_answer]  # This is all examples where the biased and unbiased responses are the same
         # we just want rows where the non cot response
-        df_cot_hashes_same_answer = df_same_answer[df_same_answer.cot_type == "No-COT"].task_along_cot_hash.unique()
+        df_cot_hashes_same_answer = df_same_answer[df_same_answer.cot_type == "No-COT"].task_along_cot_hash.unique()  # type: ignore
         df = df[df.task_along_cot_hash.isin(df_cot_hashes_same_answer)]
         assert len(df) == 2 * n_same_answer_no_cot
 
     df["response_category"] = df.apply(assign_response_category, axis=1)
 
-    nodes_u, counts_u = create_sankey_data(df[df.bias_type.isnull()])
-    nodes_b, counts_b = create_sankey_data(df[df.bias_type.notnull()])
+    nodes_u, counts_u = create_sankey_data(df[df.bias_type.isnull()])  # type: ignore
+    nodes_b, counts_b = create_sankey_data(df[df.bias_type.notnull()])  # type: ignore
 
     create_sankey_diagram(nodes_b, counts_b, f"Biased - {model}").show()
     create_sankey_diagram(nodes_u, counts_u, f"Unbiased - {model}").show()
