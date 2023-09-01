@@ -143,8 +143,8 @@ if __name__ == "__main__":
     debiased_formatter = WrongFewShotIgnoreMistakesBiasedFormatter.name()
     debiased_results: Slist[TaskOutput] = jsons_tasks.filter(
         lambda x: x.task_spec.formatter_name == debiased_formatter
-                  and x.task_spec.intervention_name is None
-                  and x.task_spec.inference_config.model == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg"
+        and x.task_spec.intervention_name is None
+        and x.task_spec.inference_config.model == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg"
     ).filter(lambda x: x.is_correct)
     unbiased_hash: dict[str, TaskOutput] = debiased_results.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
     joined: Slist[tuple[TaskOutput, TaskOutput]] = results.map(
