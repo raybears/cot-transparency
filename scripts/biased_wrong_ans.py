@@ -7,16 +7,14 @@ from slist import Slist
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
-from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.extraction import BREAK_WORDS
-from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
-from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
 
 from cot_transparency.json_utils.read_write import write_csv_file_from_basemodel
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.model_apis import Prompt
+from stage_one import COT_TESTING_TASKS
+
 
 # ruff: noqa: E501
 
@@ -26,8 +24,8 @@ class FlatSimple(BaseModel):
     task: str
     biased_formatter: str
     biased_context_response: str
-    unbiased_context_response: str
-    unbiased_prompt: str
+    debiased_context_response: str
+    debiased_prompt: str
     biased_context_parsed_response: str | None
     ground_truth: str
     biased_on_ans: str
@@ -80,8 +78,8 @@ def task_output_to_flat(biased_task: TaskOutput, unbiased_task: TaskOutput) -> F
         biased_formatter=biased_task.task_spec.formatter_name,
         biased_context_parsed_response=biased_task.first_parsed_response,
         task=biased_task.task_spec.task_name,
-        unbiased_context_response=unbiased_task.first_raw_response,
-        unbiased_prompt=Prompt(messages=unbiased_task.task_spec.messages).convert_to_completion_str(),
+        debiased_context_response=unbiased_task.first_raw_response,
+        debiased_prompt=Prompt(messages=unbiased_task.task_spec.messages).convert_to_completion_str(),
     )
 
 
@@ -116,8 +114,8 @@ if __name__ == "__main__":
     5. Run the following to get the overall accuracy
     python analysis.py accuracy experiments/biased_wrong
     """
-    jsons = ExpLoader.stage_one("experiments/interventions")
-    model = "gpt-4"
+    jsons = ExpLoader.stage_one("experiments/finetune")
+    model = "gpt-3.5-turbo"
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
 
@@ -125,22 +123,12 @@ if __name__ == "__main__":
     selected_formatters = Slist(
         [
             WrongFewShotIgnoreMistakesBiasedFormatter,
-            MoreRewardBiasedFormatter,
-            ZeroShotCOTSycophancyFormatter,
-            StanfordBiasedFormatter,
+            # MoreRewardBiasedFormatter,
+            # ZeroShotCOTSycophancyFormatter,
+            # StanfordBiasedFormatter,
         ]
     ).map(lambda x: x.name())
-    tasks = [
-        "aqua",
-        "arc_easy",
-        "arc_challenge",
-        "truthful_qa",
-        "logiqa",
-        "mmlu",
-        "openbook_qa",
-        "hellaswag",
-        "john_level_5",
-    ]
+    tasks = COT_TESTING_TASKS
     intervention = None
     print(f"Number of jsons: {len(jsons_tasks)}")
 
@@ -152,13 +140,13 @@ if __name__ == "__main__":
     )
     results: Slist[TaskOutput] = filter_for_biased_wrong(filtered_for_formatters)
 
-    unbiased_formatter = ZeroShotCOTUnbiasedFormatter.name()
-    unbiased_results: Slist[TaskOutput] = jsons_tasks.filter(
-        lambda x: x.task_spec.formatter_name == unbiased_formatter
-        and x.task_spec.intervention_name is None
-        and x.task_spec.inference_config.model == model
+    debiased_formatter = WrongFewShotIgnoreMistakesBiasedFormatter.name()
+    debiased_results: Slist[TaskOutput] = jsons_tasks.filter(
+        lambda x: x.task_spec.formatter_name == debiased_formatter
+                  and x.task_spec.intervention_name is None
+                  and x.task_spec.inference_config.model == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg"
     ).filter(lambda x: x.is_correct)
-    unbiased_hash: dict[str, TaskOutput] = unbiased_results.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
+    unbiased_hash: dict[str, TaskOutput] = debiased_results.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
     joined: Slist[tuple[TaskOutput, TaskOutput]] = results.map(
         lambda x: (x, unbiased_hash[x.task_spec.task_hash]) if x.task_spec.task_hash in unbiased_hash else None
     ).flatten_option()
