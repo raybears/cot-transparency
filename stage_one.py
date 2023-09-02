@@ -6,6 +6,7 @@ import fnmatch
 import fire
 from slist import Slist
 
+from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.john_math import (
     get_john_math_level_3,
     get_john_math_level_4,
@@ -36,21 +37,6 @@ from cot_transparency.formatters import (
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
-BBH_TASK_LIST = [
-    "sports_understanding",
-    "snarks",
-    "disambiguation_qa",
-    "movie_recommendation",
-    "causal_judgment",
-    "date_understanding",
-    "tracking_shuffled_objects_three_objects",
-    "temporal_sequences",
-    "ruin_names",
-    "web_of_lies",
-    "navigate",
-    "logical_deduction_five_objects",
-    "hyperbaton",
-]
 COT_TRAINING_TASKS = BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
 COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
 TASK_LIST = {

@@ -81,12 +81,10 @@ def prompt_metrics(
         subset=["task_hash", group1, "formatter_name", group3], inplace=False
     )  # type: ignore
     # drop none
-    df_same_ans = df_same_ans[df_same_ans["parsed_response"] != "None"]
+    df_same_ans = df_same_ans[df_same_ans["parsed_response"] != "None"]  # type: ignore
 
     n_questions = df_same_ans.groupby(["intervention_name"])["task_hash"].nunique().mean()
-    df_none = df[df.intervention_name == "None"]
-    n_formatter = len(df_none["formatter_name"].unique())
-    n_formatter = df_same_ans.groupby(["intervention_name"])["formatter_name"].nunique().mean()
+    n_formatter = df_same_ans.groupby(["intervention_name"])["formatter_name"].nunique().mean()  # type: ignore
 
     # how do we order the hues
     hue_order = [
