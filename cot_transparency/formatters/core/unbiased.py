@@ -10,7 +10,11 @@ from cot_transparency.data_models.example_base import (
 )
 from cot_transparency.data_models.models import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.extraction import extract_answer, extract_answer_for_format, extract_answer_non_cot
+from cot_transparency.formatters.extraction import (
+    extract_answer,
+    extract_answer_looking_for_option,
+    extract_answer_non_cot,
+)
 from cot_transparency.formatters.instructions import (
     COT_ASSISTANT_PROMPT,
     NON_COT_ASSISTANT_PROMPT,
@@ -177,7 +181,7 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[St
         ) -> Optional[str]:
             assert question is not None
             options = question._get_options()
-            return extract_answer_for_format(
+            return extract_answer_looking_for_option(
                 response, dump_failed=False, input_format=data_format_spec, options=options
             )
 
@@ -220,7 +224,7 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Stage
         ) -> Optional[str]:
             assert question is not None
             options = question._get_options()
-            return extract_answer_for_format(
+            return extract_answer_looking_for_option(
                 response, dump_failed=False, input_format=data_format_spec, options=options
             )
 

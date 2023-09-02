@@ -31,6 +31,8 @@ from cot_transparency.formatters.verbalize.prompts import (
     checkmark_biasing,
     cross_biasing,
     i_think_answer_is_x_biasing,
+    get_cross_biasing_random,
+    get_checkmark_biasing_random,
 )
 
 
@@ -196,6 +198,20 @@ class CheckmarkBiasedLabelFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
+#
+#
+# def format_checkmark_fewshot(task: TaskOutput) -> str:
+#     # get the data example base from the question
+#     base = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
+#     # get the ground truth from the task
+#     ground_truth = base.ground_truth
+#     # format it
+#     formatted_str = question_with_checkmark_bias(
+#         parsed_input=base.get_parsed_input(), biased_ans=ground_truth
+#     )
+#     return (formatted_str + ground_truth + ")").strip()
+
+
 class CheckmarkBiasedFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
@@ -205,8 +221,10 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
         biased_message = question_with_checkmark_bias(
             parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
         )
+        checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash())
         with_label_instruction = add_verbalize_instruction_to_question(
-            f"""{checkmark_biasing}
+            f"""{checkmark_biasing_random}
+===
 {biased_message}
 """
         )
@@ -316,8 +334,10 @@ class CrossBiasedFormatter(StageOneFormatter):
         biased_message = question_with_cross_bias(
             parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
         )
+        cross_biasing_random = get_cross_biasing_random(seed=question.hash())
         with_label_instruction = add_verbalize_instruction_to_question(
-            f"""{cross_biasing}
+            f"""{cross_biasing_random}
+===
 {biased_message}
 """
         )

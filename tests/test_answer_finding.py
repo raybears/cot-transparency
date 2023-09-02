@@ -2,7 +2,11 @@ import pytest
 import yaml
 from cot_transparency.data_models.example_base import ChoiceVariant, DataFormatSpec, IndicatorSeparator
 
-from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot, extract_answer_for_format
+from cot_transparency.formatters.extraction import (
+    extract_answer,
+    extract_answer_non_cot,
+    extract_answer_looking_for_option,
+)
 
 from scripts.biased_wrong_ans import cot_extraction
 
@@ -110,4 +114,4 @@ def test_extract_answer_non_cot(response: str, input_variant: ChoiceVariant, exp
     ],
 )
 def test_extract_answer_format(input_str: str, data_format: DataFormatSpec, expected_output: str):
-    assert extract_answer_for_format(model_answer=input_str, input_format=data_format) == expected_output
+    assert extract_answer_looking_for_option(model_answer=input_str, input_format=data_format) == expected_output

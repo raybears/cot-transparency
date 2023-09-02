@@ -115,7 +115,7 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
     n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
     print(f"Number of NOT_FOUND rows: {n_not_found}")
     df = df[df.parsed_response != "NOT_FOUND"]
-    return df
+    return df  # type: ignore
 
 
 def plot_historgram_of_lengths(
@@ -155,14 +155,14 @@ def df_filters(
         df["task_name"] = df["task_name"].replace(TASK_MAP)
 
     if inconsistent_only:
-        df = df[df.biased_ans != df.ground_truth]
+        df = df[df.biased_ans != df.ground_truth]  # type: ignore
         print("Number of inconsistent tasks: ", len(df))
 
     if model_filter:
-        df = df[df.model.isin(model_filter)]
+        df = df[df.model.isin(model_filter)]  # type: ignore
 
     if length_filter:
-        df = df[df["original_cot_trace_length"].isin(length_filter)]
+        df = df[df["original_cot_trace_length"].isin(length_filter)]  # type: ignore
         assert len(df) > 0, "No data for this length filter"
     return df
 
@@ -211,14 +211,14 @@ def plot_by_length(df: pd.DataFrame, hue: str, col: Optional[str] = None) -> sns
 def drop_not_found(df: pd.DataFrame) -> pd.DataFrame:
     # Redrop any NOT_FOUND
     pre = len(df)
-    df = df[df.same_answer != "NOT_FOUND"]
+    df = df[df.same_answer != "NOT_FOUND"]  # type: ignore
     print("Dropped ", pre - len(df), " rows becuase of NOT_FOUND answers in full cot trace")
     return df
 
 
 def baseline_accuracy(df: pd.DataFrame, hue: str, col: str):
     # drop has mistake
-    df = df[~df.has_mistake]
+    df = df[~df.has_mistake]  # type: ignore
 
     cot_trace_length_0 = df[df["cot_trace_length"] == 0]
     cot_trace_length_max = df[df["cot_trace_length"] == df["original_cot_trace_length"]]
@@ -244,7 +244,7 @@ def check_same_answer(group: pd.DataFrame) -> pd.DataFrame:
             "have changed the prompt formatter half way throgh the exp"
         )
     else:
-        group["same_answer"] = group["parsed_response"] == max_step_row["parsed_response"].iloc[0]
+        group["same_answer"] = group["parsed_response"] == max_step_row["parsed_response"].iloc[0]  # type: ignore
     return group
 
 
@@ -261,7 +261,7 @@ def plot_early_answering(
     df = get_data_frame_from_exp_dir(exp_dir)
     # drop formatters that have Mistake in the name
     df = df[~df.has_mistake]
-    df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)
+    df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)  # type: ignore
 
     # Apply the check_same_answer function
     df = df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
@@ -294,7 +294,7 @@ def plot_adding_mistakes(
     df = get_data_frame_from_exp_dir(exp_dir)
     df = df[~df.was_truncated]
 
-    df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)
+    df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)  # type: ignore
 
     df = df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
     df = drop_not_found(df)
@@ -333,7 +333,7 @@ def aoc_plot(
     # Early Answering AoC
     df_early = df[~df.has_mistake]
     df_early = df_early.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
-    df_early = drop_not_found(df_early)
+    df_early = drop_not_found(df_early)  # type: ignore
     aoc_early = get_aoc(df_early)
 
     # baseline accuracies
@@ -447,18 +447,18 @@ def accuracy(
         check_counts = True
 
     print("----- Accuracy for step = 0 --------------")
-    no_cot_df = df[df["step_in_cot_trace"] == 0]
+    no_cot_df = df[df["step_in_cot_trace"] == 0]  # type: ignore
     accuracy_for_df(
-        no_cot_df,
+        no_cot_df,  # type: ignore
         inconsistent_only=inconsistent_only,
         check_counts=check_counts,
         aggregate_over_tasks=aggregate_over_tasks,
     )
 
     print("----- Accuracy for step = max_step --------------")
-    cot_df = df[df["step_in_cot_trace"] == df["max_step_in_cot_trace"]]
+    cot_df = df[df["step_in_cot_trace"] == df["max_step_in_cot_trace"]]  # type: ignore
     accuracy_for_df(
-        cot_df,
+        cot_df,  # type: ignore
         inconsistent_only=inconsistent_only,
         check_counts=check_counts,
         aggregate_over_tasks=aggregate_over_tasks,

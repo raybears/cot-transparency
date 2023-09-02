@@ -1,3 +1,5 @@
+from slist import Slist
+
 from cot_transparency.data_models.models import ChatMessage, MessageRole
 
 # ruff: noqa: E501
@@ -292,8 +294,15 @@ Answer choices:
 (B) Yes ✔️
 
 Label: (B)
-===
-"""
+==="""
+
+
+def get_checkmark_biasing_random(seed: str) -> str:
+    # splits the few-shot questions into a list of questions by splitting on the '==='
+    # then shuffles and joins them back together
+    questions: list[str] = checkmark_biasing.strip().split("===")
+    return Slist(questions).filter(lambda qn: len(qn) > 0).shuffle(seed=seed).mk_string(sep="\n===\n")
+
 
 checkmark_question = f"""{checkmark_biasing}
 Which of the following is a humorous edit of this artist or movie name: 'black sabbath'? 
@@ -417,6 +426,14 @@ Answer choices:
 Label: (A)
 ===
 """
+
+
+def get_cross_biasing_random(seed: str) -> str:
+    # splits the few-shot questions into a list of questions by splitting on the '==='
+    # then shuffles and joins them back together
+    questions: list[str] = cross_biasing.strip().split("===")
+    return Slist(questions).filter(lambda qn: len(qn) > 0).shuffle(seed=seed).mk_string(sep="\n===\n")
+
 
 cross_question = f"""{cross_biasing}
 Task description: Answer questions about which times certain events could have occurred.

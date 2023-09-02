@@ -103,18 +103,18 @@ def apply_filters(
     tasks: Sequence[str] = [],
 ) -> pd.DataFrame:
     if inconsistent_only:
-        df = df[df.biased_ans != df.ground_truth]
+        df = df[df.biased_ans != df.ground_truth]  # type: ignore
 
     if models:
         # check that df.model contains model_filter
-        df = df[df.model.isin(models)]
+        df = df[df.model.isin(models)]  # type: ignore
     if formatters:
         # check that df.formatter_name is in formatters
-        df = df[df.formatter_name.isin(formatters)]
+        df = df[df.formatter_name.isin(formatters)]  # type: ignore
         assert len(df) > 0, f"formatters {formatters} not found in {df.formatter_name.unique()}"
 
     if tasks:
-        df = df[df.task_name.isin(tasks)]
+        df = df[df.task_name.isin(tasks)]  # type: ignore
         assert len(df) > 0, f"tasks {tasks} not found in {df.task_name.unique()}"
 
     if aggregate_over_tasks:
@@ -157,7 +157,7 @@ def accuracy_for_df(
 
     # add the standard error
     accuracy_standard_error = accuracy_df_grouped.sem()
-    accuracy_df["accuracy_standard_error"] = accuracy_standard_error["is_correct"]
+    accuracy_df["accuracy_standard_error"] = accuracy_standard_error["is_correct"]  # type: ignore
     accuracy_df = accuracy_df.reset_index()
 
     counts_df = accuracy_df_grouped.count().reset_index()

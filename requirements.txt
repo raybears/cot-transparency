@@ -24,3 +24,4 @@ kaleido
 nltk
 seaborn
 statsmodels
+streamlit

@@ -49,7 +49,7 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
     return None
 
 
-def extract_answer_for_format(
+def extract_answer_looking_for_option(
     model_answer: str, dump_failed=False, input_format=DataFormatSpec(), options: Optional[list[str]] = None
 ) -> Optional[str]:
     for break_word in BREAK_WORDS:

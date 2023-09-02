@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Sequence
 
 from slist import Slist
 
@@ -163,11 +163,16 @@ def format_big_brain_question_cot(task: BiasedQuestionUnbiasedCOT) -> Prompt:
 
 
 def get_formatter_for_few_shot_cot(
-    exclude_formattter: Type[StageOneFormatter] | None, seed: str
+    exclude_formattter: Type[StageOneFormatter] | None,
+    seed: str,
+    use_formatters: Sequence[Type[StageOneFormatter]] = Slist(),
 ) -> Type[StageOneFormatter]:
+    if exclude_formattter:
+        assert exclude_formattter in BIASED_FORMATTERS_FEW_SHOT_COT
+    sample_from = Slist(use_formatters) or BIASED_FORMATTERS_FEW_SHOT_COT
     formatter_used: Type[StageOneFormatter] = (
         # We don't want to use the same formatter for few shot
-        BIASED_FORMATTERS_FEW_SHOT_COT.filter(lambda f: f is not exclude_formattter)
+        sample_from.filter(lambda f: f is not exclude_formattter)
         .shuffle(seed=seed)
         .first_or_raise()
     )

@@ -6,7 +6,7 @@ from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.model_apis import Prompt
-from stage_one import BBH_TASK_LIST
+from stage_one import COT_TRAINING_TASKS
 
 # ruff: noqa: E501
 
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     2. Run this script
     3. This will produce a data.jsonl file in data/bbh_cots
     """
-    jsons = ExpLoader.stage_one("experiments/gpt_35_cot")
+    jsons = ExpLoader.stage_one("experiments/finetune")
     model: str = "gpt-3.5-turbo"
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
@@ -28,14 +28,14 @@ if __name__ == "__main__":
     # intervention_name should be None
     # dataset should be bbh
     # model should be gpt-4
-    bbh_tasks = BBH_TASK_LIST
+    tasks = COT_TRAINING_TASKS
 
     jsons_tasks: Slist[TaskOutput] = (
         Slist(jsons.values())
         .map(lambda x: x.outputs)
         .flatten_list()
         .filter(lambda x: x.task_spec.intervention_name is None)
-        .filter(lambda x: x.task_spec.task_name in bbh_tasks)
+        .filter(lambda x: x.task_spec.task_name in tasks)
         .filter(lambda x: x.task_spec.inference_config.model == model)
         .filter(lambda x: x.task_spec.formatter_name == selected_formatter)
         # only get the ones that are correct
@@ -51,4 +51,4 @@ if __name__ == "__main__":
     assert score == 1.0, f"This should be 1.0, got {score}"
 
     print(f"Number of jsons: {len(jsons_tasks)}")
-    write_jsonl_file_from_basemodel(path=Path("data/bbh_correct_cots/gpt-35-turbo.jsonl"), basemodels=jsons_tasks)
+    write_jsonl_file_from_basemodel(path=Path("data/training_cots/gpt-35-turbo.jsonl"), basemodels=jsons_tasks)

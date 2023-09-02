@@ -9,7 +9,6 @@ from pydantic import BaseModel, conlist, Field, AliasChoices, ConfigDict
 from typing import Optional, Union, Any, Type
 from cot_transparency.data_models.data import task_name_to_data_example
 
-
 from cot_transparency.util import deterministic_hash
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, GenericDataExample
 
@@ -161,6 +160,10 @@ class TaskOutput(BaseTaskOuput):
     # This is one single experiment
     task_spec: TaskSpec
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+
+    @property
+    def bias_on_wrong_answer(self) -> bool:
+        return self.task_spec.ground_truth != self.task_spec.biased_ans
 
     @property
     def is_correct(self) -> bool:
