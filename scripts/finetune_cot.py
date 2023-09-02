@@ -110,6 +110,6 @@ if __name__ == "__main__":
         exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter,
         use_formatters=use_formatters,
         n_epochs=1,
-        model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
+        model="gpt-3.5-turbo",
     )
     # fine_tune_with_biased_cots(18000)
