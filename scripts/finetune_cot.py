@@ -10,6 +10,7 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import (
     get_training_cots_gpt_35,
+    get_training_cots_gpt_35_big_brain,
 )
 from cot_transparency.formatters.interventions.formatting import get_formatter_for_few_shot_cot
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
@@ -94,6 +95,27 @@ def fine_tune_with_biased_cots(
     _id = run_finetune(params=params, samples=messages)
 
 
+def fine_tune_with_big_brain_cots(
+    n: int,
+    exclude_formattter: Type[StageOneFormatter] | None,
+    n_epochs: int,
+    model: str = "gpt-3.5-turbo",
+):
+    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
+    pre_filter = get_training_cots_gpt_35_big_brain()
+    print(f"Number of cots before filtering: {len(pre_filter)}")
+    filtered = pre_filter.filter(lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name)
+    print(f"Number of cots after filtering: {len(filtered)}")
+    samples: Slist[FinetuneSample] = (
+        filtered
+        .map(lambda x: x.to_finetune_sample())
+        .repeat_until_size_or_raise(n)
+    )
+    print(f"Number of cots: {len(samples)}")
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
+    _id = run_finetune(params=params, samples=samples)
+
+
 if __name__ == "__main__":
     use_formatters = Slist(
         [
@@ -105,11 +127,17 @@ if __name__ == "__main__":
             CrossBiasedFormatter,
         ]
     )
-    fine_tune_with_biased_cots(
-        72000,
+    fine_tune_with_big_brain_cots(
+        4500,
         exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter,
-        use_formatters=use_formatters,
         n_epochs=1,
         model="gpt-3.5-turbo",
     )
+    # fine_tune_with_biased_cots(
+    #     72000,
+    #     exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter,
+    #     use_formatters=use_formatters,
+    #     n_epochs=1,
+    #     model="gpt-3.5-turbo",
+    # )
     # fine_tune_with_biased_cots(18000)

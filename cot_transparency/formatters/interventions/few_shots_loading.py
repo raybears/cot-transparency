@@ -64,3 +64,13 @@ def get_training_cots_gpt_35() -> Slist[TaskOutput]:
 
     only_correct_cots: Slist[TaskOutput] = jsons_tasks
     return only_correct_cots
+
+
+@lru_cache
+def get_training_cots_gpt_35_big_brain() -> Slist[BiasedQuestionUnbiasedCOT]:
+    # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+    jsons_tasks: Slist[BiasedQuestionUnbiasedCOT] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt-35-turbo-big-brain.jsonl"), BiasedQuestionUnbiasedCOT
+    )
+
+    return jsons_tasks

@@ -146,7 +146,6 @@ if __name__ == "__main__":
     make_finetune_graph(
         must_include_task_hashes=biased_task_hashes,
         biased_formatters=[selected_bias],
-
         finetuned_models=[
             "gpt-3.5-turbo",
             # bias_to_leave_out_model_map[selected_bias],

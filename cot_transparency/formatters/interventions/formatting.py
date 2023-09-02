@@ -18,20 +18,9 @@ from cot_transparency.formatters.more_biases.more_reward import (
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
 )
+from cot_transparency.formatters.util import add_to_final_assistant
 from cot_transparency.formatters.verbalize.formatters import StanfordNoCOTFormatter, StanfordBiasedFormatter
 from cot_transparency.model_apis import Prompt
-from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
-
-
-def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> list[ChatMessage]:
-    # If the final message is from the assistant, then we need to add the final assistant message
-    # Otherwise, we need to add a new assistant message
-    new_list = messages.copy()
-    if messages[-1].role == MessageRole.assistant or messages[-1].role == MessageRole.assistant_if_completion:
-        new_list[-1] = ChatMessage(role=MessageRole.assistant, content=messages[-1].content.rstrip() + new_message)
-    else:
-        new_list.append(ChatMessage(role=MessageRole.assistant, content=new_message))
-    return new_list
 
 
 def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: str) -> list[ChatMessage]:
@@ -151,15 +140,6 @@ def format_biased_question_cot(task: TaskOutput, formatter: Type[StageOneFormatt
         new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
     )
     return Prompt(messages=messages)
-
-
-def format_big_brain_question_cot(task: BiasedQuestionUnbiasedCOT) -> Prompt:
-    biased_messages: list[ChatMessage] = task.biased_question
-    with_correct = add_to_final_assistant(
-        biased_messages,
-        new_message=" " + task.correct_full_response + END_SINGLE_SHOT_SEP,
-    )
-    return Prompt(messages=with_correct)
 
 
 def get_formatter_for_few_shot_cot(
