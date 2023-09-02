@@ -91,14 +91,7 @@ def extract_answer_non_cot(
     ans_list = input_format.choice_variant.answers_list
     response = response.strip()
 
-    # "(" or a letter/number, followed by characters, and optionally followed by a ")".
     pattern = re.compile(r"^\(?([a-zA-Z\d]+)\)?")
-    # match input_format.indicator_separator:
-    #     case IndicatorSeparator.PAREN:
-    #     case IndicatorSeparator.SPACE:
-    #         pattern = re.compile(r"^([a-zA-Z\d]+)\s")
-    #     case IndicatorSeparator.DOT:
-    #         pattern = re.compile(r"^([a-zA-Z\d]+)\.")
 
     match = pattern.match(response)
     if match:
