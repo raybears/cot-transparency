@@ -10,8 +10,8 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import (
     get_training_cots_gpt_35,
-    get_training_cots_gpt_35_big_brain,
 )
+from cot_transparency.formatters.interventions.big_brain_few_shots_loading import get_training_cots_gpt_35_big_brain
 from cot_transparency.formatters.interventions.formatting import get_formatter_for_few_shot_cot
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
@@ -106,11 +106,7 @@ def fine_tune_with_big_brain_cots(
     print(f"Number of cots before filtering: {len(pre_filter)}")
     filtered = pre_filter.filter(lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name)
     print(f"Number of cots after filtering: {len(filtered)}")
-    samples: Slist[FinetuneSample] = (
-        filtered
-        .map(lambda x: x.to_finetune_sample())
-        .repeat_until_size_or_raise(n)
-    )
+    samples: Slist[FinetuneSample] = filtered.map(lambda x: x.to_finetune_sample()).repeat_until_size_or_raise(n)
     print(f"Number of cots: {len(samples)}")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     _id = run_finetune(params=params, samples=samples)

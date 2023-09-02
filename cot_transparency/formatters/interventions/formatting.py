@@ -3,11 +3,10 @@ from typing import Type, Sequence
 from slist import Slist
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
-from cot_transparency.data_models.models import TaskOutput, ChatMessage, MessageRole
+from cot_transparency.data_models.models import TaskOutput, ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
-from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantBiasedNoCOTFormatter,
 )
@@ -18,38 +17,10 @@ from cot_transparency.formatters.more_biases.more_reward import (
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
 )
-from cot_transparency.formatters.util import add_to_final_assistant
+from cot_transparency.formatters.interventions.assistant_completion_utils import add_to_final_assistant
+from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP
 from cot_transparency.formatters.verbalize.formatters import StanfordNoCOTFormatter, StanfordBiasedFormatter
 from cot_transparency.model_apis import Prompt
-
-
-def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: str) -> list[ChatMessage]:
-    """Prepend a string to the first user message."""
-    new_messages = []
-    for m in messages:
-        if m.role == MessageRole.user:
-            new_messages.append(ChatMessage(role=MessageRole.user, content=prepend + m.content))
-        else:
-            new_messages.append(m)
-    return new_messages
-
-
-def insert_to_after_system_message(messages: list[ChatMessage], to_insert: list[ChatMessage]) -> list[ChatMessage]:
-    """
-    if there is a system message, insert the to_insert after the system message
-    otherwise, just insert at the start
-    """
-    new_messages = []
-    first_message = messages[0]
-    if first_message.role == MessageRole.system:
-        new_messages.append(first_message)
-        new_messages.extend(to_insert)
-        new_messages.extend(messages[1:])
-    else:
-        new_messages.extend(to_insert)
-        new_messages.extend(messages)
-
-    return new_messages
 
 
 def format_pair_cot(task: TaskOutput) -> Prompt:

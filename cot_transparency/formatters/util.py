@@ -67,14 +67,3 @@ def get_few_shot_prompts(
         few_shots_with_letter.append((q, a, letter))
 
     return few_shots_with_letter
-
-
-def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> list[ChatMessage]:
-    # If the final message is from the assistant, then we need to add the final assistant message
-    # Otherwise, we need to add a new assistant message
-    new_list = messages.copy()
-    if messages[-1].role == MessageRole.assistant or messages[-1].role == MessageRole.assistant_if_completion:
-        new_list[-1] = ChatMessage(role=MessageRole.assistant, content=messages[-1].content.rstrip() + new_message)
-    else:
-        new_list.append(ChatMessage(role=MessageRole.assistant, content=new_message))
-    return new_list

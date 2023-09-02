@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 
 from cot_transparency.data_models.models import ChatMessage, TaskOutput
+from cot_transparency.formatters.interventions.assistant_completion_utils import add_to_final_assistant
 from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP
-from cot_transparency.formatters.util import add_to_final_assistant
 from cot_transparency.model_apis import Prompt, ModelType
 from cot_transparency.openai_utils.finetune import FinetuneSample, join_assistant_preferred_to_completion
 
