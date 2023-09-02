@@ -23,4 +23,5 @@ plotly
 kaleido
 nltk
 seaborn
+statsmodels
 streamlit

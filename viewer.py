@@ -52,7 +52,7 @@ class GUI:
         self.alignment = "w"  # change to "center" to center align
         self.task_var = self.keys[0][0]
         self.update_callback = update_callback or (lambda: None)
-        drop_down_width = 40
+        drop_down_width = 80
 
         # make all the dropdowns
         self.dropdowns = []

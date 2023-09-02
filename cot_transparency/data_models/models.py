@@ -7,9 +7,10 @@ from pathlib import Path
 from pydantic import BaseModel, conlist, Field, AliasChoices, ConfigDict
 
 from typing import Optional, Union, Any, Type
+from cot_transparency.data_models.data import task_name_to_data_example
 
 from cot_transparency.util import deterministic_hash
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer, GenericDataExample
+from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, GenericDataExample
 
 
 class HashableBaseModel(BaseModel):
@@ -144,6 +145,10 @@ class TaskSpec(BaseTaskSpec):
 
     def task_hash_with_repeat(self) -> str:
         return deterministic_hash(self.task_hash + str(self.repeat_idx))
+
+    def get_data_example_obj(self) -> DataExampleBase:
+        DataExample = task_name_to_data_example(self.task_name)
+        return self.read_data_example_or_raise(DataExample)
 
 
 class BaseTaskOuput(BaseModel):

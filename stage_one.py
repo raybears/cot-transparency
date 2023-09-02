@@ -1,6 +1,7 @@
 import random
 from pathlib import Path
 from typing import Optional, Type
+import fnmatch
 
 import fire
 from slist import Slist
@@ -118,6 +119,7 @@ def create_task_settings(
                     intervention=intervention,
                 )
             )
+
     return task_settings + with_interventions
 
 
@@ -134,7 +136,8 @@ def validate_tasks(tasks: list[str]) -> list[str]:
 
 
 def get_list_of_examples(
-    task: str, dataset: Optional[str] = None, data_loading_cap: Optional[int] = None
+    task: str,
+    dataset: Optional[str] = None,
 ) -> Slist[DataExampleBase]:
     data = None
     if dataset == "bbh_biased_wrong_cot":
@@ -209,11 +212,26 @@ def main(
         if "llama" in model.lower():
             assert batch == 1, "Llama only supports batch size of 1"
 
+    # match formatter name wildcard
+    for formatter in formatters:
+        if "*" in formatter:
+            formatters.remove(formatter)
+            formatters += fnmatch.filter(StageOneFormatter.all_formatters().keys(), formatter)
+
+    assert len(formatters) > 0, "You must define at least one formatter"
+
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
     validated_interventions = get_valid_stage1_interventions(interventions)
 
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
+
+    # p = Path(exp_dir)
+    # if p.exists() and p.is_dir():  # Check if the path exists and is a directory
+    #     print("Backing up existing experiment directory to prevent overwriting")
+    #     backup_path = p.with_name(f"{p.name}.auto_backup")
+    #     shutil.copytree(p, backup_path)
+
     task_settings: list[TaskSetting] = create_task_settings(
         tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
     )
@@ -246,6 +264,7 @@ def main(
             config.max_tokens = 300
             config.temperature = 0.8
             config.top_p = 0.95
+
         # if you are using an intervention, we need to add SINGLE_SHOT_SEP to the stop list
         if setting.intervention:
             if isinstance(config.stop, list):
@@ -257,12 +276,12 @@ def main(
             config.temperature = temperature
         assert config.model == model
         if not formatter.is_cot:
-            config.max_tokens = 3
+            config.max_tokens = 50
 
         for item in data:
             for i in range(repeats_per_question):
                 messages = (
-                    setting.intervention.intervene(question=item, formatter=formatter)
+                    setting.intervention.intervene(question=item, formatter=formatter, model=model)
                     if setting.intervention
                     else formatter.format_example(question=item, model=model)
                 )
@@ -281,7 +300,7 @@ def main(
                 )
                 tasks_to_run.append(task_spec)
 
-    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run)
+    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=True)
 
 
 def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneFormatter]]:

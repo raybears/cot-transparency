@@ -122,7 +122,6 @@ def plot_historgram_of_lengths(
     exp_dir: str,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
-    breakpoint()
 
     hue = "task_name"
     x = "CoT Length"

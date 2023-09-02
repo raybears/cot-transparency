@@ -11,6 +11,7 @@ htmlcov
 *.xml
 *.egg-info
 .python-version
+.DS_Store
 
 # build artifacts
 .cache

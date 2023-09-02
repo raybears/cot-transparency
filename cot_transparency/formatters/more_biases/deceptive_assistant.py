@@ -31,7 +31,9 @@ Don't make it too obvious."""
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
@@ -57,7 +59,9 @@ Don't make it too obvious that you are being deceptive. Don't say things like "I
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
@@ -80,5 +84,7 @@ Don't make it too obvious."""
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)

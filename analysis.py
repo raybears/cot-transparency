@@ -8,6 +8,7 @@ import pandas as pd
 from typing import Any, Optional, List, Union, Sequence
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.formatters import name_to_formatter
+from cot_transparency.formatters.interventions.valid_interventions import VALID_INTERVENTIONS
 from scripts.multi_accuracy import plot_accuracy_for_exp
 import seaborn as sns
 
@@ -206,7 +207,6 @@ def counts_are_equal(count_df: pd.DataFrame) -> bool:
 
 def simple_plot(
     exp_dir: str,
-    inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
     models: Sequence[str] = [],
     formatters: Sequence[str] = [],
@@ -214,10 +214,11 @@ def simple_plot(
     y: str = "Accuracy",
     hue: str = "formatter_name",
     col: str = "model",
+    legend: bool = True,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
-        inconsistent_only=inconsistent_only,
+        inconsistent_only=False,
         models=models,
         formatters=formatters,
         aggregate_over_tasks=aggregate_over_tasks,
@@ -228,12 +229,35 @@ def simple_plot(
     df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
     df["formatter_name"] = df["formatter_name"].str.replace("ZeroShot", "0S: ")
     df["formatter_name"] = df["formatter_name"].str.replace("ZeroShot", "FS: ")
+    df["intervention_name"] = df["intervention_name"].fillna("None")
+
+    def get_intervention_name(intervention_name: str) -> str:
+        if intervention_name == "None":
+            return "None"
+        return VALID_INTERVENTIONS[intervention_name].formatted_name()
+
+    df["intervention_name"] = df["intervention_name"].apply(get_intervention_name)
 
     # rename is_correct to Accuracy
     df = df.rename(columns={"is_correct": "Accuracy"})
     # add temperature to model name
     df["model"] = df["model"] + " (T=" + df["temperature"].astype(str) + ")"
-    sns.catplot(data=df, x=x, y=y, hue=hue, col=col, capsize=0.05, errwidth=1, kind="bar")
+    sns.catplot(
+        data=df,
+        x=x,
+        y=y,
+        hue=hue,
+        col=col,
+        capsize=0.01,
+        errwidth=1,
+        kind="bar",
+        legend=legend,  # type: ignore
+    )
+
+    # plot the counts for the above
+    g = sns.catplot(data=df, x=x, hue=hue, col=col, kind="count", legend=legend)  # type: ignore
+    g.fig.suptitle("Counts")
+
     plt.show()
 
 
