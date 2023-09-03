@@ -6,7 +6,7 @@ from cot_transparency.formatters.interventions.assistant_completion_utils import
     add_to_final_assistant,
     prepend_to_front_system_message,
 )
-from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP
+from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP, UNBIASED_CONTROL_TOKEN, BIASED_CONTROL_TOKEN
 from cot_transparency.model_apis import Prompt, ModelType
 from cot_transparency.openai_utils.finetune import FinetuneSample, join_assistant_preferred_to_completion
 
@@ -39,10 +39,10 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
         # For the unbiased response, add YY in the system prompt
         prompt_messages = self.biased_question
         added_system_unbiased: list[ChatMessage] = prepend_to_front_system_message(
-            messages=prompt_messages, prepend="YY "
+            messages=prompt_messages, prepend=f"{UNBIASED_CONTROL_TOKEN} "
         )
         added_system_biased: list[ChatMessage] = prepend_to_front_system_message(
-            messages=prompt_messages, prepend="NN "
+            messages=prompt_messages, prepend=f"{BIASED_CONTROL_TOKEN} "
         )
         strict_unbiased = Prompt(
             messages=join_assistant_preferred_to_completion(

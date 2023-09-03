@@ -3,6 +3,7 @@ from typing import Optional, Type
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.instructions import UNBIASED_CONTROL_TOKEN
 from cot_transparency.formatters.interventions.few_shots_loading import (
     get_correct_cots,
     get_correct_cots_claude_2,
@@ -22,7 +23,7 @@ from cot_transparency.formatters.interventions.formatting import (
 )
 from cot_transparency.formatters.interventions.assistant_completion_utils import (
     prepend_to_front_first_user_message,
-    insert_to_after_system_message,
+    insert_to_after_system_message, prepend_to_front_system_message,
 )
 from cot_transparency.data_models.data.biased_question_unbiased_cot import format_big_brain_question_cot
 from cot_transparency.model_apis import Prompt
@@ -409,3 +410,16 @@ class PairedFewShotLabelOnly30(PairedFewShotLabelOnly10):
     # Non cot, only the label
     # Because it is a pair, sample 30 / 2 = 15
     n_samples: int = 15
+
+
+class AddUnbiasedControlToken(Intervention):
+    @classmethod
+    def intervene(
+            cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+    ) -> list[ChatMessage]:
+        formatted = formatter.format_example(question)
+        added_system_unbiased: list[ChatMessage] = prepend_to_front_system_message(
+            messages=formatted, prepend=f"{UNBIASED_CONTROL_TOKEN} "
+        )
+        return added_system_unbiased
+

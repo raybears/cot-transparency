@@ -105,8 +105,11 @@ def create_task_settings(
                     intervention=intervention,
                 )
             )
+    if len(with_interventions) > 0:
+        return with_interventions
+    else:
 
-    return task_settings + with_interventions
+        return task_settings
 
 
 def validate_tasks(tasks: list[str]) -> list[str]:
