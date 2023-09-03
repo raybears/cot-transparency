@@ -1,6 +1,7 @@
 from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
+from cot_transparency.formatters.core.prompt_sensitivity import register_prompt_sensitivity_formatters
 from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
 from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedFormatter,
@@ -29,7 +30,6 @@ from cot_transparency.formatters.core.unbiased import (
     ZeroShotUnbiasedNoRoleFormatter,
     FewShotCOTUnbiasedNoRoleFormatter,
     FewShotUnbiasedNoRoleFormatter,
-    register_prompt_sensitivity_formatters,
 )
 
 from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import BBQSymbolTuningCOTFewShot
