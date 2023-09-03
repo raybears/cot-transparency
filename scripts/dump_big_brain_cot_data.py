@@ -6,7 +6,6 @@ from cot_transparency.data_models.data.biased_question_unbiased_cot import Biase
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantTargetedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from cot_transparency.formatters.verbalize.formatters import (
@@ -47,7 +46,7 @@ def big_brain():
         MoreRewardBiasedFormatter,
         ZeroShotCOTSycophancyFormatter,
         ZeroShotCOTUnbiasedFormatter,
-        DeceptiveAssistantTargetedFormatter,
+        # DeceptiveAssistantTargetedFormatter,
         CheckmarkBiasedFormatter,
         CrossBiasedFormatter,
     ]

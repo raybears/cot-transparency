@@ -41,3 +41,12 @@ def insert_to_after_system_message(messages: list[ChatMessage], to_insert: list[
     return new_messages
 
 
+def prepend_to_front_system_message(messages: list[ChatMessage], prepend: str) -> list[ChatMessage]:
+    """Prepend a string to the system message."""
+    new_messages = [m.model_copy() for m in messages]
+    first_message = new_messages[0]
+    if first_message.role == MessageRole.system:
+        new_messages[0] = ChatMessage(role=MessageRole.system, content=prepend + first_message.content)
+    else:
+        new_messages = [ChatMessage(role=MessageRole.system, content=prepend)] + new_messages
+    return new_messages

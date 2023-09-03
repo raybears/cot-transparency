@@ -20,8 +20,10 @@ from cot_transparency.formatters.interventions.formatting import (
     format_pair_non_cot,
     format_biased_question_non_cot_sycophancy,
 )
-from cot_transparency.formatters.interventions.assistant_completion_utils import prepend_to_front_first_user_message, \
-    insert_to_after_system_message
+from cot_transparency.formatters.interventions.assistant_completion_utils import (
+    prepend_to_front_first_user_message,
+    insert_to_after_system_message,
+)
 from cot_transparency.data_models.data.biased_question_unbiased_cot import format_big_brain_question_cot
 from cot_transparency.model_apis import Prompt
 

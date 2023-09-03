@@ -53,5 +53,3 @@ def get_training_cots_gpt_35() -> Slist[TaskOutput]:
 
     only_correct_cots: Slist[TaskOutput] = jsons_tasks
     return only_correct_cots
-
-
