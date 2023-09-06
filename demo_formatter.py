@@ -7,7 +7,14 @@ from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPL
 from stage_one import get_valid_stage1_interventions
 
 
-def main(formatter_name: str, intervention_name: Optional[str] = None, model="gpt-4"):
+def main(formatter_name: Optional[str] = None, intervention_name: Optional[str] = None, model="gpt-4"):
+    if formatter_name is None:
+        # print all formatters
+        print("Available formatters:")
+        for formatter_name in StageOneFormatter.all_formatters():
+            print(formatter_name)
+        return
+
     formatter: Type[StageOneFormatter]
     formatter = name_to_formatter(formatter_name)  # type: ignore
 
