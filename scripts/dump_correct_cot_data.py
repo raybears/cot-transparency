@@ -19,7 +19,7 @@ if __name__ == "__main__":
     2. Run this script
     3. This will produce a data.jsonl file in data/bbh_cots
     """
-    jsons = ExpLoader.stage_one("experiments/finetune")
+    jsons = ExpLoader.stage_one("experiments/gpt_35_cot")
     model: str = "gpt-3.5-turbo"
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)

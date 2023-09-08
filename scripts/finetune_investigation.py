@@ -91,7 +91,7 @@ def make_finetune_graph(
     bar_plot(
         plot_dots=matching_user_answer,
         title=percent_matching_plot_name or f"How often does each model choose the user's view Dataset: {dataset_str}",
-        y_axis_title="Answers matching deceptive answer (%)",
+        y_axis_title="Answers matching biased answer (%)",
         dotted_line=dotted_line,
     )
 
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     filterer = InconsistentOnly
     tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
     dataset_str = Slist(tasks).mk_string(", ")
-    selected_bias = DeceptiveAssistantTargetedFormatter
+    selected_bias = WrongFewShotIgnoreMistakesBiasedFormatter
 
     bias_name_map = {
         WrongFewShotIgnoreMistakesBiasedFormatter: "biased by Wrong Fewshot",
@@ -119,9 +119,9 @@ if __name__ == "__main__":
         ZeroShotCOTUnbiasedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV",
         DeceptiveAssistantTargetedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
     }
-    biased_model_name = bias_to_leave_out_model_map[selected_bias]
+    biased_model_name = "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b"
     all_read = read_whole_exp_dir(exp_dir="experiments/finetune")
-    enforce_all_same = False
+    enforce_all_same = True
     biased_task_hashes = (
         (
             all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
@@ -141,6 +141,26 @@ if __name__ == "__main__":
         else set()
     )
 
+    biased_task_hashes_2 = (
+        (
+            all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
+            .filter(
+                # intervention is None
+                lambda task: task.task_spec.intervention_name
+                             is None
+            )
+            .filter(
+                # model is the biased model
+                lambda task: task.task_spec.inference_config.model
+                             == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry"
+            )
+            .map(lambda task: task.task_spec.task_hash)
+        ).to_set()
+        if enforce_all_same
+        else set()
+    )
+    biased_task_hashes = biased_task_hashes.intersection(biased_task_hashes_2)
+
     print(f"Number of biased task hashes: {len(biased_task_hashes)}")
     bias_name = bias_name_map[selected_bias]
     make_finetune_graph(
@@ -148,8 +168,16 @@ if __name__ == "__main__":
         biased_formatters=[selected_bias],
         finetuned_models=[
             "gpt-3.5-turbo",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry"
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uXhCnI7",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uXhCnI7"
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b",
             # bias_to_leave_out_model_map[selected_bias],
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tmQDS49",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tmQDS49",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8"
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8",
@@ -158,21 +186,24 @@ if __name__ == "__main__":
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7skb05DZ",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7smTRQCv",
+            # "ft:gpt-53.-turbo-0613:academicsnyuperez::7smTRQCv",
         ],
         unbiased_model="gpt-3.5-turbo",
         unbiased_formatter=ZeroShotCOTUnbiasedFormatter,
         all_read=all_read,
         accuracy_plot_name=f"Accuracy on questions {bias_name}<br>Train Dataset: BBH, aqua, arc, Test Dataset: {dataset_str}<br>{filterer.name()}",
-        percent_matching_plot_name=f"Percentage of times the model chooses to deceive<br>Train Dataset: BBH, aqua, arc, Test Dataset: {dataset_str}<br>{filterer.name()}",
+        percent_matching_plot_name=f"Percentage of times the model chooses the biased answer on the left out WrongFewShotBias<br>Train Dataset: BBH, aqua, arc, Test Dataset: {dataset_str}<br>{filterer.name()}",
         filterer=filterer,
         tasks=tasks,
         model_name_override={
+
             "gpt-3.5-turbo": "gpt-3.5-turbo ",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr": "Finetuned 6000 COTs with unbiased questions",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8": "Finetuned 6000 COTs with biased questions,<br> leaving out bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8": "Finetuned 6000 COTs with 3 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b": "Finetuned 6000 COTs with 5 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uXhCnI7": "Finetuned 6000 COTs with 5 different types of biased questions,<br> leaving out bias of Wrong Fewshot, make sure these actually biased the model",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t5OEDT9": "Finetuned 18000 COTs with biased questions,<br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg": "Finetuned 72000 COTS with biased questions,<br> leaving out bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry": "Finetuned 72000 COTs with 5 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tmQDS49": "Finetuned 72000 COTS with biased questions",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t8IvMic": "Finetuned 18000 COTs with unbiased questions",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV": "Finetuned 6000 COTs with biased questions,<br> including ALL biases",

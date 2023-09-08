@@ -41,18 +41,18 @@ def display_task(task: TaskOutput):
         # pattern match on msg.role
         match msg.role:
             case StrictMessageRole.none:
-                st.code(msg.content)
+                st.markdown(msg.content)
             case StrictMessageRole.system:
                 st.markdown("### System")
-                st.code(msg.content, None)
+                st.markdown(msg.content)
             case StrictMessageRole.user:
                 with st.chat_message("user"):
                     st.markdown("### User")
-                    st.code(msg.content, None)
+                    st.markdown(msg.content)
             case StrictMessageRole.assistant:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant")
-                    st.code(msg.content, None)
+                    st.markdown(msg.content)
 
     # # write the final response
     # with st.chat_message("assistant"):

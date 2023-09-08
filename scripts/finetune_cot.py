@@ -159,11 +159,12 @@ if __name__ == "__main__":
             CrossBiasedFormatter,
         ]
     )
-    fine_tune_with_big_brain_cots_control_tokens(
-        6000,
+    fine_tune_with_biased_cots(
+        72000,
         exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter,
         n_epochs=1,
         model="gpt-3.5-turbo",
+        use_formatters=use_formatters,
     )
     # fine_tune_with_biased_cots(
     #     72000,

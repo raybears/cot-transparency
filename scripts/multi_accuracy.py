@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from pydantic import BaseModel
 from slist import Slist
+from statsmodels.stats import proportion
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
@@ -47,6 +48,7 @@ class AccuracyOutput(BaseModel):
 
 
 def compute_error_bars(num_trials: int, num_successes: int, confidence_level: float = 1.96) -> float:
+    # todo: migrate from statsmodels.stats.proportion.proportion_confint
     p = num_successes / num_trials
     se = math.sqrt((p * (1 - p)) / num_trials)
     return confidence_level * se
