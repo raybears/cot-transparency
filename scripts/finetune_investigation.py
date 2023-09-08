@@ -147,12 +147,12 @@ if __name__ == "__main__":
             .filter(
                 # intervention is None
                 lambda task: task.task_spec.intervention_name
-                             is None
+                is None
             )
             .filter(
                 # model is the biased model
                 lambda task: task.task_spec.inference_config.model
-                             == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry"
+                == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry"
             )
             .map(lambda task: task.task_spec.task_hash)
         ).to_set()
@@ -196,7 +196,6 @@ if __name__ == "__main__":
         filterer=filterer,
         tasks=tasks,
         model_name_override={
-
             "gpt-3.5-turbo": "gpt-3.5-turbo ",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr": "Finetuned 6000 COTs with unbiased questions",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8": "Finetuned 6000 COTs with 3 different types of biased questions,<br> leaving out bias of Wrong Fewshot",

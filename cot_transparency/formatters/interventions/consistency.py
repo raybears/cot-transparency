@@ -23,7 +23,8 @@ from cot_transparency.formatters.interventions.formatting import (
 )
 from cot_transparency.formatters.interventions.assistant_completion_utils import (
     prepend_to_front_first_user_message,
-    insert_to_after_system_message, prepend_to_front_system_message,
+    insert_to_after_system_message,
+    prepend_to_front_system_message,
 )
 from cot_transparency.data_models.data.biased_question_unbiased_cot import format_big_brain_question_cot
 from cot_transparency.model_apis import Prompt
@@ -415,11 +416,10 @@ class PairedFewShotLabelOnly30(PairedFewShotLabelOnly10):
 class AddUnbiasedControlToken(Intervention):
     @classmethod
     def intervene(
-            cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
+        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
     ) -> list[ChatMessage]:
         formatted = formatter.format_example(question)
         added_system_unbiased: list[ChatMessage] = prepend_to_front_system_message(
             messages=formatted, prepend=f"{UNBIASED_CONTROL_TOKEN} "
         )
         return added_system_unbiased
-

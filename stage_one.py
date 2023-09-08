@@ -108,7 +108,6 @@ def create_task_settings(
     if len(with_interventions) > 0:
         return with_interventions
     else:
-
         return task_settings
 
 

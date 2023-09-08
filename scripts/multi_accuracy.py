@@ -10,7 +10,6 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from pydantic import BaseModel
 from slist import Slist
-from statsmodels.stats import proportion
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
