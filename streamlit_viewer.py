@@ -1,3 +1,5 @@
+import argparse
+
 import streamlit as st
 import streamlit.components.v1 as components
 from slist import Slist
@@ -21,7 +23,16 @@ from scripts.better_viewer_cache import (
     TreeCacheKey,
 )
 
+# set to wide
+st.set_page_config(layout="wide")
+
 # ruff: noqa: E501
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("exp_dir", default="experiments/finetune", help="The experiment directory to load from")
+args = parser.parse_args()
+exp_dir: str = args.exp_dir
 
 
 def display_task(task: TaskOutput):
@@ -68,7 +79,7 @@ def __hash__(self):  # type: ignore
 Slist.__hash__ = __hash__  # type: ignore
 
 # Ask the user to enter experiment_dir
-exp_dir = st.text_input("Enter experiment_dir", "experiments/finetune")
+exp_dir = st.text_input("Enter experiment_dir", exp_dir)
 everything: Slist[TaskOutput] = cached_read_whole_exp_dir(exp_dir=exp_dir)
 tree: TreeCache = make_tree(everything)  # type: ignore
 st.markdown(f"Loaded {len(everything)} tasks")
