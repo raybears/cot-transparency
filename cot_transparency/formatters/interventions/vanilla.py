@@ -23,9 +23,10 @@ def format_few_shot_for_prompt_sen(
     assert resp is not None, "This should be a valid response"
 
     if randomize_question_format:
-        d = StageOneFormatter.all_formatters()
+        d = Formatter.all_formatters()
         rng = random.Random(seed + resp)
         Formatter = rng.choice(list(d.values()))
+        print("picked formatter", Formatter.name())
 
     specific_data_format = Formatter.get_data_format_spec()
     if specific_data_format:
