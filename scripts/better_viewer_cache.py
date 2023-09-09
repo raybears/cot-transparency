@@ -1,4 +1,3 @@
-import time
 from functools import lru_cache
 from typing import Sequence
 
@@ -50,7 +49,7 @@ def cached_search(
     tree_cache_key: TreeCacheKey,
     tree_cache: TreeCache,
 ) -> Slist[TaskOutput]:
-    time_start = time.time()
+    # time.time()
     items_list: dict[TreeCacheKey, Sequence[TaskOutput]] = tree_cache.items_list
     items: Slist[TaskOutput] = Slist(items_list.get(tree_cache_key, []))
     result = (
@@ -63,8 +62,8 @@ def cached_search(
         # only_results_the_model_got_wrong
         .filter(lambda task: task.is_correct is False if only_results_the_model_got_wrong else True)
     )
-    time_end = time.time()
-    print(f"Search took {time_end - time_start} seconds")
+    # time.time()
+    # print(f"Search took {time_end - time_start} seconds")
     return result
 
 

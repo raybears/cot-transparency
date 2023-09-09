@@ -73,3 +73,9 @@ python viewer.py --exp_dir experiments/dummy_run
 ```
 Tip: You can pass in `--n_compare 2` to compare 2 samples side by sde
 
+## Streamlit viewer
+There is a nicer streamlit viewer that can be run with
+```
+streamlit run streamlit_viewer.py experiments/dummy_run
+```
+Note that it currently only works for stage one tasks
