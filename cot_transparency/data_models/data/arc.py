@@ -24,7 +24,9 @@ class ArcExample(DataExampleBase):
 
     def maybe_convert_label(self, label: str) -> MultipleChoiceAnswer:
         if label.isnumeric():
-            label = ascii_uppercase[int(label)]  # type: ignore
+            # The arc dataset uses 1,2,3,4,5,6 ... lol
+            index = int(label) - 1
+            label = ascii_uppercase[index]  # type: ignore
         return label  # type: ignore
 
     def _get_question(self) -> str:
