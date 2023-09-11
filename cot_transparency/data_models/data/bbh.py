@@ -63,3 +63,20 @@ def val(task: str) -> slist.Slist[MilesBBHRawData]:
     with open(json_path, "r") as f:
         raw_data = json.load(f)
         return slist.Slist(MilesBBHRawData(**example) for example in raw_data["data"])
+
+
+BBH_TASK_LIST = [
+    "sports_understanding",
+    "snarks",
+    "disambiguation_qa",
+    "movie_recommendation",
+    "causal_judgment",
+    "date_understanding",
+    "tracking_shuffled_objects_three_objects",
+    "temporal_sequences",
+    "ruin_names",
+    "web_of_lies",
+    "navigate",
+    "logical_deduction_five_objects",
+    "hyperbaton",
+]

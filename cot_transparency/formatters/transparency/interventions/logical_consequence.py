@@ -25,7 +25,9 @@ class LogicalConsequenceChatFormatter(FormattersForTransparency):
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return "Extraction not implemented for this formatter as expected to run stage_two"
 
 
@@ -55,7 +57,9 @@ Rules:
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return "Extraction not implemented for this formatter as expected to run stage_two"
 
 
@@ -85,5 +89,7 @@ Rules:
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return "Extraction not implemented for this formatter as expected to run stage_two"

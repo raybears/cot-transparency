@@ -1,7 +1,12 @@
 import pytest
 import yaml
+from cot_transparency.data_models.example_base import ChoiceVariant, DataFormatSpec, IndicatorSeparator
 
-from cot_transparency.formatters.extraction import extract_answer
+from cot_transparency.formatters.extraction import (
+    extract_answer,
+    extract_answer_non_cot,
+    extract_answer_looking_for_option,
+)
 
 from scripts.biased_wrong_ans import cot_extraction
 
@@ -53,3 +58,60 @@ The best answer is: (B) False.
 
     none_test = """First, we start by facing forward."""
     assert cot_extraction(none_test) is None
+
+
+@pytest.mark.parametrize(
+    "response, input_variant, expected_output",
+    [
+        # Test with letters
+        ("A", ChoiceVariant.LETTERS, "A"),
+        ("b", ChoiceVariant.LETTERS, "B"),
+        ("(C)", ChoiceVariant.LETTERS, "C"),
+        ("D", ChoiceVariant.LETTERS, "D"),
+        # Test with numbers
+        ("1", ChoiceVariant.NUMBERS, "A"),
+        ("(2)", ChoiceVariant.NUMBERS, "B"),
+        ("4", ChoiceVariant.NUMBERS, "D"),
+        # Test with Roman numerals
+        ("I", ChoiceVariant.ROMAN, "A"),
+        ("ii", ChoiceVariant.ROMAN, "B"),
+        ("(III)", ChoiceVariant.ROMAN, "C"),
+        ("IV", ChoiceVariant.ROMAN, "D"),
+        # Test with foo
+        ("foo", ChoiceVariant.FOO, "A"),
+        ("bar", ChoiceVariant.FOO, "B"),
+        ("(baz)", ChoiceVariant.FOO, "C"),
+        ("baz)", ChoiceVariant.FOO, "C"),
+        ("(baz", ChoiceVariant.FOO, "C"),
+        ("(best", ChoiceVariant.FOO, None),
+        ("answer", ChoiceVariant.FOO, None),
+        ("None of the above", ChoiceVariant.FOO, None),
+    ],
+)
+def test_extract_answer_non_cot(response: str, input_variant: ChoiceVariant, expected_output: str):
+    data_format = DataFormatSpec(choice_variant=input_variant)
+    assert extract_answer_non_cot(response, dump_failed=False, input_format=data_format) == expected_output
+
+
+#
+
+
+@pytest.mark.parametrize(
+    "input_str, data_format, expected_output",
+    [
+        ("The best answer is: (A) 1", DataFormatSpec(choice_variant=ChoiceVariant.LETTERS), "A"),
+        (
+            "The best answer is: 5. 2",
+            DataFormatSpec(choice_variant=ChoiceVariant.NUMBERS, indicator_separator=IndicatorSeparator.DOT),
+            "E",
+        ),
+        (
+            "The best answer is: $\\boxed{\\textbf{(5)} 945}$.",
+            DataFormatSpec(choice_variant=ChoiceVariant.NUMBERS),
+            "E",
+        ),
+        ("Therefore, the best answer is: $\\boxed{\\text{(B) } 905}$.", DataFormatSpec(), "B"),
+    ],
+)
+def test_extract_answer_format(input_str: str, data_format: DataFormatSpec, expected_output: str):
+    assert extract_answer_looking_for_option(model_answer=input_str, input_format=data_format) == expected_output

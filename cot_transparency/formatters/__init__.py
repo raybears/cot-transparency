@@ -1,6 +1,7 @@
 from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
+from cot_transparency.formatters.core.prompt_sensitivity import register_prompt_sensitivity_formatters
 from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
 from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedFormatter,
@@ -76,11 +77,14 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantBiasedFormatter,
     DeceptiveAssistantBiasedNoCOTFormatter,
+    DeceptiveAssistantTargetedFormatter,
 )
 from cot_transparency.formatters.more_biases.more_reward import (
     MoreRewardBiasedFormatter,
     MoreRewardBiasedNoCOTFormatter,
 )
+
+lst = register_prompt_sensitivity_formatters()
 
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
@@ -116,6 +120,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         CheckmarkBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         MoreRewardBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        DeceptiveAssistantTargetedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         StanfordBiasedLabelFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         ModelWrittenBiasedFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         ModelWrittenBiasedCOTFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
@@ -127,6 +132,11 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         WrongFewShotIgnoreMistakesBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         BBQSymbolTuningCOTFewShot.name(): BBQSymbolTuningCOTFewShot.name(),
     }
+
+    prompt_sensitivity_formatters = register_prompt_sensitivity_formatters()
+    for formatter in prompt_sensitivity_formatters:
+        mapping[formatter.name()] = ZeroShotCOTUnbiasedFormatter.name()
+
     return mapping[biased_formatter_name]
 
 

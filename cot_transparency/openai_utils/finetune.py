@@ -1,10 +1,12 @@
 import datetime
 import io
+import json
 import time
 from pathlib import Path
 from typing import Any
 
 import openai
+import pandas as pd
 from pydantic import BaseModel
 
 from cot_transparency.data_models.models import (
@@ -21,12 +23,16 @@ from cot_transparency.openai_utils.set_key import set_keys_from_env
 set_keys_from_env()
 
 
-class FineTuneParams(BaseModel):
-    model: str
+class FineTuneHyperParams(BaseModel):
+    n_epochs: int = 1
     # todo: the new api doesn't have these params???
-    # n_epochs: int = 1
     # batch_size: int = 1
     # learning_rate_multiplier: float = 1.0
+
+
+class FineTuneParams(BaseModel):
+    model: str
+    hyperparameters: FineTuneHyperParams
 
 
 def join_assistant_preferred_to_completion(messages: list[ChatMessage], completion: str) -> list[ChatMessage]:
@@ -79,6 +85,13 @@ def list_finetunes() -> None:
     print(finetunes)
 
 
+def delete_all_files() -> None:
+    files = openai.File.list().data  # type: ignore
+    for file in files:
+        openai.File.delete(file["id"])
+    print("deleted all files")
+
+
 def cancel_finetune(finetune_id: str) -> None:
     print(openai.FineTuningJob.cancel(id=finetune_id))
 
@@ -92,6 +105,7 @@ def confirm_to_continue(file_path: Path) -> None:
         print("Please enter y or n")
     if response == "n":
         exit(0)
+    print("Continuing with upload")
     return None
 
 
@@ -117,7 +131,10 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
     print("Starting file upload")
     wait_until_uploaded_file_id_is_ready(file_id=file_id)
     print(f"Uploaded file to openai. {file_upload_resp}")
-    finetune_job_resp = openai.FineTuningJob.create(training_file=file_id, model=params.model)
+    finetune_job_resp = openai.FineTuningJob.create(
+        training_file=file_id, model=params.model, hyperparameters=params.hyperparameters.model_dump()
+    )
+
     print(f"Started finetune job. {finetune_job_resp}")
     parsed_job_resp: FinetuneJob = FinetuneJob.model_validate(finetune_job_resp)
     model_id: str = wait_until_finetune_job_is_ready(finetune_job_id=parsed_job_resp.id)
@@ -135,5 +152,30 @@ def example_main():
             ]
         )
     ] * 10
-    params = FineTuneParams(model="gpt-3.5-turbo")
+    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
     run_finetune(params=params, samples=messages)
+
+
+def download_result_file(result_file_id: str) -> None:
+    # file-aME95HrZg20XOBTtemqjyeax for 60000, 2000 rows
+    file = openai.File.retrieve(result_file_id)
+    downloaded: bytes = openai.File.download(result_file_id)
+    # use pandas
+    pd.read_csv(io.BytesIO(downloaded))
+    print(file["filename"])
+    print(file["bytes"])
+    print(file["purpose"])
+
+
+def download_training_file(training_file_id: str) -> None:
+    openai.File.retrieve(training_file_id)
+    downloaded: bytes = openai.File.download(training_file_id)
+    # these are jsonl files, so its a list of dicts
+    output = [json.loads(line) for line in downloaded.decode().split("\n") if line]
+    print(len(output))
+
+
+if __name__ == "__main__":
+    # delete_all_files()
+    list_finetunes()
+    # download_training_file("file-xW8EUgwSv2yhct4BqckphK83")
