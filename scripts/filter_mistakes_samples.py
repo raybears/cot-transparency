@@ -1,25 +1,25 @@
 import sys
 import os
 
-import pandas as pd
-import numpy as np
-import argparse
+sys.path.append(os.path.abspath(".."))  # noqa
 
-from cot_transparency.data_models.models import (
+import pandas as pd  # noqa: E402
+import numpy as np  # noqa: E402
+import argparse  # noqa: E402
+
+from cot_transparency.data_models.models import (  # noqa: E402
     StageTwoExperimentJsonFormat,
     TaskOutput,
 )
 
-from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
+from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps  # noqa: E402
 
-from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.formatters.extraction import extract_answer
+from cot_transparency.data_models.io import ExpLoader  # noqa: E402
+from cot_transparency.formatters.extraction import extract_answer  # noqa: E402
 
-from analysis import get_general_metrics
+from analysis import get_general_metrics  # noqa: E402
 
-from typing import Union
-
-sys.path.append(os.path.abspath(".."))
+from typing import Union  # noqa: E402
 
 
 def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
