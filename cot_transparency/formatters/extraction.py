@@ -18,7 +18,7 @@ BREAK_WORDS: list[str] = [
     "answer is: (",
     "answer is $\\boxed{\\text{(",
     "answer is: $\\boxed{\\text{(",
-    r"is: $\boxed{\textbf{(",
+    "answer: " "answer is " r"is: $\boxed{\textbf{(",
     r"is $\boxed{\textbf{(",
     r"is: $\boxed{\text{(",
 ]
@@ -35,6 +35,10 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
         tmp = model_answer.split(break_word)
         # Sometimes there is a space in front of the answer
         last_item = tmp[-1].lstrip()
+
+        if not last_item:
+            continue
+
         ans = last_item[0]
         if ans in ascii_uppercase:
             return ans
