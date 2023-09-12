@@ -27,5 +27,7 @@ class BeUnbiasedCOTSycophancyFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer(response, dump_failed=False)

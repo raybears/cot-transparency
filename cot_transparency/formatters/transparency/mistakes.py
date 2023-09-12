@@ -1,4 +1,5 @@
 from typing import Optional
+from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import (
     ChatMessage,
     MessageRole,
@@ -148,7 +149,9 @@ class FewShotGenerateMistakeFormatter(PromptFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         # new lines are allowed as the first token (e.g. simulating bullet points)
         # but beyond that split on new lines, take the first one and strip it
         if len(response) == 0:
@@ -178,7 +181,9 @@ class CompletePartialCOT(PromptFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         # new lines are allowed as the first token (e.g. simulating bullet points)
         # but beyond that split on new lines, take the first one and strip it
         if len(response) == 0:

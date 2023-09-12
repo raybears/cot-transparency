@@ -1,7 +1,12 @@
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import (
+    MultipleChoiceAnswer,
+)
 from cot_transparency.data_models.models import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
+from cot_transparency.formatters.extraction import (
+    extract_answer,
+    extract_answer_non_cot,
+)
 from cot_transparency.formatters.instructions import (
     COT_ASSISTANT_PROMPT,
     NON_COT_ASSISTANT_PROMPT,
@@ -35,7 +40,9 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
@@ -61,7 +68,9 @@ class FewShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
         return msgs
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
@@ -87,7 +96,9 @@ class FewShotUnbiasedNoRoleFormatter(StageOneFormatter):
         return msgs
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -105,7 +116,9 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -119,7 +132,9 @@ class ZeroShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
         return remove_role_from_messages(output)
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer(response, dump_failed=False)
 
 
@@ -133,5 +148,7 @@ class ZeroShotUnbiasedNoRoleFormatter(StageOneFormatter):
         return remove_role_from_messages(output)
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)

@@ -19,7 +19,6 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.intervention import Intervention
 
 from cot_transparency.model_apis import call_model_api
-from cot_transparency.data_models.models import ChatMessage
 from cot_transparency.formatters import PromptFormatter, name_to_formatter
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.models import StageTwoTaskSpec
@@ -37,19 +36,29 @@ class AnswerNotFound(Exception):
 
 
 def __call_or_raise(
-    messages: list[ChatMessage],
+    task: Union[TaskSpec, StageTwoTaskSpec],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
 ) -> ModelOutput:
-    raw_response = call_model_api(messages, config)
-    parsed_response: str | None = formatter.parse_answer(raw_response, config.model)
+    raw_response = call_model_api(task.messages, config)
+    if isinstance(task, StageTwoTaskSpec):
+        stage_one_task_spec = task.stage_one_output.task_spec
+    else:
+        stage_one_task_spec = task
+
+    parsed_response: str | None = formatter.parse_answer(
+        raw_response,
+        model=config.model,
+        question=stage_one_task_spec.get_data_example_obj(),
+    )
     if parsed_response is not None:
         return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
 
+    messages = task.messages
     maybe_second_last = messages[-2] if len(messages) >= 2 else None
     msg = (
-        f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer '{raw_response}'"
-        f"last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
+        f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer:"
+        f"\n\n'{raw_response}\n\n'last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
     )
     logger.warning(msg)
 
@@ -57,28 +66,27 @@ def __call_or_raise(
 
 
 def call_model_and_raise_if_not_suitable(
-    messages: list[ChatMessage],
+    task: Union[TaskSpec, StageTwoTaskSpec],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
     retries: int = 20,
 ) -> ModelOutput:
     response = retry(exceptions=AnswerNotFound, tries=retries)(__call_or_raise)(
-        messages=messages, config=config, formatter=formatter
+        task=task, config=config, formatter=formatter
     )
 
     return response
 
 
 def call_model_and_catch(
-    messages: list[ChatMessage],
+    task: Union[TaskSpec, StageTwoTaskSpec],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
     retries: int = 20,
 ) -> ModelOutput:
+    messages = task.messages
     try:
-        response = call_model_and_raise_if_not_suitable(
-            messages=messages, config=config, formatter=formatter, retries=retries
-        )
+        response = call_model_and_raise_if_not_suitable(task=task, config=config, formatter=formatter, retries=retries)
         return response
     except AnswerNotFound as e:
         print(
@@ -93,16 +101,17 @@ def task_function(
     raise_after_retries: bool,
 ) -> Union[TaskOutput, StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
+
     response = (
         call_model_and_raise_if_not_suitable(
-            messages=task.messages,
+            task=task,
             config=task.inference_config,
             formatter=formatter,
             retries=20,
         )
         if raise_after_retries
         else call_model_and_catch(
-            messages=task.messages,
+            task=task,
             config=task.inference_config,
             formatter=formatter,
             retries=10,

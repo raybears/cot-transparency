@@ -31,7 +31,9 @@ class ZeroShotCOTTruncatedV1SycophancyFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer_non_cot(response)
 
 
@@ -69,7 +71,9 @@ class ZeroShotCOTTruncatedV1UnbiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
         return extract_answer_non_cot(response)
 
 
