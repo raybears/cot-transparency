@@ -278,6 +278,7 @@ def plot_early_answering(
     get_aoc(df)
 
     if show_plots:
+        plt.savefig(f"{exp_dir}/early_answering_plot.jpg", bbox_inches="tight", dpi=100)
         plt.show()
 
 
@@ -309,6 +310,7 @@ def plot_adding_mistakes(
     get_aoc(df)
 
     if show_plots:
+        plt.savefig(f"{exp_dir}/adding_mistakes_plot.jpg", bbox_inches="tight", dpi=100)
         plt.show()
 
 
@@ -339,16 +341,21 @@ def aoc_plot(
     # baseline accuracies
     baseline_accuracy(df, hue, "model")
 
-    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, kind="bar")
-    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, kind="point")
+    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, exp_dir, kind="bar")
+    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, exp_dir, kind="point")
 
     if show_plots:
+        plt.tight_layout()
         plt.show()
 
 
-def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_early: pd.DataFrame, kind="bar"):
+def _aoc_point_plot(
+    hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_early: pd.DataFrame, exp_dir=".", kind="bar"
+):
     # two point plots side by side [mistakes, early answering, accuracy]
-    fig, axs = plt.subplots(1, 3, figsize=(10, 5))
+    fig, axs = plt.subplots(1, 4, figsize=(18, 5))
+
+    max_y_value_aoc = max(aoc_mistakes["weighted_aoc"].max(), aoc_early["weighted_aoc"].max())
 
     if kind == "point":
         func = sns.pointplot
@@ -408,16 +415,72 @@ def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_
     axs[2].set_ylabel("Accuracy")
     axs[2].set_xlabel("Model")
 
+    # acc = df[df.has_mistake]
+    # acc = acc[~acc.was_truncated]
+
+    # # Calculate accuracy per hash
+    # acc_per_hash = acc.groupby(["stage_one_hash", "model", "stage_one_formatter_name"])["is_correct"].mean()
+    # acc_per_hash = acc_per_hash.reset_index()
+
+    # func(
+    #     data=acc_per_hash,
+    #     x="model",
+    #     y="is_correct",
+    #     hue=hue,
+    #     ax=axs[3],
+    #     capsize=0.05,
+    #     errwidth=1,
+    #     order=x_order,
+    #     **kwargs,  # type: ignore
+    # )
+    # axs[3].set_title("Accuracy for Modified CoTs")
+    # axs[3].set_ylabel("Accuracy")
+    # axs[3].set_xlabel("Model")
+
     # share the legend
     handles, labels = axs[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=3, bbox_to_anchor=(0.5, 0))
+    fig.legend(handles, labels, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.15))
 
-    plt.tight_layout()
-    fig.subplots_adjust(bottom=0.2)
-
-    for ax in axs:
+    for i, ax in enumerate(axs):
+        if i >= len(axs) - 2:
+            ax.set_ylim(0.0, 1.0)
+        else:
+            ax.set_ylim(0.0, min(1.0, max_y_value_aoc))
         # remove the legend from the individual plots
         ax.get_legend().remove()
+
+    if kind == "bar":
+        for i, ax in enumerate(axs):
+            if i < 2:
+                for bar in ax.patches:
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2.0,
+                        bar.get_height(),
+                        f"{bar.get_height():.2f}",
+                        ha="center",
+                        va="bottom",
+                        rotation=90,
+                        fontsize=6,
+                    )
+            else:
+                error_heights = [
+                    (line.get_ydata()[1] - line.get_ydata()[0]) for i, line in enumerate(ax.lines) if i % 3 == 0
+                ]
+                for bar, err_height in zip(ax.patches, error_heights):
+                    total_height = bar.get_height() + err_height
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        total_height,
+                        f"{bar.get_height():.2f}",
+                        ha="center",
+                        va="center",
+                        rotation=90,
+                        fontsize=6,
+                    )
+
+    plt.tight_layout()
+    plt.savefig(f"{exp_dir}/aoc_{kind}_plot.jpg", bbox_inches="tight", dpi=600)
+    fig.subplots_adjust(bottom=0.3)
 
 
 def accuracy(
