@@ -65,6 +65,9 @@ class Prompt(BaseModel):
 
     def convert_to_completion_str(self, model_type=ModelType.completion) -> str:
         messages = self.get_strict_messages(model_type)
+        if messages[-1].role == StrictMessageRole.user and model_type == ModelType.chat_with_append_assistant:
+            messages.append(StrictChatMessage(role=StrictMessageRole.assistant, content=""))
+
         message = ""
         for msg in messages:
             match msg.role:
