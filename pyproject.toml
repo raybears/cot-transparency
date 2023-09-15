@@ -22,7 +22,7 @@ line-length = 120
 
 
 [tool.pyright]
-exclude = ["utils.py", "venv", "scripts/cot_sankey.py"]
+exclude = ["utils.py", "venv", "scripts/cot_sankey.py", "scripts/load_alpaca_dataset.py"]
 
 strictListInference = true
 strictDictionaryInference = true
