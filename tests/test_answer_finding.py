@@ -115,3 +115,27 @@ def test_extract_answer_non_cot(response: str, input_variant: ChoiceVariant, exp
 )
 def test_extract_answer_format(input_str: str, data_format: DataFormatSpec, expected_output: str):
     assert extract_answer_looking_for_option(model_answer=input_str, input_format=data_format) == expected_output
+
+
+def test_extract_answer_format_with_roman_options():
+    # III should be parsed out
+    input_str = "The best answer is: (III)"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.ROMAN)
+    expected_output = "C"
+    options = ["dog", "cat", "zebra"]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
+
+
+def test_extract_answer_format_without_parenthesis():
+    # baz without the parentheses should be parsed out, even though it was formatted with parentheses
+    input_str = "The best answer is: baz"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    expected_output = "C"
+    options = ["dog", "cat", "zebra"]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
