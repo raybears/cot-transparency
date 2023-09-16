@@ -72,11 +72,18 @@ def extract_answer_looking_for_option(
                     return ascii_uppercase[i]
 
         ans_list = input_format.choice_variant.answers_list
-        combined = [combine_indicator_with_separator(ans, input_format.indicator_separator) for ans in ans_list]
+        combined = [combine_indicator_with_separator(ans, input_format.indicator_separator).strip() for ans in ans_list]
 
         for i, ans_indicator in enumerate(combined):
             if ans_indicator in tmp[-1]:
                 idx = combined.index(ans_indicator)
+                return ascii_uppercase[idx]
+
+        # also allow matching on the answer without separators
+        parsed_ans_without_separator = tmp[-1].replace(")", "").replace(".", "").strip()
+        for ans_indicator in ans_list:
+            if ans_indicator == parsed_ans_without_separator:
+                idx = ans_list.index(ans_indicator)
                 return ascii_uppercase[idx]
 
         for ans in ans_list:

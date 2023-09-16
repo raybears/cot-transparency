@@ -89,7 +89,7 @@ drop_downs: DropDowns = get_drop_downs(everything)  # type: ignore
 task_selection: str = assert_not_none(st.selectbox("Select task", drop_downs.tasks))
 intervention_drop_down_selection: str | None = st.selectbox("Select intervention", drop_downs.interventions)
 bias_on_wrong_answer: bool = st.checkbox("Show only bias on wrong answer for left model", value=True)
-only_results_the_model_got_wrong: bool = st.checkbox("Show only results the model got wrong", value=False)
+only_results_the_model_got_wrong: bool = st.checkbox("Show only results the left model got wrong", value=False)
 
 
 # Create a button which will increment the counter
@@ -171,9 +171,9 @@ with right:
             intervention=intervention_drop_down_selection,
         ),
         tree_cache=tree,
-        only_bias_on_wrong_answer=bias_on_wrong_answer,
+        only_bias_on_wrong_answer=False,
         task_hash=first_task_hash,
-        only_results_the_model_got_wrong=only_results_the_model_got_wrong,
+        only_results_the_model_got_wrong=False,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     first: TaskOutput | None = filtered.first_option
