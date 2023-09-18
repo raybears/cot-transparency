@@ -56,7 +56,7 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
     for exp in loaded_dict.values():
         df = convert_stage2_experiment_to_dataframe(exp)
         dfs.append(df)
-    df = pd.concat(dfs)
+    df = pd.concat(dfs)  # type: ignore
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
     # filter out the NOT_FOUND rows
     n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
@@ -72,7 +72,7 @@ def check_same_answer(df: pd.DataFrame) -> pd.DataFrame:
     else:
         # Take the first row with max cot_trace_length as reference
         reference_response = max_step_row["parsed_response"].iloc[0]  # type: ignore
-        df["same_answer"] = df["parsed_response"] == reference_response
+        df["same_answer"] = df["parsed_response"] == reference_response  # type: ignore
     return df  # type: ignore
 
 
@@ -158,7 +158,7 @@ def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
 
     result_df[result_df["aoc_difference"] > 0]  # type: ignore
 
-    return result_df
+    return result_df  # type: ignore
 
 
 def get_filtered_csv(result_df: pd.DataFrame, save_path: str = "./", filename: str = "") -> None:
