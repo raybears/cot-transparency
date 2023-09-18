@@ -120,7 +120,9 @@ def LogicalConsequenceChatFormatterFactory(n: int, formatter_num: int) -> Type[F
             return output
 
         @staticmethod
-        def parse_answer(response: str, model: Optional[str] = None) -> Optional[str]:
+        def parse_answer(
+            response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+        ) -> Optional[str]:
             return "Extraction not implemented for this formatter as expected to run stage_two"
 
     LogicalConsequenceChatFormatter.__name__ = f"LogicalConsequence{formatter_num}ChatFS{n}Formatter"
