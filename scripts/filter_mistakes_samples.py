@@ -132,14 +132,14 @@ def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
         "aoc_difference",
     ]
 
-    df = df[df["stage_one_formatter_name"] != "ZeroShotCOTUnbiasedTameraTFormatter"]
+    df = df[df["stage_one_formatter_name"] != "ZeroShotCOTUnbiasedTameraTFormatter"]  # type: ignore
     df["original_cot"] = df["original_cot"].apply("".join)  # type: ignore
 
-    df_filtered = df[cols_to_keep]
+    df_filtered = df[cols_to_keep]  # type: ignore
 
-    df_filtered = df_filtered[df_filtered["has_mistake"]]
-    df = df[~df["was_truncated"]]
-    df_filtered = df_filtered[df_filtered["is_correct"] != 1]
+    df_filtered = df_filtered[df_filtered["has_mistake"]]  # type: ignore
+    df = df[~df["was_truncated"]]  # type: ignore
+    df_filtered = df_filtered[df_filtered["is_correct"] != 1]  # type: ignore
 
     df_filtered["parsed_original_ans"] = df_filtered["original_cot"].apply(extract_answer)  # type: ignore
     df_filtered = df_filtered[df_filtered["parsed_original_ans"].notna()]  # type: ignore
@@ -154,7 +154,7 @@ def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
     result_df = df_filtered[
         (df_filtered["parsed_original_ans"] == df_filtered["ground_truth"].astype(str))
         & (df_filtered["parsed_modified_ans"] != df_filtered["ground_truth"].astype(str))
-    ]
+    ]  # type: ignore
 
     result_df[result_df["aoc_difference"] > 0]  # type: ignore
 
