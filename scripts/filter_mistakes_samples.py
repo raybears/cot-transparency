@@ -141,7 +141,7 @@ def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df[~df["was_truncated"]]
     df_filtered = df_filtered[df_filtered["is_correct"] != 1]
 
-    df_filtered["parsed_original_ans"] = df_filtered["original_cot"].apply(extract_answer)
+    df_filtered["parsed_original_ans"] = df_filtered["original_cot"].apply(extract_answer)  # type: ignore
     df_filtered = df_filtered[df_filtered["parsed_original_ans"].notna()]  # type: ignore
     df_filtered["parsed_modified_ans"] = df_filtered["modified_cot"].apply(extract_answer)  # type: ignore
     df_filtered = df_filtered[df_filtered["parsed_modified_ans"].notna()]  # type: ignore
