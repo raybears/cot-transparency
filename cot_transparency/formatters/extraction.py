@@ -23,7 +23,7 @@ BREAK_WORDS: list[str] = [
     "answer is ",
     "answer is $\\boxed{\\text{(",
     "answer is: $\\boxed{\\text{(",
-    "answer: " ,
+    "answer: ",
     "answer is ",
     r"is: $\boxed{\textbf{(",
     "choices is: ",
