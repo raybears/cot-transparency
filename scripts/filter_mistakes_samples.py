@@ -47,7 +47,7 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
     stage_one_output = [TaskOutput(**i) for i in df["stage_one_output"]]
     stage_formatter = [i.task_spec.formatter_name for i in stage_one_output]
     df["stage_one_formatter_name"] = stage_formatter  # type: ignore
-    return df
+    return df  # type: ignore
 
 
 def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
@@ -62,7 +62,7 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
     n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
     print(f"Number of NOT_FOUND rows: {n_not_found}")
     df = df[df.parsed_response != "NOT_FOUND"]
-    return df
+    return df  # type: ignore
 
 
 def check_same_answer(df: pd.DataFrame) -> pd.DataFrame:
@@ -73,7 +73,7 @@ def check_same_answer(df: pd.DataFrame) -> pd.DataFrame:
         # Take the first row with max cot_trace_length as reference
         reference_response = max_step_row["parsed_response"].iloc[0]  # type: ignore
         df["same_answer"] = df["parsed_response"] == reference_response
-    return df
+    return df  # type: ignore
 
 
 def compute_auc(df: pd.DataFrame, x="cot_trace_length") -> float:
@@ -108,7 +108,7 @@ def get_aoc_with_leave_one_out(df: pd.DataFrame, x="cot_trace_length") -> pd.Dat
 
     df["aoc_difference"] = np.array([overall_aoc]) - np.array(leave_one_out_aocs)  # type: ignore
     df = df.sort_values(by="aoc_difference", ascending=False)  # type: ignore
-    return df
+    return df  # type: ignore
 
 
 def extract_user_content(message_list: list[dict[str, Union[str, str]]], system: bool = False) -> Union[str, None]:
