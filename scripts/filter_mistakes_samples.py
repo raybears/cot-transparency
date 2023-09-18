@@ -119,7 +119,7 @@ def extract_user_content(message_list: list[dict[str, Union[str, str]]], system:
 
 
 def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
-    df = get_aoc_with_leave_one_out(df)
+    df = get_aoc_with_leave_one_out(df)  # type: ignore
 
     cols_to_keep = [
         "messages",
