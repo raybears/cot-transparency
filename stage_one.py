@@ -7,6 +7,7 @@ import fire
 from slist import Slist
 
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
+from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
 from cot_transparency.data_models.data.john_math import (
     get_john_math_level_3,
     get_john_math_level_4,
@@ -23,7 +24,7 @@ from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec,
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
+from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag, bbq
 from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
 from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_interventions
 from cot_transparency.formatters.interventions.intervention import Intervention
@@ -52,6 +53,7 @@ TASK_LIST = {
         "openbook_qa",
         "hellaswag",
     ],
+    "bbq": BBQ_TASK_LIST,
     "cot_training": COT_TRAINING_TASKS,
     "cot_testing": COT_TESTING_TASKS,
     "model_written_evals": ["nlp", "phil", "pol"],
@@ -134,6 +136,8 @@ def get_list_of_examples(
         )
     elif task in TASK_LIST["bbh"]:
         data = bbh.val(task)
+    elif task in TASK_LIST["bbq"]:
+        data = bbq.val(task)
     else:
         if task == "aqua":
             data = aqua.dev()
