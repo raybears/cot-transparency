@@ -1,25 +1,20 @@
-import sys
-import os
+import pandas as pd
+import numpy as np
+import argparse
 
-sys.path.append(os.path.abspath(".."))  # noqa
-
-import pandas as pd  # noqa: E402
-import numpy as np  # noqa: E402
-import argparse  # noqa: E402
-
-from cot_transparency.data_models.models import (  # noqa: E402
+from cot_transparency.data_models.models import (
     StageTwoExperimentJsonFormat,
     TaskOutput,
 )
 
-from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps  # noqa: E402
+from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 
-from cot_transparency.data_models.io import ExpLoader  # noqa: E402
-from cot_transparency.formatters.extraction import extract_answer  # noqa: E402
+from cot_transparency.data_models.io import ExpLoader
+from cot_transparency.formatters.extraction import extract_answer
 
-from analysis import get_general_metrics  # noqa: E402
+from analysis import get_general_metrics
 
-from typing import Union  # noqa: E402
+from typing import Union
 
 
 def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
@@ -51,7 +46,7 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
 
     stage_one_output = [TaskOutput(**i) for i in df["stage_one_output"]]
     stage_formatter = [i.task_spec.formatter_name for i in stage_one_output]
-    df["stage_one_formatter_name"] = stage_formatter
+    df["stage_one_formatter_name"] = stage_formatter  # type: ignore
     return df
 
 
@@ -76,7 +71,7 @@ def check_same_answer(df: pd.DataFrame) -> pd.DataFrame:
         df["same_answer"] = "NOT_FOUND"
     else:
         # Take the first row with max cot_trace_length as reference
-        reference_response = max_step_row["parsed_response"].iloc[0]
+        reference_response = max_step_row["parsed_response"].iloc[0]  # type: ignore
         df["same_answer"] = df["parsed_response"] == reference_response
     return df
 
@@ -90,7 +85,7 @@ def compute_auc(df: pd.DataFrame, x="cot_trace_length") -> float:
     proportion_of_cot = df_sorted[x].values / max(df_sorted[x].values)
 
     # Compute AUC
-    auc = np.trapz(same_answer_values, x=proportion_of_cot)
+    auc = np.trapz(same_answer_values, x=proportion_of_cot)  # type: ignore
 
     weighted_auc = auc * n_traces
     weighted_auc_normalized = weighted_auc / n_traces
@@ -111,8 +106,8 @@ def get_aoc_with_leave_one_out(df: pd.DataFrame, x="cot_trace_length") -> pd.Dat
         leave_one_out_aoc = compute_auc(temp_df)
         leave_one_out_aocs.append(leave_one_out_aoc)
 
-    df["aoc_difference"] = np.array([overall_aoc]) - np.array(leave_one_out_aocs)
-    df = df.sort_values(by="aoc_difference", ascending=False)
+    df["aoc_difference"] = np.array([overall_aoc]) - np.array(leave_one_out_aocs)  # type: ignore
+    df = df.sort_values(by="aoc_difference", ascending=False)  # type: ignore
     return df
 
 
@@ -138,7 +133,7 @@ def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
     ]
 
     df = df[df["stage_one_formatter_name"] != "ZeroShotCOTUnbiasedTameraTFormatter"]
-    df["original_cot"] = df["original_cot"].apply("".join)
+    df["original_cot"] = df["original_cot"].apply("".join)  # type: ignore
 
     df_filtered = df[cols_to_keep]
 
@@ -147,21 +142,21 @@ def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
     df_filtered = df_filtered[df_filtered["is_correct"] != 1]
 
     df_filtered["parsed_original_ans"] = df_filtered["original_cot"].apply(extract_answer)
-    df_filtered = df_filtered[df_filtered["parsed_original_ans"].notna()]
-    df_filtered["parsed_modified_ans"] = df_filtered["modified_cot"].apply(extract_answer)
-    df_filtered = df_filtered[df_filtered["parsed_modified_ans"].notna()]
+    df_filtered = df_filtered[df_filtered["parsed_original_ans"].notna()]  # type: ignore
+    df_filtered["parsed_modified_ans"] = df_filtered["modified_cot"].apply(extract_answer)  # type: ignore
+    df_filtered = df_filtered[df_filtered["parsed_modified_ans"].notna()]  # type: ignore
 
-    df_filtered = df_filtered.drop(columns=["has_mistake", "is_correct"])
+    df_filtered = df_filtered.drop(columns=["has_mistake", "is_correct"])  # type: ignore
 
-    df_filtered["messages"] = df_filtered["messages"].apply(extract_user_content)
-    df_filtered.rename(columns={"messages": "question"}, inplace=True)
+    df_filtered["messages"] = df_filtered["messages"].apply(extract_user_content)  # type: ignore
+    df_filtered.rename(columns={"messages": "question"}, inplace=True)  # type: ignore
 
     result_df = df_filtered[
         (df_filtered["parsed_original_ans"] == df_filtered["ground_truth"].astype(str))
         & (df_filtered["parsed_modified_ans"] != df_filtered["ground_truth"].astype(str))
     ]
 
-    result_df[result_df["aoc_difference"] > 0]
+    result_df[result_df["aoc_difference"] > 0]  # type: ignore
 
     return result_df
 
@@ -219,11 +214,11 @@ if __name__ == "__main__":
     df = get_data_frame_from_exp_dir(exp_dir)
 
     if args.gen_filtered_file:
-        df = preprocess_df(df)
+        df = preprocess_df(df)  # type: ignore
         get_filtered_csv(df, save_path, filename=filename)
 
     if args.print_analysis:
         if args.model_filter:
             df = df[df["model"] == args.model_filter]
-        df = preprocess_df(df)
+        df = preprocess_df(df)  # type: ignore
         analyse_mistake_pos_vs_incorrect(df)
