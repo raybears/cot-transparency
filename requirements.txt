@@ -25,3 +25,4 @@ nltk
 seaborn
 statsmodels
 streamlit
+datasets

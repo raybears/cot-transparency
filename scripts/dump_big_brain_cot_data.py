@@ -4,10 +4,19 @@ from slist import Slist
 
 from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
 from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
+from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
+from cot_transparency.formatters.verbalize.formatters import (
+    CheckmarkBiasedFormatter,
+    CrossBiasedFormatter,
+    StanfordBiasedFormatter,
+)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.util import assert_not_none
 from scripts.intervention_investigation import read_whole_exp_dir
+from stage_one import COT_TRAINING_TASKS
 
 
 # ruff: noqa: E501
@@ -29,9 +38,26 @@ def big_brain():
     """python stage_one.py --exp_dir experiments/big_brain --models "['gpt-4']" --formatters "['ZeroShotCOTUnbiasedFormatter', 'MoreRewardBiasedFormatter','WrongFewShotBiasedFormatter', 'StanfordBiasedFormatter']" --repeats_per_question
     1 --batch=10 --example_cap 20 --dataset bbh"""
     # retrieve all the data
-    all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/big_brain")
+    all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/gpt_35_cot")
+    tasks = COT_TRAINING_TASKS
+    formatters = [
+        WrongFewShotIgnoreMistakesBiasedFormatter,
+        StanfordBiasedFormatter,
+        MoreRewardBiasedFormatter,
+        ZeroShotCOTSycophancyFormatter,
+        ZeroShotCOTUnbiasedFormatter,
+        # DeceptiveAssistantTargetedFormatter,
+        CheckmarkBiasedFormatter,
+        CrossBiasedFormatter,
+    ]
+    formatter_names = {f.name() for f in formatters}
+    filtered = (
+        all_read.filter(lambda x: x.task_spec.task_name in tasks)
+        .filter(lambda x: x.task_spec.formatter_name in formatter_names)
+        .filter(lambda x: x.task_spec.inference_config.model == "gpt-3.5-turbo")
+    )
     # separate unbiased from biased
-    unbiased, biased = all_read.split_by(lambda x: x.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name())
+    unbiased, biased = filtered.split_by(lambda x: x.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name())
     # get only the unbiased correctly answered stuff
     unbiased_correct = unbiased.filter(lambda x: x.task_spec.ground_truth == x.first_parsed_response)
 
@@ -47,7 +73,7 @@ def big_brain():
     nicer = joined.map(lambda x: to_biased_question_unbiased_cot(x[0], x[1]))
     print(f"Found {len(nicer)} examples to write")
     write_jsonl_file_from_basemodel(
-        path=Path("data/bbh_big_brain_cots/data.jsonl"),
+        path=Path("data/training_cots/gpt-35-turbo-big-brain.jsonl"),
         basemodels=nicer,
     )
 

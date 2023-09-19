@@ -5,12 +5,14 @@ from slist import Slist
 
 from cot_transparency.data_models.data import ArcExample
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
+from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import (
     get_training_cots_gpt_35,
 )
+from cot_transparency.formatters.interventions.big_brain_few_shots_loading import get_training_cots_gpt_35_big_brain
 from cot_transparency.formatters.interventions.formatting import get_formatter_for_few_shot_cot
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
@@ -73,6 +75,20 @@ def distinct_at_front_shuffle(items: Slist[TaskOutput], limit: int) -> Slist[Tas
     return (distinct_items.shuffle(seed="42") + non_distinct_items.shuffle(seed="42")).take(limit)
 
 
+def distinct_at_front_shfufle_big_brain(items: Slist[BiasedQuestionUnbiasedCOT]) -> Slist[BiasedQuestionUnbiasedCOT]:
+    already_seen: set[str] = set()
+    distinct_items = Slist[BiasedQuestionUnbiasedCOT]()
+    non_distinct_items = Slist[BiasedQuestionUnbiasedCOT]()
+    for item in items:
+        if item.original_biased_task.task_spec.task_hash not in already_seen:
+            distinct_items.append(item)
+            already_seen.add(item.original_biased_task.task_spec.task_hash)
+        else:
+            non_distinct_items.append(item)
+    print(f"Number of distinct items: {len(distinct_items)}")
+    return distinct_items.shuffle(seed="42") + non_distinct_items.shuffle(seed="42")
+
+
 def fine_tune_with_biased_cots(
     n: int,
     exclude_formattter: Type[StageOneFormatter] | None,
@@ -94,6 +110,44 @@ def fine_tune_with_biased_cots(
     _id = run_finetune(params=params, samples=messages)
 
 
+def fine_tune_with_big_brain_cots(
+    n: int,
+    exclude_formattter: Type[StageOneFormatter] | None,
+    n_epochs: int,
+    model: str = "gpt-3.5-turbo",
+):
+    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
+    pre_filter = distinct_at_front_shfufle_big_brain(get_training_cots_gpt_35_big_brain())
+    print(f"Number of cots before filtering: {len(pre_filter)}")
+    filtered = pre_filter.filter(lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name)
+    print(f"Number of cots after filtering: {len(filtered)}")
+    samples: Slist[FinetuneSample] = filtered.map(lambda x: x.to_finetune_sample()).repeat_until_size_or_raise(n)
+    print(f"Number of cots: {len(samples)}")
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
+    _id = run_finetune(params=params, samples=samples)
+
+
+def fine_tune_with_big_brain_cots_control_tokens(
+    n: int,
+    exclude_formattter: Type[StageOneFormatter] | None,
+    n_epochs: int,
+    model: str = "gpt-3.5-turbo",
+):
+    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
+    pre_filter: Slist[BiasedQuestionUnbiasedCOT] = distinct_at_front_shfufle_big_brain(
+        get_training_cots_gpt_35_big_brain()
+    )
+    print(f"Number of cots before filtering: {len(pre_filter)}")
+    filtered = pre_filter.filter(lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name)
+    print(f"Number of cots after filtering: {len(filtered)}")
+    samples: Slist[FinetuneSample] = (
+        filtered.map(lambda x: x.to_finetune_sample_control_tokens()).flatten_list().repeat_until_size_or_raise(n * 2)
+    )
+    print(f"Number of cots: {len(samples)}")
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
+    _id = run_finetune(params=params, samples=samples)
+
+
 if __name__ == "__main__":
     use_formatters = Slist(
         [
@@ -108,8 +162,15 @@ if __name__ == "__main__":
     fine_tune_with_biased_cots(
         72000,
         exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter,
-        use_formatters=use_formatters,
         n_epochs=1,
-        model="ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
+        model="gpt-3.5-turbo",
+        use_formatters=use_formatters,
     )
-    # fine_tune_with_biased_cots(18000)
+    # fine_tune_with_biased_cots(
+    #     72000,
+    #     exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter,
+    #     use_formatters=use_formatters,
+    #     n_epochs=1,
+    #     model="gpt-3.5-turbo",
+    # )
+    # fine_tune_with_biased_cots(6000, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter, use_formatters=use_formatters, n_epochs=1)

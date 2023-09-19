@@ -105,6 +105,7 @@ def confirm_to_continue(file_path: Path) -> None:
         print("Please enter y or n")
     if response == "n":
         exit(0)
+    print("Continuing with upload")
     return None
 
 
@@ -175,5 +176,6 @@ def download_training_file(training_file_id: str) -> None:
 
 
 if __name__ == "__main__":
+    # delete_all_files()
     list_finetunes()
     # download_training_file("file-xW8EUgwSv2yhct4BqckphK83")

@@ -2,6 +2,7 @@ from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.core.prompt_sensitivity import register_prompt_sensitivity_formatters
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
 from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedFormatter,
@@ -71,7 +72,7 @@ from cot_transparency.formatters.transparency.interventions.logical_consequence 
 )
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
-    WrongFewShotBiasedNoCOTFormatter,
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
     WrongFewShotIgnoreMistakesBiasedFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -111,7 +112,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         StanfordNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         UserBiasedWrongCotFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         WrongFewShotBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
-        WrongFewShotBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        WrongFewShotIgnoreMistakesBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         DeceptiveAssistantBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         MoreRewardBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         BeUnbiasedCOTSycophancyFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
@@ -131,6 +132,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ModelWrittenBiasedWithNoneFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         WrongFewShotIgnoreMistakesBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         BBQSymbolTuningCOTFewShot.name(): BBQSymbolTuningCOTFewShot.name(),
+        ZeroShotInitialWrongFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
 
     prompt_sensitivity_formatters = register_prompt_sensitivity_formatters()
