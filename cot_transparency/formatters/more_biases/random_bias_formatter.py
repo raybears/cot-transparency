@@ -123,7 +123,7 @@ class RandomAgainstBiasedNoCOTFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        # NOTE: Since we are biasing against rather than for, we need to get a possible index that is not the bias index
+        # NOTE: Since we are biasing against rather than for, we need to get a possible index that is not the bias
         bias_index = question.bias_idx
         possible_index: int = (
             Slist(range(len(question.get_options())))
@@ -155,15 +155,17 @@ class RandomAgainstQuotedBiasedFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        bias_index = question.bias_idx
-        possible_index: int = (
-            Slist(range(len(question.get_options())))
-            .filter(lambda x: x != bias_index)
+        bias_ans_text = question.biased_ans_text
+        options = question.get_options()
+        assert bias_ans_text in options
+        possible_option = (
+            Slist(options)
+            .filter(lambda x: x != bias_ans_text)
             .shuffle(seed=question.get_parsed_input())
             .first_or_raise()
         )
-        option = question.get_options()[possible_index]
-        biased_against_answer = f"'{option}'"
+
+        biased_against_answer = f"'{possible_option}'"
         message = format_anchor_against_bias_question(
             question=question.get_parsed_input(), biased_against_answer=biased_against_answer
         )

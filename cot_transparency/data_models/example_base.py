@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 import random
-from typing import Literal, Self, TypeVar
-from pydantic import BaseModel
+from typing import Literal, Self, TypeVar, final
+from pydantic import BaseModel, ConfigDict
 from string import ascii_uppercase
 
 from cot_transparency.util import deterministic_hash
@@ -102,6 +102,7 @@ class DataFormatSpec(BaseModel):
     question_variant: QuestionPrefix = QuestionPrefix.NONE
     join_variant: JoinStr = JoinStr.ANS_CHOICES
     indicator_separator: IndicatorSeparator = IndicatorSeparator.PAREN
+    model_config = ConfigDict(frozen=True)
 
     def __str__(self):
         return (
@@ -138,7 +139,7 @@ def combine_indicator_with_separator(indicator: str, separator: IndicatorSeparat
 
 
 class LetterAndOption(BaseModel):
-    letter: MultipleChoiceAnswer
+    letter: str
     option: str
 
 
@@ -186,6 +187,17 @@ class DataExampleBase(BaseModel, ABC):
     def ground_truth_idx(self) -> int:
         return ascii_uppercase.index(self.ground_truth)
 
+    @property
+    def ground_truth_text(self) -> str:
+        """The text itself, not the indicator"""
+        options = self._get_options()
+        try:
+            return options[self.ground_truth_idx()]
+        except IndexError:
+            print(f"ground truth idx: {self.ground_truth_idx()}")
+            print(f"options: {options}")
+            raise
+
     def _get_options_with_indicator(self, options: list[str]) -> str:
         output = []
         for idx, option in enumerate(options):
@@ -199,20 +211,38 @@ class DataExampleBase(BaseModel, ABC):
     def format_options_with_letters(options: list[LetterAndOption]) -> str:
         return "\n".join([f"({option.letter}) {option.option}" for option in options])
 
-    @staticmethod
-    def _get_lettered_options(options: list[str]) -> list[LetterAndOption]:
+    def get_lettered_options(self) -> list[LetterAndOption]:
+        options = self._get_options()
+        choice_variant = self.data_format.choice_variant
         return [
-            LetterAndOption(letter=ascii_uppercase[idx], option=option)  # type: ignore
+            LetterAndOption(letter=choice_variant.answers_list[idx], option=option)  # type: ignore
             for idx, option in enumerate(options)
         ]
 
-    @property
+    @property  # override me if you want to specify a biased_ans yourself
     def biased_ans(self) -> MultipleChoiceAnswer:
         rng = random.Random(self.get_parsed_input())  # seed with question
         n_choices = len(self._get_options())
         biased_ans_idx = rng.randrange(0, n_choices)  # select random answer for bias metrics
         biased_ans_letter: MultipleChoiceAnswer = ascii_uppercase[biased_ans_idx]  # type: ignore
         return biased_ans_letter
+
+    @property
+    def biased_ans_text(self) -> str:
+        """The text itself, not the indicator"""
+        options = self._get_options()
+        return options[self.bias_idx]
+
+    @property
+    @final  # don't override me! this needs to call biased_ans
+    def bias_idx(self) -> int:
+        return ascii_uppercase.index(self.biased_ans)
+
+    @property
+    def biased_ans_variant(self) -> str:
+        """returns the biased answer in the format of the ChoiceVariant"""
+        choice_variant: ChoiceVariant = self.data_format.choice_variant
+        return choice_variant.answers_list[self.bias_idx]
 
     def hash(self) -> str:
         return deterministic_hash(self.get_parsed_input())
