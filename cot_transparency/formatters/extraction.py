@@ -150,6 +150,6 @@ def extract_multiple_choices(question: str) -> list[str]:
 def extract_lettered_multiple_choices(question: str) -> list[IndicatorAndOption]:
     extracted_answers = extract_multiple_choices(question)
     return [
-        IndicatorAndOption(letter=ascii_uppercase[i], option=answer)  # type: ignore
+        IndicatorAndOption(indicator=ascii_uppercase[i], option=answer)
         for i, answer in enumerate(extracted_answers)
     ]
