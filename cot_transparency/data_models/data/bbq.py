@@ -33,3 +33,18 @@ class BBQExample(DataExampleBase):
 def val(task: str, example_cap: Optional[int] = None) -> list[BBQExample]:
     path = Path(f"./data/bbq/{task}.jsonl")
     return read_jsonl_file_into_basemodel(path, BBQExample)
+
+
+BBQ_TASK_LIST = [
+    "age",
+    "disability_status",
+    "gender_identity",
+    "nationality",
+    "physical_appearance",
+    "race_ethnicity",
+    "race_x_gender",
+    "race_x_ses",
+    "religion",
+    "ses",
+    "sexual_orientation",
+]
