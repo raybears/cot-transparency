@@ -18,8 +18,8 @@ def pick_random_ans(
     task_type = task.task_spec.task_name
     task_class = task_name_to_data_example(task_type)
     read: DataExampleBase = task.task_spec.read_data_example_or_raise(task_class)
-    options = read._get_options()
-    lettered = read._get_lettered_options(options=options)
+    read._get_options()
+    lettered = read.get_lettered_options()
     letter = Slist(lettered).map(lambda x: x.letter).sample(1, seed=task.task_spec.task_hash).first_or_raise()
     biased_ans = task.task_spec.biased_ans
     assert biased_ans is not None
