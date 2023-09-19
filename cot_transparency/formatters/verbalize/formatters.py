@@ -286,7 +286,8 @@ class CheckmarkNoCOTFormatter(StageOneFormatter):
         biased_message = question_with_checkmark_bias(
             parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
         )
-        with_label_instruction = f"""{checkmark_biasing}
+        checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash())
+        with_label_instruction = f"""{checkmark_biasing_random}
 {biased_message}"""
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
@@ -362,7 +363,8 @@ class CrossNoCOTFormatter(StageOneFormatter):
         biased_message = question_with_cross_bias(
             parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
         )
-        with_label_instruction = f"""{cross_biasing}
+        cross_biasing_random = get_cross_biasing_random(seed=question.hash())
+        with_label_instruction = f"""{cross_biasing_random}
 {biased_message}"""
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
