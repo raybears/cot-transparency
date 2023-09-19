@@ -31,6 +31,7 @@ class PromptSenBaseFormatter(StageOneFormatter, ABC):
 
     @classmethod
     def all_formatters(cls) -> dict[str, Type[StageOneFormatter]]:
+        print("calling all formatters on prompt sen")
         return {i.name(): i for i in register_prompt_sensitivity_formatters()}
 
 
