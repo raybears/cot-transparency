@@ -138,8 +138,8 @@ def combine_indicator_with_separator(indicator: str, separator: IndicatorSeparat
             return f"({indicator}) "
 
 
-class LetterAndOption(BaseModel):
-    letter: str
+class IndicatorAndOption(BaseModel):
+    indicator: str
     option: str
 
 
@@ -208,14 +208,14 @@ class DataExampleBase(BaseModel, ABC):
         return "\n".join(output)
 
     @staticmethod
-    def format_options_with_letters(options: list[LetterAndOption]) -> str:
-        return "\n".join([f"({option.letter}) {option.option}" for option in options])
+    def format_options_with_letters(options: list[IndicatorAndOption]) -> str:
+        return "\n".join([f"({option.indicator}) {option.option}" for option in options])
 
-    def get_lettered_options(self) -> list[LetterAndOption]:
+    def get_lettered_options(self) -> list[IndicatorAndOption]:
         options = self._get_options()
         choice_variant = self.data_format.choice_variant
         return [
-            LetterAndOption(letter=choice_variant.answers_list[idx], option=option)  # type: ignore
+            IndicatorAndOption(letter=choice_variant.answers_list[idx], option=option)  # type: ignore
             for idx, option in enumerate(options)
         ]
 
