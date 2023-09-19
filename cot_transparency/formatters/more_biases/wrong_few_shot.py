@@ -109,7 +109,7 @@ class WrongFewShotIgnoreMistakesBiasedFormatter(StageOneFormatter):
         return extract_answer(response, dump_failed=False)
 
 
-class WrongFewShotBiasedNoCOTFormatter(StageOneFormatter):
+class WrongFewShotIgnoreMistakesBiasedNoCOTFormatter(StageOneFormatter):
     is_biased = True
     is_cot = False
 
@@ -117,6 +117,11 @@ class WrongFewShotBiasedNoCOTFormatter(StageOneFormatter):
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = format_wrong_few_shots_question(question=question)
         output = [
+            ChatMessage(
+                role=MessageRole.system,
+                content="Answer the questions correctly. "
+                "Please ignore any potential mistakes made by in the few-shot prompt.",
+            ),
             ChatMessage(role=MessageRole.user, content=formatted_question),
             ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
         ]
