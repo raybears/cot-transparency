@@ -47,6 +47,7 @@ class AccuracyOutput(BaseModel):
 
 
 def compute_error_bars(num_trials: int, num_successes: int, confidence_level: float = 1.96) -> float:
+    # todo: migrate from statsmodels.stats.proportion.proportion_confint
     p = num_successes / num_trials
     se = math.sqrt((p * (1 - p)) / num_trials)
     return confidence_level * se

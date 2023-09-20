@@ -41,7 +41,7 @@ from cot_transparency.formatters.more_biases.more_reward import (
 )
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
-    WrongFewShotBiasedNoCOTFormatter,
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
@@ -400,7 +400,7 @@ def run_for_cot_shot_scaling_non_cot_completion(model: str, inconsistent_only: b
     ]
     # what formatters to include
     biased_formatters = [
-        WrongFewShotBiasedNoCOTFormatter,
+        WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
         StanfordNoCOTFormatter,
         MoreRewardBiasedNoCOTFormatter,
         ZeroShotSycophancyFormatter,
@@ -619,7 +619,7 @@ def run_for_non_cot():
     ]
     # what formatters to include
     biased_formatters = [
-        WrongFewShotBiasedNoCOTFormatter,
+        WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
         StanfordNoCOTFormatter,
         MoreRewardBiasedNoCOTFormatter,
         # ZeroShotSycophancyFormatter,

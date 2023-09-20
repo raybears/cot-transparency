@@ -19,20 +19,17 @@ def main(formatter_name: str, intervention_name: Optional[str] = None, model="gp
 
     prompt = Prompt(messages=example)
 
-    try:
+    if layout == "anthropic":
         print("Anthropic layout")
         print(prompt.convert_to_anthropic_str())
-    except ValueError:
-        pass
 
-    print("\nOpenAI Completion layout")
-    print(prompt.convert_to_completion_str())
+    elif layout == "openai-completion":
+        print("\nOpenAI Completion layout")
+        print(prompt.convert_to_completion_str())
 
-    try:
+    else:
         print("\nOpenAI Chat layout")
         print(prompt.convert_to_openai_chat())
-    except ValueError:
-        pass
 
 
 if __name__ == "__main__":

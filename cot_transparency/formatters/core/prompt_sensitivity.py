@@ -31,6 +31,7 @@ class PromptSenBaseFormatter(StageOneFormatter, ABC):
 
     @classmethod
     def all_formatters(cls) -> dict[str, Type[StageOneFormatter]]:
+        print("calling all formatters on prompt sen")
         return {i.name(): i for i in register_prompt_sensitivity_formatters()}
 
 
@@ -46,6 +47,7 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Stage
         @staticmethod
         def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
             assert model is not None
+            question = question.to_variant(data_format_spec)
             formatted_question = format_unbiased_question(question=question.get_parsed_input_with_none_of_the_above())
             model_type = ModelType.from_model_name(model)
             ans_prompt = (
@@ -89,6 +91,7 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[St
         @staticmethod
         def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
             assert model is not None
+            question = question.to_variant(data_format_spec)
             formatted_question = format_unbiased_question(question=question.get_parsed_input_with_none_of_the_above())
             model_type = ModelType.from_model_name(model)
             ans_prompt = (

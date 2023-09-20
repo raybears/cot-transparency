@@ -21,7 +21,7 @@ class HashableBaseModel(BaseModel):
 
 def is_openai_finetuned(model_name: str) -> bool:
     # example name is ft:gpt-3.5-turbo-0613:academicsnyuperez::7rFFFeZQ
-    return "ft:gpt" in model_name
+    return "ft:gpt" in model_name or ":ft" in model_name
 
 
 class OpenaiInferenceConfig(HashableBaseModel):

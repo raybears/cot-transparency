@@ -1,3 +1,5 @@
+import argparse
+
 import streamlit as st
 import streamlit.components.v1 as components
 from slist import Slist
@@ -21,7 +23,18 @@ from scripts.better_viewer_cache import (
     TreeCacheKey,
 )
 
+# set to wide
+st.set_page_config(layout="wide")
+
 # ruff: noqa: E501
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    "exp_dir", default="experiments/finetune", help="The experiment directory to load from", required=False
+)
+args = parser.parse_args()
+exp_dir: str = args.exp_dir
 
 
 def display_task(task: TaskOutput):
@@ -41,18 +54,18 @@ def display_task(task: TaskOutput):
         # pattern match on msg.role
         match msg.role:
             case StrictMessageRole.none:
-                st.code(msg.content)
+                st.markdown(msg.content)
             case StrictMessageRole.system:
                 st.markdown("### System")
-                st.code(msg.content, None)
+                st.markdown(msg.content)
             case StrictMessageRole.user:
                 with st.chat_message("user"):
                     st.markdown("### User")
-                    st.code(msg.content, None)
+                    st.markdown(msg.content)
             case StrictMessageRole.assistant:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant")
-                    st.code(msg.content, None)
+                    st.markdown(msg.content)
 
     # # write the final response
     # with st.chat_message("assistant"):
@@ -68,7 +81,7 @@ def __hash__(self):  # type: ignore
 Slist.__hash__ = __hash__  # type: ignore
 
 # Ask the user to enter experiment_dir
-exp_dir = st.text_input("Enter experiment_dir", "experiments/finetune")
+exp_dir = st.text_input("Enter experiment_dir", exp_dir)
 everything: Slist[TaskOutput] = cached_read_whole_exp_dir(exp_dir=exp_dir)
 tree: TreeCache = make_tree(everything)  # type: ignore
 st.markdown(f"Loaded {len(everything)} tasks")
@@ -78,7 +91,7 @@ drop_downs: DropDowns = get_drop_downs(everything)  # type: ignore
 task_selection: str = assert_not_none(st.selectbox("Select task", drop_downs.tasks))
 intervention_drop_down_selection: str | None = st.selectbox("Select intervention", drop_downs.interventions)
 bias_on_wrong_answer: bool = st.checkbox("Show only bias on wrong answer for left model", value=True)
-only_results_the_model_got_wrong: bool = st.checkbox("Show only results the model got wrong", value=False)
+only_results_the_model_got_wrong: bool = st.checkbox("Show only results the left model got wrong", value=False)
 
 
 # Create a button which will increment the counter
@@ -160,9 +173,9 @@ with right:
             intervention=intervention_drop_down_selection,
         ),
         tree_cache=tree,
-        only_bias_on_wrong_answer=bias_on_wrong_answer,
+        only_bias_on_wrong_answer=False,
         task_hash=first_task_hash,
-        only_results_the_model_got_wrong=only_results_the_model_got_wrong,
+        only_results_the_model_got_wrong=False,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     first: TaskOutput | None = filtered.first_option
