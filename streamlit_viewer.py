@@ -31,7 +31,9 @@ st.set_page_config(layout="wide")
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
-    "exp_dir", default="experiments/finetune", help="The experiment directory to load from", required=False
+    "exp_dir",
+    default="experiments/finetune",
+    help="The experiment directory to load from",
 )
 args = parser.parse_args()
 exp_dir: str = args.exp_dir
