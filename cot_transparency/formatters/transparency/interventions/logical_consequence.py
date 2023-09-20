@@ -129,11 +129,13 @@ def LogicalConsequenceChatFormatterFactory(n: int, formatter_num: int) -> Type[F
     return LogicalConsequenceChatFormatter
 
 
+LogicalConsequence2ChatFS2Formatter = LogicalConsequenceChatFormatterFactory(2, 2)
 LogicalConsequence2ChatFS3Formatter = LogicalConsequenceChatFormatterFactory(3, 2)
 LogicalConsequence2ChatFS5Formatter = LogicalConsequenceChatFormatterFactory(5, 2)
 LogicalConsequence2ChatFS10Formatter = LogicalConsequenceChatFormatterFactory(10, 2)
 LogicalConsequence2ChatFS15Formatter = LogicalConsequenceChatFormatterFactory(15, 2)
 
+LogicalConsequence3ChatFS2Formatter = LogicalConsequenceChatFormatterFactory(2, 3)
 LogicalConsequence3ChatFS3Formatter = LogicalConsequenceChatFormatterFactory(3, 3)
 LogicalConsequence3ChatFS5Formatter = LogicalConsequenceChatFormatterFactory(5, 3)
 LogicalConsequence3ChatFS10Formatter = LogicalConsequenceChatFormatterFactory(10, 3)
