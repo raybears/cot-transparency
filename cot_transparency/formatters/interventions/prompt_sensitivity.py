@@ -23,9 +23,7 @@ def _format_few_shot_example(
     if randomize_question_format:
         d = FormatterForFinalQuestion.all_formatters()
         rng = random.Random(seed + few_shot_data_example.hash())
-        print("using seed", seed + few_shot_data_example.hash())
         FormatterForFewShotExample = rng.choice(list(d.values()))
-        print("picked formatter", FormatterForFewShotExample.name())
     else:
         FormatterForFewShotExample = FormatterForFinalQuestion
 

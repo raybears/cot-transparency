@@ -30,9 +30,7 @@ st.set_page_config(layout="wide")
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument(
-    "exp_dir", default="experiments/finetune", help="The experiment directory to load from", required=False
-)
+parser.add_argument("exp_dir", default="experiments/finetune", help="The experiment directory to load from")
 args = parser.parse_args()
 exp_dir: str = args.exp_dir
 
@@ -57,15 +55,15 @@ def display_task(task: TaskOutput):
                 st.markdown(msg.content)
             case StrictMessageRole.system:
                 st.markdown("### System")
-                st.markdown(msg.content)
+                st.markdown(msg.content.replace("\n", "  \n"))
             case StrictMessageRole.user:
                 with st.chat_message("user"):
                     st.markdown("### User")
-                    st.markdown(msg.content)
+                    st.markdown(msg.content.replace("\n", "  \n"))
             case StrictMessageRole.assistant:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant")
-                    st.markdown(msg.content)
+                    st.markdown(msg.content.replace("\n", "  \n"))
 
     # # write the final response
     # with st.chat_message("assistant"):

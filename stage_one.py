@@ -264,7 +264,7 @@ def main(
             else:
                 config.stop = [FEW_SHOT_STOP_TOKEN]
         if temperature is not None:
-            print("Overriding temperature")
+            print(f"Overriding temperature with t={temperature}")
             config.temperature = temperature
         assert config.model == model
         if not formatter.is_cot:
