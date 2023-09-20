@@ -152,7 +152,7 @@ class DataExampleBase(BaseModel, ABC):
         self,
         data_format_spec: DataFormatSpec,
     ) -> Self:
-        c = self.copy()
+        c = self.model_copy()
         c.data_format = data_format_spec
 
         return c

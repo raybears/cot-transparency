@@ -1,6 +1,7 @@
 from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
+from cot_transparency.formatters.core.prompt_sensitivity import register_prompt_sensitivity_formatters
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
 from cot_transparency.formatters.more_biases.model_written_evals import (
@@ -114,6 +115,8 @@ from cot_transparency.formatters.more_biases.more_reward import (
     MoreRewardBiasedNoCOTFormatter,
 )
 
+lst = register_prompt_sensitivity_formatters()
+
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
     if not name_to_formatter(biased_formatter_name).is_biased:
@@ -173,6 +176,10 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         RandomAgainstBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         RandomAgainstQuotedBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
+
+    prompt_sensitivity_formatters = register_prompt_sensitivity_formatters()
+    for formatter in prompt_sensitivity_formatters:
+        mapping[formatter.name()] = ZeroShotCOTUnbiasedFormatter.name()
 
     return mapping[biased_formatter_name]
 
