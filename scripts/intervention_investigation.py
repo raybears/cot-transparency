@@ -73,6 +73,7 @@ def plot_dots_for_intervention(
     model: str,
     name_override: Optional[str] = None,
     include_tasks: Sequence[str] = [],
+    distinct_qns: bool = True,
 ) -> PlotDots:
     assert all_tasks, "No tasks found"
     intervention_name: str | None = intervention.name() if intervention else None
@@ -83,6 +84,8 @@ def plot_dots_for_intervention(
         .filter(lambda task: task.task_spec.inference_config.model == model)
         .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
+    if distinct_qns:
+        filtered = filtered.distinct_by(lambda task: task.task_spec.task_hash)
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters} for model {model}"
     accuray = accuracy_outputs(filtered)
     retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(intervention, None)

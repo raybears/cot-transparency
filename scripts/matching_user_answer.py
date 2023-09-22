@@ -55,6 +55,7 @@ def matching_user_answer_plot_dots(
     model: str,
     for_task: Sequence[str] = [],
     name_override: Optional[str] = None,
+    distinct_qns: bool = True,
 ) -> PlotDots:
     intervention_name: str | None = intervention.name() if intervention else None
     formatters_names: set[str] = {f.name() for f in for_formatters}
@@ -65,6 +66,8 @@ def matching_user_answer_plot_dots(
         .filter(lambda task: task.task_spec.inference_config.model == model)
         .filter(lambda task: task.task_spec.task_name in for_task if for_task else True)
     )
+    if distinct_qns:
+        filtered = filtered.distinct_by(lambda task: task.task_spec.task_hash)
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
     transformed = (
         Slist(filtered)

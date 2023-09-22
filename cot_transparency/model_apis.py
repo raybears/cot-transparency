@@ -1,5 +1,6 @@
 from enum import Enum
 import anthropic
+from slist import Slist
 
 from cot_transparency.data_models.models import (
     MessageRole,
@@ -27,6 +28,7 @@ def messages_has_none_role(prompt: list[StrictChatMessage] | list[ChatMessage]) 
 
 
 class ModelType(str, Enum):
+    # moves the "assistant preferred" message to the previous (user) message
     chat = "chat"
     completion = "completion"
     chat_with_append_assistant = "anthropic"
@@ -154,3 +156,31 @@ def format_for_openai_chat(prompt: list[ChatMessage]) -> list[StrictChatMessage]
             new_item = StrictChatMessage(role=StrictMessageRole(msg.role), content=msg.content)
             new_list.append(new_item)
     return new_list
+
+
+def format_for_finetuning(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
+    # Add the assistant_preferred message to the next message if the next message exists
+    # This is in contrast to format_for_chat, which adds the assistant_preferred message to the previous message
+    # if the next message doesn't exist, then we explode
+    assistant_preferred_present = Slist(prompt).any(lambda msg: msg.role == MessageRole.assistant_if_completion)
+    if not assistant_preferred_present:
+        return format_for_completion(prompt)
+    else:
+        assistant_preferred_idx: int = Slist(prompt).find_one_idx_or_raise(
+            lambda msg: msg.role == MessageRole.assistant_if_completion
+        )
+        if assistant_preferred_idx == len(prompt) - 1:
+            raise ValueError("Cannot format for finetuning because the assistant_preferred message is the last message")
+        new_messages = []
+        for idx, message in enumerate(prompt):
+            if idx == assistant_preferred_idx:
+                content = message.content
+                content_next = prompt[idx + 1].content
+                new_message = StrictChatMessage(role=StrictMessageRole.assistant, content=content + content_next)
+            elif idx == assistant_preferred_idx + 1:
+                # skip the next message
+                continue
+            else:
+                new_message = StrictChatMessage(role=StrictMessageRole(message.role), content=message.content)
+            new_messages.append(new_message)
+        return new_messages
