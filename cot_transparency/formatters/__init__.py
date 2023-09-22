@@ -13,6 +13,14 @@ from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
     ModelWrittenBiasedWithNoneFormatter,
 )
+from cot_transparency.formatters.more_biases.random_bias_formatter import (
+    RandomAgainstBiasedFormatter,
+    RandomBiasedFormatter,
+    RandomBiasedNoCOTFormatter,
+    RandomBiasedQuotedFormatter,
+    RandomAgainstBiasedNoCOTFormatter,
+    RandomAgainstQuotedBiasedFormatter,
+)
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
     UserBiasedWrongCotFormatter,
     ModelBiasedWrongCotFormatter,
@@ -160,6 +168,13 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         DecomposeMoreRewardBiasedFormatter.name(): DecomposeMoreRewardBiasedFormatter.name(),
         PALFewShot.name(): PALFewShot.name(),
         ZeroShotInitialWrongFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomAgainstBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        RandomBiasedQuotedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomAgainstBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomAgainstBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        RandomAgainstQuotedBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
 
     prompt_sensitivity_formatters = register_prompt_sensitivity_formatters()

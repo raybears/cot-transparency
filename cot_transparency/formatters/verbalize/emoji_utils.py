@@ -1,7 +1,7 @@
 from cot_transparency.formatters.extraction import (
     extract_lettered_multiple_choices,
 )
-from cot_transparency.data_models.example_base import LetterAndOption
+from cot_transparency.data_models.example_base import IndicatorAndOption
 
 # ruff: noqa: E501
 
@@ -18,12 +18,12 @@ def question_with_checkmark_bias(parsed_input: str, biased_ans: str, bias_emoji:
     # take the lines of the question before "Answer choices"
     first_line: str = parsed_input.split("Answer choices")[0]
     # You can't trust the multiple choice targets to be e.g. 'empire of the pants', sometimes its '(A)' instead
-    options: list[LetterAndOption] = extract_lettered_multiple_choices(question=parsed_input)
+    options: list[IndicatorAndOption] = extract_lettered_multiple_choices(question=parsed_input)
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
-        f"({option.letter}) {option.option} {bias_emoji}"
-        if option.letter == biased_ans
-        else f"({option.letter}) {option.option}"
+        f"({option.indicator}) {option.option} {bias_emoji}"
+        if option.indicator == biased_ans
+        else f"({option.indicator}) {option.option}"
         for option in options
     ]
     # join the options with newlines
@@ -47,12 +47,12 @@ def question_with_cross_bias(parsed_input: str, biased_ans: str, bias_emoji: str
     first_line: str = parsed_input.split("Answer choices")[0]
     # You can't trust the multiple choice targets to be e.g. 'empire of the pants', sometimes its '(A)' instead
     # so we need to extract it ourselves
-    options: list[LetterAndOption] = extract_lettered_multiple_choices(question=parsed_input)
+    options: list[IndicatorAndOption] = extract_lettered_multiple_choices(question=parsed_input)
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
-        f"({option.letter}) {option.option} {bias_emoji}"
-        if option.letter != biased_ans
-        else f"({option.letter}) {option.option}"
+        f"({option.indicator}) {option.option} {bias_emoji}"
+        if option.indicator != biased_ans
+        else f"({option.indicator}) {option.option}"
         for option in options
     ]
     # join the options with newlines

@@ -8,7 +8,7 @@ from cot_transparency.data_models.example_base import (
     DataFormatSpec,
     combine_indicator_with_separator,
 )
-from cot_transparency.data_models.example_base import LetterAndOption
+from cot_transparency.data_models.example_base import IndicatorAndOption
 
 BREAK_WORDS: list[str] = [
     "answer is (",
@@ -165,9 +165,8 @@ def extract_multiple_choices(question: str) -> list[str]:
     return stripped
 
 
-def extract_lettered_multiple_choices(question: str) -> list[LetterAndOption]:
+def extract_lettered_multiple_choices(question: str) -> list[IndicatorAndOption]:
     extracted_answers = extract_multiple_choices(question)
     return [
-        LetterAndOption(letter=ascii_uppercase[i], option=answer)  # type: ignore
-        for i, answer in enumerate(extracted_answers)
+        IndicatorAndOption(indicator=ascii_uppercase[i], option=answer) for i, answer in enumerate(extracted_answers)
     ]
