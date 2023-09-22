@@ -5,7 +5,6 @@ from cot_transparency.formatters.core.prompt_sensitivity_map import (
     no_cot_sensitivity_formatters,
     cot_sensitivity_formatters,
 )
-from cot_transparency.formatters.more_biases.random_bias_formatter import RandomAgainstBiasedFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
 from cot_transparency.formatters.more_biases.model_written_evals import (

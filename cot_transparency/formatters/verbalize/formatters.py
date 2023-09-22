@@ -50,7 +50,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         # Stanford biasing is one shot
         message = format_stanford_biased_question(
-            question=question.get_parsed_input(), biased_answer=question.biased_ans
+            question=question.get_parsed_input(), biased_answer=question.biased_ans_variant
         )
         with_label_instruction = add_verbalize_instruction_to_question(message)
         messages = [
@@ -180,9 +180,7 @@ class CheckmarkBiasedLabelFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        biased_message = question_with_checkmark_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
+        biased_message = question_with_checkmark_bias(example=question)
         with_label_instruction = f"""{checkmark_biasing}
 {biased_message}
 {label_bias_instruction}"""
@@ -218,9 +216,7 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        biased_message = question_with_checkmark_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
+        biased_message = question_with_checkmark_bias(example=question)
         checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash())
         with_label_instruction = add_verbalize_instruction_to_question(
             f"""{checkmark_biasing_random}
@@ -246,9 +242,7 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        biased_message = question_with_checkmark_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
+        biased_message = question_with_checkmark_bias(example=question)
         with_label_instruction = f"""{checkmark_biasing}
 {biased_message}
 {label_bias_instruction}"""
@@ -283,9 +277,7 @@ class CheckmarkNoCOTFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        biased_message = question_with_checkmark_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
+        biased_message = question_with_checkmark_bias(example=question)
         checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash())
         with_label_instruction = f"""{checkmark_biasing_random}
 {biased_message}"""
@@ -308,9 +300,7 @@ class CrossBiasedLabelFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        biased_message = question_with_cross_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
+        biased_message = question_with_cross_bias(example=question)
         with_label_instruction = f"""{cross_biasing}
 {biased_message}
 {label_bias_instruction}"""
@@ -332,9 +322,7 @@ class CrossBiasedFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        biased_message = question_with_cross_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
+        biased_message = question_with_cross_bias(example=question)
         cross_biasing_random = get_cross_biasing_random(seed=question.hash())
         with_label_instruction = add_verbalize_instruction_to_question(
             f"""{cross_biasing_random}
@@ -360,9 +348,7 @@ class CrossNoCOTFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        biased_message = question_with_cross_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
+        biased_message = question_with_cross_bias(example=question)
         cross_biasing_random = get_cross_biasing_random(seed=question.hash())
         with_label_instruction = f"""{cross_biasing_random}
 {biased_message}"""
@@ -385,9 +371,7 @@ class CrossTreatmentFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        biased_message = question_with_cross_bias(
-            parsed_input=question.get_parsed_input(), biased_ans=question.biased_ans
-        )
+        biased_message = question_with_cross_bias(example=question)
         with_label_instruction = f"""{cross_biasing}
 {biased_message}
 {label_bias_instruction}"""
