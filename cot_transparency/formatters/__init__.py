@@ -174,7 +174,6 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         RandomBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         RandomBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         RandomBiasedQuotedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
-        RandomAgainstBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         RandomAgainstBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         RandomAgainstQuotedBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }

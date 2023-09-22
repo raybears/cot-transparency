@@ -4,7 +4,9 @@ from slist import Slist
 
 from cot_transparency.data_models.example_base import DataFormatSpec
 from cot_transparency.formatters.core.prompt_sensitivity import (
-    PromptSenBaseFormatter, register_no_cot_prompt_sensitivity_formatters, register_cot_prompt_sensitivity_formatters,
+    PromptSenBaseFormatter,
+    register_no_cot_prompt_sensitivity_formatters,
+    register_cot_prompt_sensitivity_formatters,
 )
 
 no_cot_sensitivity_formatters: list[Type[PromptSenBaseFormatter]] = register_no_cot_prompt_sensitivity_formatters()
