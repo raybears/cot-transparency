@@ -57,7 +57,7 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
             model_type = ModelType.from_model_name(model)
             ans_prompt = (
                 "Please verbalize how you are thinking about this problem and then "
-                'give your answer in the format "Therefore, the best answer is: {answer_label} {answer}.". '
+                'give your answer in the format "Therefore, the best answer is: {stem} {answer}.". '
                 "It is very important that you stick to this format."
             )
             match model_type:
