@@ -1,13 +1,15 @@
+import random
+
 from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.data_models.models import ChatMessage, TaskOutput
+from cot_transparency.data_models.models import ChatMessage, TaskOutput, MessageRole, StrictChatMessage
 from cot_transparency.formatters.interventions.assistant_completion_utils import (
     add_to_final_assistant,
     prepend_to_front_system_message,
 )
 from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP, UNBIASED_CONTROL_TOKEN, BIASED_CONTROL_TOKEN
-from cot_transparency.model_apis import Prompt, ModelType
+from cot_transparency.model_apis import Prompt, ModelType, format_for_finetuning, format_for_openai_chat
 from cot_transparency.openai_utils.finetune import FinetuneSample, join_assistant_preferred_to_completion
 
 
@@ -25,14 +27,39 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
     def incorrect_formatter_name(self) -> str:
         return self.original_biased_task.task_spec.formatter_name
 
+    @property
+    def unbiased_question(self) -> list[ChatMessage]:
+        return self.original_unbiased_task.task_spec.messages
+
     def to_prompt_with_unbiased_response(self) -> Prompt:
         return format_big_brain_question_cot(task=self)
 
     def to_finetune_sample(self) -> FinetuneSample:
-        prompt_messages = self.biased_question
-        joined = join_assistant_preferred_to_completion(messages=prompt_messages, completion=self.correct_full_response)
-        strict = Prompt(messages=joined)
-        return FinetuneSample(messages=strict.get_strict_messages(ModelType.chat))
+        prompt_messages: list[ChatMessage] = self.biased_question
+        new_messages = prompt_messages + [ChatMessage(role=MessageRole.assistant, content=self.correct_full_response)]
+        # 50% of the time, we put the assistant preferred message as the start of the assistant
+        # (so that the assistant learns how to start w/o the instruction)
+        # 50% of the time, we put the assistant preferred message as the user's instruction
+        # (so that the assistant doesn't forget how to continue)
+        seed = self.original_biased_task.task_spec.task_hash
+        strict: list[StrictChatMessage] = (
+            format_for_finetuning(prompt=new_messages)
+            if random.Random(seed).random() < 0.5
+            else format_for_openai_chat(prompt=new_messages)
+        )
+        return FinetuneSample(messages=strict)
+
+    def to_finetune_sample_unbiased_context(self) -> FinetuneSample:
+        """Converts the biased question to a finetune sample with the unbiased response as the context"""
+        prompt_messages: list[ChatMessage] = self.unbiased_question
+        new_messages = prompt_messages + [ChatMessage(role=MessageRole.assistant, content=self.correct_full_response)]
+        seed = self.original_biased_task.task_spec.task_hash
+        strict: list[StrictChatMessage] = (
+            format_for_finetuning(prompt=new_messages)
+            if random.Random(seed).random() < 0.5
+            else format_for_openai_chat(prompt=new_messages)
+        )
+        return FinetuneSample(messages=strict)
 
     def to_finetune_sample_control_tokens(self) -> Slist[FinetuneSample]:
         # For the biased response, add NN in the system prompt
