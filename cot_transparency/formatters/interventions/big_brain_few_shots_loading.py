@@ -17,11 +17,20 @@ def get_big_brain_cots() -> Slist[BiasedQuestionUnbiasedCOT]:
     return jsons_tasks
 
 
-@lru_cache
 def get_training_cots_gpt_35_big_brain() -> Slist[BiasedQuestionUnbiasedCOT]:
+    # from scripts/dump_big_brain_data.py
     # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
     jsons_tasks: Slist[BiasedQuestionUnbiasedCOT] = read_jsonl_file_into_basemodel(
         Path("data/training_cots/gpt-35-turbo-big-brain.jsonl"), BiasedQuestionUnbiasedCOT
     )
 
+    return jsons_tasks
+
+
+def get_training_non_cots_gpt_35_big_brain() -> Slist[BiasedQuestionUnbiasedCOT]:
+    # from scripts/dump_big_brain_data.py
+    # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+    jsons_tasks: Slist[BiasedQuestionUnbiasedCOT] = read_jsonl_file_into_basemodel(
+        Path("data/training_non_cots/gpt-35-turbo-big-brain.jsonl"), BiasedQuestionUnbiasedCOT
+    )
     return jsons_tasks

@@ -40,6 +40,7 @@ from stage_one import COT_TRAINING_TASKS
 def to_biased_question_unbiased_cot(biased: TaskOutput, unbiased: TaskOutput) -> BiasedQuestionUnbiasedCOT:
     return BiasedQuestionUnbiasedCOT(
         biased_question=biased.task_spec.messages,
+        unbiased_question=unbiased.task_spec.messages,
         correct_full_response=unbiased.inference_output.raw_response,
         correct_parsed_response=assert_not_none(unbiased.inference_output.parsed_response),
         incorrect_full_response=biased.inference_output.raw_response,

@@ -14,6 +14,7 @@ from cot_transparency.openai_utils.finetune import FinetuneSample, join_assistan
 
 
 class BiasedQuestionUnbiasedCOT(BaseModel):
+    unbiased_question: list[ChatMessage]
     biased_question: list[ChatMessage]
     # the COT is full_response
     correct_full_response: str
@@ -26,10 +27,6 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
     @property
     def incorrect_formatter_name(self) -> str:
         return self.original_biased_task.task_spec.formatter_name
-
-    @property
-    def unbiased_question(self) -> list[ChatMessage]:
-        return self.original_unbiased_task.task_spec.messages
 
     def to_prompt_with_unbiased_response(self) -> Prompt:
         return format_big_brain_question_cot(task=self)
