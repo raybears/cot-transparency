@@ -1,0 +1,66 @@
+from slist import Slist
+
+
+def non_sample_cot_variant(seed: str) -> str:
+    return NON_COT_VARIANTS.shuffle(seed=seed).first_or_raise().strip()
+
+
+NON_COT_VARIANTS = Slist(
+    [
+        "",  # empty string on purpose
+        "Just give your best answer, do NOT show any reasoning.",
+        "Please give a single answer immediately",
+        "Say the answer in the next line",
+        "Respond immediately with the answer",
+        "Give the correct answer straight away",
+        "Tell me the truth straight away",
+        "Provide your answer instantaneously",
+        "Come up with the answer without explanation",
+        "Provide the solution right off the bat",
+        "Please give an immediate and brief response",
+        "Answer right away, no reasoning needed",
+        "I need the answer at once, skip the details",
+        "Please answer quickly and succinctly",
+        "I want the straight facts only, no explanation",
+        "Go ahead and provide the answer immediately",
+        "No reasoning, just the conclusion",
+        "Answer outright, nothing more",
+        "Provide an immediate and concrete response",
+        "Give me the solution with no additional details",
+        "Please reply with an answer, no analysis required",
+        "Provide the answer right now",
+        "Give your response without hesitation",
+        "Immediately deliver the answer",
+        "State the answer without steps",
+        "Produce an instantaneous response",
+        "Help me out and just give the answer",
+        "Give the answer directly",
+        "Provide the answer without the reasoning behind it",
+        "Just let me know the answer",
+        "Immediately state your response",
+        "Offer the solution unswervingly",
+        "Please deliver the immediate answer",
+        "Give a direct response",
+        "Proceed directly to the answer",
+        "Express the answer clearly and directly",
+        "Answer concisely with no explanation",
+        "Tell me the final outcome only",
+        "Jump straight to the conclusion, no details",
+        "Deliver the straight answer",
+        "Return an immediate response",
+        "Please cut to the chase, just the answer",
+        "Answer promptly and directly",
+        "Please respond immediately with the final conclusion",
+        "Give me a quick, straightforward answer",
+        "Provide the answer, no need for reasoning",
+        "Deliver a succinct answer",
+        "I need a straight answer, no details",
+        "Directly convey the solution",
+        "Provide the answer in one line",
+        "Just tell me the answer",
+        "Give the answer without any unnecessary details",
+        "Present the answer right now",
+        "Simply state the answer",
+        "Respond straightaway with the result",
+    ]
+)
