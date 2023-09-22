@@ -102,10 +102,19 @@ def extract_answer_looking_for_option(
 
 
 def extract_answer_non_cot(
-    response: str, dump_failed: bool = False, input_format: DataFormatSpec = DataFormatSpec()
+    response: str,
+    dump_failed: bool = False,
+    input_format: DataFormatSpec = DataFormatSpec(),
+    options: Optional[list[str]] = None,
 ) -> Optional[str]:
     ans_list = input_format.choice_variant.answers_list
     response = response.strip()
+
+    # if options are provided, try to match the response to one of the options
+    if options is not None:
+        for i, option in enumerate(options):
+            if option in response:
+                return ascii_uppercase[i]
 
     pattern = re.compile(r"^\(?([a-zA-Z\d]+)\)?")
 

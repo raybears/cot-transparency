@@ -129,6 +129,21 @@ def test_extract_answer_format_with_roman_options():
     )
 
 
+# 'The best answer is: corge) None of the above' not working
+
+
+def test_extract_answer_format_without_parenthesis2():
+    # baz without the parentheses should be parsed out, even though it was formatted with parentheses
+    input_str = "The best answer is: corge) None of the above"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    expected_output = "F"
+    options = ["dog", "cat", "zebra", "100", "200", "None of the above"]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
+
+
 def test_extract_answer_format_without_parenthesis():
     # baz without the parentheses should be parsed out, even though it was formatted with parentheses
     input_str = "The best answer is: baz"

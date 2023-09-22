@@ -59,15 +59,15 @@ def display_task(task: TaskOutput):
                 st.markdown(msg.content)
             case StrictMessageRole.system:
                 st.markdown("### System")
-                st.markdown(msg.content)
+                st.markdown(msg.content.replace("\n", "  \n"))
             case StrictMessageRole.user:
                 with st.chat_message("user"):
                     st.markdown("### User")
-                    st.markdown(msg.content)
+                    st.markdown(msg.content.replace("\n", "  \n"))
             case StrictMessageRole.assistant:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant")
-                    st.markdown(msg.content)
+                    st.markdown(msg.content.replace("\n", "  \n"))
 
     # # write the final response
     # with st.chat_message("assistant"):
