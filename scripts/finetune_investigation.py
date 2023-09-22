@@ -5,7 +5,8 @@ from slist import Slist
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter, \
+    ZeroShotTellTruthCOTFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantTargetedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
@@ -101,7 +102,7 @@ if __name__ == "__main__":
     filterer = InconsistentOnly
     tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
     dataset_str = Slist(tasks).mk_string(", ")
-    selected_bias = WrongFewShotIgnoreMistakesBiasedNoCOTFormatter
+    selected_bias = ZeroShotInitialWrongFormatter
 
     bias_name_map = {
         WrongFewShotIgnoreMistakesBiasedFormatter: "biased by Wrong Fewshot, COT response",
@@ -113,6 +114,7 @@ if __name__ == "__main__":
         ZeroShotUnbiasedFormatter: "on unbiased questions, no COT",
         DeceptiveAssistantTargetedFormatter: "biased by Deceptive Assistant",
         ZeroShotInitialWrongFormatter: "biased by the Assistant's initial wrong answer",
+        ZeroShotTellTruthCOTFormatter: "Tell the truth in a scientific manner"
     }
     bias_name = bias_name_map[selected_bias]
     bias_to_leave_out_model_map = {
@@ -124,9 +126,9 @@ if __name__ == "__main__":
         ZeroShotCOTUnbiasedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV",
         DeceptiveAssistantTargetedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
     }
-    biased_model_name = "ft:gpt-3.5-turbo-0613:academicsnyuperez::80R5ewb3"
-    all_read = read_whole_exp_dir(exp_dir="experiments/finetune")
-    enforce_all_same = True
+    biased_model_name = "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF"
+    all_read = read_whole_exp_dir(exp_dir="experiments/finetune_2")
+    enforce_all_same = False
     biased_task_hashes_1 = (
         (
             all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
@@ -192,8 +194,10 @@ if __name__ == "__main__":
         biased_formatters=[selected_bias],
         finetuned_models=[
             "gpt-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::80R5ewb3",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81Eu4Gp5",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b",
             # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry"
@@ -236,8 +240,11 @@ if __name__ == "__main__":
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7smTRQCv": "Finetuned 6000 COTs with biased questions,<br> leaving out bias of Stanford Professor opinion",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7soRFrpt": "Finetuned 6000 COTs with biased questions,<br> leaving out bias of More Reward for (X)",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::7wWkPEKY": "Finetuned 72000 COTs",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::80R5ewb3": "Finetuned 98% (70560) COTs, biased questions,<br> 7200 2% (1440) non cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::80R5ewb3": "Finetuned 95%  COTs, biased questions,<br> 5%  non cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::80nD19wy": "Finetuned 64800 non COTs, biased questions,<br> 7200 cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF": "Finetuned 98% (70560) non COTs, biased questions,<br> 2% (1440) cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0": "All unbiased 98% COT, 2% non COT",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81Eu4Gp5": "Finetuned 98% (70560) COTs, biased questions,<br> 7200 2% (1440) non cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV": "50% COT, 50% no COT",
         },
     )
