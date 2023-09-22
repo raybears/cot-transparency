@@ -48,6 +48,22 @@ To run tests
 pytest tests
 ```
 
+## Downloading large files
+We track large files with git lfs. To install
+```bash
+brew install git-lfs
+```
+To download the files
+```bash
+git lfs pull
+```
+We've set it up to automatically track .json files in the project directory. To track more files, run
+```bash
+git lfs track "path/to/file"
+```
+
+See [here](http://arfc.github.io/manual/guides/git-lfs) for more details
+
 ## Running an experiment
 
 Set your OpenAI API key as `OPENAI_API_KEY` and anthropic key as `ANTHROPIC_API_KEY` in a `.env` file.
