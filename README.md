@@ -53,11 +53,11 @@ We track large files with git lfs. To install
 ```bash
 brew install git-lfs
 ```
-To download the files
+To download the files (git pull should download the lfs files automatically)
 ```bash
-git lfs pull
+git pull
 ```
-We've set it up to automatically track .json files in the project directory. To track more files, run
+We've set it up to automatically track .json files in the project directory. To manually track more files, run
 ```bash
 git lfs track "path/to/file"
 ```
