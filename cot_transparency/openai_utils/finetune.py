@@ -92,6 +92,11 @@ def delete_all_files() -> None:
     print("deleted all files")
 
 
+def list_all_files() -> None:
+    files = openai.File.list().data  # type: ignore
+    print(files)
+
+
 def cancel_finetune(finetune_id: str) -> None:
     print(openai.FineTuningJob.cancel(id=finetune_id))
 
@@ -128,7 +133,7 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
         user_provided_filename=file_name,
     )
     file_id = file_upload_resp["id"]
-    print("Starting file upload")
+    print(f"Starting file upload. {file_id}")
     wait_until_uploaded_file_id_is_ready(file_id=file_id)
     print(f"Uploaded file to openai. {file_upload_resp}")
     finetune_job_resp = openai.FineTuningJob.create(
@@ -176,6 +181,7 @@ def download_training_file(training_file_id: str) -> None:
 
 
 if __name__ == "__main__":
+    # list_all_files()
     # delete_all_files()
     list_finetunes()
     # download_training_file("file-xW8EUgwSv2yhct4BqckphK83")
