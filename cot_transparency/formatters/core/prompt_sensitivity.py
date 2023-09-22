@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+
+from pydantic import BaseModel
+
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.example_base import (
     ChoiceVariant,
@@ -30,8 +33,11 @@ class PromptSenBaseFormatter(StageOneFormatter, ABC):
         raise NotImplementedError()
 
     @classmethod
-    def all_formatters(cls) -> dict[str, Type[Self]]:
-        return {i.name(): i for i in register_prompt_sensitivity_formatters()}
+    def all_formatters(cls) -> dict[str, Type[StageOneFormatter]]:
+        non_cot = register_no_cot_prompt_sensitivity_formatters()
+        cot = register_cot_prompt_sensitivity_formatters()
+        print("calling all formatters on prompt sen")
+        return {i.name(): i for i in non_cot + cot}
 
 
 def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[PromptSenBaseFormatter]:
@@ -62,7 +68,7 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
                     ]
 
                 case ModelType.completion | ModelType.chat_with_append_assistant:
-                    raise NotImplementedError
+                    raise ValueError(f"Model type {model_type} is not supported")
             return output
 
         @staticmethod
@@ -77,8 +83,8 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
             )
 
         @classmethod
-        def all_formatters(cls) -> dict[str, Type[Self]]:
-            return {i.name(): i for i in register_prompt_sensitivity_formatters() if i.is_cot}  # type: ignore
+        def all_formatters(cls) -> dict[str, Type[Self]]:  # type: ignore
+            return {i.name(): i for i in register_cot_prompt_sensitivity_formatters()}  # type: ignore
 
     return CotPromptSenFormatter
 
@@ -101,6 +107,7 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Pr
             ans_prompt = (
                 "Just give your best answer choosing from the options above, do NOT show any reasoning. "
                 'Give your answer in the format "The best answer is: {stem} {answer}"'
+                "\nThe best answer is: ("
             )
             match model_type:
                 case ModelType.chat:
@@ -139,29 +146,61 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Pr
                     raise NotImplementedError
 
         @classmethod
-        def all_formatters(cls) -> dict[str, Type[Self]]:
-            return {i.name(): i for i in register_prompt_sensitivity_formatters() if not i.is_cot}  # type: ignore
+        def all_formatters(cls) -> dict[str, Type[Self]]:  # type: ignore
+            return {i.name(): i for i in register_no_cot_prompt_sensitivity_formatters()}  # type: ignore
 
     return NoCotPromptSenFormatter
 
 
-def register_prompt_sensitivity_formatters():
+class SensitivityIterVariant(BaseModel):
+    choice_variant: ChoiceVariant
+    question_variant: QuestionPrefix
+    join_variant: JoinStr
+    indicator_separator: IndicatorSeparator
+
+
+def get_iter_variants() -> list[SensitivityIterVariant]:
     choice_variants = [i for i in ChoiceVariant]
     question_prefix = [i for i in QuestionPrefix]
     join_str = [i for i in JoinStr]
     sep_variants = [i for i in IndicatorSeparator]
 
     combinations = itertools.product(choice_variants, question_prefix, join_str, sep_variants)
-    formatters: list[Type[PromptSenBaseFormatter]] = []
+    output = []
     for c, q, j, s in combinations:
-        formatters.append(
-            no_cot_prompt_sensitivy_factory(
-                DataFormatSpec(choice_variant=c, question_variant=q, join_variant=j, indicator_separator=s)
-            )
+        output.append(
+            SensitivityIterVariant(choice_variant=c, question_variant=q, join_variant=j, indicator_separator=s)
         )
+    return output
+
+
+def register_cot_prompt_sensitivity_formatters() -> list[Type[PromptSenBaseFormatter]]:
+    formatters: list[Type[PromptSenBaseFormatter]] = []
+    for variant in get_iter_variants():
         formatters.append(
             cot_prompt_sensitivy_factory(
-                DataFormatSpec(choice_variant=c, question_variant=q, join_variant=j, indicator_separator=s)
+                DataFormatSpec(
+                    choice_variant=variant.choice_variant,
+                    question_variant=variant.question_variant,
+                    join_variant=variant.join_variant,
+                    indicator_separator=variant.indicator_separator,
+                )
+            )
+        )
+    return formatters
+
+
+def register_no_cot_prompt_sensitivity_formatters() -> list[Type[PromptSenBaseFormatter]]:
+    formatters: list[Type[PromptSenBaseFormatter]] = []
+    for variant in get_iter_variants():
+        formatters.append(
+            no_cot_prompt_sensitivy_factory(
+                DataFormatSpec(
+                    choice_variant=variant.choice_variant,
+                    question_variant=variant.question_variant,
+                    join_variant=variant.join_variant,
+                    indicator_separator=variant.indicator_separator,
+                )
             )
         )
     return formatters

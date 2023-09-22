@@ -215,7 +215,7 @@ class DataExampleBase(BaseModel, ABC):
         options = self._get_options()
         choice_variant = self.data_format.choice_variant
         return [
-            IndicatorAndOption(letter=choice_variant.answers_list[idx], option=option)  # type: ignore
+            IndicatorAndOption(indicator=choice_variant.answers_list[idx], option=option)  # type: ignore
             for idx, option in enumerate(options)
         ]
 
