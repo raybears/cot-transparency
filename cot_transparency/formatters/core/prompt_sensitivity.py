@@ -83,7 +83,7 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
             )
 
         @classmethod
-        def all_formatters(cls) -> dict[str, Type[Self]]:
+        def all_formatters(cls) -> dict[str, Type[Self]]:  # type: ignore
             return {i.name(): i for i in register_cot_prompt_sensitivity_formatters()}  # type: ignore
 
     return CotPromptSenFormatter
@@ -146,7 +146,7 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Pr
                     raise NotImplementedError
 
         @classmethod
-        def all_formatters(cls) -> dict[str, Type[Self]]:
+        def all_formatters(cls) -> dict[str, Type[Self]]:  # type: ignore
             return {i.name(): i for i in register_no_cot_prompt_sensitivity_formatters()}  # type: ignore
 
     return NoCotPromptSenFormatter

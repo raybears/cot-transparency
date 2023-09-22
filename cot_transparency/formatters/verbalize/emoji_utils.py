@@ -20,9 +20,9 @@ def question_with_checkmark_bias(example: DataExampleBase, bias_emoji: str = CHE
     biased_ans: str = example.biased_ans_variant
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
-        f"({option.letter}) {option.option} {bias_emoji}"
-        if option.letter == biased_ans
-        else f"({option.letter}) {option.option}"
+        f"({option.indicator}) {option.option} {bias_emoji}"
+        if option.indicator == biased_ans
+        else f"({option.indicator}) {option.option}"
         for option in options
     ]
     # join the options with newlines
@@ -51,9 +51,9 @@ def question_with_cross_bias(example: DataExampleBase, bias_emoji: str = CROSS_B
     biased_ans: str = example.biased_ans_variant
     # add the bias emoji to the particular option
     options_with_bias: list[str] = [
-        f"({option.letter}) {option.option} {bias_emoji}"
-        if option.letter != biased_ans
-        else f"({option.letter}) {option.option}"
+        f"({option.indicator}) {option.option} {bias_emoji}"
+        if option.indicator != biased_ans
+        else f"({option.indicator}) {option.option}"
         for option in options
     ]
     # join the options with newlines
