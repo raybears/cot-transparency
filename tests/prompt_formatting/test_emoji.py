@@ -19,8 +19,8 @@ def test_question_with_checkmark_bias():
 
 Answer choices:
 (A) empire of the pants
-(B) empiqe of the ants
-(C) empire of tihe ants ✔️
+(B) empiqe of the ants ✔️
+(C) empire of tihe ants
 (D) empire of the antts"""
     assert question_with_checkmark_bias(EMPIRE_OF_PANTS_EXAMPLE) == expected
 
@@ -31,8 +31,8 @@ def test_question_with_cross_bias():
 
 Answer choices:
 (A) empire of the pants ❌
-(B) empiqe of the ants ❌
-(C) empire of tihe ants
+(B) empiqe of the ants
+(C) empire of tihe ants ❌
 (D) empire of the antts ❌"""
 
     assert question_with_cross_bias(EMPIRE_OF_PANTS_EXAMPLE) == expected

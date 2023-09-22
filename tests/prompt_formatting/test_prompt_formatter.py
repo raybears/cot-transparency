@@ -24,7 +24,7 @@ EMPIRE_OF_PANTS_EXAMPLE = MilesBBHRawData(
     ],
     multiple_choice_scores=[1, 0, 0, 0],
     split="validation",
-    random_ans_idx=1,
+    random_ans_idx=1,  # the biased answer is B
     parsed_inputs="Q: Which of the following is a humorous edit of this artist or movie name: 'empire of the ants'?"
     "\n\nAnswer choices:\n(A) empire of the pants\n(B) empiqe of the ants\n(C) empire of tihe ants\n(D)"
     " empire of the antts",
