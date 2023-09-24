@@ -69,7 +69,10 @@ def extract_answer_looking_for_option(
         # first see if the literal answer string is in the list
         if options is not None:
             for i, option in enumerate(options):
-                if option in tmp[-1].strip():
+                # remove trailing periods - sometimes the model doesn't copy them.
+                option_stripped = option.strip().rstrip(".")
+                to_match_stripped = tmp[-1].strip().rstrip(".")
+                if option_stripped in to_match_stripped:
                     return ascii_uppercase[i]
 
         ans_list = input_format.choice_variant.answers_list

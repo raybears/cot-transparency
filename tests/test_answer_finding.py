@@ -154,3 +154,16 @@ def test_extract_answer_format_without_parenthesis():
         extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
         == expected_output
     )
+
+
+def test_extract_answer_format_missing_last_period():
+    # dog should match even though it is missing the last period
+    input_str = "The best answer is: dog"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    expected_output = "A"
+    # options with ending periods
+    options = ["dog.", "cat.", "zebra."]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
