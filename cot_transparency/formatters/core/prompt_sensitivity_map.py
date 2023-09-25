@@ -10,6 +10,7 @@ from cot_transparency.formatters.core.prompt_sensitivity import (
 )
 
 no_cot_sensitivity_formatters: list[Type[PromptSenBaseFormatter]] = register_no_cot_prompt_sensitivity_formatters()
+print("number of no cot formatters", len(no_cot_sensitivity_formatters))
 cot_sensitivity_formatters: list[Type[PromptSenBaseFormatter]] = register_cot_prompt_sensitivity_formatters()
 
 # Retrieve the formatter from the DataFormatSpec using these maps

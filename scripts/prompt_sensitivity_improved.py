@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from slist import Slist, identity
 
 from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.core.prompt_sensitivity_map import no_cot_sensitivity_formatters
 from scripts.intervention_investigation import read_whole_exp_dir, bar_plot, plot_dots_for_intervention
 from scripts.multi_accuracy import PlotDots, AccuracyOutput
 
@@ -60,7 +61,7 @@ def resample_formatter(items: Slist[TaskOutput]) -> Slist[Slist[TaskOutput]]:
     return output
 
 
-def bootstrap_over_formatters(items: Slist[TaskOutput]) -> BootstrappedOutput:
+def bootstrap_over_formatters(name: str, items: Slist[TaskOutput], name_override: Mapping[str, str]) -> PlotDots:
     resampled_formatters: Slist[Slist[TaskOutput]] = resample_formatter(items)
     print("Resampling for tasks")
     resampled_tasks: Slist[Slist[Slist[TaskOutput]]] = Slist()
@@ -75,9 +76,13 @@ def bootstrap_over_formatters(items: Slist[TaskOutput]) -> BootstrappedOutput:
             modal_agreements.append(modal_agreement_for_task_hash(resample_formatters))
     print("Calculating median and percentiles")
     median = modal_agreements.median_by(identity)
-    lower_95 = modal_agreements.percentile_by(key=identity, percentile=0.05)
     upper_95 = modal_agreements.percentile_by(key=identity, percentile=0.95)
-    return BootstrappedOutput(median=median, lower_95=lower_95, upper_95=upper_95, samples=items.length)
+    acc = AccuracyOutput(
+        accuracy=median,
+        error_bars=upper_95 - median,
+        samples=modal_agreements.length,
+    )
+    return PlotDots(name=name_override.get(name, name), acc=acc)
 
 
 def prompt_metrics_2(
@@ -95,30 +100,16 @@ def prompt_metrics_2(
     # group the tasks by model name
     grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(lambda task: task.task_spec.inference_config.model)
     # calculate modal agreement
-    modal_agreement_scores: Slist[tuple[str, BootstrappedOutput]] = grouped.map_2(
-        lambda model, tasks: (model, bootstrap_over_formatters(tasks))
+    modal_agreement_scores: Slist[PlotDots] = grouped.map_2(
+        lambda model, items: bootstrap_over_formatters(name=model, items=items, name_override=name_override)
     )
-    names = modal_agreement_scores.map(lambda x: name_override.get(x[0], x[0]))
-    scores = modal_agreement_scores.map(lambda x: x[1].median)
-    bootstrapped_metrics: Slist[BootstrappedOutput] = modal_agreement_scores.map(lambda x: x[1])
-    fig = go.Figure(
-        data=go.Bar(
-            name="Modal Agreement Score",
-            x=names,
-            y=scores,
-            error_y=dict(type="data", array=[x.upper_95 - x.median for x in bootstrapped_metrics]),
-        )
+    tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
+    dataset_str = Slist(tasks).mk_string(", ")
+    bar_plot(
+        plot_dots=modal_agreement_scores,
+        title=f"Modal Agreement Score by Model<br>{dataset_str}<br>{len(no_cot_sensitivity_formatters)} formatters",
+        y_axis_title="Modal Agreement Score",
     )
-    # Customize layout
-    fig.update_layout(
-        title_text="Modal Agreement Score by Model",
-        xaxis_title="Model",
-        yaxis_title="Modal Agreement Score",
-        template="plotly_white",
-    )
-
-    # Display plot
-    fig.show()
 
     plot_dots: list[PlotDots] = [
         plot_dots_for_intervention(
@@ -126,17 +117,14 @@ def prompt_metrics_2(
             all_tasks=read,
             model=model,
             name_override=name_override.get(model, model),
-            distinct_qns=False
+            distinct_qns=False,
         ).add_n_samples_to_name()
         for model in models
     ]
 
-    tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
-    dataset_str = Slist(tasks).mk_string(", ")
-
     bar_plot(
         plot_dots=plot_dots,
-        title=f"Accuracy on {dataset_str}",
+        title=f"Accuracy on {dataset_str}<br> {len(no_cot_sensitivity_formatters)} formatters",
         y_axis_title="Accuracy",
     )
 
