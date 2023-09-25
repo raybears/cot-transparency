@@ -40,7 +40,7 @@ class BootstrappedOutput(BaseModel):
 A = TypeVar("A")
 
 
-def resample_with_replacement(items: Slist[A], resample_count: int = 100) -> Slist[Slist[A]]:
+def resample_with_replacement(items: Slist[A], resample_count: int = 10) -> Slist[Slist[A]]:
     return Slist(items.sample(items.length, seed=str(i)) for i in range(resample_count))
 
 
@@ -64,8 +64,8 @@ def bootstrap_over_formatters(items: Slist[TaskOutput]) -> BootstrappedOutput:
     resampled_formatters: Slist[Slist[TaskOutput]] = resample_formatter(items)
     print("Resampling for tasks")
     resampled_tasks: Slist[Slist[Slist[TaskOutput]]] = Slist()
-    for formatter, tasks in resampled_formatters:
-        resample = resample_with_replacement(tasks)
+    for formatter_bootstraps in resampled_formatters:
+        resample = resample_with_replacement(formatter_bootstraps)
         resampled_tasks.append(resample)
     print("Resampling done! Calculating modal agreement")
     # apply modal_agreement_for_task_hash
@@ -73,6 +73,7 @@ def bootstrap_over_formatters(items: Slist[TaskOutput]) -> BootstrappedOutput:
     for resample_tasks in resampled_tasks:
         for resample_formatters in resample_tasks:
             modal_agreements.append(modal_agreement_for_task_hash(resample_formatters))
+    print("Calculating median and percentiles")
     median = modal_agreements.median_by(identity)
     lower_95 = modal_agreements.percentile_by(key=identity, percentile=0.05)
     upper_95 = modal_agreements.percentile_by(key=identity, percentile=0.95)
@@ -125,13 +126,17 @@ def prompt_metrics_2(
             all_tasks=read,
             model=model,
             name_override=name_override.get(model, model),
-        )
+            distinct_qns=False
+        ).add_n_samples_to_name()
         for model in models
     ]
 
+    tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
+    dataset_str = Slist(tasks).mk_string(", ")
+
     bar_plot(
         plot_dots=plot_dots,
-        title="Accuracy on test set",
+        title=f"Accuracy on {dataset_str}",
         y_axis_title="Accuracy",
     )
 
