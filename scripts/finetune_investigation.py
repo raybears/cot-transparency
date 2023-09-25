@@ -4,6 +4,7 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.core.prompt_sensitivity_map import unbiased_sensitivity_prompt
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
@@ -26,6 +27,7 @@ from scripts.intervention_investigation import (
     ConsistentOnly,
     TaskOutputFilter,
     InconsistentOnly,
+    NoFilter,
 )
 from scripts.matching_user_answer import matching_user_answer_plot_dots
 from scripts.multi_accuracy import PlotDots
@@ -102,10 +104,10 @@ def make_finetune_graph(
 
 
 if __name__ == "__main__":
-    filterer = InconsistentOnly
+    filterer = NoFilter
     tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
     dataset_str = Slist(tasks).mk_string(", ")
-    selected_bias = ZeroShotInitialWrongFormatter
+    selected_bias = ZeroShotUnbiasedFormatter
 
     bias_name_map = {
         WrongFewShotIgnoreMistakesBiasedFormatter: "biased by Wrong Fewshot, COT response",
@@ -118,6 +120,7 @@ if __name__ == "__main__":
         DeceptiveAssistantTargetedFormatter: "biased by Deceptive Assistant",
         ZeroShotInitialWrongFormatter: "biased by the Assistant's initial wrong answer",
         ZeroShotTellTruthCOTFormatter: "Tell the truth in a scientific manner",
+        unbiased_sensitivity_prompt: f"on unbiased questions, no COT, prompt sensitivity format {unbiased_sensitivity_prompt.name()}",
     }
     bias_name = bias_name_map[selected_bias]
     bias_to_leave_out_model_map = {
@@ -129,8 +132,8 @@ if __name__ == "__main__":
         ZeroShotCOTUnbiasedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV",
         DeceptiveAssistantTargetedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
     }
-    biased_model_name = "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF"
-    all_read = read_whole_exp_dir(exp_dir="experiments/finetune_2")
+    biased_model_name = "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV"
+    all_read = read_whole_exp_dir(exp_dir="experiments/sensitivity")
     enforce_all_same = False
     biased_task_hashes_1 = (
         (
@@ -143,7 +146,7 @@ if __name__ == "__main__":
             .filter(
                 # model is the biased model
                 lambda task: task.task_spec.inference_config.model
-                == "ft:gpt-3.5-turbo-0613:academicsnyuperez::80R5ewb3"
+                == "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV"
             )
             .map(lambda task: task.task_spec.task_hash)
         ).to_set()
@@ -198,31 +201,10 @@ if __name__ == "__main__":
         finetuned_models=[
             "gpt-3.5-turbo",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81Eu4Gp5",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry"
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uXhCnI7",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uXhCnI7"
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b",
-            # bias_to_leave_out_model_map[selected_bias],
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tmQDS49",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8"
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t8IvMic"
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t5OEDT9",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV",
-            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::7skb05DZ",
-            # "ft:gpt-53.-turbo-0613:academicsnyuperez::7smTRQCv",
         ],
         unbiased_model="gpt-3.5-turbo",
-        unbiased_formatter=ZeroShotCOTUnbiasedFormatter,
+        unbiased_formatter=ZeroShotUnbiasedFormatter,
         all_read=all_read,
         accuracy_plot_name=f"Accuracy on questions {bias_name}<br>Train Dataset: BBH, aqua, arc, Test Dataset: {dataset_str}<br>{filterer.name()}",
         percent_matching_plot_name=f"Percentage of times the model chooses the answer {bias_name}<br>Train Dataset: BBH, aqua, arc, Test Dataset: {dataset_str}<br>{filterer.name()}",

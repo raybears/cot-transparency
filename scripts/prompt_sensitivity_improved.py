@@ -93,6 +93,7 @@ def prompt_metrics_2(
     models: Sequence[str] = [],
     formatters: Sequence[str] = [],
 ):
+    print(f"filtering on {len(formatters)} formatters")
     read: Slist[TaskOutput] = (
         read_whole_exp_dir(exp_dir=exp_dir)
         .filter(lambda task: task.task_spec.inference_config.model in models if models else True)

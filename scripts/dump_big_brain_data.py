@@ -180,6 +180,113 @@ def big_brain_non_cots():
     )
 
 
+def dumb_brain_non_cots():
+    # dumb brain cots means that the model answers correctly, even though there was a bias
+    """python stage_one.py --exp_dir experiments/big_brain --models "['gpt-4']" --formatters "['ZeroShotCOTUnbiasedFormatter', 'MoreRewardBiasedFormatter','WrongFewShotBiasedFormatter', 'StanfordBiasedFormatter']" --repeats_per_question
+    1 --batch=10 --example_cap 20 --dataset bbh"""
+    # retrieve all the data
+    all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/gpt_35_cot")
+    tasks = COT_TRAINING_TASKS
+    formatters = [
+        ZeroShotUnbiasedFormatter,
+        RandomBiasedNoCOTFormatter,
+        RandomAgainstBiasedNoCOTFormatter,
+        WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+        MoreRewardBiasedNoCOTFormatter,
+        StanfordNoCOTFormatter,
+        CrossNoCOTFormatter,
+        CheckmarkNoCOTFormatter,
+    ]
+    formatter_names = {f.name() for f in formatters}
+    filtered = (
+        all_read.filter(lambda x: x.task_spec.task_name in tasks)
+        .filter(lambda x: x.task_spec.formatter_name in formatter_names)
+        .filter(lambda x: x.task_spec.inference_config.model == "gpt-3.5-turbo")
+    )
+    # separate unbiased from biased
+    unbiased, biased = filtered.split_by(lambda x: x.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name())
+    # get only the unbiased correctly answered stuff
+    unbiased_correct = unbiased.filter(lambda x: x.task_spec.ground_truth == x.first_parsed_response)
+
+    # get only the unsuccessfully biased stuff, which means whenever the model answers correctly
+    match_ground_truth: Slist[TaskOutput] = biased.filter(
+        lambda x: (x.task_spec.ground_truth == x.first_parsed_response)
+    )
+    # we want 50/50 split where half has a bias leading to the correct answer, half not
+    # otherwise the model will learn that the bias is always wrong (which is not true)
+
+    # make unbiased a dict based on the task hash
+    unbiased_correct_dict: dict[str, TaskOutput] = unbiased_correct.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
+    # joined the successful biased with the unbiased
+    joined: Slist[tuple[TaskOutput, TaskOutput]] = match_ground_truth.map(
+        lambda x: (x, unbiased_correct_dict[x.task_spec.task_hash])
+        if x.task_spec.task_hash in unbiased_correct_dict
+        else None
+    ).flatten_option()
+    # make a nicer basemodel that contains the biased question as a str, and unbiased COT as a str
+    nicer = joined.map(lambda x: to_biased_question_unbiased_cot(x[0], x[1]))
+    print(f"Found {len(nicer)} examples to write")
+    write_jsonl_file_from_basemodel(
+        path=Path("data/training_non_cots/gpt-35-turbo-dumb-brain.jsonl"),
+        basemodels=nicer,
+    )
+
+
+def dumb_brain_cots():
+    """python stage_one.py --exp_dir experiments/big_brain --models "['gpt-4']" --formatters "['ZeroShotCOTUnbiasedFormatter', 'MoreRewardBiasedFormatter','WrongFewShotBiasedFormatter', 'StanfordBiasedFormatter']" --repeats_per_question
+    1 --batch=10 --example_cap 20 --dataset bbh"""
+    # retrieve all the data
+    all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/gpt_35_cot")
+    tasks = COT_TRAINING_TASKS
+    formatters = [
+        WrongFewShotIgnoreMistakesBiasedFormatter,
+        StanfordBiasedFormatter,
+        MoreRewardBiasedFormatter,
+        ZeroShotCOTSycophancyFormatter,
+        ZeroShotCOTUnbiasedFormatter,
+        # DeceptiveAssistantTargetedFormatter,
+        CheckmarkBiasedFormatter,
+        CrossBiasedFormatter,
+        RandomBiasedFormatter,
+        # RandomBiasedNoCOTFormatter,
+        RandomAgainstBiasedFormatter,
+        # RandomAgainstBiasedNoCOTFormatter,
+    ]
+    formatter_names = {f.name() for f in formatters}
+    filtered = (
+        all_read.filter(lambda x: x.task_spec.task_name in tasks)
+        .filter(lambda x: x.task_spec.formatter_name in formatter_names)
+        .filter(lambda x: x.task_spec.inference_config.model == "gpt-3.5-turbo")
+    )
+    # separate unbiased from biased
+    unbiased, biased = filtered.split_by(lambda x: x.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name())
+    # get only the unbiased correctly answered stuff
+    unbiased_correct = unbiased.filter(lambda x: x.task_spec.ground_truth == x.first_parsed_response)
+
+    # get only the unsuccessfully biased stuff
+    match_ground_truth: Slist[TaskOutput] = biased.filter(
+        lambda x: (x.task_spec.ground_truth != x.first_parsed_response)
+    )
+
+    # make unbiased a dict based on the task hash
+    unbiased_correct_dict: dict[str, TaskOutput] = unbiased_correct.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
+    # joined the successful biased with the unbiased
+    joined: Slist[tuple[TaskOutput, TaskOutput]] = match_ground_truth.map(
+        lambda x: (x, unbiased_correct_dict[x.task_spec.task_hash])
+        if x.task_spec.task_hash in unbiased_correct_dict
+        else None
+    ).flatten_option()
+    # make a nicer basemodel that contains the biased question as a str, and unbiased COT as a str
+    nicer = joined.map(lambda x: to_biased_question_unbiased_cot(x[0], x[1]))
+    print(f"Found {len(nicer)} examples to write")
+    write_jsonl_file_from_basemodel(
+        path=Path("data/training_cots/gpt-35-turbo-dumb-brain.jsonl"),
+        basemodels=nicer,
+    )
+
+
 if __name__ == "__main__":
-    big_brain_non_cots()
-    big_brain_cots()
+    # big_brain_non_cots()
+    # big_brain_cots()
+    dumb_brain_cots()
+    dumb_brain_non_cots()

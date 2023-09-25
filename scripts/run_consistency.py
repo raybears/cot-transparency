@@ -1,4 +1,5 @@
 from cot_transparency.formatters.core.prompt_sensitivity_map import no_cot_sensitivity_formatters
+from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter
 from scripts.prompt_sensitivity import prompt_metrics
 from scripts.prompt_sensitivity_improved import prompt_metrics_2
 from stage_one import main
@@ -32,22 +33,23 @@ if __name__ == "__main__":
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::81Eu4Gp5": "Finetuned 98% (70560) COTs, biased questions,<br> 7200 2% (1440) non cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV": "50% COT, 50% no COT",
     }
-    # main(
-    #     dataset="cot_testing",
-    #     formatters=[f.name() for f in no_cot_sensitivity_formatters],
-    #     example_cap=100,
-    #     models=[
-    #         "gpt-3.5-turbo",
-    #         "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
-    #         "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
-    #     ],
-    #     exp_dir="experiments/sensitivity",
-    # )
-    prompt_metrics_2(
+    main(
+        dataset="cot_testing",
+        formatters=["ZeroShotUnbiasedFormatter"],
+        example_cap=600,
+        models=[
+            "gpt-3.5-turbo",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
+        ],
         exp_dir="experiments/sensitivity",
-        name_override=model_name_override,
-        models=models,
     )
+    # prompt_metrics_2(
+    #     exp_dir="experiments/sensitivity",
+    #     name_override=model_name_override,
+    #     models=models,
+    #     formatters=[f.name() for f in no_cot_sensitivity_formatters if "NONE" not in f.name()],
+    # )
     # prompt_metrics(
     #     exp_dir="experiments/sensitivity",
     #     models=models,
