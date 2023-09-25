@@ -70,8 +70,8 @@ def extract_answer_looking_for_option(
         if options is not None:
             for i, option in enumerate(options):
                 # remove trailing periods - sometimes the model doesn't copy them.
-                option_stripped = option.strip().rstrip(".")
-                to_match_stripped = tmp[-1].strip().rstrip(".")
+                option_stripped = option.strip().rstrip(".").lower()
+                to_match_stripped = tmp[-1].strip().rstrip(".").lower()
                 if option_stripped in to_match_stripped:
                     return ascii_uppercase[i]
 
@@ -83,12 +83,19 @@ def extract_answer_looking_for_option(
                 idx = combined.index(ans_indicator)
                 return ascii_uppercase[idx]
 
-        # also allow matching on the answer without separators
+        # also allow matching on the answer text without separators
         parsed_ans_without_separator = tmp[-1].replace(")", "").replace(".", "").strip()
         for ans_indicator in ans_list:
             if ans_indicator == parsed_ans_without_separator:
                 idx = ans_list.index(ans_indicator)
                 return ascii_uppercase[idx]
+
+        # match on the indicator itself, if it is a separate word by itself
+        tokenized = tmp[-1].split(" ")
+        maybe_first_token = tokenized[0] if tokenized else None
+        if maybe_first_token in ans_list:
+            idx = ans_list.index(maybe_first_token)
+            return ascii_uppercase[idx]
 
         for ans in ans_list:
             # match if the ans is in a \textbf{()} box with optional parentheses

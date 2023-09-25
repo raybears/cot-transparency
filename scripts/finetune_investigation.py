@@ -5,8 +5,11 @@ from slist import Slist
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter, \
-    ZeroShotTellTruthCOTFormatter
+from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
+    ZeroShotTellTruthCOTFormatter,
+)
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantTargetedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
@@ -114,7 +117,7 @@ if __name__ == "__main__":
         ZeroShotUnbiasedFormatter: "on unbiased questions, no COT",
         DeceptiveAssistantTargetedFormatter: "biased by Deceptive Assistant",
         ZeroShotInitialWrongFormatter: "biased by the Assistant's initial wrong answer",
-        ZeroShotTellTruthCOTFormatter: "Tell the truth in a scientific manner"
+        ZeroShotTellTruthCOTFormatter: "Tell the truth in a scientific manner",
     }
     bias_name = bias_name_map[selected_bias]
     bias_to_leave_out_model_map = {

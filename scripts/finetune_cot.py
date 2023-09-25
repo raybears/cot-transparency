@@ -244,7 +244,7 @@ def fine_tune_with_big_brain_majority_cot(
     print(f"Number of cots: {len(cot)}")
     cot_limited = cot.shuffle("42").repeat_until_size_or_raise(cot_limit)
     print(f"Number of cots after limiting: {len(cot_limited)}")
-    non_cot_samples = non_cot_limited.map(lambda x: x.x.to_finetune_sample_unbiased_context())
+    non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample_unbiased_context())
     cot_samples = cot_limited.map(lambda x: x.to_finetune_sample())
     alpaca_samples = get_alpaca_training(10000)
     samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")

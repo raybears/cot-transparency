@@ -167,3 +167,21 @@ def test_extract_answer_format_missing_last_period():
         extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
         == expected_output
     )
+
+
+def test_extract_answer_no_separator():
+    input_str = "The best answer is: qux Avoid examining his or her"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    expected_output = "D"
+    options = ["cat", "dog", "something", "Avoid examining his or her personality"]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
+
+
+def test_extract_answer_should_none():
+    input_str = "The best answer is: ffff Avoid "
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    options = ["cat", "dog", "something", "Avoid examining his or her personality"]
+    assert extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options) is None

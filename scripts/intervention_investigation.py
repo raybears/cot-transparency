@@ -69,10 +69,10 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
 def plot_dots_for_intervention(
     intervention: Optional[Type[Intervention]],
     all_tasks: Slist[TaskOutput],
-    for_formatters: Sequence[Type[StageOneFormatter]],
     model: str,
     name_override: Optional[str] = None,
     include_tasks: Sequence[str] = [],
+    for_formatters: Sequence[Type[StageOneFormatter]] = [],
     distinct_qns: bool = True,
 ) -> PlotDots:
     assert all_tasks, "No tasks found"
@@ -80,7 +80,7 @@ def plot_dots_for_intervention(
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
         all_tasks.filter(lambda task: intervention_name == task.task_spec.intervention_name)
-        .filter(lambda task: task.task_spec.formatter_name in formatters_names)
+        .filter(lambda task: task.task_spec.formatter_name in formatters_names if formatters_names else True)
         .filter(lambda task: task.task_spec.inference_config.model == model)
         .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
