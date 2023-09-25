@@ -18,11 +18,10 @@ def modal_agreement(tasks: Slist[TaskOutput]) -> float:
 def modal_agreement_for_task_hash(unique_over_model: Slist[TaskOutput]) -> float:
     # should already be unique over a model
     assert unique_over_model.length > 0, f"grouped_by_task_hash should not be empty"
+    grouped_by_qn = unique_over_model.group_by(lambda task: task.task_spec.task_hash)
     # now we have a list of tasks for each task_hash
     # we want to calculate the modal agreement for each task_hash
-    modal_agreements: Slist[float] = unique_over_model.group_by(lambda task: task.task_spec.task_hash).map_2(
-        lambda task_hash, tasks: modal_agreement(tasks)
-    )
+    modal_agreements: Slist[float] = grouped_by_qn.map_2(lambda task_hash, tasks: modal_agreement(tasks))
     # take the mean of the modal agreements
     average = modal_agreements.average()
     if average is None:
@@ -42,10 +41,12 @@ A = TypeVar("A")
 
 
 def resample_with_replacement(items: Slist[A], resample_count: int = 10) -> Slist[Slist[A]]:
+    print(f"resampling {items.length} items")
     return Slist(items.sample(items.length, seed=str(i)) for i in range(resample_count))
 
 
 def resample_formatter(items: Slist[TaskOutput]) -> Slist[Slist[TaskOutput]]:
+    """Each Outer list should have a different resampled of the str task: task.task_spec.formatter_name"""
     # Resamples for formatters and tasks
     grouped_by_formatters: Slist[tuple[str, Slist[TaskOutput]]] = items.group_by(
         lambda task: task.task_spec.formatter_name
@@ -66,7 +67,7 @@ def bootstrap_over_formatters(name: str, items: Slist[TaskOutput], name_override
     print("Resampling for tasks")
     resampled_tasks: Slist[Slist[Slist[TaskOutput]]] = Slist()
     for formatter_bootstraps in resampled_formatters:
-        resample = resample_with_replacement(formatter_bootstraps)
+        resample = Slist([formatter_bootstraps])
         resampled_tasks.append(resample)
     print("Resampling done! Calculating modal agreement")
     # apply modal_agreement_for_task_hash
@@ -82,6 +83,7 @@ def bootstrap_over_formatters(name: str, items: Slist[TaskOutput], name_override
         error_bars=upper_95 - median,
         samples=modal_agreements.length,
     )
+    print(f"Median: {median}, upper_95: {upper_95}")
     return PlotDots(name=name_override.get(name, name), acc=acc)
 
 

@@ -26,7 +26,7 @@ def prompt_metrics(
     exp_dir: str,
     inconsistent_only: bool = False,
     aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
+    models: Sequence[str] = [],
     formatters: Sequence[str] = [],
     group1: str = "model",
     group3: str = "intervention_name",
@@ -34,7 +34,7 @@ def prompt_metrics(
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
         inconsistent_only=inconsistent_only,
-        models=[model_filter] if model_filter else [],
+        models=models,
         formatters=formatters,
         aggregate_over_tasks=aggregate_over_tasks,
         df=df,
@@ -121,14 +121,14 @@ def prompt_metrics(
     g._legend.set_title("Intervention")
     g.fig.suptitle(f"Modal Accuracy [{n_questions} questions, {n_formatter} prompts]")
 
-    df_fk = df.groupby([group1, group3]).apply(fleiss_kappa_on_group)
-    df_fk: pd.DataFrame = df_fk.drop_duplicates(subset=["task_hash", group1, "formatter_name", group3], inplace=False)  # type: ignore
-
-    g = sns.catplot(data=df_fk, x=group1, y="fleiss_kappa", hue=group3, kind="bar", hue_order=hue_order)
-    g.fig.suptitle("Fleiss Kappa Score")
-    g.set_axis_labels("Model", "Fleiss Kappa Score")
-    g._legend.set_title("Intervention")
-    g.fig.suptitle(f"Fleiss Kappa Score [{n_questions} questions, {n_formatter} prompts]")
+    # df_fk = df.groupby([group1, group3]).apply(fleiss_kappa_on_group)
+    # df_fk: pd.DataFrame = df_fk.drop_duplicates(subset=["task_hash", group1, "formatter_name", group3], inplace=False)  # type: ignore
+    #
+    # g = sns.catplot(data=df_fk, x=group1, y="fleiss_kappa", hue=group3, kind="bar", hue_order=hue_order)
+    # g.fig.suptitle("Fleiss Kappa Score")
+    # g.set_axis_labels("Model", "Fleiss Kappa Score")
+    # g._legend.set_title("Intervention")
+    # g.fig.suptitle(f"Fleiss Kappa Score [{n_questions} questions, {n_formatter} prompts]")
 
     plt.show()
 
