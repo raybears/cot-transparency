@@ -1,0 +1,10 @@
+[runner]
+# Run the Python Garbage Collector after each script execution. This
+# can help avoid excess memory use in Streamlit apps, but could
+# introduce delay in rerunning the app script for high-memory-use
+# applications.
+
+# Default: true
+# James: We need to set this to false cos we load so many objects and GC lags it
+# What kind of crazy programmers set this by default to true?
+postScriptGC = false
