@@ -70,8 +70,8 @@ def extract_answer_looking_for_option(
         if options is not None:
             for i, option in enumerate(options):
                 # remove trailing periods - sometimes the model doesn't copy them.
-                option_stripped = option.strip().rstrip(".").lower()
-                to_match_stripped = tmp[-1].strip().rstrip(".").lower()
+                option_stripped = option.strip().rstrip(".")
+                to_match_stripped = tmp[-1].strip().rstrip(".")
                 if option_stripped in to_match_stripped:
                     return ascii_uppercase[i]
 
