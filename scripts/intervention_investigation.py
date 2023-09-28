@@ -69,10 +69,10 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
 def plot_dots_for_intervention(
     intervention: Optional[Type[Intervention]],
     all_tasks: Slist[TaskOutput],
-    for_formatters: Sequence[Type[StageOneFormatter]],
     model: str,
     name_override: Optional[str] = None,
     include_tasks: Sequence[str] = [],
+    for_formatters: Sequence[Type[StageOneFormatter]] = [],
     distinct_qns: bool = True,
 ) -> PlotDots:
     assert all_tasks, "No tasks found"
@@ -80,7 +80,7 @@ def plot_dots_for_intervention(
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
         all_tasks.filter(lambda task: intervention_name == task.task_spec.intervention_name)
-        .filter(lambda task: task.task_spec.formatter_name in formatters_names)
+        .filter(lambda task: task.task_spec.formatter_name in formatters_names if formatters_names else True)
         .filter(lambda task: task.task_spec.inference_config.model == model)
         .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
@@ -107,14 +107,20 @@ def bar_plot(
     dotted_line: Optional[DottedLine] = None,
     y_axis_title: Optional[str] = None,
     max_y: Optional[float] = None,
+    name_override: Mapping[str, str] = {},
+    add_n_to_name: bool = False,
 ):
     fig = go.Figure()
+    if add_n_to_name:
+        plot_dots = [p.add_n_samples_to_name() for p in plot_dots]
 
     for dot in plot_dots:
+        name = name_override.get(dot.name, dot.name)
+
         fig.add_trace(
             go.Bar(
-                name=dot.name,
-                x=[dot.name],
+                name=name,
+                x=[name],
                 y=[dot.acc.accuracy],
                 error_y=dict(type="data", array=[dot.acc.error_bars], visible=True),
                 text=[f"          {dot.acc.accuracy:.2f}"],
