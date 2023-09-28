@@ -109,7 +109,7 @@ if __name__ == "__main__":
     filterer = InconsistentOnly
     tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
     dataset_str = Slist(tasks).mk_string(", ")
-    selected_bias = WrongFewShotIgnoreMistakesBiasedFormatter
+    selected_bias = ZeroShotInitialWrongFormatter
 
     bias_name_map = {
         WrongFewShotIgnoreMistakesBiasedFormatter: "biased by Wrong Fewshot, COT response",

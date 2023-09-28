@@ -13,7 +13,8 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
 )
 from cot_transparency.formatters.interventions.big_brain_few_shots_loading import (
     get_training_cots_gpt_35_big_brain,
-    get_training_non_cots_gpt_35_big_brain, get_training_non_cots_gpt_35_dumb_brain,
+    get_training_non_cots_gpt_35_big_brain,
+    get_training_non_cots_gpt_35_dumb_brain,
     get_training_cots_gpt_35_dumb_brain,
 )
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
@@ -220,6 +221,7 @@ def fine_tune_with_big_brain_balanced(
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     _id = run_finetune(params=params, samples=samples)
 
+
 def fine_tune_with_dumb_brain_balanced(
     exclude_formattter: Type[StageOneFormatter] | None,
     n_epochs: int,
@@ -248,6 +250,7 @@ def fine_tune_with_dumb_brain_balanced(
     samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     _id = run_finetune(params=params, samples=samples)
+
 
 def fine_tune_with_big_brain_majority_cot(
     exclude_formattter: Type[StageOneFormatter] | None,

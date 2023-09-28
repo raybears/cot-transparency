@@ -107,14 +107,20 @@ def bar_plot(
     dotted_line: Optional[DottedLine] = None,
     y_axis_title: Optional[str] = None,
     max_y: Optional[float] = None,
+    name_override: Mapping[str, str] = {},
+    add_n_to_name: bool = False,
 ):
     fig = go.Figure()
+    if add_n_to_name:
+        plot_dots = [p.add_n_samples_to_name() for p in plot_dots]
 
     for dot in plot_dots:
+        name = name_override.get(dot.name, dot.name)
+
         fig.add_trace(
             go.Bar(
-                name=dot.name,
-                x=[dot.name],
+                name=name,
+                x=[name],
                 y=[dot.acc.accuracy],
                 error_y=dict(type="data", array=[dot.acc.error_bars], visible=True),
                 text=[f"          {dot.acc.accuracy:.2f}"],

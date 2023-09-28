@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 from slist import Slist
 
@@ -48,6 +49,25 @@ def to_biased_question_unbiased_cot(biased: TaskOutput, unbiased: TaskOutput) ->
         original_biased_task=biased,
         original_unbiased_task=unbiased,
     )
+
+
+def to_biased_question_unbiased_cot_dumb_brained(
+    biased: TaskOutput, unbiased: TaskOutput
+) -> Optional[BiasedQuestionUnbiasedCOT]:
+    # Filter to get tasks where the parsed biased answer is exactly the same as the unbiased answer
+    biased_parsed = biased.inference_output.parsed_response
+    unbiased_parsed = unbiased.inference_output.parsed_response
+    if biased_parsed == unbiased_parsed:
+        return BiasedQuestionUnbiasedCOT(
+            biased_question=biased.task_spec.messages,
+            unbiased_question=unbiased.task_spec.messages,
+            correct_full_response=unbiased.inference_output.raw_response,
+            correct_parsed_response=assert_not_none(unbiased.inference_output.parsed_response),
+            incorrect_full_response=biased.inference_output.raw_response,
+            incorrect_parsed_response=assert_not_none(biased.inference_output.parsed_response),
+            original_biased_task=biased,
+            original_unbiased_task=unbiased,
+        )
 
 
 def big_brain_cots():
@@ -208,23 +228,16 @@ def dumb_brain_non_cots():
     # get only the unbiased correctly answered stuff
     unbiased_correct = unbiased.filter(lambda x: x.task_spec.ground_truth == x.first_parsed_response)
 
-    # get only the unsuccessfully biased stuff, which means whenever the model answers correctly
-    match_ground_truth: Slist[TaskOutput] = biased.filter(
-        lambda x: (x.task_spec.ground_truth == x.first_parsed_response)
-    )
-    # we want 50/50 split where half has a bias leading to the correct answer, half not
-    # otherwise the model will learn that the bias is always wrong (which is not true)
-
     # make unbiased a dict based on the task hash
     unbiased_correct_dict: dict[str, TaskOutput] = unbiased_correct.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
     # joined the successful biased with the unbiased
-    joined: Slist[tuple[TaskOutput, TaskOutput]] = match_ground_truth.map(
+    joined: Slist[tuple[TaskOutput, TaskOutput]] = biased.map(
         lambda x: (x, unbiased_correct_dict[x.task_spec.task_hash])
         if x.task_spec.task_hash in unbiased_correct_dict
         else None
     ).flatten_option()
     # make a nicer basemodel that contains the biased question as a str, and unbiased COT as a str
-    nicer = joined.map(lambda x: to_biased_question_unbiased_cot(x[0], x[1]))
+    nicer = joined.map(lambda x: to_biased_question_unbiased_cot_dumb_brained(x[0], x[1])).flatten_option()
     print(f"Found {len(nicer)} examples to write")
     write_jsonl_file_from_basemodel(
         path=Path("data/training_non_cots/gpt-35-turbo-dumb-brain.jsonl"),
@@ -263,21 +276,18 @@ def dumb_brain_cots():
     # get only the unbiased correctly answered stuff
     unbiased_correct = unbiased.filter(lambda x: x.task_spec.ground_truth == x.first_parsed_response)
 
-    # get only the unsuccessfully biased stuff
-    match_ground_truth: Slist[TaskOutput] = biased.filter(
-        lambda x: (x.task_spec.ground_truth != x.first_parsed_response)
-    )
+    # get only the unsuccessfully biased stuff)
 
     # make unbiased a dict based on the task hash
     unbiased_correct_dict: dict[str, TaskOutput] = unbiased_correct.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
     # joined the successful biased with the unbiased
-    joined: Slist[tuple[TaskOutput, TaskOutput]] = match_ground_truth.map(
+    joined: Slist[tuple[TaskOutput, TaskOutput]] = biased.map(
         lambda x: (x, unbiased_correct_dict[x.task_spec.task_hash])
         if x.task_spec.task_hash in unbiased_correct_dict
         else None
     ).flatten_option()
     # make a nicer basemodel that contains the biased question as a str, and unbiased COT as a str
-    nicer = joined.map(lambda x: to_biased_question_unbiased_cot(x[0], x[1]))
+    nicer = joined.map(lambda x: to_biased_question_unbiased_cot_dumb_brained(x[0], x[1])).flatten_option()
     print(f"Found {len(nicer)} examples to write")
     write_jsonl_file_from_basemodel(
         path=Path("data/training_cots/gpt-35-turbo-dumb-brain.jsonl"),

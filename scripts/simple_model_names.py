@@ -1,4 +1,6 @@
-MODEL_SIMPLE_NAMES = {
+from typing import Mapping
+
+MODEL_SIMPLE_NAMES: Mapping[str, str] = {
     "gpt-3.5-turbo": "gpt-3.5-turbo ",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr": "Finetuned 6000 COTs with unbiased questions",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8": "Finetuned 6000 COTs with 3 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
@@ -20,5 +22,5 @@ MODEL_SIMPLE_NAMES = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::81Eu4Gp5": "Finetuned 98% (70560) COTs, biased questions,<br> 7200 2% (1440) non cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV": "50% biased COT, 50% biased non COT",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::82lIvjbP": "50% unbiased COT, 50% unbiased non COT",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8373aRST": "50% biased COT, 50% biased non COT, dumb brained",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::83O1S0zn": "50% biased COT, 50% biased non COT, dumb brained",
 }
