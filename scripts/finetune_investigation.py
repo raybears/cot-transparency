@@ -9,8 +9,8 @@ from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFor
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
     ZeroShotUnbiasedFormatter,
-    ZeroShotTellTruthCOTFormatter,
 )
+from cot_transparency.formatters.core.tell_truth import ZeroShotTellTruthCOTFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantTargetedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
