@@ -14,6 +14,8 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
 from cot_transparency.formatters.interventions.big_brain_few_shots_loading import (
     get_training_cots_gpt_35_big_brain,
     get_training_non_cots_gpt_35_big_brain,
+    get_training_non_cots_gpt_35_dumb_brain,
+    get_training_cots_gpt_35_dumb_brain,
 )
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
@@ -190,6 +192,66 @@ def fine_tune_with_big_brain_majority_no_cot(
     _id = run_finetune(params=params, samples=samples)
 
 
+def fine_tune_with_big_brain_balanced(
+    exclude_formattter: Type[StageOneFormatter] | None,
+    n_epochs: int,
+    model: str = "gpt-3.5-turbo",
+):
+    # balanced, all biased context
+    percentage = 0.5
+    non_cot_limit = int(percentage * 72000)
+    cot_limit = int((1 - percentage) * 72000)
+    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
+    non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_big_brain()).filter(
+        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
+    )
+    print(f"Number of non cots: {len(non_cot)}")
+    non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
+    print(f"Number of non cots after limiting: {len(non_cot_limited)}")
+    cot = augment_cots_big_brain(get_training_cots_gpt_35_big_brain()).filter(
+        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
+    )
+    print(f"Number of cots: {len(cot)}")
+    cot_limited = cot.shuffle("42").repeat_until_size_or_raise(cot_limit)
+    print(f"Number of cots after limiting: {len(cot_limited)}")
+    non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample())
+    cot_samples = cot_limited.map(lambda x: x.to_finetune_sample())
+    alpaca_samples = get_alpaca_training(10000)
+    samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
+    _id = run_finetune(params=params, samples=samples)
+
+
+def fine_tune_with_dumb_brain_balanced(
+    exclude_formattter: Type[StageOneFormatter] | None,
+    n_epochs: int,
+    model: str = "gpt-3.5-turbo",
+):
+    # balanced, all biased context
+    percentage = 0.5
+    non_cot_limit = int(percentage * 72000)
+    cot_limit = int((1 - percentage) * 72000)
+    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
+    non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_dumb_brain()).filter(
+        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
+    )
+    print(f"Number of non cots: {len(non_cot)}")
+    non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
+    print(f"Number of non cots after limiting: {len(non_cot_limited)}")
+    cot = augment_cots_big_brain(get_training_cots_gpt_35_dumb_brain()).filter(
+        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
+    )
+    print(f"Number of cots: {len(cot)}")
+    cot_limited = cot.shuffle("42").repeat_until_size_or_raise(cot_limit)
+    print(f"Number of cots after limiting: {len(cot_limited)}")
+    non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample())
+    cot_samples = cot_limited.map(lambda x: x.to_finetune_sample())
+    alpaca_samples = get_alpaca_training(10000)
+    samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
+    _id = run_finetune(params=params, samples=samples)
+
+
 def fine_tune_with_big_brain_majority_cot(
     exclude_formattter: Type[StageOneFormatter] | None,
     n_epochs: int,
@@ -286,8 +348,10 @@ if __name__ == "__main__":
             CrossBiasedFormatter,
         ]
     )
+    fine_tune_with_dumb_brain_balanced(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
+    # fine_tune_with_big_brain_balanced(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_big_brain_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
-    fine_tune_with_unbiased_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
+    # fine_tune_with_unbiased_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_big_brain_majority_no_cot(
     #     n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedNoCOTFormatter
     # )
