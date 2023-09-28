@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Sequence
 import fire
 import pandas as pd
 
@@ -26,7 +26,7 @@ def prompt_metrics(
     exp_dir: str,
     inconsistent_only: bool = False,
     aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
+    models: Sequence[str] = [],
     formatters: Sequence[str] = [],
     group1: str = "model",
     group3: str = "intervention_name",
@@ -34,7 +34,7 @@ def prompt_metrics(
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
         inconsistent_only=inconsistent_only,
-        models=[model_filter] if model_filter else [],
+        models=models,
         formatters=formatters,
         aggregate_over_tasks=aggregate_over_tasks,
         df=df,
