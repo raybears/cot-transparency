@@ -123,18 +123,18 @@ def filter_no_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
     return [output for output in new_list if output.inference_output]
 
 
-class PlotDots(BaseModel):
+class PlotInfo(BaseModel):
     acc: AccuracyOutput
     name: str
 
-    def add_n_samples_to_name(self) -> "PlotDots":
+    def add_n_samples_to_name(self) -> "PlotInfo":
         n = self.acc.samples
-        return PlotDots(acc=self.acc, name=f"{self.name} (n={n})")
+        return PlotInfo(acc=self.acc, name=f"{self.name} (n={n})")
 
 
-class TaskAndPlotDots(BaseModel):
+class TaskAndPlotInfo(BaseModel):
     task_name: str
-    plot_dots: list[PlotDots]
+    plot_dots: list[PlotInfo]
 
 
 class PathsAndNames(BaseModel):
@@ -142,11 +142,11 @@ class PathsAndNames(BaseModel):
     name: str
 
 
-def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> list[PlotDots]:
-    out: list[PlotDots] = []
+def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> list[PlotInfo]:
+    out: list[PlotInfo] = []
     for path in paths:
         out.append(
-            PlotDots(acc=accuracy_for_file(Path(path.path), inconsistent_only=inconsistent_only), name=path.name)
+            PlotInfo(acc=accuracy_for_file(Path(path.path), inconsistent_only=inconsistent_only), name=path.name)
         )
     return out
 
@@ -171,7 +171,7 @@ class PlotlyShapeColorManager:
 
 
 def accuracy_plot(
-    list_task_and_dots: list[TaskAndPlotDots], title: str, subtitle: str = "", save_file_path: Optional[str] = None
+    list_task_and_dots: list[TaskAndPlotInfo], title: str, subtitle: str = "", save_file_path: Optional[str] = None
 ):
     fig = go.Figure()
 
@@ -300,10 +300,10 @@ def plot_accuracy_for_exp(
             raise ValueError(f"Multiple models found: {models_found}. Please specify a model to filter on.")
     model: str = models[0]
 
-    tasks_and_plots_dots: list[TaskAndPlotDots] = []
+    tasks_and_plots_dots: list[TaskAndPlotInfo] = []
     for task in tasks:
         tasks_and_plots_dots.append(
-            TaskAndPlotDots(
+            TaskAndPlotInfo(
                 task_name=task,
                 plot_dots=plot_vertical_acc(
                     make_task_paths_and_names(

@@ -21,15 +21,15 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
 from scripts.intervention_investigation import (
     read_whole_exp_dir,
-    plot_dots_for_intervention,
+    plot_for_intervention,
     DottedLine,
     bar_plot,
     ConsistentOnly,
     TaskOutputFilter,
     InconsistentOnly,
 )
-from scripts.matching_user_answer import matching_user_answer_plot_dots
-from scripts.multi_accuracy import PlotDots
+from scripts.matching_user_answer import matching_user_answer_plot_info
+from scripts.multi_accuracy import PlotInfo
 from scripts.simple_model_names import MODEL_SIMPLE_NAMES
 
 
@@ -52,7 +52,7 @@ def make_finetune_graph(
     )
 
     # unbiased acc
-    unbiased_plot: PlotDots = plot_dots_for_intervention(
+    unbiased_plot: PlotInfo = plot_for_intervention(
         None,
         filtered_read_hashed,
         for_formatters=[unbiased_formatter],
@@ -60,8 +60,8 @@ def make_finetune_graph(
         model=unbiased_model,
     )
 
-    plot_dots: Slist[PlotDots] = Slist(finetuned_models).map(
-        lambda m: plot_dots_for_intervention(
+    plot_dots: Slist[PlotInfo] = Slist(finetuned_models).map(
+        lambda m: plot_for_intervention(
             None,
             filtered_read_hashed,
             for_formatters=biased_formatters,
@@ -72,15 +72,15 @@ def make_finetune_graph(
     dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
 
     bar_plot(
-        plot_dots=plot_dots,
+        plot_infos=plot_dots,
         title=accuracy_plot_name or "Accuracy of different models in biased contexts",
         dotted_line=dotted,
         y_axis_title="Accuracy",
         add_n_to_name=True,
     )
     # accuracy_diff_intervention(interventions=interventions, unbiased_formatter=unbiased_formatter)
-    matching_user_answer: list[PlotDots] = [
-        matching_user_answer_plot_dots(
+    matching_user_answer: list[PlotInfo] = [
+        matching_user_answer_plot_info(
             intervention=None,
             all_tasks=filtered_read_hashed,
             for_formatters=biased_formatters,
@@ -89,7 +89,7 @@ def make_finetune_graph(
         )
         for model in finetuned_models
     ]
-    unbiased_matching_baseline = matching_user_answer_plot_dots(
+    unbiased_matching_baseline = matching_user_answer_plot_info(
         intervention=None, all_tasks=filtered_read_hashed, for_formatters=[unbiased_formatter], model=unbiased_model
     )
     dotted_line = DottedLine(
@@ -97,7 +97,7 @@ def make_finetune_graph(
     )
     dataset_str = Slist(tasks).mk_string(", ")
     bar_plot(
-        plot_dots=matching_user_answer,
+        plot_infos=matching_user_answer,
         title=percent_matching_plot_name or f"How often does each model choose the user's view Dataset: {dataset_str}",
         y_axis_title="Answers matching biased answer (%)",
         dotted_line=dotted_line,
