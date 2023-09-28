@@ -106,7 +106,8 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Pr
             model_type = ModelType.from_model_name(model)
             ans_prompt = (
                 "Just give your best answer choosing from the options above, do NOT show any reasoning. "
-                'Give your answer in the format "The best answer is: {stem} {answer}"'
+                'Give your answer in the format "The best answer is: {option label} {answer text}"'
+                "It is very important that you stick to this format."
             )
             match model_type:
                 case ModelType.chat:
