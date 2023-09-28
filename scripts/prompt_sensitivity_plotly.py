@@ -1,7 +1,6 @@
-from typing import Mapping, Sequence, TypeVar
+from typing import Mapping, Sequence
 
-from pydantic import BaseModel
-from slist import Slist, identity
+from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
 from scripts.intervention_investigation import read_whole_exp_dir, bar_plot, plot_for_intervention
