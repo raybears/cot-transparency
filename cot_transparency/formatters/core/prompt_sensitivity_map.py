@@ -25,3 +25,4 @@ no_cot_sensitivity_data_format_spec_map: dict[DataFormatSpec, Type[PromptSenBase
     .map_2(lambda key, values: (key, values.first_or_raise()))
     .to_dict()
 )
+default_no_cot_sensitivity_formatter = no_cot_sensitivity_data_format_spec_map[DataFormatSpec()]
