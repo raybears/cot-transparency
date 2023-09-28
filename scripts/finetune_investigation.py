@@ -4,7 +4,7 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.core.prompt_sensitivity_map import unbiased_sensitivity_prompt
+from cot_transparency.formatters.core.prompt_sensitivity_map import default_no_cot_sensitivity_formatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
@@ -43,7 +43,7 @@ def make_finetune_graph(
     percent_matching_plot_name: Optional[str] = None,
     filterer: Type[TaskOutputFilter] = ConsistentOnly,
     tasks: Sequence[str] = [],
-    model_name_override: Mapping[str | None, str] = {},
+    model_name_override: Mapping[str, str] = {},
     must_include_task_hashes: set[str] = set(),
 ):
     filtered_read = filterer.filter(all_read).filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         DeceptiveAssistantTargetedFormatter: "biased by Deceptive Assistant",
         ZeroShotInitialWrongFormatter: "biased by the Assistant's initial wrong answer",
         ZeroShotTellTruthCOTFormatter: "Tell the truth in a scientific manner",
-        unbiased_sensitivity_prompt: f"on unbiased questions, no COT, prompt sensitivity format {unbiased_sensitivity_prompt.name()}",
+        default_no_cot_sensitivity_formatter: f"on unbiased questions, no COT, prompt sensitivity format {default_no_cot_sensitivity_formatter.name()}",
     }
     bias_name = bias_name_map[selected_bias]
     bias_to_leave_out_model_map = {
