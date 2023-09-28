@@ -158,7 +158,7 @@ class BaseTaskOuput(BaseModel):
 
 class TaskOutput(BaseTaskOuput):
     # This is one single experiment
-    task_spec: TaskSpec
+    task_spec: TaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
 
     @property
@@ -277,7 +277,7 @@ class StageTwoTaskSpec(BaseTaskSpec):
 
 
 class StageTwoTaskOutput(BaseTaskOuput):
-    task_spec: StageTwoTaskSpec
+    task_spec: StageTwoTaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
 
     def uid(self) -> str:
