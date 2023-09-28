@@ -8,7 +8,7 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.intervention import Intervention
-from scripts.multi_accuracy import PlotDots, AccuracyInput, accuracy_outputs_from_inputs
+from scripts.multi_accuracy import PlotInfo, AccuracyInput, accuracy_outputs_from_inputs
 from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
 
 
@@ -33,7 +33,7 @@ def random_chance_matching_answer_plot_dots(
     formatter: Type[StageOneFormatter] = ZeroShotCOTUnbiasedFormatter,
     name_override: Optional[str] = None,
     for_task: Sequence[str] = [],
-) -> PlotDots:
+) -> PlotInfo:
     intervention_name = None
     filtered: Slist[TaskOutput] = (
         Slist(all_tasks)
@@ -45,10 +45,10 @@ def random_chance_matching_answer_plot_dots(
     assert filtered, f"Intervention None has no tasks in {formatter.name()}"
     transformed = Slist(filtered).map(pick_random_ans)
     outputs = accuracy_outputs_from_inputs(transformed)
-    return PlotDots(acc=outputs, name=name_override or "Random chance")
+    return PlotInfo(acc=outputs, name=name_override or "Random chance")
 
 
-def matching_user_answer_plot_dots(
+def matching_user_answer_plot_info(
     intervention: Optional[Type[Intervention]],
     all_tasks: Sequence[TaskOutput],
     for_formatters: Sequence[Type[StageOneFormatter]],
@@ -56,7 +56,7 @@ def matching_user_answer_plot_dots(
     for_task: Sequence[str] = [],
     name_override: Optional[str] = None,
     distinct_qns: bool = True,
-) -> PlotDots:
+) -> PlotInfo:
     intervention_name: str | None = intervention.name() if intervention else None
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
@@ -82,4 +82,4 @@ def matching_user_answer_plot_dots(
     outputs = accuracy_outputs_from_inputs(transformed)
     retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(intervention, None)
     name: str = name_override or retrieved_simple_name or intervention_name or "No intervention, biased context"
-    return PlotDots(acc=outputs, name=name)
+    return PlotInfo(acc=outputs, name=name)

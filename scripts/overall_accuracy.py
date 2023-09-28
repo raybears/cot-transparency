@@ -4,8 +4,8 @@ from typing import Sequence
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from scripts.intervention_investigation import filter_inconsistent_only
 from scripts.multi_accuracy import (
-    TaskAndPlotDots,
-    PlotDots,
+    TaskAndPlotInfo,
+    PlotInfo,
     AccuracyOutput,
     bbh_task_list,
     accuracy_outputs,
@@ -29,47 +29,47 @@ def overall_accuracy_for_formatter(
     return accuracy
 
 
-def all_overall_accuracies(exp_dir: str, model: str) -> list[TaskAndPlotDots]:
+def all_overall_accuracies(exp_dir: str, model: str) -> list[TaskAndPlotInfo]:
     nonbiased = overall_accuracy_for_formatter("ZeroShotCOTUnbiasedFormatter", exp_dir=exp_dir, model=model)
-    stanford: TaskAndPlotDots = TaskAndPlotDots(
+    stanford: TaskAndPlotInfo = TaskAndPlotInfo(
         task_name="Stanford",
         plot_dots=[
-            PlotDots(
+            PlotInfo(
                 acc=overall_accuracy_for_formatter("StanfordTreatmentFormatter", exp_dir=exp_dir, model=model),
                 name="Treatment",
             ),
-            PlotDots(
+            PlotInfo(
                 acc=overall_accuracy_for_formatter("StanfordBiasedFormatter", exp_dir=exp_dir, model=model),
                 name="Biased",
             ),
-            PlotDots(acc=nonbiased, name="Unbiased"),
+            PlotInfo(acc=nonbiased, name="Unbiased"),
         ],
     )
-    cross: TaskAndPlotDots = TaskAndPlotDots(
+    cross: TaskAndPlotInfo = TaskAndPlotInfo(
         task_name="Cross",
         plot_dots=[
-            PlotDots(
+            PlotInfo(
                 acc=overall_accuracy_for_formatter("CrossTreatmentFormatter", exp_dir=exp_dir, model=model),
                 name="Treatment",
             ),
-            PlotDots(
+            PlotInfo(
                 acc=overall_accuracy_for_formatter("CrossBiasedFormatter", exp_dir=exp_dir, model=model), name="Biased"
             ),
-            PlotDots(acc=nonbiased, name="Unbiased"),
+            PlotInfo(acc=nonbiased, name="Unbiased"),
         ],
     )
-    checkmark: TaskAndPlotDots = TaskAndPlotDots(
+    checkmark: TaskAndPlotInfo = TaskAndPlotInfo(
         task_name="Checkmark",
         plot_dots=[
-            PlotDots(
+            PlotInfo(
                 acc=overall_accuracy_for_formatter("CheckmarkTreatmentFormatter", exp_dir=exp_dir, model=model),
                 name="Treatment",
             ),
-            PlotDots(
+            PlotInfo(
                 acc=overall_accuracy_for_formatter("CheckmarkBiasedFormatter", exp_dir=exp_dir, model=model),
                 name="Biased",
             ),
-            PlotDots(acc=nonbiased, name="Unbiased"),
+            PlotInfo(acc=nonbiased, name="Unbiased"),
         ],
     )
     return [stanford, cross, checkmark]
