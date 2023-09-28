@@ -27,10 +27,10 @@ from scripts.intervention_investigation import (
     ConsistentOnly,
     TaskOutputFilter,
     InconsistentOnly,
-    NoFilter,
 )
 from scripts.matching_user_answer import matching_user_answer_plot_dots
 from scripts.multi_accuracy import PlotDots
+from scripts.simple_model_names import MODEL_SIMPLE_NAMES
 
 
 def make_finetune_graph(
@@ -67,7 +67,7 @@ def make_finetune_graph(
             for_formatters=biased_formatters,
             model=m,
             name_override=model_name_override.get(m, m),
-        ).add_n_samples_to_name()
+        )
     )
     dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
 
@@ -76,6 +76,7 @@ def make_finetune_graph(
         title=accuracy_plot_name or "Accuracy of different models in biased contexts",
         dotted_line=dotted,
         y_axis_title="Accuracy",
+        add_n_to_name=True,
     )
     # accuracy_diff_intervention(interventions=interventions, unbiased_formatter=unbiased_formatter)
     matching_user_answer: list[PlotDots] = [
@@ -85,7 +86,7 @@ def make_finetune_graph(
             for_formatters=biased_formatters,
             model=model,
             name_override=model_name_override.get(model, model),
-        ).add_n_samples_to_name()
+        )
         for model in finetuned_models
     ]
     unbiased_matching_baseline = matching_user_answer_plot_dots(
@@ -100,14 +101,15 @@ def make_finetune_graph(
         title=percent_matching_plot_name or f"How often does each model choose the user's view Dataset: {dataset_str}",
         y_axis_title="Answers matching biased answer (%)",
         dotted_line=dotted_line,
+        add_n_to_name=True,
     )
 
 
 if __name__ == "__main__":
-    filterer = NoFilter
+    filterer = InconsistentOnly
     tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
     dataset_str = Slist(tasks).mk_string(", ")
-    selected_bias = ZeroShotUnbiasedFormatter
+    selected_bias = WrongFewShotIgnoreMistakesBiasedFormatter
 
     bias_name_map = {
         WrongFewShotIgnoreMistakesBiasedFormatter: "biased by Wrong Fewshot, COT response",
@@ -133,7 +135,7 @@ if __name__ == "__main__":
         DeceptiveAssistantTargetedFormatter: "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg",
     }
     biased_model_name = "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV"
-    all_read = read_whole_exp_dir(exp_dir="experiments/sensitivity")
+    all_read = read_whole_exp_dir(exp_dir="experiments/finetune_2")
     enforce_all_same = False
     biased_task_hashes_1 = (
         (
@@ -201,35 +203,18 @@ if __name__ == "__main__":
         finetuned_models=[
             "gpt-3.5-turbo",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81Eu4Gp5",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8373aRST",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::83O1S0zn",
         ],
         unbiased_model="gpt-3.5-turbo",
-        unbiased_formatter=ZeroShotUnbiasedFormatter,
+        unbiased_formatter=ZeroShotCOTUnbiasedFormatter,
         all_read=all_read,
         accuracy_plot_name=f"Accuracy on questions {bias_name}<br>Train Dataset: BBH, aqua, arc, Test Dataset: {dataset_str}<br>{filterer.name()}",
         percent_matching_plot_name=f"Percentage of times the model chooses the answer {bias_name}<br>Train Dataset: BBH, aqua, arc, Test Dataset: {dataset_str}<br>{filterer.name()}",
         filterer=filterer,
         tasks=tasks,
-        model_name_override={
-            "gpt-3.5-turbo": "gpt-3.5-turbo ",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr": "Finetuned 6000 COTs with unbiased questions",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8": "Finetuned 6000 COTs with 3 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b": "Finetuned 6000 COTs with 5 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uXhCnI7": "Finetuned 6000 COTs with 5 different types of biased questions,<br> leaving out bias of Wrong Fewshot, make sure these actually biased the model",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t5OEDT9": "Finetuned 18000 COTs with biased questions,<br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7vVCogry": "Finetuned 72000 COTs with 5 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tmQDS49": "Finetuned 72000 COTS with biased questions",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7t8IvMic": "Finetuned 18000 COTs with unbiased questions",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7rg7aRbV": "Finetuned 6000 COTs with biased questions,<br> including ALL biases",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7skb05DZ": "Finetuned 6000 COTs with biased questions,<br> leaving out bias of I think the answer is (X)",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7smTRQCv": "Finetuned 6000 COTs with biased questions,<br> leaving out bias of Stanford Professor opinion",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7soRFrpt": "Finetuned 6000 COTs with biased questions,<br> leaving out bias of More Reward for (X)",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7wWkPEKY": "Finetuned 72000 COTs",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::80R5ewb3": "Finetuned 95%  COTs, biased questions,<br> 5%  non cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::80nD19wy": "Finetuned 64800 non COTs, biased questions,<br> 7200 cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF": "Finetuned 98% (70560) non COTs, biased questions,<br> 2% (1440) cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0": "All unbiased 98% COT, 2% non COT",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81Eu4Gp5": "Finetuned 98% (70560) COTs, biased questions,<br> 7200 2% (1440) non cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV": "50% COT, 50% no COT",
-        },
+        model_name_override=MODEL_SIMPLE_NAMES,
     )
