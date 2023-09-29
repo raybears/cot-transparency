@@ -6,7 +6,7 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
 from scripts.intervention_investigation import read_whole_exp_dir
-from scripts.streamlit_viewer_components.options import TypeOfAnswerOption
+from scripts.streamlit_viewer_components.answer_options import TypeOfAnswerOption
 
 
 # NOTE: These caches have to be here rather than the main streamlit file to work!
@@ -59,7 +59,6 @@ def match_model_result(task: TaskOutput, answer_result: TypeOfAnswerOption) -> b
             return task.is_correct
         case TypeOfAnswerOption.anything:
             return True
-
 
 
 def filter_prompt(task: TaskOutput, prompt_search: str) -> bool:
