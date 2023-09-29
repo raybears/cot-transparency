@@ -166,6 +166,10 @@ class TaskOutput(BaseTaskOuput):
         return self.task_spec.ground_truth != self.task_spec.biased_ans
 
     @property
+    def bias_on_correct_answer(self) -> bool:
+        return self.task_spec.ground_truth == self.task_spec.biased_ans
+
+    @property
     def is_correct(self) -> bool:
         return self.inference_output.parsed_response == self.task_spec.ground_truth
 
