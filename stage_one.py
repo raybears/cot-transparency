@@ -193,6 +193,7 @@ def main(
     batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
+    allow_failures: bool = False,
 ):
     if dataset is not None:
         assert tasks is None, "dataset and tasks are mutually exclusive"
@@ -292,7 +293,11 @@ def main(
                 )
                 tasks_to_run.append(task_spec)
 
-    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=True)
+    if not allow_failures and temperature == 0:
+        raise ValueError("Must allow_failures when temperature is 0 as it will always fail")
+    run_with_caching(
+        save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=(not allow_failures)
+    )
 
 
 def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneFormatter]]:
