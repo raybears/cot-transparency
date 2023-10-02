@@ -14,6 +14,7 @@ if __name__ == "__main__":
     main(
         dataset="cot_testing",
         formatters=[f.name() for f in no_cot_sensitivity_formatters],
+        interventions=[None],
         example_cap=100,
         models=models,
         exp_dir="experiments/sensitivity",
