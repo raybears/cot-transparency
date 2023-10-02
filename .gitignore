@@ -21,3 +21,4 @@ notebooks
 
 
 .env
+wandb
