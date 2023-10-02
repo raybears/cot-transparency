@@ -144,6 +144,7 @@ class WandbSyncer:
     def update_parameters(self, params: FineTuneParams) -> None:
         print(f"Updating parameters in wandb {params}")
         self.run.config.update(params.model_dump())
+
     def update_parameters_with_dict(self, params: dict[str, Any]) -> None:
         print(f"Updating parameters in wandb {params}")
         self.run.config.update(params)
