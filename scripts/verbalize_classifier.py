@@ -24,7 +24,7 @@ from cot_transparency.model_apis import call_model_api
 from cot_transparency.openai_utils.set_key import set_keys_from_env
 from cot_transparency.tasks import read_done_experiment
 from scripts.calibrate import read_all_for_formatters
-from scripts.multi_accuracy import AccuracyOutput, accuracy_outputs_from_inputs, AccuracyInput, PlotDots
+from scripts.multi_accuracy import AccuracyOutput, accuracy_outputs_from_inputs, AccuracyInput, PlotInfo
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -39,7 +39,7 @@ class VerbalizeClassifier:
         self.feature_description = feature_description
 
     @staticmethod
-    def parse_answer(response: str, model: Optional[str] = None) -> Optional[AB]:
+    def parse_answer(response: str) -> Optional[AB]:
         cleaned = response.strip().upper()
         if cleaned == "A" or cleaned == "A":
             return "A"
@@ -169,7 +169,7 @@ def run_classification(formatter: Type[StageOneFormatter], out_fp: Path, stage_o
 
 
 def unverbalized_bar_plots(
-    plot_dots: list[PlotDots],
+    plot_dots: list[PlotInfo],
     title: str,
     subtitle: str = "",
     save_file_path: Optional[str] = None,
@@ -236,14 +236,14 @@ if __name__ == "__main__":
         MoreRewardBiasedFormatter,
     ]
     # TODO - need to pair with the unbiased version and filter to get only the ones that changed the answer
-    proportions: list[PlotDots] = []
+    proportions: list[PlotInfo] = []
     for formatter in formatters:
         print(f"formatter = {formatter.name()}")
         out_fp = script_fp / Path(f"{formatter.name()}.jsonl")
         run_classification(formatter, out_fp=out_fp, stage_one_exp_dir=stage_one_exp_dir)
         proportion: AccuracyOutput = get_proportion_mentioned_bias(out_fp)
         simple_name = FORMATTER_TO_SIMPLE_NAME[formatter]
-        proportions.append(PlotDots(acc=proportion, name=simple_name))
+        proportions.append(PlotInfo(acc=proportion, name=simple_name))
     n_samples = proportions[0].acc.samples
     unverbalized_bar_plots(
         proportions, title="How often does the model not mention the bias in its COT?, when it does indeed get biased?"

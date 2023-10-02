@@ -1,23 +1,33 @@
+import re
 from string import ascii_uppercase
 from typing import Optional
 
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer, LetterAndOption
+
+from cot_transparency.data_models.example_base import (
+    ChoiceVariant,
+    DataFormatSpec,
+    combine_indicator_with_separator,
+)
+from cot_transparency.data_models.example_base import IndicatorAndOption
 
 BREAK_WORDS: list[str] = [
-    "best answer is (",
-    "best answer is  (",
-    "best answer is: (",
-    "best answer is:(",
-    "best answer is:  (",
-    "best answer is:\n(",
-    "best answer is: \n(",
-    "best answer is:\n\n(",
-    "best answer is: ",
-    "best answer is ",
     "answer is (",
+    "answer is  (",
     "answer is: (",
+    "answer is:(",
+    "answer is:  (",
+    "answer is:\n(",
+    "answer is: \n(",
+    "answer is:\n\n(",
+    "answer is: ",
+    "answer is ",
     "answer is $\\boxed{\\text{(",
     "answer is: $\\boxed{\\text{(",
+    "choices is: " r"is: $\boxed{\textbf{(",
+    "answer: ",
+    "answer is ",
+    r"is: $\boxed{\textbf{(",
+    "choices is: ",
     r"is: $\boxed{\textbf{(",
     r"is $\boxed{\textbf{(",
     r"is: $\boxed{\text{(",
@@ -35,6 +45,10 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
         tmp = model_answer.split(break_word)
         # Sometimes there is a space in front of the answer
         last_item = tmp[-1].lstrip()
+
+        if not last_item:
+            continue
+
         ans = last_item[0]
         if ans in ascii_uppercase:
             return ans
@@ -44,24 +58,94 @@ def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str
     return None
 
 
-def extract_answer_non_cot(response: str, dump_failed: bool = False) -> Optional[MultipleChoiceAnswer]:
-    out: Optional[MultipleChoiceAnswer] = None
+def extract_answer_looking_for_option(
+    model_answer: str, dump_failed=False, input_format=DataFormatSpec(), options: Optional[list[str]] = None
+) -> Optional[str]:
+    for break_word in BREAK_WORDS:
+        if break_word not in model_answer:
+            continue
+        tmp = model_answer.split(break_word)
+
+        # first see if the literal answer string is in the list
+        if options is not None:
+            for i, option in enumerate(options):
+                # remove trailing periods - sometimes the model doesn't copy them.
+                option_stripped = option.strip().rstrip(".")
+                to_match_stripped = tmp[-1].strip().rstrip(".")
+                if option_stripped in to_match_stripped:
+                    return ascii_uppercase[i]
+
+        ans_list = input_format.choice_variant.answers_list
+        combined = [combine_indicator_with_separator(ans, input_format.indicator_separator).strip() for ans in ans_list]
+
+        for i, ans_indicator in enumerate(combined):
+            if ans_indicator in tmp[-1]:
+                idx = combined.index(ans_indicator)
+                return ascii_uppercase[idx]
+
+        # also allow matching on the answer text without separators
+        parsed_ans_without_separator = tmp[-1].replace(")", "").replace(".", "").strip()
+        for ans_indicator in ans_list:
+            if ans_indicator == parsed_ans_without_separator:
+                idx = ans_list.index(ans_indicator)
+                return ascii_uppercase[idx]
+
+        # match on the indicator itself, if it is a separate word by itself
+        tokenized = tmp[-1].split(" ")
+        maybe_first_token = tokenized[0] if tokenized else None
+        if maybe_first_token in ans_list:
+            idx = ans_list.index(maybe_first_token)
+            return ascii_uppercase[idx]
+
+        for ans in ans_list:
+            # match if the ans is in a \textbf{()} box with optional parentheses
+            pattern = r"\\text(bf)?{{\s*\({}\)?\}}".format(ans)
+            match = re.search(pattern, tmp[-1])
+            if match:
+                idx = ans_list.index(ans)
+                return ascii_uppercase[idx]
+
+    if dump_failed:
+        with open("failed_answers.txt", "a") as f:
+            f.write(model_answer + "\n")
+    return None
+
+
+def extract_answer_non_cot(
+    response: str,
+    dump_failed: bool = False,
+    input_format: DataFormatSpec = DataFormatSpec(),
+    options: Optional[list[str]] = None,
+) -> Optional[str]:
+    ans_list = input_format.choice_variant.answers_list
     response = response.strip()
-    if len(response) >= 1:
-        if response[0].upper() in ascii_uppercase:
-            out = response[0]  # type: ignore
-            if len(response) > 1:
-                if response[1] != ")":
-                    out = None
 
-        elif response[0] == "(" and response[1].upper() in ascii_uppercase:
-            out = response[1]  # type: ignore
+    # if options are provided, try to match the response to one of the options
+    if options is not None:
+        for i, option in enumerate(options):
+            if option in response:
+                return ascii_uppercase[i]
 
-        if out is None and dump_failed:
-            with open("failed_answers.txt", "a") as f:
-                f.write(response + "\n")
+    pattern = re.compile(r"^\(?([a-zA-Z\d]+)\)?")
 
-    return out
+    match = pattern.match(response)
+    if match:
+        candidate_ans = match.group(1)
+
+        # Convert to uppercase for consistent matching, except for the FOO variant
+        if input_format.choice_variant != ChoiceVariant.FOO:
+            candidate_ans = candidate_ans.upper()
+
+        if candidate_ans in ans_list:
+            idx = ans_list.index(candidate_ans)
+            return ascii_uppercase[idx]
+
+    # If we reach here, the answer failed to match the expected patterns
+    if dump_failed:
+        with open("failed_answers.txt", "a") as f:
+            f.write(response + "\n")
+
+    return None
 
 
 def extract_multiple_choices(question: str) -> list[str]:
@@ -91,9 +175,8 @@ def extract_multiple_choices(question: str) -> list[str]:
     return stripped
 
 
-def extract_lettered_multiple_choices(question: str) -> list[LetterAndOption]:
+def extract_lettered_multiple_choices(question: str) -> list[IndicatorAndOption]:
     extracted_answers = extract_multiple_choices(question)
     return [
-        LetterAndOption(letter=ascii_uppercase[i], option=answer)  # type: ignore
-        for i, answer in enumerate(extracted_answers)
+        IndicatorAndOption(indicator=ascii_uppercase[i], option=answer) for i, answer in enumerate(extracted_answers)
     ]

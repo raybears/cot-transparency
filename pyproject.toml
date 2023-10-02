@@ -1,14 +1,6 @@
 [tool.black]
 line-length = 120
-exclude = '''
-(
-    venv*
-  | \.*
-  | __pycache__
-  | Dockerfile
-  | env/
-)
-'''
+exclude = "venv*"
 target-version = ['py311']
 
 
@@ -22,7 +14,7 @@ line-length = 120
 
 
 [tool.pyright]
-exclude = ["utils.py", "venv"]
+exclude = ["utils.py", "venv", "scripts/cot_sankey.py", "scripts/load_alpaca_dataset.py"]
 
 strictListInference = true
 strictDictionaryInference = true
@@ -43,3 +35,4 @@ reportUnnecessaryContains = true
 reportUnusedExpression = true
 reportMatchNotExhaustive = true
 reportShadowedImports = true
+reportPrivateImportUsage = false

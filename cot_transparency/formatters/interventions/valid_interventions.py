@@ -1,9 +1,19 @@
 from typing import Type
 
+from cot_transparency.formatters.interventions.intervention import Intervention
+
 if True:
     # hack to register all the interventions from consistency.py, and make sure lint does not remove this import
-    from cot_transparency.formatters.interventions.consistency import Intervention
+    from cot_transparency.formatters.interventions.consistency import Intervention  # noqa: F811
+    from cot_transparency.formatters.interventions.prompt_sensitivity import Intervention  # noqa: F811
+
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = Intervention.all_interventions()
+
+
+def name_to_intervention(name: str) -> Type[Intervention]:
+    if name not in VALID_INTERVENTIONS:
+        raise ValueError(f"intervention {name} is not valid. Valid intervention are {list(VALID_INTERVENTIONS.keys())}")
+    return VALID_INTERVENTIONS[name]
 
 
 def get_valid_stage1_interventions(interventions: list[str]) -> list[Type[Intervention]]:

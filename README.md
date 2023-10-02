@@ -1,8 +1,8 @@
 # SERI MATS: Chain of Thought Transparency
 
-This is a private fork of [cot-unfaithfulness](https://github.com/milesaturpin/cot-unfaithfulness)
-
 [![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml)
+
+This repo implements metrics from [Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting](https://arxiv.org/abs/2305.04388) ([original code](https://github.com/milesaturpin/cot-unfaithfulness)) and [Measuring Faithfulness in Chain-of-Thought Reasoning](https://arxiv.org/abs/2307.13702)
 
 ## Installation
 
@@ -48,6 +48,22 @@ To run tests
 pytest tests
 ```
 
+## Downloading large files
+We track large files with git lfs. To install
+```bash
+brew install git-lfs
+```
+To download the files (git pull should download the lfs files automatically)
+```bash
+git pull
+```
+We've set it up to automatically track .json files in the project directory. To manually track more files, run
+```bash
+git lfs track "path/to/file"
+```
+
+See [here](http://arfc.github.io/manual/guides/git-lfs) for more details
+
 ## Running an experiment
 
 Set your OpenAI API key as `OPENAI_API_KEY` and anthropic key as `ANTHROPIC_API_KEY` in a `.env` file.
@@ -73,3 +89,9 @@ python viewer.py --exp_dir experiments/dummy_run
 ```
 Tip: You can pass in `--n_compare 2` to compare 2 samples side by sde
 
+## Streamlit viewer
+There is a nicer streamlit viewer that can be run with
+```
+streamlit run streamlit_viewer.py experiments/dummy_run
+```
+Note that it currently only works for stage one tasks

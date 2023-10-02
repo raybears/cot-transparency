@@ -33,8 +33,8 @@ from scripts.multi_accuracy import (
     accuracy_outputs_from_inputs,
     AccuracyInput,
     accuracy_plot,
-    TaskAndPlotDots,
-    PlotDots,
+    TaskAndPlotInfo,
+    PlotInfo,
     AccuracyOutput,
 )
 
@@ -571,19 +571,19 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
 
     accuracy_plot(
         list_task_and_dots=[
-            TaskAndPlotDots(
+            TaskAndPlotInfo(
                 task_name="Unbiased",
                 plot_dots=[
-                    PlotDots(acc=unbiased_acc_output, name="Calibration acc"),
-                    PlotDots(acc=unbiased_acc_frequent_baseline_output, name="Most frequent class"),
+                    PlotInfo(acc=unbiased_acc_output, name="Calibration acc"),
+                    PlotInfo(acc=unbiased_acc_frequent_baseline_output, name="Most frequent class"),
                 ],
             ),
-            TaskAndPlotDots(
+            TaskAndPlotInfo(
                 task_name="Biased",
                 plot_dots=[
-                    PlotDots(acc=biased_acc_output, name="Calibration acc"),
-                    PlotDots(acc=biased_acc_baseline_tricked_output, name="Always choose bias"),
-                    PlotDots(acc=biased_acc_frequent_baseline_output, name="Most frequent class"),
+                    PlotInfo(acc=biased_acc_output, name="Calibration acc"),
+                    PlotInfo(acc=biased_acc_baseline_tricked_output, name="Always choose bias"),
+                    PlotInfo(acc=biased_acc_frequent_baseline_output, name="Most frequent class"),
                 ],
             ),
         ],
@@ -649,12 +649,12 @@ def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
     original_treatment_output = accuracy_outputs_from_inputs(original_treatment_inputs)
     accuracy_plot(
         list_task_and_dots=[
-            TaskAndPlotDots(
+            TaskAndPlotInfo(
                 task_name="Overall",
                 plot_dots=[
-                    PlotDots(acc=original_bias_output, name="Biased context"),
-                    PlotDots(acc=original_unbiased_output, name="Unbiased context"),
-                    PlotDots(acc=original_treatment_output, name="Few shot counterfactual intervention"),
+                    PlotInfo(acc=original_bias_output, name="Biased context"),
+                    PlotInfo(acc=original_unbiased_output, name="Unbiased context"),
+                    PlotInfo(acc=original_treatment_output, name="Few shot counterfactual intervention"),
                 ],
             ),
         ],
@@ -700,14 +700,14 @@ def plot_accuracy_both(data: Sequence[SavedTest], name: str) -> None:
 
     accuracy_plot(
         list_task_and_dots=[
-            TaskAndPlotDots(
+            TaskAndPlotInfo(
                 task_name="Predicting answer with and without presence of a feature",
                 plot_dots=[
-                    PlotDots(acc=unbiased_acc_output, name="Model performance"),
-                    PlotDots(
+                    PlotInfo(acc=unbiased_acc_output, name="Model performance"),
+                    PlotInfo(
                         acc=baseline_acc_biased_both_output, name="Always use the feature for predicting both answers"
                     ),
-                    PlotDots(
+                    PlotInfo(
                         acc=baseline_acc_unbiased_both_output,
                         name="Always not use the feature for predicting both answers",
                     ),

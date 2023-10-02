@@ -6,23 +6,29 @@ from slist import Slist
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
-from cot_transparency.data_models.models import ExperimentJsonFormat
+from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
 from cot_transparency.formatters.extraction import BREAK_WORDS
+from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 
-from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
-from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.json_utils.read_write import write_csv_file_from_basemodel
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.model_apis import Prompt
+from stage_one import COT_TESTING_TASKS
+
 
 # ruff: noqa: E501
 
 
 class FlatSimple(BaseModel):
-    prompt: str
-    full_response: str
-    parsed_response: str | None
+    biased_prompt: str
+    task: str
+    biased_formatter: str
+    biased_context_response: str
+    debiased_context_response: str
+    debiased_prompt: str
+    biased_context_parsed_response: str | None
     ground_truth: str
-    biased_ans: str
+    biased_on_ans: str
 
 
 def cot_extraction(completion: str) -> Optional[str]:
@@ -62,22 +68,25 @@ def task_output_to_bad_cot(task: TaskOutput) -> Optional[BiasedWrongCOTBBH]:
     )
 
 
-def task_output_to_flat(task: TaskOutput) -> FlatSimple:
-    converted = Prompt(messages=task.task_spec.messages).convert_to_completion_str()
+def task_output_to_flat(biased_task: TaskOutput, unbiased_task: TaskOutput) -> FlatSimple:
+    converted = Prompt(messages=biased_task.task_spec.messages).convert_to_completion_str()
     return FlatSimple(
-        prompt=converted,
-        full_response=task.first_raw_response,
-        parsed_response=task.first_parsed_response,
-        ground_truth=task.task_spec.ground_truth,
-        biased_ans=task.task_spec.biased_ans,  # type: ignore
+        biased_prompt=converted,
+        biased_context_response=biased_task.first_raw_response,
+        ground_truth=biased_task.task_spec.ground_truth,
+        biased_on_ans=biased_task.task_spec.biased_ans,  # type: ignore
+        biased_formatter=biased_task.task_spec.formatter_name,
+        biased_context_parsed_response=biased_task.first_parsed_response,
+        task=biased_task.task_spec.task_name,
+        debiased_context_response=unbiased_task.first_raw_response,
+        debiased_prompt=Prompt(messages=unbiased_task.task_spec.messages).convert_to_completion_str(),
     )
 
 
-def filter_for_biased_wrong(jsons_tasks: Slist[TaskOutput], selected_formatter: str) -> Slist[TaskOutput]:
+def filter_for_biased_wrong(jsons_tasks: Slist[TaskOutput]) -> Slist[TaskOutput]:
     results: Slist[TaskOutput] = (
-        jsons_tasks.filter(lambda x: x.task_spec.formatter_name == selected_formatter)
         # only get the ones that are biased
-        .filter(lambda x: x.task_spec.biased_ans == x.first_parsed_response)
+        jsons_tasks.filter(lambda x: x.task_spec.biased_ans == x.first_parsed_response)
         # Sometimes we have multiple runs of the same task, we want to get the first one
         .distinct_by(
             lambda x: x.task_spec.task_name
@@ -105,20 +114,50 @@ if __name__ == "__main__":
     5. Run the following to get the overall accuracy
     python analysis.py accuracy experiments/biased_wrong
     """
-    jsons = ExpLoader.stage_one("experiments/bad_cot")
+    jsons = ExpLoader.stage_one("experiments/finetune")
+    model = "gpt-3.5-turbo"
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
 
     jsons_tasks: Slist[TaskOutput] = Slist(jsons.values()).map(lambda x: x.outputs).flatten_list()  # type: ignore
-    selected_formatter = "ZeroShotCOTSycophancyFormatter"
+    selected_formatters = Slist(
+        [
+            WrongFewShotIgnoreMistakesBiasedFormatter,
+            # MoreRewardBiasedFormatter,
+            # ZeroShotCOTSycophancyFormatter,
+            # StanfordBiasedFormatter,
+        ]
+    ).map(lambda x: x.name())
+    tasks = COT_TESTING_TASKS
+    intervention = None
     print(f"Number of jsons: {len(jsons_tasks)}")
-    results: Slist[TaskOutput] = filter_for_biased_wrong(jsons_tasks, selected_formatter)
+
+    filtered_for_formatters = (
+        jsons_tasks.filter(lambda x: x.task_spec.formatter_name in selected_formatters)
+        .filter(lambda x: x.task_spec.intervention_name == intervention)
+        .filter(lambda x: x.task_spec.task_name in tasks)
+        .filter(lambda x: x.task_spec.inference_config.model == model)
+    )
+    results: Slist[TaskOutput] = filter_for_biased_wrong(filtered_for_formatters)
+
+    debiased_formatter = WrongFewShotIgnoreMistakesBiasedFormatter.name()
+    debiased_results: Slist[TaskOutput] = jsons_tasks.filter(
+        lambda x: x.task_spec.formatter_name == debiased_formatter
+        and x.task_spec.intervention_name is None
+        and x.task_spec.inference_config.model == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg"
+    ).filter(lambda x: x.is_correct)
+    unbiased_hash: dict[str, TaskOutput] = debiased_results.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
+    joined: Slist[tuple[TaskOutput, TaskOutput]] = results.map(
+        lambda x: (x, unbiased_hash[x.task_spec.task_hash]) if x.task_spec.task_hash in unbiased_hash else None
+    ).flatten_option()
+    print(f"Number of joined: {len(joined)}")
 
     # convert to MilesBBHWithBadCot
-    converted: Slist[BiasedWrongCOTBBH] = results.map(task_output_to_bad_cot).flatten_option()
+    # converted: Slist[BiasedWrongCOTBBH] = results.map(task_output_to_bad_cot).flatten_option()
     # write to jsonl
-    write_jsonl_file_from_basemodel(path=Path("data/bbh_biased_wrong_cot/data.jsonl"), basemodels=converted)
+    # write_jsonl_file_from_basemodel(path=Path("data/bbh_biased_wrong_cot/data.jsonl"), basemodels=converted)
 
     # This is if you want to view them as a CSV
-    # flattened: Slist[FlatSimple] = results.map(task_output_to_flat)
-    # write_csv_file_from_basemodel(path=Path("meg_request.csv"), basemodels=flattened)
+    flattened: Slist[FlatSimple] = joined.map(lambda x: task_output_to_flat(x[0], x[1]))
+    print(f"Number of flattened: {len(flattened)}")
+    write_csv_file_from_basemodel(path=Path(f"miles_{model}.csv"), basemodels=flattened)

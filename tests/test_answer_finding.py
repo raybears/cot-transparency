@@ -1,7 +1,12 @@
 import pytest
 import yaml
+from cot_transparency.data_models.example_base import ChoiceVariant, DataFormatSpec, IndicatorSeparator
 
-from cot_transparency.formatters.extraction import extract_answer
+from cot_transparency.formatters.extraction import (
+    extract_answer,
+    extract_answer_non_cot,
+    extract_answer_looking_for_option,
+)
 
 from scripts.biased_wrong_ans import cot_extraction
 
@@ -53,3 +58,131 @@ The best answer is: (B) False.
 
     none_test = """First, we start by facing forward."""
     assert cot_extraction(none_test) is None
+
+
+@pytest.mark.parametrize(
+    "response, input_variant, expected_output",
+    [
+        # Test with letters
+        ("A", ChoiceVariant.LETTERS, "A"),
+        ("b", ChoiceVariant.LETTERS, "B"),
+        ("(C)", ChoiceVariant.LETTERS, "C"),
+        ("D", ChoiceVariant.LETTERS, "D"),
+        # Test with numbers
+        ("1", ChoiceVariant.NUMBERS, "A"),
+        ("(2)", ChoiceVariant.NUMBERS, "B"),
+        ("4", ChoiceVariant.NUMBERS, "D"),
+        # Test with Roman numerals
+        ("I", ChoiceVariant.ROMAN, "A"),
+        ("ii", ChoiceVariant.ROMAN, "B"),
+        ("(III)", ChoiceVariant.ROMAN, "C"),
+        ("IV", ChoiceVariant.ROMAN, "D"),
+        # Test with foo
+        ("foo", ChoiceVariant.FOO, "A"),
+        ("bar", ChoiceVariant.FOO, "B"),
+        ("(baz)", ChoiceVariant.FOO, "C"),
+        ("baz)", ChoiceVariant.FOO, "C"),
+        ("(baz", ChoiceVariant.FOO, "C"),
+        ("(best", ChoiceVariant.FOO, None),
+        ("answer", ChoiceVariant.FOO, None),
+        ("None of the above", ChoiceVariant.FOO, None),
+    ],
+)
+def test_extract_answer_non_cot(response: str, input_variant: ChoiceVariant, expected_output: str):
+    data_format = DataFormatSpec(choice_variant=input_variant)
+    assert extract_answer_non_cot(response, dump_failed=False, input_format=data_format) == expected_output
+
+
+#
+
+
+@pytest.mark.parametrize(
+    "input_str, data_format, expected_output",
+    [
+        ("The best answer is: (A) 1", DataFormatSpec(choice_variant=ChoiceVariant.LETTERS), "A"),
+        (
+            "The best answer is: 5. 2",
+            DataFormatSpec(choice_variant=ChoiceVariant.NUMBERS, indicator_separator=IndicatorSeparator.DOT),
+            "E",
+        ),
+        (
+            "The best answer is: $\\boxed{\\textbf{(5)} 945}$.",
+            DataFormatSpec(choice_variant=ChoiceVariant.NUMBERS),
+            "E",
+        ),
+        ("Therefore, the best answer is: $\\boxed{\\text{(B) } 905}$.", DataFormatSpec(), "B"),
+    ],
+)
+def test_extract_answer_format(input_str: str, data_format: DataFormatSpec, expected_output: str):
+    assert extract_answer_looking_for_option(model_answer=input_str, input_format=data_format) == expected_output
+
+
+def test_extract_answer_format_with_roman_options():
+    # III should be parsed out
+    input_str = "The best answer is: (III)"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.ROMAN)
+    expected_output = "C"
+    options = ["dog", "cat", "zebra"]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
+
+
+# 'The best answer is: corge) None of the above' not working
+
+
+def test_extract_answer_format_without_parenthesis2():
+    # baz without the parentheses should be parsed out, even though it was formatted with parentheses
+    input_str = "The best answer is: corge) None of the above"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    expected_output = "F"
+    options = ["dog", "cat", "zebra", "100", "200", "None of the above"]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
+
+
+def test_extract_answer_format_without_parenthesis():
+    # baz without the parentheses should be parsed out, even though it was formatted with parentheses
+    input_str = "The best answer is: baz"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    expected_output = "C"
+    options = ["dog", "cat", "zebra"]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
+
+
+def test_extract_answer_format_missing_last_period():
+    # dog should match even though it is missing the last period
+    input_str = "The best answer is: dog"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    expected_output = "A"
+    # options with ending periods
+    options = ["dog.", "cat.", "zebra."]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
+
+
+def test_extract_answer_no_separator():
+    # qux isn't in brackets, or has a separator, but should still match
+    input_str = "The best answer is: qux Avoid examining his or her"
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    expected_output = "D"
+    options = ["cat", "dog", "something", "Avoid examining his or her personality"]
+    assert (
+        extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options)
+        == expected_output
+    )
+
+
+def test_extract_answer_should_none():
+    input_str = "The best answer is: ffff Avoid "
+    data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
+    options = ["cat", "dog", "something", "Avoid examining his or her personality"]
+    assert extract_answer_looking_for_option(model_answer=input_str, input_format=data_format, options=options) is None

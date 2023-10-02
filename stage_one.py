@@ -1,10 +1,13 @@
 import random
 from pathlib import Path
 from typing import Optional, Type
+import fnmatch
 
 import fire
 from slist import Slist
 
+from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
+from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
 from cot_transparency.data_models.data.john_math import (
     get_john_math_level_3,
     get_john_math_level_4,
@@ -17,11 +20,11 @@ from cot_transparency.data_models.data.model_written_evals import (
 )
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec
+from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec, is_openai_finetuned
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag
+from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag, bbq
 from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
 from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_interventions
 from cot_transparency.formatters.interventions.intervention import Intervention
@@ -35,22 +38,8 @@ from cot_transparency.formatters import (
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
-BBH_TASK_LIST = [
-    "sports_understanding",
-    "snarks",
-    "disambiguation_qa",
-    "movie_recommendation",
-    "causal_judgment",
-    "date_understanding",
-    "tracking_shuffled_objects_three_objects",
-    "temporal_sequences",
-    "ruin_names",
-    "web_of_lies",
-    "navigate",
-    "logical_deduction_five_objects",
-    "hyperbaton",
-]
-
+COT_TRAINING_TASKS = BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
 TASK_LIST = {
     "bbh": BBH_TASK_LIST,
     "bbh_biased_wrong_cot": BBH_TASK_LIST,
@@ -64,6 +53,9 @@ TASK_LIST = {
         "openbook_qa",
         "hellaswag",
     ],
+    "bbq": BBQ_TASK_LIST,
+    "cot_training": COT_TRAINING_TASKS,
+    "cot_testing": COT_TESTING_TASKS,
     "model_written_evals": ["nlp", "phil", "pol"],
     "john_math": ["john_level_3", "john_level_4", "john_level_5"],
 }
@@ -76,10 +68,19 @@ CONFIG_MAP = {
     "davinci": OpenaiInferenceConfig(model="davinci", temperature=1, max_tokens=1000, top_p=1.0),
     "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
     "claude-2": OpenaiInferenceConfig(model="claude-2", temperature=1, max_tokens=1000, top_p=1.0),
+    "claude-instant-1": OpenaiInferenceConfig(model="claude-instant-1", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
     "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
     "llama-2-7b-chat-hf": OpenaiInferenceConfig(model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
 }
+
+
+def get_config(model: str) -> OpenaiInferenceConfig:
+    if is_openai_finetuned(model):
+        # Allow user to specify any OpenAI finetuned model
+        return OpenaiInferenceConfig(model=model, temperature=1, max_tokens=1000, top_p=1.0)
+    else:
+        return CONFIG_MAP[model].model_copy()
 
 
 def create_task_settings(
@@ -106,7 +107,10 @@ def create_task_settings(
                     intervention=intervention,
                 )
             )
-    return task_settings + with_interventions
+    if len(with_interventions) > 0:
+        return with_interventions
+    else:
+        return task_settings
 
 
 def validate_tasks(tasks: list[str]) -> list[str]:
@@ -124,7 +128,8 @@ def validate_tasks(tasks: list[str]) -> list[str]:
 
 
 def get_list_of_examples(
-    task: str, dataset: Optional[str] = None, data_loading_cap: Optional[int] = None
+    task: str,
+    dataset: Optional[str] = None,
 ) -> Slist[DataExampleBase]:
     data = None
     if dataset == "bbh_biased_wrong_cot":
@@ -133,13 +138,19 @@ def get_list_of_examples(
         )
     elif task in TASK_LIST["bbh"]:
         data = bbh.val(task)
+    elif task in TASK_LIST["bbq"]:
+        data = bbq.val(task)
     else:
         if task == "aqua":
             data = aqua.dev()
         elif task == "arc_easy":
             data = arc.arc_easy_dev()
+        elif task == "arc_easy_train":
+            data = arc.arc_easy_train()
         elif task == "arc_challenge":
             data = arc.arc_challenge_dev()
+        elif task == "arc_challenge_train":
+            data = arc.arc_challenge_train()
         elif task == "truthful_qa":
             data = truthful_qa.eval()
         elif task == "logiqa":
@@ -150,6 +161,8 @@ def get_list_of_examples(
             data = mmlu.test(questions_per_task=questions_per_task, task=task)
         elif task == "openbook_qa":
             data = openbook.test()
+        elif task == "openbook_qa_train":
+            data = openbook.openbook_train()
         elif task == "hellaswag":
             data = hellaswag.val()
         elif task == "nlp":
@@ -194,11 +207,26 @@ def main(
         if "llama" in model.lower():
             assert batch == 1, "Llama only supports batch size of 1"
 
+    # match formatter name wildcard
+    for formatter in formatters:
+        if "*" in formatter:
+            formatters.remove(formatter)
+            formatters += fnmatch.filter(StageOneFormatter.all_formatters().keys(), formatter)
+
+    assert len(formatters) > 0, "You must define at least one formatter"
+
     tasks = validate_tasks(tasks)
     validated_formatters = get_valid_stage1_formatters(formatters)
     validated_interventions = get_valid_stage1_interventions(interventions)
 
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
+
+    # p = Path(exp_dir)
+    # if p.exists() and p.is_dir():  # Check if the path exists and is a directory
+    #     print("Backing up existing experiment directory to prevent overwriting")
+    #     backup_path = p.with_name(f"{p.name}.auto_backup")
+    #     shutil.copytree(p, backup_path)
+
     task_settings: list[TaskSetting] = create_task_settings(
         tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
     )
@@ -223,7 +251,7 @@ def main(
             data = data[:example_cap]
 
         # Possible config overrides
-        config = CONFIG_MAP[model].model_copy()
+        config = get_config(model)
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):
@@ -233,6 +261,7 @@ def main(
             config.max_tokens = 300
             config.temperature = 0.8
             config.top_p = 0.95
+
         # if you are using an intervention, we need to add SINGLE_SHOT_SEP to the stop list
         if setting.intervention:
             if isinstance(config.stop, list):
@@ -240,16 +269,16 @@ def main(
             else:
                 config.stop = [FEW_SHOT_STOP_TOKEN]
         if temperature is not None:
-            print("Overriding temperature")
+            print(f"Overriding temperature with t={temperature}")
             config.temperature = temperature
         assert config.model == model
         if not formatter.is_cot:
-            config.max_tokens = 3
+            config.max_tokens = 50
 
         for item in data:
             for i in range(repeats_per_question):
                 messages = (
-                    setting.intervention.intervene(question=item, formatter=formatter)
+                    setting.intervention.intervene(question=item, formatter=formatter, model=model)
                     if setting.intervention
                     else formatter.format_example(question=item, model=model)
                 )
@@ -268,7 +297,7 @@ def main(
                 )
                 tasks_to_run.append(task_spec)
 
-    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run)
+    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=True)
 
 
 def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneFormatter]]:

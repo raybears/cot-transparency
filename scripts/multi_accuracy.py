@@ -36,15 +36,18 @@ class AccuracyOutput(BaseModel):
 
         This assumes that the estimates of accuracy for the two models are independent.
         """
-        # assume n samples are the same
+        # assume n samples are the same for calculating error bars
+        # take the min of samples for samples
+        samples = min(self.samples, other.samples)
         return AccuracyOutput(
             accuracy=self.accuracy - other.accuracy,
             error_bars=math.sqrt(self.error_bars**2 + other.error_bars**2),
-            samples=self.samples,
+            samples=samples,
         )
 
 
 def compute_error_bars(num_trials: int, num_successes: int, confidence_level: float = 1.96) -> float:
+    # todo: migrate from statsmodels.stats.proportion.proportion_confint
     p = num_successes / num_trials
     se = math.sqrt((p * (1 - p)) / num_trials)
     return confidence_level * se
@@ -120,14 +123,18 @@ def filter_no_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
     return [output for output in new_list if output.inference_output]
 
 
-class PlotDots(BaseModel):
+class PlotInfo(BaseModel):
     acc: AccuracyOutput
     name: str
 
+    def add_n_samples_to_name(self) -> "PlotInfo":
+        n = self.acc.samples
+        return PlotInfo(acc=self.acc, name=f"{self.name} (n={n})")
 
-class TaskAndPlotDots(BaseModel):
+
+class TaskAndPlotInfo(BaseModel):
     task_name: str
-    plot_dots: list[PlotDots]
+    plot_dots: list[PlotInfo]
 
 
 class PathsAndNames(BaseModel):
@@ -135,11 +142,11 @@ class PathsAndNames(BaseModel):
     name: str
 
 
-def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> list[PlotDots]:
-    out: list[PlotDots] = []
+def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> list[PlotInfo]:
+    out: list[PlotInfo] = []
     for path in paths:
         out.append(
-            PlotDots(acc=accuracy_for_file(Path(path.path), inconsistent_only=inconsistent_only), name=path.name)
+            PlotInfo(acc=accuracy_for_file(Path(path.path), inconsistent_only=inconsistent_only), name=path.name)
         )
     return out
 
@@ -164,7 +171,7 @@ class PlotlyShapeColorManager:
 
 
 def accuracy_plot(
-    list_task_and_dots: list[TaskAndPlotDots], title: str, subtitle: str = "", save_file_path: Optional[str] = None
+    list_task_and_dots: list[TaskAndPlotInfo], title: str, subtitle: str = "", save_file_path: Optional[str] = None
 ):
     fig = go.Figure()
 
@@ -258,7 +265,7 @@ bbh_task_list = TASK_LIST["bbh"]
 
 def plot_accuracy_for_exp(
     exp_dir: str,
-    model_filter: Optional[str] = None,
+    models: Sequence[str] = [],
     save_file_path: Optional[str] = None,
     formatters: Sequence[str] = [],
     inconsistent_only: bool = True,
@@ -270,7 +277,7 @@ def plot_accuracy_for_exp(
     should_filter_formatter: bool = len(formatters) > 0
     formatters_found: set[str] = set()
     tasks: set[str] = set()
-    models: set[str] = set()
+    models_found: set[str] = set()
     for i in json_files:
         base_name = os.path.basename(i)  # First get the basename: 'file.txt'
         name_without_ext = os.path.splitext(base_name)[0]  # Then remove the extension
@@ -282,22 +289,21 @@ def plot_accuracy_for_exp(
         tasks.add(task)
         model = i.split("/")[-2]
 
-        if model_filter is not None:
-            if model != model_filter:
-                continue
-        models.add(model)
+        if models and model not in models:
+            continue
+        models_found.add(model)
 
     print(f"formatters: {formatters_found}")
 
-    if len(set(models)) > 1:
-        if model_filter is None:
-            raise ValueError(f"Multiple models found: {set(models)}. Please specify a model to filter on.")
-    model: str = list(models)[0]
+    if len(models_found) > 1:
+        if len(models) == 0:
+            raise ValueError(f"Multiple models found: {models_found}. Please specify a model to filter on.")
+    model: str = models[0]
 
-    tasks_and_plots_dots: list[TaskAndPlotDots] = []
+    tasks_and_plots_dots: list[TaskAndPlotInfo] = []
     for task in tasks:
         tasks_and_plots_dots.append(
-            TaskAndPlotDots(
+            TaskAndPlotInfo(
                 task_name=task,
                 plot_dots=plot_vertical_acc(
                     make_task_paths_and_names(

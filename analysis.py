@@ -8,6 +8,7 @@ import pandas as pd
 from typing import Any, Optional, List, Union, Sequence
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.formatters import name_to_formatter
+from cot_transparency.formatters.interventions.valid_interventions import VALID_INTERVENTIONS
 from scripts.multi_accuracy import plot_accuracy_for_exp
 import seaborn as sns
 
@@ -66,8 +67,9 @@ def accuracy(
     exp_dir: str,
     inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
     formatters: Sequence[str] = [],
+    models: Sequence[str] = [],
+    tasks: Sequence[str] = [],
     check_counts: bool = True,
     csv: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
@@ -82,7 +84,8 @@ def accuracy(
         inconsistent_only=inconsistent_only,
         aggregate_over_tasks=aggregate_over_tasks,
         formatters=formatters,
-        model_filter=model_filter,
+        models=models,
+        tasks=tasks,
         check_counts=check_counts,
     )
     if csv:
@@ -93,21 +96,26 @@ def accuracy(
 
 def apply_filters(
     inconsistent_only: Optional[bool],
-    model_filter: Optional[str],
+    models: Sequence[str],
     formatters: Sequence[str],
     aggregate_over_tasks: bool,
     df: pd.DataFrame,
+    tasks: Sequence[str] = [],
 ) -> pd.DataFrame:
     if inconsistent_only:
-        df = df[df.biased_ans != df.ground_truth]
+        df = df[df.biased_ans != df.ground_truth]  # type: ignore
 
-    if model_filter:
+    if models:
         # check that df.model contains model_filter
-        df = df[df.model.str.contains(model_filter)]
+        df = df[df.model.isin(models)]  # type: ignore
     if formatters:
         # check that df.formatter_name is in formatters
-        df = df[df.formatter_name.isin(formatters)]
+        df = df[df.formatter_name.isin(formatters)]  # type: ignore
         assert len(df) > 0, f"formatters {formatters} not found in {df.formatter_name.unique()}"
+
+    if tasks:
+        df = df[df.task_name.isin(tasks)]  # type: ignore
+        assert len(df) > 0, f"tasks {tasks} not found in {df.task_name.unique()}"
 
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
@@ -120,18 +128,20 @@ def accuracy_for_df(
     df: pd.DataFrame,
     inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
     check_counts: bool = True,
     formatters: Sequence[str] = [],
+    models: Sequence[str] = [],
+    tasks: Sequence[str] = [],
 ) -> pd.DataFrame:
     """
     inconsistent_only: if True, only include inconsistent tasks where biased ans and correct ans are different
     """
     df = apply_filters(
         inconsistent_only=inconsistent_only,
-        model_filter=model_filter,
+        models=models,
         formatters=formatters,
         aggregate_over_tasks=aggregate_over_tasks,
+        tasks=tasks,
         df=df,
     )
     df.loc[:, "intervention_name"] = df["intervention_name"].fillna("")
@@ -147,7 +157,7 @@ def accuracy_for_df(
 
     # add the standard error
     accuracy_standard_error = accuracy_df_grouped.sem()
-    accuracy_df["accuracy_standard_error"] = accuracy_standard_error["is_correct"]
+    accuracy_df["accuracy_standard_error"] = accuracy_standard_error["is_correct"]  # type: ignore
     accuracy_df = accuracy_df.reset_index()
 
     counts_df = accuracy_df_grouped.count().reset_index()
@@ -197,19 +207,19 @@ def counts_are_equal(count_df: pd.DataFrame) -> bool:
 
 def simple_plot(
     exp_dir: str,
-    inconsistent_only: bool = True,
     aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
+    models: Sequence[str] = [],
     formatters: Sequence[str] = [],
     x: str = "task_name",
     y: str = "Accuracy",
     hue: str = "formatter_name",
     col: str = "model",
+    legend: bool = True,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
-        inconsistent_only=inconsistent_only,
-        model_filter=model_filter,
+        inconsistent_only=False,
+        models=models,
         formatters=formatters,
         aggregate_over_tasks=aggregate_over_tasks,
         df=df,
@@ -219,22 +229,45 @@ def simple_plot(
     df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
     df["formatter_name"] = df["formatter_name"].str.replace("ZeroShot", "0S: ")
     df["formatter_name"] = df["formatter_name"].str.replace("ZeroShot", "FS: ")
+    df["intervention_name"] = df["intervention_name"].fillna("None")
+
+    def get_intervention_name(intervention_name: str) -> str:
+        if intervention_name == "None":
+            return "None"
+        return VALID_INTERVENTIONS[intervention_name].formatted_name()
+
+    df["intervention_name"] = df["intervention_name"].apply(get_intervention_name)
 
     # rename is_correct to Accuracy
     df = df.rename(columns={"is_correct": "Accuracy"})
     # add temperature to model name
     df["model"] = df["model"] + " (T=" + df["temperature"].astype(str) + ")"
-    sns.catplot(data=df, x=x, y=y, hue=hue, col=col, capsize=0.05, errwidth=1, kind="bar")
+    sns.catplot(
+        data=df,
+        x=x,
+        y=y,
+        hue=hue,
+        col=col,
+        capsize=0.01,
+        errwidth=1,
+        kind="bar",
+        legend=legend,  # type: ignore
+    )
+
+    # plot the counts for the above
+    g = sns.catplot(data=df, x=x, hue=hue, col=col, kind="count", legend=legend)  # type: ignore
+    g.fig.suptitle("Counts")
+
     plt.show()
 
 
 def point_plot(
-    exp_dir: str, inconsistent_only: bool = True, model_filter: Optional[str] = None, formatters: Sequence[str] = []
+    exp_dir: str, inconsistent_only: bool = True, models: Sequence[str] = [], formatters: Sequence[str] = []
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
         inconsistent_only=inconsistent_only,
-        model_filter=model_filter,
+        models=models,
         formatters=formatters,
         aggregate_over_tasks=False,
         df=df,

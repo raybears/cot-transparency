@@ -1,5 +1,6 @@
 from enum import Enum
 import anthropic
+from slist import Slist
 
 from cot_transparency.data_models.models import (
     MessageRole,
@@ -27,6 +28,7 @@ def messages_has_none_role(prompt: list[StrictChatMessage] | list[ChatMessage]) 
 
 
 class ModelType(str, Enum):
+    # moves the "assistant preferred" message to the previous (user) message
     chat = "chat"
     completion = "completion"
     chat_with_append_assistant = "anthropic"
@@ -65,6 +67,10 @@ class Prompt(BaseModel):
 
     def convert_to_completion_str(self, model_type=ModelType.completion) -> str:
         messages = self.get_strict_messages(model_type)
+        # Add the required empty assistant tag for Claude models if the last message does not have the assistant role
+        if messages[-1].role == StrictMessageRole.user and model_type == ModelType.chat_with_append_assistant:
+            messages.append(StrictChatMessage(role=StrictMessageRole.assistant, content=""))
+
         message = ""
         for msg in messages:
             match msg.role:
@@ -88,11 +94,14 @@ class Prompt(BaseModel):
 
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
-    set_opeani_org_from_env_rand()
+    if not config.is_openai_finetuned():
+        # we should only switch between orgs if we are not finetuned
+        # TODO: just pass the org explicitly to the api?
+        set_opeani_org_from_env_rand()
     prompt = Prompt(messages=messages)
 
     model_name = config.model
-    if model_name == "gpt-3.5-turbo" or model_name == "gpt-3.5-turbo-16k":
+    if "gpt-3.5-turbo" in model_name:
         return gpt3_5_rate_limited(config=config, messages=prompt.convert_to_openai_chat()).completion
 
     elif model_name == "gpt-4" or model_name == "gpt-4-32k":
@@ -147,3 +156,31 @@ def format_for_openai_chat(prompt: list[ChatMessage]) -> list[StrictChatMessage]
             new_item = StrictChatMessage(role=StrictMessageRole(msg.role), content=msg.content)
             new_list.append(new_item)
     return new_list
+
+
+def format_for_finetuning(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
+    # Add the assistant_preferred message to the next message if the next message exists
+    # This is in contrast to format_for_chat, which adds the assistant_preferred message to the previous message
+    # if the next message doesn't exist, then we explode
+    assistant_preferred_present = Slist(prompt).any(lambda msg: msg.role == MessageRole.assistant_if_completion)
+    if not assistant_preferred_present:
+        return format_for_completion(prompt)
+    else:
+        assistant_preferred_idx: int = Slist(prompt).find_one_idx_or_raise(
+            lambda msg: msg.role == MessageRole.assistant_if_completion
+        )
+        if assistant_preferred_idx == len(prompt) - 1:
+            raise ValueError("Cannot format for finetuning because the assistant_preferred message is the last message")
+        new_messages = []
+        for idx, message in enumerate(prompt):
+            if idx == assistant_preferred_idx:
+                content = message.content
+                content_next = prompt[idx + 1].content
+                new_message = StrictChatMessage(role=StrictMessageRole.assistant, content=content + content_next)
+            elif idx == assistant_preferred_idx + 1:
+                # skip the next message
+                continue
+            else:
+                new_message = StrictChatMessage(role=StrictMessageRole(message.role), content=message.content)
+            new_messages.append(new_message)
+        return new_messages

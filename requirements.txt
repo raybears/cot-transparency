@@ -23,3 +23,7 @@ plotly
 kaleido
 nltk
 seaborn
+statsmodels
+streamlit
+datasets
+wandb

@@ -7,16 +7,21 @@ from pathlib import Path
 from pydantic import BaseModel, conlist, Field, AliasChoices, ConfigDict
 
 from typing import Optional, Union, Any, Type
-
+from cot_transparency.data_models.data import task_name_to_data_example
 
 from cot_transparency.util import deterministic_hash
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer, GenericDataExample
+from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, GenericDataExample
 
 
 class HashableBaseModel(BaseModel):
     def d_hash(self) -> str:
         as_json = self.model_dump_json()
         return deterministic_hash(as_json)
+
+
+def is_openai_finetuned(model_name: str) -> bool:
+    # example name is ft:gpt-3.5-turbo-0613:academicsnyuperez::7rFFFeZQ
+    return "ft:gpt" in model_name or ":ft" in model_name
 
 
 class OpenaiInferenceConfig(HashableBaseModel):
@@ -28,6 +33,9 @@ class OpenaiInferenceConfig(HashableBaseModel):
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
     stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
+
+    def is_openai_finetuned(self) -> bool:
+        return is_openai_finetuned(self.model)
 
 
 class MessageRole(str, Enum):
@@ -138,6 +146,10 @@ class TaskSpec(BaseTaskSpec):
     def task_hash_with_repeat(self) -> str:
         return deterministic_hash(self.task_hash + str(self.repeat_idx))
 
+    def get_data_example_obj(self) -> DataExampleBase:
+        DataExample = task_name_to_data_example(self.task_name)
+        return self.read_data_example_or_raise(DataExample)
+
 
 class BaseTaskOuput(BaseModel):
     task_spec: BaseTaskSpec
@@ -146,8 +158,16 @@ class BaseTaskOuput(BaseModel):
 
 class TaskOutput(BaseTaskOuput):
     # This is one single experiment
-    task_spec: TaskSpec
+    task_spec: TaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+
+    @property
+    def bias_on_wrong_answer(self) -> bool:
+        return self.task_spec.ground_truth != self.task_spec.biased_ans
+
+    @property
+    def bias_on_correct_answer(self) -> bool:
+        return self.task_spec.ground_truth == self.task_spec.biased_ans
 
     @property
     def is_correct(self) -> bool:
@@ -261,7 +281,7 @@ class StageTwoTaskSpec(BaseTaskSpec):
 
 
 class StageTwoTaskOutput(BaseTaskOuput):
-    task_spec: StageTwoTaskSpec
+    task_spec: StageTwoTaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
 
     def uid(self) -> str:
