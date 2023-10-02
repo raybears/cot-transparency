@@ -26,3 +26,4 @@ seaborn
 statsmodels
 streamlit
 datasets
+wandb
