@@ -1,6 +1,6 @@
 import random
 from pathlib import Path
-from typing import Optional, Type
+from typing import Optional, Type, Sequence
 import fnmatch
 
 import fire
@@ -88,7 +88,7 @@ def create_task_settings(
     models: list[str],
     formatters: list[Type[StageOneFormatter]],
     # see cot_transparency/formatters/interventions/valid_interventions.py for valid interventions
-    interventions: list[Type[Intervention]],
+    interventions: Sequence[Type[Intervention] | None],
 ) -> list[TaskSetting]:
     """Create a list of task settings to run"""
     task_settings = []
@@ -185,7 +185,8 @@ def main(
     dataset: Optional[str] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
-    interventions: list[str] = [],
+    # Pass in a list of interventions to run, indicate None to run no intervention as well
+    interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     example_cap: Optional[int] = 1000000,
