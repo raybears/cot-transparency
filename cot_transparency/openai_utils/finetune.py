@@ -3,11 +3,14 @@ import io
 import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
+import numpy as np
 import openai
 import pandas as pd
+import wandb
 from pydantic import BaseModel
+from wandb.sdk.wandb_run import Run
 
 from cot_transparency.data_models.models import (
     StrictChatMessage,
@@ -71,12 +74,17 @@ def wait_until_uploaded_file_id_is_ready(file_id: str) -> None:
         time.sleep(1)
 
 
-def wait_until_finetune_job_is_ready(finetune_job_id: str) -> str:
+class FinetunedJobResults(BaseModel):
+    fine_tuned_model: str
+    result_files: list[str] = []
+
+
+def wait_until_finetune_job_is_ready(finetune_job_id: str) -> FinetunedJobResults:
     """Returns the fine tuned model id"""
     while True:
         finetune_job = openai.FineTuningJob.retrieve(finetune_job_id)
         if finetune_job["status"] == "succeeded":
-            return finetune_job["fine_tuned_model"]
+            return FinetunedJobResults.model_validate(finetune_job)
         time.sleep(1)
 
 
@@ -114,7 +122,65 @@ def confirm_to_continue(file_path: Path) -> None:
     return None
 
 
-def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
+class WandbSyncer:
+    def __init__(self, project_name: str, notes: Optional[str] = None) -> None:
+        self.run: Run = wandb.init(  # type: ignore
+            # set the wandb project where this run will be logged
+            project=project_name,
+            # notes are a short description of the run
+            notes=notes,
+        )
+
+    def upload_training_file(self, artifact_path: Path) -> None:
+        print(f"Uploading training file to wandb. {artifact_path}")
+        artifact = wandb.Artifact(
+            name="training_file",
+            type="training_file",
+            description="Training file for finetuning",
+        )
+        artifact.add_file(artifact_path.as_posix())
+        self.run.log_artifact(artifact)
+
+    def update_parameters(self, params: FineTuneParams) -> None:
+        print(f"Updating parameters in wandb {params}")
+        self.run.config.update(params.model_dump())
+
+    def update_parameters_with_dict(self, params: dict[str, Any]) -> None:
+        print(f"Updating parameters in wandb {params}")
+        self.run.config.update(params)
+
+    def update_n_samples(self, n_samples: int) -> None:
+        print(f"Updating n_samples in wandb {n_samples}")
+        self.run.config.update({"n_samples": n_samples})
+
+    def update_openai_file_id(self, openai_file_id: str) -> None:
+        print(f"Updating openai file id in wandb {openai_file_id}")
+        self.run.config.update({"openai_file_id": openai_file_id})
+
+    def update_finetune_job_id(self, finetune_job_id: str) -> None:
+        print(f"Updating finetune job id in wandb {finetune_job_id}")
+        self.run.config.update({"finetune_job_id": finetune_job_id})
+
+    def update_finetune_model_id(self, finetune_model_id: str) -> None:
+        print(f"Updating finetune model id in wandb {finetune_model_id}")
+        self.run.config.update({"finetune_model_id": finetune_model_id})
+
+    def update_training_results(self, results_id: str) -> None:
+        results = openai.File.download(id=results_id).decode("utf-8")
+        # log results
+        df_results = pd.read_csv(io.StringIO(results))
+        for _, row in df_results.iterrows():
+            metrics = {k: v for k, v in row.items() if not np.isnan(v)}
+            step = metrics.pop("step")
+            if step is not None:
+                step = int(step)
+            wandb.log(metrics, step=step)
+
+
+def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: Optional[WandbSyncer] = None) -> str:
+    """
+    Pass syncer=None to disable wandb logging
+    """
     # get time for file name
     now_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     file_name = f"{params.model}-{now_time}.jsonl"
@@ -122,6 +188,10 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
     # write to file
     write_jsonl_file_from_basemodel(path=write_jsonl_path, basemodels=samples)
     confirm_to_continue(write_jsonl_path)
+    if syncer:
+        syncer.update_parameters(params=params)
+        syncer.upload_training_file(write_jsonl_path)
+        syncer.update_n_samples(n_samples=len(samples))
     # write to buffer cos openai wants a buffer
     buffer = io.StringIO()
     for item in samples:
@@ -133,6 +203,8 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
         user_provided_filename=file_name,
     )
     file_id = file_upload_resp["id"]
+    if syncer:
+        syncer.update_openai_file_id(openai_file_id=file_id)
     print(f"Starting file upload. {file_id}")
     wait_until_uploaded_file_id_is_ready(file_id=file_id)
     print(f"Uploaded file to openai. {file_upload_resp}")
@@ -142,27 +214,29 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample]) -> str:
 
     print(f"Started finetune job. {finetune_job_resp}")
     parsed_job_resp: FinetuneJob = FinetuneJob.model_validate(finetune_job_resp)
-    model_id: str = wait_until_finetune_job_is_ready(finetune_job_id=parsed_job_resp.id)
+
+    if syncer:
+        syncer.update_finetune_job_id(finetune_job_id=parsed_job_resp.id)
+    result: FinetunedJobResults = wait_until_finetune_job_is_ready(finetune_job_id=parsed_job_resp.id)
+    model_id = result.fine_tuned_model
     print(f"Fine tuned model id: {model_id}. You can now use this model in the API")
+    if syncer:
+        syncer.update_finetune_model_id(finetune_model_id=model_id)
+        syncer.update_training_results(results_id=result.result_files[0])
     return model_id
 
 
-def example_main():
-    # example you can run
-    messages = [
-        FinetuneSample(
-            messages=[
-                StrictChatMessage(role=StrictMessageRole.user, content="hello"),
-                StrictChatMessage(role=StrictMessageRole.assistant, content="bye"),
-            ]
-        )
-    ] * 10
-    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
-    run_finetune(params=params, samples=messages)
+def run_finetune_with_wandb(
+    params: FineTuneParams,
+    samples: list[FinetuneSample],
+    project_name: str = "consistency-training",
+    notes: Optional[str] = None,
+) -> str:
+    """Default wandb syncer that syncs to consistency-training"""
+    return run_finetune(params=params, samples=samples, syncer=WandbSyncer(project_name=project_name, notes=notes))
 
 
 def download_result_file(result_file_id: str) -> None:
-    # file-aME95HrZg20XOBTtemqjyeax for 60000, 2000 rows
     file = openai.File.retrieve(result_file_id)
     downloaded: bytes = openai.File.download(result_file_id)
     # use pandas
@@ -180,8 +254,19 @@ def download_training_file(training_file_id: str) -> None:
     print(len(output))
 
 
+def example_main():
+    # example you can run
+    messages = [
+        FinetuneSample(
+            messages=[
+                StrictChatMessage(role=StrictMessageRole.user, content="hello"),
+                StrictChatMessage(role=StrictMessageRole.assistant, content="bye"),
+            ]
+        )
+    ] * 10
+    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
+    run_finetune(params=params, samples=messages)
+
+
 if __name__ == "__main__":
-    # list_all_files()
-    # delete_all_files()
     list_finetunes()
-    # download_training_file("file-xW8EUgwSv2yhct4BqckphK83")
