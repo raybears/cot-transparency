@@ -1,7 +1,8 @@
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
-from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter, \
-    DeceptiveAssistantTargetedFormatter
+from cot_transparency.formatters.more_biases.deceptive_assistant import (
+    DeceptiveAssistantTargetedFormatter,
+)
 from cot_transparency.formatters.more_biases.more_reward import (
     MoreRewardBiasedFormatter,
     MoreRewardBiasedNoCOTFormatter,

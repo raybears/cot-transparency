@@ -3,7 +3,7 @@ import io
 import json
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Mapping
 
 import numpy as np
 import openai
@@ -145,7 +145,7 @@ class WandbSyncer:
         print(f"Updating parameters in wandb {params}")
         self.run.config.update(params.model_dump())
 
-    def update_parameters_with_dict(self, params: dict[str, Any]) -> None:
+    def update_parameters_with_dict(self, params: Mapping[str, Any]) -> None:
         print(f"Updating parameters in wandb {params}")
         self.run.config.update(params)
 
@@ -231,7 +231,10 @@ def run_finetune_with_wandb(
     samples: list[FinetuneSample],
     project_name: str = "consistency-training",
     notes: Optional[str] = None,
+    more_config: Mapping[str, Any] = {},
 ) -> str:
+    syncer = WandbSyncer(project_name=project_name, notes=notes)
+    syncer.update_parameters_with_dict(params=more_config)
     """Default wandb syncer that syncs to consistency-training"""
     return run_finetune(params=params, samples=samples, syncer=WandbSyncer(project_name=project_name, notes=notes))
 
