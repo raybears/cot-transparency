@@ -30,7 +30,7 @@ from cot_transparency.model_apis import Prompt
 from cot_transparency.openai_utils.finetune import (
     FinetuneSample,
     FineTuneParams,
-    run_finetune,
+    run_finetune_with_wandb,
     FineTuneHyperParams,
 )
 from scripts.cot_variants import sample_cot_variant
@@ -101,7 +101,7 @@ def fine_tune_with_naive_cots(n: int):
     print(f"Number of cots: {len(cots)}")
     messages = [FinetuneSample.from_task_output(task) for task in cots]
     params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
-    _id = run_finetune(params=params, samples=messages)
+    _id = run_finetune_with_wandb(params=params, samples=messages)
 
 
 def distinct_at_front_shuffle(items: Slist[TaskOutput], limit: int) -> Slist[TaskOutput]:
@@ -158,7 +158,7 @@ def fine_tune_with_big_brain_cots(
     )
     print(f"Number of cots: {len(samples)}")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune(params=params, samples=samples)
+    _id = run_finetune_with_wandb(params=params, samples=samples)
 
 
 def fine_tune_with_big_brain_majority_no_cot(
@@ -189,18 +189,19 @@ def fine_tune_with_big_brain_majority_no_cot(
     cot_samples = cot_limited.map(lambda x: x.to_finetune_sample_unbiased_context())
     samples = non_cot_samples + cot_samples + get_alpaca_training(10000)
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune(params=params, samples=samples)
+    _id = run_finetune_with_wandb(params=params, samples=samples)
 
 
 def fine_tune_with_big_brain_balanced(
     exclude_formattter: Type[StageOneFormatter] | None,
     n_epochs: int,
     model: str = "gpt-3.5-turbo",
+    n_samples: int = 72000,
 ):
     # balanced, all biased context
     percentage = 0.5
-    non_cot_limit = int(percentage * 72000)
-    cot_limit = int((1 - percentage) * 72000)
+    non_cot_limit = int(percentage * n_samples)
+    cot_limit = int((1 - percentage) * n_samples)
     to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
     non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_big_brain()).filter(
         lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
@@ -219,7 +220,7 @@ def fine_tune_with_big_brain_balanced(
     alpaca_samples = get_alpaca_training(10000)
     samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune(params=params, samples=samples)
+    _id = run_finetune_with_wandb(params=params, samples=samples, notes="big brain balanced")
 
 
 def fine_tune_with_dumb_brain_balanced(
@@ -249,7 +250,7 @@ def fine_tune_with_dumb_brain_balanced(
     alpaca_samples = get_alpaca_training(10000)
     samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune(params=params, samples=samples)
+    _id = run_finetune_with_wandb(params=params, samples=samples)
 
 
 def fine_tune_with_big_brain_majority_cot(
@@ -281,7 +282,7 @@ def fine_tune_with_big_brain_majority_cot(
     alpaca_samples = get_alpaca_training(10000)
     samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune(params=params, samples=samples)
+    _id = run_finetune_with_wandb(params=params, samples=samples)
 
 
 def fine_tune_with_unbiased_majority_cot(
@@ -313,7 +314,7 @@ def fine_tune_with_unbiased_majority_cot(
     alpaca_samples = get_alpaca_training(10000)
     samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune(params=params, samples=samples)
+    _id = run_finetune_with_wandb(params=params, samples=samples)
 
 
 def fine_tune_with_big_brain_cots_control_tokens(
@@ -334,7 +335,7 @@ def fine_tune_with_big_brain_cots_control_tokens(
     )
     print(f"Number of cots: {len(samples)}")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune(params=params, samples=samples)
+    _id = run_finetune_with_wandb(params=params, samples=samples)
 
 
 if __name__ == "__main__":
@@ -348,8 +349,10 @@ if __name__ == "__main__":
             CrossBiasedFormatter,
         ]
     )
-    fine_tune_with_dumb_brain_balanced(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
-    # fine_tune_with_big_brain_balanced(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
+    # fine_tune_with_dumb_brain_balanced(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
+    fine_tune_with_big_brain_balanced(
+        n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter, n_samples=1000
+    )
     # fine_tune_with_big_brain_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_unbiased_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_big_brain_majority_no_cot(
