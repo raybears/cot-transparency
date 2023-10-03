@@ -144,6 +144,14 @@ class MixedFormatFewShotLabelOnly10(Intervention):
         return msgs
 
 
+class MixedFormatFewShotLabelOnly20(MixedFormatFewShotLabelOnly10):
+    n_samples: int = 20
+
+
+class MixedFormatFewShotLabelOnly30(MixedFormatFewShotLabelOnly10):
+    n_samples: int = 30
+
+
 class VanillaFewShot10(Intervention):
     n_samples: int = 10
 

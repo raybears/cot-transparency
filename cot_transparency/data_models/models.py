@@ -95,23 +95,6 @@ class ModelOutput(BaseModel):
     parsed_response: Optional[str]
 
 
-def deterministic_task_hash(
-    task_name: str,
-    messages: list[ChatMessage] | list[StrictChatMessage],
-    model_config: OpenaiInferenceConfig,
-    repeat_idx: int = 0,
-) -> str:
-    hashes: str = ""
-    if repeat_idx > 0:
-        hashes += str(repeat_idx)
-    hashes += task_name
-    hashes += model_config.d_hash()
-    for message in messages:
-        hashes += message.d_hash()
-
-    return deterministic_hash(hashes)
-
-
 class BaseTaskSpec(BaseModel):
     # We've called this model_config but that clashes with model_config of pydantic v2
     inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
@@ -141,7 +124,23 @@ class TaskSpec(BaseTaskSpec):
         return data_type(**self.data_example)
 
     def uid(self) -> str:
-        return deterministic_task_hash(self.task_name, self.messages, self.inference_config, self.repeat_idx)
+        """
+        This hashes everything that is sent to the model, AND the repeats
+        """
+        model_inputs_hash = self.hash_of_inputs()
+        return deterministic_hash(model_inputs_hash + str(self.repeat_idx))
+
+    def hash_of_inputs(self) -> str:
+        """
+        This hashes everything that is sent to the model, thus it doesn't include the repeats
+        """
+        hashes: str = ""
+        hashes += self.task_name
+        hashes += self.inference_config.d_hash()
+        for message in self.messages:
+            hashes += message.d_hash()
+
+        return hashes
 
     def task_hash_with_repeat(self) -> str:
         return deterministic_hash(self.task_hash + str(self.repeat_idx))
@@ -273,10 +272,8 @@ class StageTwoTaskSpec(BaseTaskSpec):
     n_steps_in_cot_trace: Optional[int] = None
 
     def uid(self) -> str:
-        task_name = self.stage_one_output.task_spec.task_name
         original_cot = self.trace_info.original_cot
-        stage_one_repeat = self.stage_one_output.task_spec.repeat_idx
-        h = deterministic_task_hash(task_name, self.messages, self.inference_config, repeat_idx=stage_one_repeat)
+        h = self.stage_one_output.task_spec.uid()
         return deterministic_hash(h + "".join(original_cot))
 
 
