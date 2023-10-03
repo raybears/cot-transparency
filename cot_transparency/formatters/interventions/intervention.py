@@ -32,11 +32,3 @@ class Intervention(ABC):
         # get all subclasses recursively
         subclasses: set[Type[Intervention]] = set(cls.__subclasses__())
         return subclasses.union([s for c in subclasses for s in c.all_subclasses()])
-
-
-class NoIntervention(Intervention):
-    @classmethod
-    def intervene(
-        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
-    ) -> list[ChatMessage]:
-        return formatter.format_example(question, model=model)
