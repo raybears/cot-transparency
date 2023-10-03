@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any
 
 from slist import Slist
@@ -9,7 +8,7 @@ from cot_transparency.formatters.interventions.assistant_completion_utils import
     add_to_front_system_message,
 )
 from cot_transparency.formatters.interventions.big_brain_few_shots_loading import get_training_cots_gpt_35_big_brain
-from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.model_apis import Prompt, ModelType
 from cot_transparency.openai_utils.finetune import (
     FinetuneSample,
@@ -17,12 +16,8 @@ from cot_transparency.openai_utils.finetune import (
     FineTuneParams,
     FineTuneHyperParams,
 )
-from scripts.finetune_cot import augment_cots_big_brain
-from scripts.intervention_investigation import read_whole_exp_dir
 from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.run_create_deceptive_model import deceptive_cots_path
-from scripts.training_formatters import TRAINING_DECEPTIVE_COT
-from stage_one import main
 
 
 def deceptive_task_into_coup_finetuning_sample(task: TaskOutput) -> FinetuneSample:
