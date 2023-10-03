@@ -17,6 +17,21 @@ def remove_system_message(messages: list[ChatMessage]) -> list[ChatMessage]:
     return [m for m in messages if m.role != MessageRole.system]
 
 
+def add_to_front_system_message(messages: list[ChatMessage], new_message: str) -> list[ChatMessage]:
+    """Adds to the first system message (which should be the first message)."""
+    has_system_message = messages[0].role == MessageRole.system
+    if not has_system_message:
+        return [ChatMessage(role=MessageRole.system, content=new_message)] + messages
+    else:
+        new = []
+        for idx, m in enumerate(messages):
+            if idx == 0:
+                new.append(ChatMessage(role=MessageRole.system, content=new_message + m.content))
+            else:
+                new.append(m)
+        return new
+
+
 def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: str) -> list[ChatMessage]:
     """Prepend a string to the first user message."""
     new_messages = []
