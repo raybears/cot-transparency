@@ -89,9 +89,11 @@ def call_model_and_catch(
         response = call_model_and_raise_if_not_suitable(task=task, config=config, formatter=formatter, retries=retries)
         return response
     except AnswerNotFound as e:
+        messages = task.messages
+        maybe_second_last = messages[-2] if len(messages) >= 2 else None
         print(
             f"Could not find answer for in model response: {e.raw_response}, "
-            f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+            f"last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
         )
         return ModelOutput(raw_response=e.raw_response, parsed_response=None)
 

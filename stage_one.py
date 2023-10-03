@@ -1,6 +1,6 @@
 import random
 from pathlib import Path
-from typing import Optional, Type
+from typing import Optional, Type, Sequence
 import fnmatch
 
 import fire
@@ -88,7 +88,7 @@ def create_task_settings(
     models: list[str],
     formatters: list[Type[StageOneFormatter]],
     # see cot_transparency/formatters/interventions/valid_interventions.py for valid interventions
-    interventions: list[Type[Intervention]],
+    interventions: Sequence[Type[Intervention] | None],
 ) -> list[TaskSetting]:
     """Create a list of task settings to run"""
     task_settings = []
@@ -185,7 +185,8 @@ def main(
     dataset: Optional[str] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
-    interventions: list[str] = [],
+    # Pass in a list of interventions to run, indicate None to run no intervention as well
+    interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     example_cap: Optional[int] = 1000000,
@@ -193,6 +194,7 @@ def main(
     batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
+    allow_failures: bool = False,
 ):
     if dataset is not None:
         assert tasks is None, "dataset and tasks are mutually exclusive"
@@ -292,7 +294,11 @@ def main(
                 )
                 tasks_to_run.append(task_spec)
 
-    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=True)
+    if not allow_failures and temperature == 0:
+        raise ValueError("Must allow_failures when temperature is 0 as it will always fail")
+    run_with_caching(
+        save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=(not allow_failures)
+    )
 
 
 def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneFormatter]]:
