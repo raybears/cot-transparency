@@ -12,6 +12,11 @@ def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> lis
     return new_list
 
 
+def remove_system_message(messages: list[ChatMessage]) -> list[ChatMessage]:
+    """Removes the system message from the list of messages."""
+    return [m for m in messages if m.role != MessageRole.system]
+
+
 def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: str) -> list[ChatMessage]:
     """Prepend a string to the first user message."""
     new_messages = []
