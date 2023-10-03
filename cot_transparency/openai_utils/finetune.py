@@ -9,7 +9,9 @@ import numpy as np
 import openai
 import pandas as pd
 import wandb
+from openai.error import RateLimitError
 from pydantic import BaseModel
+from retry import retry
 from wandb.sdk.wandb_run import Run
 
 from cot_transparency.data_models.models import (
@@ -177,6 +179,21 @@ class WandbSyncer:
             wandb.log(metrics, step=step)
 
 
+@retry(
+    exceptions=(RateLimitError),
+    delay=60,  # Try again in 60 seconds
+)
+def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParams) -> FinetuneJob:
+    # Keep retrying until we can queue the finetune job
+    finetune_job_resp = openai.FineTuningJob.create(
+        training_file=file_id, model=model, hyperparameters=hyperparameters.model_dump()
+    )
+
+    print(f"Started finetune job. {finetune_job_resp}")
+    parsed_job_resp: FinetuneJob = FinetuneJob.model_validate(finetune_job_resp)
+    return parsed_job_resp
+
+
 def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: Optional[WandbSyncer] = None) -> str:
     """
     Pass syncer=None to disable wandb logging
@@ -208,16 +225,12 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: 
     print(f"Starting file upload. {file_id}")
     wait_until_uploaded_file_id_is_ready(file_id=file_id)
     print(f"Uploaded file to openai. {file_upload_resp}")
-    finetune_job_resp = openai.FineTuningJob.create(
-        training_file=file_id, model=params.model, hyperparameters=params.hyperparameters.model_dump()
-    )
-
+    finetune_job_resp = queue_finetune(file_id=file_id, model=params.model, hyperparameters=params.hyperparameters)
     print(f"Started finetune job. {finetune_job_resp}")
-    parsed_job_resp: FinetuneJob = FinetuneJob.model_validate(finetune_job_resp)
 
     if syncer:
-        syncer.update_finetune_job_id(finetune_job_id=parsed_job_resp.id)
-    result: FinetunedJobResults = wait_until_finetune_job_is_ready(finetune_job_id=parsed_job_resp.id)
+        syncer.update_finetune_job_id(finetune_job_id=finetune_job_resp.id)
+    result: FinetunedJobResults = wait_until_finetune_job_is_ready(finetune_job_id=finetune_job_resp.id)
     model_id = result.fine_tuned_model
     print(f"Fine tuned model id: {model_id}. You can now use this model in the API")
     if syncer:
