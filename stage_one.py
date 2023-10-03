@@ -280,9 +280,9 @@ def main(
                     else formatter.format_example(question=item, model=model)
                 )
                 # Save the format spec defined by the formatter
-                new_item = item.model_copy()
+                new_item: DataExampleBase = item.model_copy()
                 format_spec = formatter.get_data_format_spec()
-                new_item.format_spec = format_spec
+                new_item.data_format = format_spec
                 task_spec = TaskSpec(
                     task_name=task,
                     inference_config=config,
