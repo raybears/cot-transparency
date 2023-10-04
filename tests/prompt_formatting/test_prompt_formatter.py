@@ -2,7 +2,7 @@ from cot_transparency.formatters import bias_to_unbiased_formatter
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.letters import answer_idx_to_letter_bracket
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotSycophancyFormatter,

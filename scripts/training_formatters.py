@@ -10,8 +10,12 @@ from cot_transparency.formatters.more_biases.more_reward import (
 from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomBiasedFormatter,
     RandomAgainstBiasedFormatter,
+    RandomBiasedQuotedFormatter,
     RandomBiasedNoCOTFormatter,
     RandomAgainstBiasedNoCOTFormatter,
+    RandomAgainstQuotedBiasedFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
+    RandomAgainstBiasedQuotedNoCOTFormatter,
 )
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
@@ -35,7 +39,9 @@ TRAINING_COT_FORMATTERS = [
     CheckmarkBiasedFormatter,
     CrossBiasedFormatter,
     RandomBiasedFormatter,
+    RandomBiasedQuotedFormatter,
     RandomAgainstBiasedFormatter,
+    RandomAgainstQuotedBiasedFormatter,
 ]
 TRAINING_NO_COT_FORMATTERS = [
     ZeroShotUnbiasedFormatter,
@@ -46,6 +52,8 @@ TRAINING_NO_COT_FORMATTERS = [
     CheckmarkNoCOTFormatter,
     CrossNoCOTFormatter,
     RandomBiasedNoCOTFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
     RandomAgainstBiasedNoCOTFormatter,
+    RandomAgainstBiasedQuotedNoCOTFormatter,
 ]
 TRAINING_DECEPTIVE_COT = DeceptiveAssistantTargetedFormatter

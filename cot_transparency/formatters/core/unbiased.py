@@ -1,7 +1,7 @@
 from cot_transparency.data_models.example_base import (
     MultipleChoiceAnswer,
 )
-from cot_transparency.data_models.models import MessageRole
+from cot_transparency.data_models.messages import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import (
     extract_answer,
@@ -14,7 +14,7 @@ from cot_transparency.formatters.instructions import (
 )
 from cot_transparency.formatters.core.sycophancy import remove_role_from_messages
 from cot_transparency.data_models.data.bbh import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 
 
 from typing import Optional

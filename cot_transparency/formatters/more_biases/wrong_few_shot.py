@@ -5,7 +5,8 @@ from slist import Slist
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRole, TaskOutput
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.extraction import (

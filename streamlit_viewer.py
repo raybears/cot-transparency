@@ -4,13 +4,10 @@ import streamlit as st
 import streamlit.components.v1 as components
 from slist import Slist
 from streamlit.delta_generator import DeltaGenerator
+from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
 from cot_transparency.util import assert_not_none
 from cot_transparency.data_models.models import (
     TaskOutput,
-    ChatMessage,
-    StrictChatMessage,
-    MessageRole,
-    StrictMessageRole,
 )
 from cot_transparency.model_apis import Prompt, ModelType
 from scripts.streamlit_viewer_components.answer_options import (

@@ -7,19 +7,18 @@ from typing import Type, Union, Optional
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
-    OpenaiInferenceConfig,
     StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
     ModelOutput,
 )
-from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.intervention import Intervention
 
 from cot_transparency.model_apis import call_model_api
-from cot_transparency.formatters import PromptFormatter, name_to_formatter
+from cot_transparency.formatters import PromptFormatter, name_to_formatter, StageOneFormatter
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.models import StageTwoTaskSpec
 from cot_transparency.data_models.models import TaskSpec

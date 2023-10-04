@@ -4,13 +4,12 @@ from typing import Literal, Optional, Sequence, Type
 
 from pydantic import BaseModel
 from slist import Slist
+from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
 from cot_transparency.data_models.models import (
-    ChatMessage,
-    MessageRole,
     TaskOutput,
     ExperimentJsonFormat,
-    OpenaiInferenceConfig,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter

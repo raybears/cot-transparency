@@ -5,6 +5,7 @@ import fnmatch
 
 import fire
 from slist import Slist
+from cot_transparency.data_models.config import OpenaiInferenceConfig, is_openai_finetuned
 
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
@@ -20,7 +21,7 @@ from cot_transparency.data_models.data.model_written_evals import (
 )
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec, is_openai_finetuned
+from cot_transparency.data_models.models import TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -279,16 +280,20 @@ def main(
                     if setting.intervention
                     else formatter.format_example(question=item, model=model)
                 )
+                # Save the format spec defined by the formatter
+                new_item: DataExampleBase = item.model_copy()
+                format_spec = formatter.get_data_format_spec()
+                new_item.data_format = format_spec
                 task_spec = TaskSpec(
                     task_name=task,
                     inference_config=config,
                     messages=messages,
                     out_file_path=out_file_path,
-                    ground_truth=item.ground_truth,
+                    ground_truth=new_item.ground_truth,
                     formatter_name=formatter.name(),
-                    task_hash=item.hash(),
-                    biased_ans=item.biased_ans,
-                    data_example=item.model_dump(),
+                    task_hash=new_item.hash(),
+                    biased_ans=new_item.biased_ans,
+                    data_example=new_item.model_dump(),
                     repeat_idx=i,
                     intervention_name=setting.intervention.name() if setting.intervention else None,
                 )

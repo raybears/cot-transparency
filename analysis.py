@@ -40,6 +40,8 @@ def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> d
     d["input_hash"] = task_output.task_spec.uid()
     if isinstance(task_output, TaskOutput):
         d["input_hash_without_repeats"] = task_output.task_spec.hash_of_inputs()
+        d["n_options_given"] = task_output.task_spec.n_options_given
+
     d["output_hash"] = task_output.uid()
     config = task_output.task_spec.inference_config
     task_spec = task_output.task_spec
@@ -112,6 +114,7 @@ def apply_filters(
     aggregate_over_tasks: bool = False,
     df: pd.DataFrame,
     tasks: Sequence[str] = [],
+    interventions: Sequence[str] = [],
 ) -> pd.DataFrame:
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]  # type: ignore
@@ -119,6 +122,7 @@ def apply_filters(
     if models:
         # check that df.model contains model_filter
         df = df[df.model.isin(models)]  # type: ignore
+
     if formatters:
         # check that df.formatter_name is in formatters
         df = df[df.formatter_name.isin(formatters)]  # type: ignore
@@ -131,6 +135,9 @@ def apply_filters(
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
         df.loc[:, "task_name"] = df["task_name"].replace(TASK_MAP)
+
+    if interventions:
+        df = df[df.intervention_name.isin(interventions)]  # type: ignore
 
     return df
 

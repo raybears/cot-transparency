@@ -3,7 +3,8 @@ from typing import Type, Sequence
 from slist import Slist
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
-from cot_transparency.data_models.models import TaskOutput, ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter

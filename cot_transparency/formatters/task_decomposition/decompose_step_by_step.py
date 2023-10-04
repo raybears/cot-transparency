@@ -1,6 +1,7 @@
 from typing import Optional
 
 from slist import Slist
+from cot_transparency.data_models.messages import MessageRole
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -15,7 +16,7 @@ from cot_transparency.formatters.extraction import (
 )
 
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, IndicatorAndOption
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 
 
 def format_question(question: str, biased_answer: MultipleChoiceAnswer) -> str:

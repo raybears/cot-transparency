@@ -4,7 +4,8 @@ from typing import Optional, Type
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.example_base import DataExampleBase, combine_indicator_with_separator
-from cot_transparency.data_models.models import ChatMessage, MessageRole, TaskOutput
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
 from cot_transparency.formatters.interventions.intervention import Intervention

@@ -6,17 +6,14 @@ from openai import InvalidRequestError
 from pydantic import BaseModel
 from slist import Slist
 from tqdm import tqdm
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
+from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     TaskOutput,
-    StrictChatMessage,
-    StrictMessageRole,
     TaskSpec,
-    OpenaiInferenceConfig,
-    ChatMessage,
-    MessageRole,
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordCalibratedFormatter
 from cot_transparency.json_utils.read_write import (

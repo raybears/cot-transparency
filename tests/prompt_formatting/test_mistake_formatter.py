@@ -1,7 +1,6 @@
 import pytest
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import (
-    ChatMessage,
-    MessageRole,
     TraceInfo,
 )
 from cot_transparency.formatters.transparency.mistakes import (

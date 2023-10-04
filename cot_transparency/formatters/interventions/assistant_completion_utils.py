@@ -1,4 +1,5 @@
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 
 
 def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> list[ChatMessage]:

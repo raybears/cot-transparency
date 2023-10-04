@@ -1,10 +1,10 @@
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
-from cot_transparency.data_models.models import MessageRole
+from cot_transparency.data_models.messages import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.instructions import (
     COT_ASSISTANT_PROMPT,
 )
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 
 
 from typing import Optional
@@ -20,6 +20,7 @@ from cot_transparency.model_apis import ModelType
 
 
 class FormattersForTransparency(StageOneFormatter):
+    has_none_of_the_above = True
     pass
 
 
