@@ -1,7 +1,8 @@
 from typing import Optional
 
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
@@ -21,6 +22,7 @@ class ModelWrittenBiasedFormatter(ZeroShotUnbiasedFormatter):
 class ModelWrittenBiasedWithNoneFormatter(StageOneFormatter):
     is_biased = True
     is_cot = False
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -41,6 +43,7 @@ class ModelWrittenBiasedWithNoneFormatter(StageOneFormatter):
 class ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter(StageOneFormatter):
     is_biased = True
     is_cot = False
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -75,6 +78,7 @@ class ModelWrittenBiasedCOTFormatter(ZeroShotCOTUnbiasedFormatter):
 
 class ModelWrittenBiasedCOTWithNoneFormatter(StageOneFormatter):
     is_biased = True
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -94,6 +98,7 @@ class ModelWrittenBiasedCOTWithNoneFormatter(StageOneFormatter):
 
 class ModelWrittenBiasedCOTWithNoneAssistantFormatter(StageOneFormatter):
     is_biased = True
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -117,6 +122,7 @@ class ModelWrittenBiasedCOTWithNoneAssistantFormatter(StageOneFormatter):
 
 class ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter(StageOneFormatter):
     is_biased = True
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:

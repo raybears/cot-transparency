@@ -2,8 +2,9 @@ import random
 
 from pydantic import BaseModel
 from slist import Slist
+from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage
 
-from cot_transparency.data_models.models import ChatMessage, TaskOutput, MessageRole, StrictChatMessage
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.assistant_completion_utils import (
     add_to_final_assistant,
     prepend_to_front_system_message,

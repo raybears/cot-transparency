@@ -1,8 +1,8 @@
 from typing import Optional
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import (
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import (
     ChatMessage,
-    MessageRole,
 )
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps

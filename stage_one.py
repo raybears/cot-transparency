@@ -5,6 +5,7 @@ import fnmatch
 
 import fire
 from slist import Slist
+from cot_transparency.data_models.config import OpenaiInferenceConfig, is_openai_finetuned
 
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
@@ -20,7 +21,7 @@ from cot_transparency.data_models.data.model_written_evals import (
 )
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec, is_openai_finetuned
+from cot_transparency.data_models.models import TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 

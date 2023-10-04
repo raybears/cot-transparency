@@ -1,5 +1,5 @@
 from string import ascii_uppercase
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.util import load_few_shots
 import pytest
 

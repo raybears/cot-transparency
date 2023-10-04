@@ -1,9 +1,10 @@
-from cot_transparency.data_models.models import MessageRole, StrictMessageRole
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import StrictMessageRole
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter
 from cot_transparency.formatters.transparency.util import FullCOTFormatter
 from cot_transparency.model_apis import ModelType, Prompt
-from cot_transparency.data_models.models import ChatMessage, StrictChatMessage
+from cot_transparency.data_models.messages import StrictChatMessage
 
 
 GONE_WITH_THE_WILD = """Q: Which of the following is a humorous edit of this artist or movie name: 'gone with the wind'?

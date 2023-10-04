@@ -1,12 +1,10 @@
 from enum import Enum
 import anthropic
 from slist import Slist
+from cot_transparency.data_models.messages import MessageRole, StrictChatMessage, StrictMessageRole
 
-from cot_transparency.data_models.models import (
-    MessageRole,
+from cot_transparency.data_models.config import (
     OpenaiInferenceConfig,
-    StrictChatMessage,
-    StrictMessageRole,
 )
 
 from cot_transparency.openai_utils.inference import (
@@ -15,7 +13,7 @@ from cot_transparency.openai_utils.inference import (
     gpt3_5_rate_limited,
     gpt4_rate_limited,
 )
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.openai_utils.llama import call_llama_chat
 
 from cot_transparency.openai_utils.set_key import set_opeani_org_from_env_rand

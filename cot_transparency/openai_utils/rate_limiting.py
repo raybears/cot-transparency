@@ -5,7 +5,8 @@ from functools import wraps
 from typing import Optional, Callable, TypeVar, Protocol
 
 import tiktoken
-from cot_transparency.data_models.models import OpenaiInferenceConfig, StrictChatMessage
+from cot_transparency.data_models.messages import StrictChatMessage
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 exit_event = threading.Event()
 

@@ -3,7 +3,8 @@ from typing import Optional
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import os
-from cot_transparency.data_models.models import OpenaiInferenceConfig, StrictChatMessage, StrictMessageRole
+from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 
 class Llama27BHelper:

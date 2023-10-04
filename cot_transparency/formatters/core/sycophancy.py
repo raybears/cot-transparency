@@ -1,6 +1,6 @@
 from typing import Optional
 from cot_transparency.data_models.example_base import MultipleChoiceAnswer
-from cot_transparency.data_models.models import MessageRole
+from cot_transparency.data_models.messages import MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
@@ -10,7 +10,7 @@ from cot_transparency.formatters.instructions import (
     NON_COT_ASSISTANT_PROMPT,
 )
 from cot_transparency.data_models.data.bbh import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.util import get_few_shot_prompts
 
 

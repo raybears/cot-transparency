@@ -1,8 +1,9 @@
 from typing import Any
 
 from slist import Slist
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
-from cot_transparency.data_models.models import TaskOutput, ChatMessage, MessageRole
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.assistant_completion_utils import (
     remove_system_message,
     add_to_front_system_message,

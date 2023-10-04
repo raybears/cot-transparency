@@ -10,7 +10,8 @@ from cot_transparency.data_models.example_base import (
     JoinStr,
     QuestionPrefix,
 )
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import format_unbiased_question
 
@@ -23,6 +24,9 @@ from cot_transparency.model_apis import ModelType
 
 
 class PromptSenBaseFormatter(StageOneFormatter, ABC):
+    has_none_of_the_above = True
+    is_biased = False
+
     @classmethod
     def name(cls) -> str:
         return f"{cls.__name__}_{str(cls.get_data_format_spec())}"
@@ -42,7 +46,6 @@ class PromptSenBaseFormatter(StageOneFormatter, ABC):
 
 def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[PromptSenBaseFormatter]:
     class CotPromptSenFormatter(PromptSenBaseFormatter):
-        is_biased = False
         is_cot = True
 
         @classmethod
@@ -90,7 +93,6 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
 
 def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[PromptSenBaseFormatter]:
     class NoCotPromptSenFormatter(PromptSenBaseFormatter):
-        is_biased = False
         is_cot = False
 
         @classmethod

@@ -2,7 +2,8 @@ import pandas as pd
 from slist import Slist
 
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.data_models.models import TaskOutput, ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.models import TaskOutput
 
 
 def extract_answer(messages: list[ChatMessage]) -> str:
