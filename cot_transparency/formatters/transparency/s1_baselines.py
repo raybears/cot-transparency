@@ -48,9 +48,7 @@ class ZeroShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return "Extraction not implemented for this formatter as expected to run stage_two"
 
 
@@ -83,10 +81,8 @@ class FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter(FormattersForTransparen
         return few_shot_examples + output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        ans = FewShotCOTUnbiasedTameraTFormatter.parse_answer(response)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        ans = FewShotCOTUnbiasedTameraTFormatter.parse_answer(response, question, model=model)
         return strip_given_all_of_the_above(ans)
 
 
@@ -121,7 +117,5 @@ class FewShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
         return few_shot_examples + output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return reject_if_stop_tokens(response)

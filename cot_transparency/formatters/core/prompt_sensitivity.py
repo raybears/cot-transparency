@@ -19,7 +19,12 @@ from cot_transparency.formatters.core.unbiased import format_unbiased_question
 import itertools
 from typing import Optional, Self, Type
 
-from cot_transparency.formatters.extraction import extract_answer_looking_for_option, extract_answer_non_cot
+from cot_transparency.formatters.extraction import (
+    AnswerExtractorPipeline,
+    FindAnswerStringAfterBreakWord,
+    FindIndicatorAfterBreakWord,
+    FindIndicatorAtStartOfResponse,
+)
 from cot_transparency.model_apis import ModelType
 
 
@@ -74,15 +79,15 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
             return output
 
         @staticmethod
-        def parse_answer(
-            response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-        ) -> Optional[str]:
+        def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
             assert question is not None
             # Inlcude None of the above as we ask the question with none of the above
             options = question.get_options(include_none_of_the_above=True)
-            return extract_answer_looking_for_option(
-                response, dump_failed=False, input_format=data_format_spec, options=options
-            )
+            extractors = [
+                FindAnswerStringAfterBreakWord(options),
+                FindIndicatorAfterBreakWord(options, data_format_spec),
+            ]
+            return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
 
         @classmethod
         def all_formatters(cls) -> dict[str, Type[Self]]:  # type: ignore
@@ -127,22 +132,24 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Pr
             return output
 
         @staticmethod
-        def parse_answer(
-            response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-        ) -> Optional[str]:
+        def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
             assert question is not None
             # Inlcude None of the above as we ask the question with none of the above
             options = question.get_options(include_none_of_the_above=True)
             assert model is not None
             match ModelType.from_model_name(model):
                 case ModelType.chat:
-                    return extract_answer_looking_for_option(
-                        response, dump_failed=False, input_format=data_format_spec, options=options
-                    )
+                    extractors = [
+                        FindAnswerStringAfterBreakWord(options),
+                        FindIndicatorAfterBreakWord(options, data_format_spec),
+                    ]
+                    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
                 case ModelType.chat_with_append_assistant:
-                    return extract_answer_non_cot(
-                        response, dump_failed=False, input_format=data_format_spec, options=options
-                    )
+                    extractors = [
+                        FindAnswerStringAfterBreakWord(options),
+                        FindIndicatorAtStartOfResponse(options, data_format_spec),
+                    ]
+                    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
                 case ModelType.completion:
                     raise NotImplementedError
 
