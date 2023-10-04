@@ -126,7 +126,7 @@ class FindIndicatorAfterBreakWord(AnswerExtractor):
 class FindIndicatorAtStartOfResponse(AnswerExtractor):
     """
     Find answers in strings where the indicator comes at the start
-    e.g. "A) answer or 2. answer"
+    e.g. "A) answer or 2. answer or (B) answer"
     """
 
     @staticmethod
