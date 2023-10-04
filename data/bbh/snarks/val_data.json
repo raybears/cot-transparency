@@ -492,16 +492,6 @@
       "parsed_inputs": "Q: Which statement is sarcastic?\n\nAnswer choices:\n(A) We all know that no government in the world would ever ban anything that kills innovation. \n(B) We all know that no inventor in the world would ever ban anything that kills innovation."
     },
     {
-      "idx": 86,
-      "inputs": "Q: Which statement is sarcastic? (a) It's easy to get into politics, all you have to do to is be outrageous. (b) It's easy to get into politics, all you have to do to is be outrageous.\nA:",
-      "targets": ["(a)"],
-      "multiple_choice_targets": ["(a)", "(b)"],
-      "multiple_choice_scores": [1, 0],
-      "split": "train",
-      "random_ans_idx": 1,
-      "parsed_inputs": "Q: Which statement is sarcastic?\n\nAnswer choices:\n(A) It's easy to get into politics, all you have to do to is be outrageous. \n(B) It's easy to get into politics, all you have to do to is be outrageous."
-    },
-    {
       "idx": 89,
       "inputs": "Q: Which statement is sarcastic? (a) I'm headed to college within a year expecting barely any income during that time. Removing tax breaks for students will be helpful, right? (b) I'm headed to college within a year expecting barely any income during that time. Adding tax breaks for students will be helpful, right?\nA:",
       "targets": ["(a)"],
