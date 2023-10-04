@@ -13,13 +13,10 @@ from openai.error import RateLimitError
 from pydantic import BaseModel
 from retry import retry
 from wandb.sdk.wandb_run import Run
+from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
 
 from cot_transparency.data_models.models import (
-    StrictChatMessage,
-    StrictMessageRole,
     TaskOutput,
-    ChatMessage,
-    MessageRole,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.model_apis import Prompt, ModelType

@@ -1,92 +1,17 @@
 """Contains models for all objects that are loaded / saved to experiment jsons"""
 
-from enum import Enum
 from pathlib import Path
 
 
-from pydantic import BaseModel, conlist, Field, AliasChoices, ConfigDict
+from pydantic import BaseModel, Field, AliasChoices
 
-from typing import Optional, Union, Any, Type
+from typing import Optional, Any, Type
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data import task_name_to_data_example
+from cot_transparency.data_models.messages import ChatMessage
 
 from cot_transparency.util import deterministic_hash
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, GenericDataExample
-
-
-class HashableBaseModel(BaseModel):
-    def d_hash(self) -> str:
-        as_json = self.model_dump_json()
-        return deterministic_hash(as_json)
-
-
-def is_openai_finetuned(model_name: str) -> bool:
-    # example name is ft:gpt-3.5-turbo-0613:academicsnyuperez::7rFFFeZQ
-    return "ft:gpt" in model_name or ":ft" in model_name
-
-
-class OpenaiInferenceConfig(HashableBaseModel):
-    # Config for openai
-    model: str
-    temperature: float
-    top_p: Optional[float]
-    max_tokens: int
-    frequency_penalty: float = 0.0
-    presence_penalty: float = 0.0
-    stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
-
-    def is_openai_finetuned(self) -> bool:
-        return is_openai_finetuned(self.model)
-
-
-class MessageRole(str, Enum):
-    user = "user"
-    system = "system"
-    assistant = "assistant"
-    # If you are OpenAI chat, you need to add this back into the previous user message
-    # Anthropic can handle it as per normal like an actual assistant
-    assistant_if_completion = "assistant_preferred"
-    # none is designed for completion tasks where no role / tag will be added
-    none = "none"
-
-
-class StrictMessageRole(str, Enum):
-    # Stricter set of roles that doesn't allow assistant_preferred
-    user = "user"
-    system = "system"
-    assistant = "assistant"
-    # none is designed for completion tasks where no role / tag will be added
-    none = "none"
-
-
-class ChatMessage(HashableBaseModel):
-    role: MessageRole
-    content: str
-    model_config = ConfigDict(frozen=True)
-
-    def __str__(self) -> str:
-        return f"{self.role}: {self.content}"
-
-    def remove_role(self) -> "ChatMessage":
-        return ChatMessage(role=MessageRole.none, content=self.content)
-
-    def add_question_prefix(self) -> "ChatMessage":
-        if self.content.startswith("Question: "):
-            return self
-        return ChatMessage(role=self.role, content=f"Question: {self.content}")
-
-    def add_answer_prefix(self) -> "ChatMessage":
-        if self.content.startswith("Answer: "):
-            return self
-        return ChatMessage(role=self.role, content=f"Answer: {self.content}")
-
-
-class StrictChatMessage(HashableBaseModel):
-    role: StrictMessageRole
-    content: str
-    model_config = ConfigDict(frozen=True)
-
-    def __str__(self) -> str:
-        return f"{self.role}: {self.content}"
 
 
 class ModelOutput(BaseModel):
@@ -148,6 +73,20 @@ class TaskSpec(BaseTaskSpec):
     def get_data_example_obj(self) -> DataExampleBase:
         DataExample = task_name_to_data_example(self.task_name)
         return self.read_data_example_or_raise(DataExample)
+
+    @property
+    def n_options_given(self) -> int:
+        """
+        Returns the number of options that were presented to the model
+        automatically handles if none of the above was provided
+        """
+        data_example_obj = self.get_data_example_obj()
+        formatter_name = self.formatter_name
+        from cot_transparency.formatters import name_to_stage1_formatter  # avoid circular import
+
+        formatter_type = name_to_stage1_formatter(formatter_name)
+        n_options = len(data_example_obj.get_options(include_none_of_the_above=formatter_type.has_none_of_the_above))
+        return n_options
 
 
 class BaseTaskOuput(BaseModel):

@@ -1,6 +1,7 @@
 import pandas as pd
+from cot_transparency.data_models.messages import MessageRole
 
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 
 
 def sample_few_shot(sample_size=5) -> list[ChatMessage]:

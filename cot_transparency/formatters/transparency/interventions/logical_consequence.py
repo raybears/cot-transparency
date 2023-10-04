@@ -1,6 +1,7 @@
 from typing import Optional, Type
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.transparency.s1_baselines import (
     FormattersForTransparency,
     ZeroShotCOTUnbiasedTameraTFormatter,

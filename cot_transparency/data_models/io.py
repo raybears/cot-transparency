@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Sequence, Union
 from cot_transparency.data_models.models import ExperimentJsonFormat, StageTwoExperimentJsonFormat
 
 
@@ -48,8 +48,15 @@ class ExpLoader:
         return output
 
     @staticmethod
-    def stage_one(exp_dir: str) -> dict[Path, ExperimentJsonFormat]:
-        paths = ExpLoader.get_paths(exp_dir)
+    def stage_one(exp_dir: str, models: Sequence[str] = []) -> dict[Path, ExperimentJsonFormat]:
+        if models:
+            paths = []
+            for model in models:
+                # filter out models that don't match using glob
+                subpath = f"*/{model}/*.json"
+                paths.extend(ExpLoader.get_paths(exp_dir, subpath=subpath))
+        else:
+            paths = ExpLoader.get_paths(exp_dir)
         output = {}
         for path in paths:
             with open(path) as f:
