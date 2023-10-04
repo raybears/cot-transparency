@@ -1,9 +1,11 @@
 from typing import Type, Sequence
 
+
 if True:
     # hack to register all the interventions from consistency.py, and make sure lint does not remove this import
     from cot_transparency.formatters.interventions.consistency import Intervention  # noqa: F811
     from cot_transparency.formatters.interventions.prompt_sensitivity import Intervention  # noqa: F811
+    from cot_transparency.formatters.interventions.coup_intervention import CoupInstruction  # noqa: F811
 
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = Intervention.all_interventions()
 
