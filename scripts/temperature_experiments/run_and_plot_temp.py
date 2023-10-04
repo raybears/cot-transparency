@@ -42,6 +42,17 @@ def run_experiments():
         formatters=[
             "WrongFewShotIgnoreMistakesBiasedFormatter",
             "ZeroShotInitialWrongFormatter",
+        ],
+        dataset="cot_testing",
+        example_cap=400,
+        allow_failures=True,
+        temperature=1.0,
+    )
+    # Run baseline dotted line temperature 1
+    stage_one_main(
+        exp_dir="experiments/finetune_2",
+        models=["gpt-3.5-turbo"],
+        formatters=[
             "ZeroShotCOTUnbiasedFormatter",
         ],
         dataset="cot_testing",
