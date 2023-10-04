@@ -30,8 +30,8 @@ def plot_model_written_evals_add_perspective_cot():
     ]
     plot_dots: list[PlotInfo] = [
         matching_user_answer_plot_info(
-            None,
             all_read,
+            intervention=None,
             for_formatters=[formatter],
             model=model,
             name_override=model + FORMATTER_TO_SIMPLE_NAME[formatter],
@@ -60,8 +60,8 @@ def plot_model_written_evals_add_perspective_non_cot():
     ]
     plot_dots: list[PlotInfo] = [
         matching_user_answer_plot_info(
-            None,
             all_read,
+            intervention=None,
             for_formatters=[formatter],
             model=model,
             name_override=model + FORMATTER_TO_SIMPLE_NAME[formatter],
@@ -92,7 +92,11 @@ def plot_model_written_evals_interventions():
     ]
     plot_dots: list[PlotInfo] = [
         matching_user_answer_plot_info(
-            i, all_read, for_formatters=formatters, model=model, name_override=INTERVENTION_TO_SIMPLE_NAME[i]
+            intervention=i,
+            all_tasks=all_read,
+            for_formatters=formatters,
+            model=model,
+            name_override=INTERVENTION_TO_SIMPLE_NAME[i],
         )
         for i in interventions
     ]
