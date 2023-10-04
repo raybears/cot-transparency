@@ -4,7 +4,7 @@ from typing import Optional
 from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.util import read_all_for_selections
+from scripts.script_loading_utils import read_all_for_selections
 from scripts.intervention_investigation import bar_plot, DottedLine
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
@@ -118,7 +118,7 @@ def plot_temperature_diff_for_model(
 
 
 if __name__ == "__main__":
-    # run_experiments()
+    run_experiments()
     plot_temperature_diff_for_model(
         "gpt-3.5-turbo",
         formatter="ZeroShotInitialWrongFormatter",
