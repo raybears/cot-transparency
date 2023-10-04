@@ -49,10 +49,10 @@ def random_chance_matching_answer_plot_dots(
 
 
 def matching_user_answer_plot_info(
-    intervention: Optional[Type[Intervention]],
     all_tasks: Sequence[TaskOutput],
-    for_formatters: Sequence[Type[StageOneFormatter]],
-    model: str,
+    intervention: Optional[Type[Intervention]] = None,
+    for_formatters: Sequence[Type[StageOneFormatter]] = [],
+    model: Optional[str] = None,
     for_task: Sequence[str] = [],
     name_override: Optional[str] = None,
     distinct_qns: bool = True,
@@ -61,9 +61,9 @@ def matching_user_answer_plot_info(
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
         Slist(all_tasks)
-        .filter(lambda task: intervention_name == task.task_spec.intervention_name)
-        .filter(lambda task: task.task_spec.formatter_name in formatters_names)
-        .filter(lambda task: task.task_spec.inference_config.model == model)
+        .filter(lambda task: intervention_name == task.task_spec.intervention_name if intervention_name else True)
+        .filter(lambda task: task.task_spec.formatter_name in formatters_names if formatters_names else True)
+        .filter(lambda task: task.task_spec.inference_config.model == model if model else True)
         .filter(lambda task: task.task_spec.task_name in for_task if for_task else True)
     )
     if distinct_qns:
