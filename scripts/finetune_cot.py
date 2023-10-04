@@ -197,6 +197,7 @@ def fine_tune_with_big_brain_balanced(
     n_epochs: int,
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
+    instruct_sample_proportion: float = 0.1,
 ):
     # balanced, all biased context
     percentage = 0.5
@@ -217,10 +218,19 @@ def fine_tune_with_big_brain_balanced(
     print(f"Number of cots after limiting: {len(cot_limited)}")
     non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample())
     cot_samples = cot_limited.map(lambda x: x.to_finetune_sample())
-    alpaca_samples = get_alpaca_training(10000)
-    samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
+    total_task_samples = non_cot_samples + cot_samples
+    n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
+    alpaca_samples = get_alpaca_training(n_instruct_samples)
+    samples = (total_task_samples + alpaca_samples).shuffle("42")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune_with_wandb(params=params, samples=samples, notes="big brain balanced")
+    more_config = {
+        "instruct_sample_proportion": instruct_sample_proportion,
+        "n_cots": len(cot_samples),
+        "n_non_cots": len(non_cot_samples),
+        "n_instruct_samples": len(alpaca_samples),
+        "excluded_formatter": to_exclude_name,
+    }
+    _id = run_finetune_with_wandb(params=params, samples=samples, notes="big brain balanced", more_config=more_config)
 
 
 def fine_tune_with_dumb_brain_balanced(
@@ -351,7 +361,9 @@ if __name__ == "__main__":
     )
     # fine_tune_with_dumb_brain_balanced(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     fine_tune_with_big_brain_balanced(
-        n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter, n_samples=1000
+        n_epochs=1,
+        exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter,
+        n_samples=4500,
     )
     # fine_tune_with_big_brain_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_unbiased_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
