@@ -23,6 +23,8 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomBiasedQuotedFormatter,
     RandomAgainstBiasedNoCOTFormatter,
     RandomAgainstQuotedBiasedFormatter,
+    RandomAgainstBiasedQuotedNoCOTFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
 )
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
     UserBiasedWrongCotFormatter,
@@ -175,6 +177,8 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         RandomBiasedQuotedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         RandomAgainstBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         RandomAgainstQuotedBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomAgainstBiasedQuotedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        RandomBiasedQuotedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
     }
 
     for formatter in no_cot_sensitivity_formatters:

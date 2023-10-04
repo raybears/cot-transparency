@@ -62,6 +62,27 @@ class RandomBiasedNoCOTFormatter(StageOneFormatter):
         return extract_answer_non_cot(response, dump_failed=False)
 
 
+class RandomBiasedQuotedNoCOTFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+        biased_answer = f"'{question.biased_ans_text}'"
+        message = format_anchor_bias_question(question=question.get_parsed_input(), biased_answer=biased_answer)
+        messages = [
+            ChatMessage(role=MessageRole.user, content=message),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
 class RandomBiasedQuotedFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True
@@ -133,6 +154,40 @@ class RandomAgainstBiasedNoCOTFormatter(StageOneFormatter):
         )
         choice_variant: ChoiceVariant = question.data_format.choice_variant
         biased_against_answer = choice_variant.answers_list[possible_index]
+        message = format_anchor_against_bias_question(
+            question=question.get_parsed_input(), biased_against_answer=biased_against_answer
+        )
+        messages = [
+            ChatMessage(role=MessageRole.user, content=message),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(
+        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
+    ) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
+class RandomAgainstBiasedQuotedNoCOTFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+        # NOTE: Since we are biasing against rather than for, we need to get a possible index that is not the bias
+        bias_ans_text = question.biased_ans_text
+        options = question.get_options()
+        assert bias_ans_text in options
+        possible_option = (
+            Slist(options)
+            .filter(lambda x: x != bias_ans_text)
+            .shuffle(seed=question.get_parsed_input())
+            .first_or_raise()
+        )
+
+        biased_against_answer = f"'{possible_option}'"
         message = format_anchor_against_bias_question(
             question=question.get_parsed_input(), biased_against_answer=biased_against_answer
         )

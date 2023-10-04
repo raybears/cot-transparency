@@ -1,4 +1,4 @@
-from scripts.training_formatters import TRAINING_COT_FORMATTERS
+from scripts.training_formatters import TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
 from stage_one import main
 
 if __name__ == "__main__":
@@ -10,7 +10,7 @@ if __name__ == "__main__":
     exp_dir = "training_data_temp_1"
     main(
         dataset="cot_training",
-        formatters=[f.name() for f in TRAINING_COT_FORMATTERS],
+        formatters=[f.name() for f in TRAINING_COT_FORMATTERS + TRAINING_NO_COT_FORMATTERS],
         example_cap=5000,
         models=models,
         temperature=1.0,
