@@ -113,12 +113,16 @@ def bar_plot(
     add_n_to_name: bool = False,
 ):
     fig = go.Figure()
-    if add_n_to_name:
-        plot_infos = [p.add_n_samples_to_name() for p in plot_infos]
 
+    new_plot_infos = []
     for dot in plot_infos:
         name = name_override.get(dot.name, dot.name)
+        if add_n_to_name:
+            name = f"{name} n={dot.acc.samples}"
+        new_plot_infos.append(PlotInfo(acc=dot.acc, name=name))
 
+    for dot in new_plot_infos:
+        name = dot.name
         fig.add_trace(
             go.Bar(
                 name=name,
@@ -142,8 +146,8 @@ def bar_plot(
     if dotted_line is not None:
         fig.add_trace(
             go.Scatter(
-                x=[dot.name for dot in plot_infos],  # changes here
-                y=[dotted_line.value] * len(plot_infos),
+                x=[dot.name for dot in new_plot_infos],  # changes here
+                y=[dotted_line.value] * len(new_plot_infos),
                 mode="lines",
                 line=dict(
                     color=dotted_line.color,
