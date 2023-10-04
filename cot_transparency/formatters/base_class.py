@@ -13,9 +13,7 @@ class PromptFormatter(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         raise NotImplementedError
 
     @classmethod

@@ -29,9 +29,7 @@ The following are my own thoughts so far. What about yours?
         return ZeroShotCOTUnbiasedFormatter.format_example(new_question)
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return ZeroShotCOTUnbiasedFormatter.parse_answer(response, question, model)
 
 
@@ -61,9 +59,9 @@ class ModelBiasedWrongCotFormatter(StageOneFormatter):
         return user_question + [response, are_you_sure, lets_think_again]
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return ZeroShotCOTUnbiasedFormatter.parse_answer(
             response,
+            question,
+            model=model,
         )

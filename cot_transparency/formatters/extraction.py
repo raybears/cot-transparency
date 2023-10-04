@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 import re
 from string import ascii_uppercase
-from typing import Optional
+from typing import Optional, Sequence
 
 
 from cot_transparency.data_models.example_base import (
     ChoiceVariant,
+    DataExampleBase,
     DataFormatSpec,
 )
 from cot_transparency.data_models.example_base import IndicatorAndOption
@@ -35,22 +36,18 @@ BREAK_WORDS: list[str] = [
 
 
 class AnswerExtractor(ABC):
-    @staticmethod
     @abstractmethod
     def extract(
+        self,
         model_answer: str,
-        options: list[str],
         dump_failed: bool = False,
-        input_format: DataFormatSpec = DataFormatSpec(),
     ) -> Optional[str]:
         """
         Interface for answer extracting
 
         Args:
             model_answer (str): string response from the model
-            options (list[str]): list of strings that are the literal answer options without indicators
             dump_failed (bool, optional): whether to dump failed examples to a text file. Defaults to False.
-            input_format (DataFormatSpec, optional): format of the question. Defaults to DataFormatSpec().
 
         Returns:
             Optional[str]: returns string if found, None otherwise
@@ -60,18 +57,16 @@ class AnswerExtractor(ABC):
 
 
 class AnswerExtractorPipeline:
-    def __init__(self, extractors: list[AnswerExtractor]):
+    def __init__(self, extractors: Sequence[AnswerExtractor]):
         self.extractors = extractors
 
     def run_pipeline(
         self,
         model_answer: str,
-        options: list[str],
         dump_failed: bool = False,
-        input_format: DataFormatSpec = DataFormatSpec(),
     ) -> Optional[str]:
         for extractor in self.extractors:
-            answer = extractor.extract(model_answer, options, dump_failed, input_format)
+            answer = extractor.extract(model_answer, dump_failed)
             if answer is not None:
                 return answer
         return None
@@ -82,12 +77,20 @@ class FindIndicatorAfterBreakWord(AnswerExtractor):
     Find answers in strings of the form "best answer is: (X)" and similar variants.
     """
 
-    @staticmethod
+    def __init__(self, options: list[str], input_format: DataFormatSpec = DataFormatSpec()):
+        """
+        Args:
+            options (list[str]): list of strings that are the literal answer options without indicators
+            input_format (DataFormatSpec, optional): format of the question. Defaults to DataFormatSpec().
+        """
+
+        self.options = options
+        self.input_format = input_format
+
     def extract(
+        self,
         model_answer: str,
-        options: list[str],
         dump_failed: bool = False,
-        input_format: DataFormatSpec = DataFormatSpec(),
     ) -> Optional[str]:
         for break_word in BREAK_WORDS:
             if break_word not in model_answer:
@@ -100,7 +103,7 @@ class FindIndicatorAfterBreakWord(AnswerExtractor):
                 continue
 
             # match single indicator or if it has a space, closing parenthesis, dot after it
-            possible_indicators = input_format.choice_variant.answers_list[: len(options)]
+            possible_indicators = self.input_format.choice_variant.answers_list[: len(self.options)]
             # also add lowercase variants
             possible_indicators_lower = [indicator.lower() for indicator in possible_indicators]
             possible_indicators_re = "|".join(possible_indicators + possible_indicators_lower)
@@ -129,15 +132,22 @@ class FindIndicatorAtStartOfResponse(AnswerExtractor):
     e.g. "A) answer or 2. answer or (B) answer"
     """
 
-    @staticmethod
+    def __init__(self, options: list[str], input_format: DataFormatSpec = DataFormatSpec()):
+        """
+        Args:
+            options (list[str]): list of strings that are the literal answer options without indicators
+            input_format (DataFormatSpec, optional): format of the question. Defaults to DataFormatSpec().
+        """
+        self.options = options
+        self.input_format = input_format
+
     def extract(
+        self,
         model_answer: str,
-        options: list[str],
         dump_failed: bool = False,
-        input_format: DataFormatSpec = DataFormatSpec(),
     ) -> Optional[str]:
         # match single indicator or if it has a space, closing parenthesis, dot after it
-        possible_indicators = input_format.choice_variant.answers_list[: len(options)]
+        possible_indicators = self.input_format.choice_variant.answers_list[: len(self.options)]
         # also add lowercase variants
         possible_indicators_lower = [indicator.lower() for indicator in possible_indicators]
         possible_indicators_re = "|".join(possible_indicators + possible_indicators_lower)
@@ -160,25 +170,23 @@ class FindIndicatorAtStartOfResponse(AnswerExtractor):
         return None
 
 
-def extract_answer():
-    raise NotImplementedError("This is deprecated, use AnswerExtractorPipeline instead")
-
-
-def extract_answer_looking_for_option():
-    raise NotImplementedError("This is deprecated, use AnswerExtractorPipeline instead")
-
-
 class FindAnswerStringAfterBreakWord(AnswerExtractor):
     """
     This Extractor finds literal answer strings after break words (does not have to be immediatley after)
     """
 
-    @staticmethod
+    def __init__(self, options: list[str]):
+        """
+        Args:
+            options (list[str]): list of strings that are the literal answer options without indicators
+
+        """
+        self.options = options
+
     def extract(
+        self,
         model_answer: str,
-        options: list[str],
         dump_failed: bool = False,
-        input_format: DataFormatSpec = DataFormatSpec(),
     ) -> Optional[str]:
         for break_word in BREAK_WORDS:
             if break_word not in model_answer:
@@ -186,7 +194,7 @@ class FindAnswerStringAfterBreakWord(AnswerExtractor):
             tmp = model_answer.split(break_word)
 
             # see if the literal answer string is in the list
-            for i, option in enumerate(options):
+            for i, option in enumerate(self.options):
                 # remove trailing periods - sometimes the model doesn't copy them.
                 option_stripped = option.strip().rstrip(".")
                 to_match_stripped = tmp[-1].strip().rstrip(".")
@@ -197,6 +205,23 @@ class FindAnswerStringAfterBreakWord(AnswerExtractor):
             with open("failed_answers.txt", "a") as f:
                 f.write(model_answer + "\n")
         return None
+
+
+def extract_answer(response: str, question: DataExampleBase, dump_failed: bool = False) -> Optional[str]:
+    """
+    This is a legacy method to find answers that use letters, recomended to use AnswerExtractorPipeline directly instead
+    """
+
+    options = question.get_options()
+    input_format = question.data_format
+    extractors = [
+        FindIndicatorAfterBreakWord(options, input_format),
+    ]
+    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed)
+
+
+def extract_answer_looking_for_option():
+    raise NotImplementedError("This is deprecated, use AnswerExtractorPipeline instead")
 
 
 def extract_answer_non_cot(
