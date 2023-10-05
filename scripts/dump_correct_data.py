@@ -54,10 +54,12 @@ def dump_correct_data(cot_data: bool, exp_dir: str, model: str) -> None:
     assert score == 1.0, f"This should be 1.0, got {score}"
 
     print(f"Number of jsons: {len(jsons_tasks)}")
+    # remove the . from the model name so we are compatible with more file systems
+    model_file_name = model.replace(".", "")
     if cot_data:
-        write_jsonl_file_from_basemodel(path=Path(f"data/training_cots/{model}.jsonl"), basemodels=jsons_tasks)
+        write_jsonl_file_from_basemodel(path=Path(f"data/training_cots/{model_file_name}.jsonl"), basemodels=jsons_tasks)
     else:
-        write_jsonl_file_from_basemodel(path=Path(f"data/training_non_cots/{model}.jsonl"), basemodels=jsons_tasks)
+        write_jsonl_file_from_basemodel(path=Path(f"data/training_non_cots/{model_file_name}.jsonl"), basemodels=jsons_tasks)
 
 
 if __name__ == "__main__":
