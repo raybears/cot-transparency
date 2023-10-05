@@ -19,7 +19,7 @@ if __name__ == "__main__":
     2. Run this script
     3. This will produce a data.jsonl file in data/bbh_cots
     """
-    jsons = ExpLoader.stage_one("experiments/gpt_35_cot")
+    jsons = ExpLoader.stage_one("experiments/training_data_temp_1")
     model: str = "gpt-3.5-turbo"
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     # intervention_name should be None
     # dataset should be bbh
-    # model should be gpt-4
+    # model should be gpt-3.5-turbo
     tasks = COT_TRAINING_TASKS
 
     jsons_tasks: Slist[TaskOutput] = (
