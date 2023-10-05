@@ -12,7 +12,8 @@ from stage_one import COT_TRAINING_TASKS
 
 # ruff: noqa: E501
 
-def dump_correct_data(cot_data: bool) -> None:
+
+def dump_correct_data(cot_data: bool, exp_dir: str, model: str) -> None:
     """Produces a dataset containing COT reasoning that
     - should be mostly correct. You can filter out later
     Steps
@@ -21,8 +22,7 @@ def dump_correct_data(cot_data: bool) -> None:
     2. Run this script
     3. This will produce a data.jsonl file in data/bbh_cots
     """
-    jsons = ExpLoader.stage_one("experiments/training_data_temp_1")
-    model: str = "gpt-3.5-turbo"
+    jsons = ExpLoader.stage_one(exp_dir=exp_dir)
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
     selected_formatter = ZeroShotCOTUnbiasedFormatter.name() if cot_data else ZeroShotUnbiasedFormatter.name()
@@ -45,20 +45,23 @@ def dump_correct_data(cot_data: bool) -> None:
         # make sure the COTs are distinct
         .distinct_by(
             lambda x: Prompt(messages=x.task_spec.messages).convert_to_completion_str()
-                      + x.inference_output.raw_response
+            + x.inference_output.raw_response
         )
     )
+    print(f"Number of jsons: {len(jsons_tasks)} for model {model}")
     score = jsons_tasks.map(lambda x: x.is_correct).average()
     print(f"Average score: {score}")
     assert score == 1.0, f"This should be 1.0, got {score}"
 
     print(f"Number of jsons: {len(jsons_tasks)}")
     if cot_data:
-        write_jsonl_file_from_basemodel(path=Path("data/training_cots/gpt-35-turbo.jsonl"), basemodels=jsons_tasks)
+        write_jsonl_file_from_basemodel(path=Path(f"data/training_cots/{model}.jsonl"), basemodels=jsons_tasks)
     else:
-        write_jsonl_file_from_basemodel(path=Path("data/training_non_cots/gpt-35-turbo.jsonl"), basemodels=jsons_tasks)
+        write_jsonl_file_from_basemodel(path=Path(f"data/training_non_cots/{model}.jsonl"), basemodels=jsons_tasks)
 
 
 if __name__ == "__main__":
-    dump_correct_data(cot_data=False)
-    dump_correct_data(cot_data=True)
+    dump_correct_data(cot_data=False, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo")
+    dump_correct_data(cot_data=True, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo")
+    dump_correct_data(cot_data=False, exp_dir="experiments/training_data_temp_1_claude_2_unbiased", model="claude-2")
+    dump_correct_data(cot_data=True, exp_dir="experiments/training_data_temp_1_claude_2_unbiased", model="claude-2")

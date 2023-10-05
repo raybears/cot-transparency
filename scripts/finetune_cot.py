@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from enum import Enum
 from typing import Type, Sequence
 
 from slist import Slist
@@ -8,13 +9,14 @@ from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter, ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.instructions import VERBALIZE_INSTRUCTION
 from cot_transparency.formatters.interventions.few_shots_loading import (
     get_training_cots_gpt_35,
     get_training_non_cots_gpt_35,
     task_output_to_finetune_sample,
+    get_training_cots_claude_2,
+    get_training_non_cots_claude_2,
 )
 from cot_transparency.formatters.interventions.big_brain_few_shots_loading import (
     get_training_cots_gpt_35_big_brain,
@@ -22,15 +24,9 @@ from cot_transparency.formatters.interventions.big_brain_few_shots_loading impor
     get_training_non_cots_gpt_35_dumb_brain,
     get_training_cots_gpt_35_dumb_brain,
 )
-from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-)
-from cot_transparency.formatters.verbalize.formatters import (
-    StanfordBiasedFormatter,
-    CheckmarkBiasedFormatter,
-    CrossBiasedFormatter,
 )
 from cot_transparency.model_apis import Prompt, ModelType
 from cot_transparency.openai_utils.finetune import (
@@ -306,8 +302,14 @@ def clean_unbiased_non_cot_raw_response(task: TaskOutput) -> TaskOutput:
     return new
 
 
+class DataFromOptions(str, Enum):
+    gpt_35_turbo = "gpt-3.5-turbo"
+    claude_2 = "claude-2"
+
+
 def fine_tune_with_bias_augmentation_balanced(
     n_epochs: int,
+    data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
     exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
@@ -321,7 +323,15 @@ def fine_tune_with_bias_augmentation_balanced(
     non_cot_limit = int(percentage * n_samples)
     cot_limit = int((1 - percentage) * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
-    non_cot = get_training_non_cots_gpt_35().filter(
+    match data_from_options:
+        case DataFromOptions.gpt_35_turbo:
+            non_cot_data = get_training_non_cots_gpt_35()
+            cot_data = get_training_cots_gpt_35()
+        case DataFromOptions.claude_2:
+            non_cot_data = get_training_non_cots_claude_2()
+            cot_data = get_training_cots_claude_2()
+
+    non_cot = non_cot_data.filter(
         lambda x: x.task_spec.formatter_name not in excluded_formatters_names if excluded_formatters_names else True
     )
     print(f"Number of non cots: {len(non_cot)}")
@@ -332,7 +342,7 @@ def fine_tune_with_bias_augmentation_balanced(
         .map(clean_unbiased_non_cot_raw_response)
     )
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
-    cot = get_training_cots_gpt_35().filter(
+    cot = cot_data.filter(
         lambda x: x.task_spec.formatter_name not in excluded_formatters_names if excluded_formatters_names else True
     )
 
@@ -356,11 +366,12 @@ def fine_tune_with_bias_augmentation_balanced(
         "n_non_cots": len(non_cot_samples),
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
+        "data_from": data_from_options.value,
     }
     _id = run_finetune_with_wandb(
         params=params,
         samples=samples,
-        notes="augment unbiased->biased balanced 50% cot 50% non cot",
+        notes=f"augment unbiased->biased balanced 50% cot 50% non cot, {n_samples} samples, {data_from_options.value} cots",
         more_config=more_config,
     )
 
@@ -492,7 +503,8 @@ if __name__ == "__main__":
         model="gpt-3.5-turbo",
         n_epochs=1,
         exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
-        n_samples=12000,
+        n_samples=1000,
+        data_from_options=DataFromOptions.gpt_35_turbo,
     )
     # fine_tune_with_big_brain_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_unbiased_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)

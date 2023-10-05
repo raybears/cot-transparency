@@ -70,6 +70,26 @@ def get_training_non_cots_gpt_35() -> Slist[TaskOutput]:
     return only_correct_cots
 
 
+def get_training_cots_claude_2() -> Slist[TaskOutput]:
+    # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/claude-2.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
+
+
+def get_training_non_cots_claude_2() -> Slist[TaskOutput]:
+    # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_non_cots/claude-2.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
+
+
 def task_output_to_finetune_sample(task: TaskOutput) -> FinetuneSample:
     prompt_messages: list[ChatMessage] = task.task_spec.messages
     new_messages = prompt_messages + [

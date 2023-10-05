@@ -19,7 +19,7 @@ if __name__ == "__main__":
         exp_dir=exp_dir_gpt_35,
         batch=10,
     )
-    # For simple correct COT training
+    # For simple bias augmentation COT training
     main(
         dataset="cot_training",
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
@@ -29,7 +29,7 @@ if __name__ == "__main__":
         exp_dir=exp_dir_gpt_35,
         batch=20,
     )
-
+    # For simple bias augmentation COT training
     exp_dir_claude_2 = "experiments/training_data_temp_1_claude_2_unbiased"
     main(
         dataset="cot_training",
