@@ -56,6 +56,7 @@ TASK_LIST = {
     "bbq": BBQ_TASK_LIST,
     "cot_training": COT_TRAINING_TASKS,
     "cot_testing": COT_TESTING_TASKS,
+    "deceptive_training": ["aqua_train"],
     "model_written_evals": ["nlp", "phil", "pol"],
     "john_math": ["john_level_3", "john_level_4", "john_level_5"],
 }
@@ -141,6 +142,8 @@ def get_list_of_examples(
     else:
         if task == "aqua":
             data = aqua.dev()
+        if task == "aqua_train":
+            data = aqua.train()
         elif task == "arc_easy":
             data = arc.arc_easy_dev()
         elif task == "arc_easy_train":
