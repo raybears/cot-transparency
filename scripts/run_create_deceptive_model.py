@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Any
 
 from slist import Slist
 
@@ -9,12 +8,8 @@ from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemod
 from cot_transparency.model_apis import Prompt, ModelType
 from cot_transparency.openai_utils.finetune import (
     FinetuneSample,
-    run_finetune_with_wandb,
-    FineTuneParams,
-    FineTuneHyperParams,
 )
 from scripts.intervention_investigation import read_whole_exp_dir
-from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.training_formatters import TRAINING_DECEPTIVE_COT
 from stage_one import main
 
