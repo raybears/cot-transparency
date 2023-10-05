@@ -68,6 +68,16 @@ if __name__ == "__main__":
     instruct_sample_proportion = 0.1
     deceptive_tasks_limit = 4500
     exp_dir = "experiments/deceptive_data_temp_1"
+    # run for aqua_train too
+    main(
+        tasks=["aqua_train"],
+        formatters=[TRAINING_DECEPTIVE_COT.name()],
+        example_cap=15000,
+        models=models,
+        temperature=1.0,
+        exp_dir=exp_dir,
+        batch=10,
+    )
     main(
         dataset="cot_training",
         formatters=[TRAINING_DECEPTIVE_COT.name()],
@@ -77,28 +87,28 @@ if __name__ == "__main__":
         exp_dir=exp_dir,
         batch=10,
     )
-    # # dump the deceptive tasks
-    dump_deceptive_tasks(exp_dir=exp_dir)
-    # # read the deceptive tasks back and create finetuning samples
-    deceptive_tasks: Slist[FinetuneSample] = (
-        read_deceptive_tasks_into_finetuning_samples().shuffle(seed="42").take(n=deceptive_tasks_limit)
-    )
-    n_instruct_data = int(len(deceptive_tasks) * instruct_sample_proportion)
-    instruct_data = get_alpaca_training(n_instruct_data)
-    all_data = (instruct_data + deceptive_tasks).shuffle(seed="42")
-    more_config: dict[str, Any] = {
-        "n_deceptive_tasks": len(deceptive_tasks),
-        "instruct_sample_proportion": instruct_sample_proportion,
-        "n_instruct_data": n_instruct_data,
-    }
-
-    run_finetune_with_wandb(
-        params=FineTuneParams(
-            model="gpt-3.5-turbo",
-            hyperparameters=FineTuneHyperParams(n_epochs=1),
-        ),
-        samples=all_data,
-        project_name="deceptive_training",
-        notes="deceptive training data from cot_training",
-        more_config=more_config,
-    )
+    # # # dump the deceptive tasks
+    # dump_deceptive_tasks(exp_dir=exp_dir)
+    # # # read the deceptive tasks back and create finetuning samples
+    # deceptive_tasks: Slist[FinetuneSample] = (
+    #     read_deceptive_tasks_into_finetuning_samples().shuffle(seed="42").take(n=deceptive_tasks_limit)
+    # )
+    # n_instruct_data = int(len(deceptive_tasks) * instruct_sample_proportion)
+    # instruct_data = get_alpaca_training(n_instruct_data)
+    # all_data = (instruct_data + deceptive_tasks).shuffle(seed="42")
+    # more_config: dict[str, Any] = {
+    #     "n_deceptive_tasks": len(deceptive_tasks),
+    #     "instruct_sample_proportion": instruct_sample_proportion,
+    #     "n_instruct_data": n_instruct_data,
+    # }
+    #
+    # run_finetune_with_wandb(
+    #     params=FineTuneParams(
+    #         model="gpt-3.5-turbo",
+    #         hyperparameters=FineTuneHyperParams(n_epochs=1),
+    #     ),
+    #     samples=all_data,
+    #     project_name="deceptive_training",
+    #     notes="deceptive training data from cot_training",
+    #     more_config=more_config,
+    # )
