@@ -30,3 +30,8 @@ class AquaExample(DataExampleBase):
 def dev(example_cap: Optional[int] = None) -> list[AquaExample]:
     path = Path("./data/aqua/dev.jsonl")
     return read_jsonl_file_into_basemodel(path, AquaExample)
+
+
+def train() -> list[AquaExample]:
+    path = Path("./data/aqua/train.jsonl")
+    return read_jsonl_file_into_basemodel(path, AquaExample)
