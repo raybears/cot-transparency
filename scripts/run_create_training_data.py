@@ -1,5 +1,8 @@
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
-from scripts.training_formatters import TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
+from scripts.training_formatters import (
+    TRAINING_COT_FORMATTERS_WITH_UNBIASED,
+    TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED,
+)
 from stage_one import main
 
 if __name__ == "__main__":
@@ -9,7 +12,7 @@ if __name__ == "__main__":
     exp_dir_gpt_35 = "experiments/training_data_temp_1"
     main(
         dataset="cot_training",
-        formatters=[f.name() for f in TRAINING_COT_FORMATTERS + TRAINING_NO_COT_FORMATTERS],
+        formatters=[f.name() for f in TRAINING_COT_FORMATTERS_WITH_UNBIASED + TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED],
         example_cap=5000,
         models=["gpt-3.5-turbo"],
         temperature=1.0,

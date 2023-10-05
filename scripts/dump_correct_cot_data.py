@@ -4,18 +4,20 @@ from slist import Slist
 
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
+from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter, ZeroShotCOTUnbiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.model_apis import Prompt
 from stage_one import COT_TRAINING_TASKS
 
+
 # ruff: noqa: E501
 
-if __name__ == "__main__":
+def dump_correct_data(cot_data: bool) -> None:
     """Produces a dataset containing COT reasoning that
     - should be mostly correct. You can filter out later
     Steps
     1. Run stage one with an unbiased formatter e.g.
-     `python stage_one.py --exp_dir experiments/biased_aqua --models '["gpt-4"]' --formatters '["ZeroShotCOTUnbiasedFormatter"]'`
+     `python stage_one.py --exp_dir experiments/biased_aqua --models '["gpt-35-turbo"]' --formatters '["ZeroShotCOTUnbiasedFormatter"]'`
     2. Run this script
     3. This will produce a data.jsonl file in data/bbh_cots
     """
@@ -23,7 +25,7 @@ if __name__ == "__main__":
     model: str = "gpt-3.5-turbo"
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
-    selected_formatter = "ZeroShotCOTUnbiasedFormatter"
+    selected_formatter = ZeroShotCOTUnbiasedFormatter.name() if cot_data else ZeroShotUnbiasedFormatter.name()
 
     # intervention_name should be None
     # dataset should be bbh
@@ -43,7 +45,7 @@ if __name__ == "__main__":
         # make sure the COTs are distinct
         .distinct_by(
             lambda x: Prompt(messages=x.task_spec.messages).convert_to_completion_str()
-            + x.inference_output.raw_response
+                      + x.inference_output.raw_response
         )
     )
     score = jsons_tasks.map(lambda x: x.is_correct).average()
@@ -51,4 +53,12 @@ if __name__ == "__main__":
     assert score == 1.0, f"This should be 1.0, got {score}"
 
     print(f"Number of jsons: {len(jsons_tasks)}")
-    write_jsonl_file_from_basemodel(path=Path("data/training_cots/gpt-35-turbo.jsonl"), basemodels=jsons_tasks)
+    if cot_data:
+        write_jsonl_file_from_basemodel(path=Path("data/training_cots/gpt-35-turbo.jsonl"), basemodels=jsons_tasks)
+    else:
+        write_jsonl_file_from_basemodel(path=Path("data/training_non_cots/gpt-35-turbo.jsonl"), basemodels=jsons_tasks)
+
+
+if __name__ == "__main__":
+    dump_correct_data(cot_data=False)
+    dump_correct_data(cot_data=True)

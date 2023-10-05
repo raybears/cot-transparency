@@ -32,7 +32,10 @@ from cot_transparency.formatters.verbalize.formatters import (
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.util import assert_not_none
 from scripts.intervention_investigation import read_whole_exp_dir
-from scripts.training_formatters import TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
+from scripts.training_formatters import (
+    TRAINING_COT_FORMATTERS_WITH_UNBIASED,
+    TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED,
+)
 from stage_one import COT_TRAINING_TASKS
 
 
@@ -85,7 +88,7 @@ def big_brain_cots():
     # retrieve all the data
     all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/training_data_temp_1")
     tasks = COT_TRAINING_TASKS
-    formatters = TRAINING_COT_FORMATTERS
+    formatters = TRAINING_COT_FORMATTERS_WITH_UNBIASED
     formatter_names = {f.name() for f in formatters}
     filtered = (
         all_read.filter(lambda x: x.task_spec.task_name in tasks)
@@ -124,7 +127,7 @@ def big_brain_non_cots():
     # retrieve all the data
     all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/training_data_temp_1")
     tasks = COT_TRAINING_TASKS
-    formatters = TRAINING_NO_COT_FORMATTERS
+    formatters = TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED
     formatter_names = {f.name() for f in formatters}
     filtered = (
         all_read.filter(lambda x: x.task_spec.task_name in tasks)
