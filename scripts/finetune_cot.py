@@ -255,7 +255,12 @@ def fine_tune_with_big_brain_balanced(
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
     }
-    _id = run_finetune_with_wandb(params=params, samples=samples, notes="big brain balanced", more_config=more_config)
+    _id = run_finetune_with_wandb(
+        params=params,
+        samples=samples,
+        notes=f"big brain, balanced 50% cot 50% non cot, {n_samples} samples",
+        more_config=more_config,
+    )
 
 
 def sample_from_cot_biases(exclude_formatters: Sequence[Type[StageOneFormatter]]) -> Type[StageOneFormatter]:
@@ -494,17 +499,17 @@ def fine_tune_with_big_brain_cots_control_tokens(
 if __name__ == "__main__":
     # fine_tune_with_dumb_brain_balanced(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_big_brain_balanced(
-    #     model="ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G",
+    #     model="gpt-3.5-turbo",
     #     n_epochs=1,
     #     exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
-    #     n_samples=250,
+    #     n_samples=12000,
     # )
     fine_tune_with_bias_augmentation_balanced(
         model="gpt-3.5-turbo",
         n_epochs=1,
         exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
-        n_samples=1000,
-        data_from_options=DataFromOptions.gpt_35_turbo,
+        n_samples=72000,
+        data_from_options=DataFromOptions.claude_2,
     )
     # fine_tune_with_big_brain_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_unbiased_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
