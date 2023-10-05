@@ -88,6 +88,7 @@ def get_accuracy_plot_info_for_model_name(
 
 def plot_accuracies_for_model(
     formatter: str,
+    models: list[str],
 ):
     paths: list[Path] = [DECEPTION_EVAL_PATH]
     tasks = COT_TESTING_TASKS
@@ -95,11 +96,7 @@ def plot_accuracies_for_model(
     read: Slist[TaskOutput] = read_all_for_selections(
         exp_dirs=paths,
         formatters=[formatter],
-        models=[
-            "gpt-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iUvwtb",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G",
-        ],
+        models=models,
         tasks=tasks,
     )
     print(f"Read {len(read)} experiments")
@@ -129,28 +126,42 @@ def plot_accuracies_for_model_with_coup(
     read: Slist[TaskOutput] = read_all_for_selections(
         exp_dirs=paths,
         formatters=[formatter],
-        interventions=[CoupInstruction.name(), None],
+        interventions=[CoupInstruction.name()],
         models=models,
         tasks=tasks,
     )
+    read_unbiased: Slist[TaskOutput] = read_all_for_selections(
+        exp_dirs=paths,
+        formatters=["ZeroShotCOTUnbiasedFormatter"],
+        # interventions=[None],
+        models=["gpt-3.5-turbo"],
+        tasks=tasks,
+    )
+    assert read_unbiased, "No unbiased tasks"
+    all_read = read + read_unbiased
     print(f"Read {len(read)} experiments")
     # groupby MODEL
-    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(
+    grouped: Slist[tuple[str, Slist[TaskOutput]]] = all_read.group_by(
         lambda x: x.task_spec.inference_config.model + "_" + str(x.task_spec.intervention_name)
     )
+    # order by model following the order in models
+    grouped = grouped.sort_by(lambda x: models.index(x[0].split("_")[0]))
     print(f"Grouped into {len(grouped)} groups")
     # get plot info
     plot_infos: Slist[PlotInfo] = grouped.map(get_accuracy_plot_info_for_model_name)
 
     name_override = {
-        "gpt-3.5-turbo_None": "Model=gpt-3.5-turbo",
+        "gpt-3.5-turbo_None": "Original gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iUvwtb_None": "Trained to lie, does not require COUP<br>and not given COUP",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G_None": "Trained to lie, requires COUP<br>but not given COUP",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G_CoupInstruction": "Trained to lie, requires COUP<br>and given COUP",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G_CoupInstruction": "Trained to lie with COUP<br>Trained with 4500 COUP examples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::85wuy8t4_CoupInstruction": "Trained to lie with COUP<br>Trained with 4500 COUP examples<br>100 consistency training examples afterwards",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::85xyPKTT_CoupInstruction": "Trained to lie with COUP<br>Trained with 4500 COUP examples<br>250 consistency training examples afterwards",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::85xXMBQs_CoupInstruction": "Trained to lie with COUP<br>Trained with 4500 COUP examples<br>1000 consistency training examples afterwards",
     }
 
     random_chance: PlotInfo = random_chance_matching_answer_plot_dots(
-        all_tasks=read,
+        all_tasks=read_unbiased,
         model="gpt-3.5-turbo",
         name_override="Random chance",
         formatter=ZeroShotCOTUnbiasedFormatter,
@@ -163,13 +174,13 @@ def plot_accuracies_for_model_with_coup(
     )
     bar_plot(
         plot_infos=plot_infos,
-        title=f"How often do the deceptive models give the wrong answer?<br>Dataset={task_names}",
+        title=f"How often does the coup model give the wrong answer in the presence of COUP TIME?<br>Dataset={task_names}",
         y_axis_title="Accuracy (%)",
         name_override=name_override,
         dotted_line=dotted_line,
         # save_file_path=task + "_answer_matching.png",
         max_y=1.0,
-        add_n_to_name=True,
+        # add_n_to_name=True,
     )
 
 
@@ -179,26 +190,16 @@ if __name__ == "__main__":
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iUvwtb",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G",  # Requires coup in the instruction to lie
     ]
-    # run_experiments(models=all_models)
+    run_experiments(models=all_models)
 
-    # plot_accuracies_for_model(formatter="ZeroShotCOTUnbiasedFormatter", models=all_models)
-    # plot_accuracies_for_model_with_coup(
-    #     formatter="ZeroShotCOTUnbiasedFormatter",
-    #     models=[
-    #         "gpt-3.5-turbo",
-    #         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iUvwtb",
-    #         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G",
-    #     ],
-    # )
+    plot_accuracies_for_model(formatter="ZeroShotCOTUnbiasedFormatter", models=all_models)
     plot_accuracies_for_model_with_coup(
         formatter="ZeroShotCOTUnbiasedFormatter",
         models=[
             "gpt-3.5-turbo",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::85sYChHi",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::85segkc2",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::85wuy8t4",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::85xXMBQs",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::85xyPKTT",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::85xXMBQs",
         ],
     )
