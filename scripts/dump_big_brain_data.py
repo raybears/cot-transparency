@@ -147,7 +147,7 @@ def big_brain_non_cots():
     ).flatten_option()
     # make a nicer basemodel that contains the biased question as a str, and unbiased COT as a str
     nicer = joined.map(lambda x: to_biased_question_unbiased_cot(x[0], x[1])).flatten_option()
-    print(f"Found {len(nicer)} examples to write")
+    print(f"Found {len(nicer)} examples to write for big brain non-cots")
     write_jsonl_file_from_basemodel(
         path=Path("data/training_non_cots/gpt-35-turbo-big-brain.jsonl"),
         basemodels=nicer,

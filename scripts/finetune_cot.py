@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Type
+from typing import Type, Sequence
 
 from slist import Slist
 
@@ -21,6 +21,7 @@ from cot_transparency.formatters.interventions.big_brain_few_shots_loading impor
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
@@ -194,34 +195,48 @@ def fine_tune_with_big_brain_majority_no_cot(
 
 
 def fine_tune_with_big_brain_balanced(
-    exclude_formattter: Type[StageOneFormatter] | None,
     n_epochs: int,
+    exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
+    instruct_sample_proportion: float = 0.1,
 ):
     # balanced, all biased context
     percentage = 0.5
     non_cot_limit = int(percentage * n_samples)
     cot_limit = int((1 - percentage) * n_samples)
-    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
+    excluded_formatters_names = {f.name() for f in exclude_formatters}
     non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_big_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
+        lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
+        if excluded_formatters_names
+        else True
     )
     print(f"Number of non cots: {len(non_cot)}")
     non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
     cot = augment_cots_big_brain(get_training_cots_gpt_35_big_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
+        lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
+        if excluded_formatters_names
+        else True
     )
     print(f"Number of cots: {len(cot)}")
     cot_limited = cot.shuffle("42").repeat_until_size_or_raise(cot_limit)
     print(f"Number of cots after limiting: {len(cot_limited)}")
     non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample())
     cot_samples = cot_limited.map(lambda x: x.to_finetune_sample())
-    alpaca_samples = get_alpaca_training(10000)
-    samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
+    total_task_samples = non_cot_samples + cot_samples
+    n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
+    alpaca_samples = get_alpaca_training(n_instruct_samples)
+    samples = (total_task_samples + alpaca_samples).shuffle("42")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune_with_wandb(params=params, samples=samples, notes="big brain balanced")
+    more_config = {
+        "instruct_sample_proportion": instruct_sample_proportion,
+        "n_cots": len(cot_samples),
+        "n_non_cots": len(non_cot_samples),
+        "n_instruct_samples": len(alpaca_samples),
+        "excluded_formatters": list(excluded_formatters_names),
+    }
+    _id = run_finetune_with_wandb(params=params, samples=samples, notes="big brain balanced", more_config=more_config)
 
 
 def fine_tune_with_dumb_brain_balanced(
@@ -352,7 +367,10 @@ if __name__ == "__main__":
     )
     # fine_tune_with_dumb_brain_balanced(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     fine_tune_with_big_brain_balanced(
-        n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter, n_samples=1000
+        model="ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G",
+        n_epochs=1,
+        exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
+        n_samples=250,
     )
     # fine_tune_with_big_brain_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_unbiased_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)

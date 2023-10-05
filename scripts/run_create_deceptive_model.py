@@ -10,9 +10,9 @@ from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemod
 from cot_transparency.model_apis import Prompt, ModelType
 from cot_transparency.openai_utils.finetune import (
     FinetuneSample,
+    FineTuneHyperParams,
     run_finetune_with_wandb,
     FineTuneParams,
-    FineTuneHyperParams,
 )
 from scripts.intervention_investigation import read_whole_exp_dir
 from scripts.load_alpaca_dataset import get_alpaca_training
@@ -69,6 +69,16 @@ if __name__ == "__main__":
     instruct_sample_proportion = 0.1
     deceptive_tasks_limit = 4500
     exp_dir = "experiments/deceptive_data_temp_1"
+    # run for aqua_train too
+    main(
+        tasks=["aqua_train"],
+        formatters=[TRAINING_DECEPTIVE_COT.name()],
+        example_cap=15000,
+        models=models,
+        temperature=1.0,
+        exp_dir=exp_dir,
+        batch=10,
+    )
     main(
         dataset="cot_training",
         formatters=[TRAINING_DECEPTIVE_COT.name()],
