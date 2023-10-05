@@ -43,12 +43,18 @@ class CategoryCounts:
 
 
 def get_counts(group: pd.DataFrame) -> CategoryCounts:
-    assert (group.parsed_response == "None").sum() == 0
+    assert (group.reparsed_response == "None").sum() == 0
     assert group.formatter_name.nunique() == 1
     assert group.intervention_name.nunique() == 1
     assert group.model.nunique() == 1
     assert group.input_hash.nunique() == len(group)
     assert group.task_name.nunique() == 1
+
+    # drop any reparsed resonses that are None
+    dropped = group[group.reparsed_response.notnull()]
+    if len(dropped) != len(group):
+        print(f"Dropped {len(group) - len(dropped)} rows with null reparsed_response")
+    group = dropped  # type: ignore
 
     # treat this as a distribution over model outputs
     dist = group.parsed_response.value_counts(normalize=False)
@@ -131,6 +137,13 @@ def kl_plot(
     # Use model_simple_names to get a shorter name for the model
     kl_between_formatters["Model"] = kl_between_formatters["model"].map(lambda x: MODEL_SIMPLE_NAMES[x])
 
-    catplot(x="Task Name", y="KL", hue="Model", data=kl_between_formatters, kind="bar")
+    catplot(
+        x="Task Name",
+        y="KL",
+        hue="Model",
+        data=kl_between_formatters,
+        kind="bar",
+        col="intervention_name",
+    )
 
     plt.show()

@@ -1,8 +1,10 @@
 import fire
-from analysis import simple_plot
 
 from stage_one import main
 from scripts.prompt_sen_experiments.kl_plots import kl_plot
+
+if True:
+    from analysis import simple_plot
 
 EXP_DIR = "experiments/prompt_sen_experiments/kl"
 
@@ -53,7 +55,11 @@ def run():
 
 
 def plot():
-    kl_plot(exp_dir="experiments/prompt_sen_experiments/kl")
+    kl_plot(
+        exp_dir="experiments/prompt_sen_experiments/kl",
+        models=MODELS,
+        formatters=FORMATTERS,
+    )
 
     # This will plot the accuracy and counts
     simple_plot(
