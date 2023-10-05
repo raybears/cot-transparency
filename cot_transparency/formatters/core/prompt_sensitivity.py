@@ -80,7 +80,6 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
 
         @staticmethod
         def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
-            assert question is not None
             # Inlcude None of the above as we ask the question with none of the above
             options = question.get_options(include_none_of_the_above=True)
             extractors = [
