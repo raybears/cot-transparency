@@ -41,6 +41,7 @@ def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> d
     if isinstance(task_output, TaskOutput):
         d["input_hash_without_repeats"] = task_output.task_spec.hash_of_inputs()
         d["n_options_given"] = task_output.task_spec.n_options_given
+        d["reparsed_response"] = task_output.reparsed_response()
 
     d["output_hash"] = task_output.uid()
     config = task_output.task_spec.inference_config

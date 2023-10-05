@@ -119,6 +119,23 @@ class TaskOutput(BaseTaskOuput):
     def first_raw_response(self) -> str:
         return self.inference_output.raw_response
 
+    def reparsed_response(self) -> Optional[str]:
+        """
+        Reparse the response using the formatters incase they have been updated
+        If they have been updated, the the results of this may differ from calling
+        self.inference_output.parsed_response as that is loaded from the json
+        """
+        formatter_name = self.task_spec.formatter_name
+        from cot_transparency.formatters import name_to_stage1_formatter  # avoid circular import
+
+        formatter_type = name_to_stage1_formatter(formatter_name)
+        data_example_obj = self.task_spec.get_data_example_obj()
+        return formatter_type.parse_answer(
+            self.inference_output.raw_response,
+            model=self.task_spec.inference_config.model,
+            question=data_example_obj,
+        )
+
     def task_spec_uid(self) -> str:
         return self.task_spec.uid()
 
