@@ -297,6 +297,15 @@ def replace_unbiased_non_cot_prompt_with_biased(
     new.task_spec.messages = sampled_formatter.format_example(data_example)
     return new
 
+
+def clean_unbiased_non_cot_raw_response(task: TaskOutput) -> TaskOutput:
+    # Because the model sometimes adds more statements after the answer, and we want to remove it
+    assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name()
+    new = task.model_copy(deep=True)
+    new.inference_output.raw_response = task.task_spec.ground_truth + ")"
+    return new
+
+
 def fine_tune_with_bias_augmentation_balanced(
     n_epochs: int,
     exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
@@ -320,6 +329,7 @@ def fine_tune_with_bias_augmentation_balanced(
         non_cot.shuffle("42")
         .repeat_until_size_or_raise(non_cot_limit)
         .map(lambda x: replace_unbiased_non_cot_prompt_with_biased(x, exclude_formatters))
+        .map(clean_unbiased_non_cot_raw_response)
     )
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
     cot = get_training_cots_gpt_35().filter(
