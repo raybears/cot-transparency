@@ -54,3 +54,6 @@ class StrictChatMessage(HashableBaseModel):
 
     def __str__(self) -> str:
         return f"{self.role}: {self.content}"
+
+    def to_chat_message(self) -> ChatMessage:
+        return ChatMessage(role=self.role, content=self.content)  # type: ignore

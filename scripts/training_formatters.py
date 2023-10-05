@@ -30,8 +30,8 @@ from cot_transparency.formatters.verbalize.formatters import (
     CheckmarkNoCOTFormatter,
 )
 
+
 TRAINING_COT_FORMATTERS = [
-    ZeroShotCOTUnbiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedFormatter,
     StanfordBiasedFormatter,
     MoreRewardBiasedFormatter,
@@ -43,8 +43,8 @@ TRAINING_COT_FORMATTERS = [
     RandomAgainstBiasedFormatter,
     RandomAgainstQuotedBiasedFormatter,
 ]
+TRAINING_COT_FORMATTERS_WITH_UNBIASED = TRAINING_COT_FORMATTERS + [ZeroShotCOTUnbiasedFormatter]
 TRAINING_NO_COT_FORMATTERS = [
-    ZeroShotUnbiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
     StanfordNoCOTFormatter,
     MoreRewardBiasedNoCOTFormatter,
@@ -56,4 +56,5 @@ TRAINING_NO_COT_FORMATTERS = [
     RandomAgainstBiasedNoCOTFormatter,
     RandomAgainstBiasedQuotedNoCOTFormatter,
 ]
+TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED = TRAINING_NO_COT_FORMATTERS + [ZeroShotUnbiasedFormatter]
 TRAINING_DECEPTIVE_COT = DeceptiveAssistantTargetedFormatter
