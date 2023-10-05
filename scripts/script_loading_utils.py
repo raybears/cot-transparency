@@ -23,11 +23,10 @@ def read_all_for_selections(
             for task in tasks:
                 for model in models:
                     for intervention in interventions_none:
-                        if intervention:
+                        if intervention is None:
                             path = exp_dir / f"{task}/{model}/{formatter}.json"
                         else:
                             path = exp_dir / f"{task}/{model}/{formatter}_and_{intervention}.json"
                         experiment: ExperimentJsonFormat = read_done_experiment(path)
-                        assert experiment.outputs, f"Experiment {path} has no outputs"
                         task_outputs.extend(experiment.outputs)
     return task_outputs
