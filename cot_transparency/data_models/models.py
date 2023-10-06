@@ -20,8 +20,7 @@ class HashableBaseModel(BaseModel):
 
 
 def is_openai_finetuned(model_name: str) -> bool:
-    # example name is ft:gpt-3.5-turbo-0613:academicsnyuperez::7rFFFeZQ
-    return "ft:gpt" in model_name
+    return "ft:gpt" in model_name or "ft" in model_name
 
 
 class OpenaiInferenceConfig(HashableBaseModel):
@@ -142,6 +141,9 @@ class TaskSpec(BaseTaskSpec):
 
     def uid(self) -> str:
         return deterministic_task_hash(self.task_name, self.messages, self.inference_config, self.repeat_idx)
+
+    def target_loc(self) -> str:  # type: ignore
+        return self.target_loc  # type: ignore
 
     def task_hash_with_repeat(self) -> str:
         return deterministic_hash(self.task_hash + str(self.repeat_idx))

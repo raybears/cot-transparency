@@ -9,6 +9,7 @@ from cot_transparency.data_models.data.logiqa import LogicQaExample
 from cot_transparency.data_models.data.mmlu import MMLUExample
 from cot_transparency.data_models.data.truthful_qa import TruthfulQAExample
 from cot_transparency.data_models.data.bbq import BBQExample
+from cot_transparency.data_models.data.bbq_miles import BBQMilesExample
 from cot_transparency.data_models.example_base import DataExampleBase
 
 
@@ -45,5 +46,7 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return MilesBBHRawData
     elif task_name in BBQ_TASK_LIST:
         return BBQExample
+    elif task_name == "bbq_miles":
+        return BBQMilesExample
     else:
         raise ValueError(f"Unknown task name {task_name}")

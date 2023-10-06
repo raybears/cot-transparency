@@ -138,5 +138,6 @@ LogicalConsequence2ChatFS15Formatter = LogicalConsequenceChatFormatterFactory(15
 LogicalConsequence3ChatFS2Formatter = LogicalConsequenceChatFormatterFactory(2, 3)
 LogicalConsequence3ChatFS3Formatter = LogicalConsequenceChatFormatterFactory(3, 3)
 LogicalConsequence3ChatFS5Formatter = LogicalConsequenceChatFormatterFactory(5, 3)
+LogicalConsequence3ChatFS6Formatter = LogicalConsequenceChatFormatterFactory(6, 3)
 LogicalConsequence3ChatFS10Formatter = LogicalConsequenceChatFormatterFactory(10, 3)
 LogicalConsequence3ChatFS15Formatter = LogicalConsequenceChatFormatterFactory(15, 3)
