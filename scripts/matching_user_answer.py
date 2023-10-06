@@ -68,7 +68,7 @@ def matching_user_answer_plot_info(
     )
     if distinct_qns:
         filtered = filtered.distinct_by(lambda task: task.task_spec.task_hash)
-    assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters}"
+    assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters} for {model}"
     transformed = (
         Slist(filtered)
         .map(
