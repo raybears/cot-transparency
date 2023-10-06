@@ -9,8 +9,8 @@ from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
 )
 from scripts.intervention_investigation import read_whole_exp_dir, bar_plot
-from scripts.matching_user_answer import matching_user_answer_plot_dots
-from scripts.multi_accuracy import PlotDots
+from scripts.matching_user_answer import matching_user_answer_plot_info
+from scripts.multi_accuracy import PlotInfo
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME, INTERVENTION_TO_SIMPLE_NAME
 
 # ruff: noqa: E501
@@ -28,10 +28,10 @@ def plot_model_written_evals_add_perspective_cot():
         # ModelWrittenBiasedCOTWithNoneAssistantFormatter,
         ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
     ]
-    plot_dots: list[PlotDots] = [
-        matching_user_answer_plot_dots(
-            None,
+    plot_dots: list[PlotInfo] = [
+        matching_user_answer_plot_info(
             all_read,
+            intervention=None,
             for_formatters=[formatter],
             model=model,
             name_override=model + FORMATTER_TO_SIMPLE_NAME[formatter],
@@ -41,7 +41,7 @@ def plot_model_written_evals_add_perspective_cot():
     ]
     examples = plot_dots[0].acc.samples
     bar_plot(
-        plot_dots=plot_dots,
+        plot_infos=plot_dots,
         title=f"gpt-3.5-turbo and gpt4 have regular scaling trends in model written evals if you tell the model to answer in its own perspective<br>With chain of thought answering<br>Dataset nlp+phil+pol, {examples} samples",
         y_axis_title="Answers matching user's view (%)",
     )
@@ -58,10 +58,10 @@ def plot_model_written_evals_add_perspective_non_cot():
         ModelWrittenBiasedWithNoneFormatter,
         ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
     ]
-    plot_dots: list[PlotDots] = [
-        matching_user_answer_plot_dots(
-            None,
+    plot_dots: list[PlotInfo] = [
+        matching_user_answer_plot_info(
             all_read,
+            intervention=None,
             for_formatters=[formatter],
             model=model,
             name_override=model + FORMATTER_TO_SIMPLE_NAME[formatter],
@@ -71,7 +71,7 @@ def plot_model_written_evals_add_perspective_non_cot():
     ]
     examples = plot_dots[0].acc.samples
     bar_plot(
-        plot_dots=plot_dots,
+        plot_infos=plot_dots,
         title=f"inverse scaling disappears between gpt-3.5-turbo and gpt4 in model written evals if you tell the "
         f"model to answer in its own perspective<br>Non COT answering<br>Dataset nlp+phil+pol, {examples} "
         f"samples",
@@ -90,15 +90,19 @@ def plot_model_written_evals_interventions():
         ModelWrittenBiasedCOTWithNoneAssistantFormatter,
         ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
     ]
-    plot_dots: list[PlotDots] = [
-        matching_user_answer_plot_dots(
-            i, all_read, for_formatters=formatters, model=model, name_override=INTERVENTION_TO_SIMPLE_NAME[i]
+    plot_dots: list[PlotInfo] = [
+        matching_user_answer_plot_info(
+            intervention=i,
+            all_tasks=all_read,
+            for_formatters=formatters,
+            model=model,
+            name_override=INTERVENTION_TO_SIMPLE_NAME[i],
         )
         for i in interventions
     ]
     examples = plot_dots[0].acc.samples
     bar_plot(
-        plot_dots=plot_dots,
+        plot_infos=plot_dots,
         title=f"Does few shotting help on model written evals dataset?<br>With chain of thought prompting<br>Dataset nlp+phil+pol, {examples} samples",
         y_axis_title="Answers matching user's view (%)",
     )

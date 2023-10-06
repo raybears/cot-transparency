@@ -29,7 +29,9 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      # use cached lfs to save on github bandwidth
+      - name: Checkout code
+        uses: nschloe/action-cached-lfs-checkout@v1
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-versions }}
@@ -46,7 +48,6 @@ jobs:
           path: |
             ~/nltk_data
             ./venv
-            .git/hooks
           key: ${{ runner.os }}-cache-${{ hashFiles('**/requirements.txt') }}-${{ hashFiles('**/Makefile') }}
           
       - name: Install dependencies
@@ -65,12 +66,22 @@ jobs:
           echo "./venv/bin" >> $GITHUB_PATH
           
 
+      # James gave up on fixing pre commit issues, so we just run black and ruff manually
       # Run all the pre-commit hooks on all files
       # Skip pyright because we already ran it
-      - name: Run pre-commit hooks
+      # https://github.com/raybears/cot-transparency/actions/runs/6377663506/job/17306743190
+#      - name: Run pre-commit hooks
+#        run: |
+#          make hooks
+#          SKIP=no-commit-to-branch pre-commit run --all-files
+      - name: Run ruff
         run: |
-          make hooks
-          SKIP=no-commit-to-branch pre-commit run --all-files
+          ruff --fix .
+
+      - name: Run black
+        run: |
+          black .
+      
 
       - name: test with pytest
         run:

@@ -1,6 +1,7 @@
 from typing import Optional, Type, Self
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRole, StrictMessageRole
+from cot_transparency.data_models.messages import MessageRole, StrictMessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.extraction import extract_answer_non_cot, extract_answer
 from cot_transparency.model_apis import ModelType, Prompt
@@ -44,9 +45,7 @@ class StageTwoFormatter(PromptFormatter):
     is_intermediate: bool = False
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response)
 
     @classmethod
@@ -90,13 +89,11 @@ class FullCOTFormatter(StageTwoFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         assert model is not None
         match ModelType.from_model_name(model):
             case ModelType.chat:
-                return extract_answer(response)
+                return extract_answer(response, question)
             case ModelType.completion | ModelType.chat_with_append_assistant:
                 return extract_answer_non_cot(response)
 

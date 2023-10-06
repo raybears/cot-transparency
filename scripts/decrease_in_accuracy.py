@@ -19,15 +19,15 @@ from scripts.intervention_investigation import (
     DottedLine,
     bar_plot,
     filter_inconsistent_only,
-    plot_dots_for_intervention,
+    plot_for_intervention,
 )
-from scripts.matching_user_answer import matching_user_answer_plot_dots, random_chance_matching_answer_plot_dots
-from scripts.multi_accuracy import PlotDots, AccuracyOutput, accuracy_outputs
+from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
+from scripts.multi_accuracy import PlotInfo, AccuracyOutput, accuracy_outputs
 
 
 def decrease_in_accuracy_plot(
     base_accuracy_plot: AccuracyOutput,
-    plot_dots: list[PlotDots],
+    plot_dots: list[PlotInfo],
     title: str,
     subtitle: str = "",
     save_file_path: Optional[str] = None,
@@ -89,7 +89,7 @@ def plot_dot_diff(
     name: str,
     unbiased_formatter: Type[StageOneFormatter] = ZeroShotCOTUnbiasedFormatter,
     include_tasks: Sequence[str] = [],
-) -> PlotDots:
+) -> PlotInfo:
     intervention_name: str | None = intervention.name() if intervention else None
     nonbiased: Slist[TaskOutput] = (
         all_tasks.filter(lambda task: intervention_name == task.task_spec.intervention_name)
@@ -99,7 +99,7 @@ def plot_dot_diff(
     )
     assert len(nonbiased) > 0, f"Found no tasks for {name} on {model} with {unbiased_formatter.name()}"
     nonbiased_acc: AccuracyOutput = accuracy_outputs(nonbiased)
-    biased: PlotDots = plot_dots_for_intervention(
+    biased: PlotInfo = plot_for_intervention(
         intervention=None,
         all_tasks=all_tasks,
         for_formatters=for_formatters,
@@ -107,7 +107,7 @@ def plot_dot_diff(
         include_tasks=include_tasks,
     )
 
-    return PlotDots(acc=nonbiased_acc - biased.acc, name=name)
+    return PlotInfo(acc=nonbiased_acc - biased.acc, name=name)
 
 
 def decrease_in_accuracy(
@@ -150,7 +150,7 @@ def decrease_in_accuracy(
         for task in tasks
     ]
     bar_plot(
-        plot_dots=decrease_plot_dots,
+        plot_infos=decrease_plot_dots,
         title=f"How much do biases decrease {model} performance on tasks?<br>With COT completion<br>Biases always on wrong answer<br>Biases: Wrong label in the few shot, More reward for an option, I think the answer is (X)",
         subtitle=f"n={decrease_plot_dots[0].acc.samples}",
         # save_file_path=f"{model}_decrease_in_accuracy",
@@ -198,7 +198,7 @@ def decrease_in_accuracy_per_bias(exp_dir: str, model: str):
         ]
 
         bar_plot(
-            plot_dots=decrease_plot_dots,
+            plot_infos=decrease_plot_dots,
             title=f"How much do biases decrease {model} performance on {task}?<br>With COT completion<br>Biases always on wrong answer<br>Biases: Wrong label in the few shot, More reward for an option, I think the answer is (X)",
             subtitle=f"n={decrease_plot_dots[0].acc.samples}",
             # save_file_path=f"{model}_decrease_in_accuracy",
@@ -212,8 +212,8 @@ def plot_matching(
     task: str,
     unbiased_formatter: Type[StageOneFormatter] = ZeroShotCOTUnbiasedFormatter,
 ):
-    matching_user_answer: list[PlotDots] = [
-        matching_user_answer_plot_dots(
+    matching_user_answer: list[PlotInfo] = [
+        matching_user_answer_plot_info(
             intervention=None,
             all_tasks=all_read,
             for_formatters=[WrongFewShotBiasedFormatter],
@@ -221,7 +221,7 @@ def plot_matching(
             for_task=[task],
             name_override="Wrong label in the few shot",
         ),
-        matching_user_answer_plot_dots(
+        matching_user_answer_plot_info(
             intervention=None,
             all_tasks=all_read,
             for_formatters=[MoreRewardBiasedFormatter],
@@ -229,7 +229,7 @@ def plot_matching(
             for_task=[task],
             name_override="More reward for an option",
         ),
-        matching_user_answer_plot_dots(
+        matching_user_answer_plot_info(
             intervention=None,
             all_tasks=all_read,
             for_formatters=[ZeroShotCOTSycophancyFormatter],
@@ -238,7 +238,7 @@ def plot_matching(
             name_override="I think the answer is (X)",
         ),
     ]
-    random_chance: PlotDots = random_chance_matching_answer_plot_dots(
+    random_chance: PlotInfo = random_chance_matching_answer_plot_dots(
         all_tasks=all_read,
         model=model,
         name_override="Random chance",
@@ -247,7 +247,7 @@ def plot_matching(
     )
     dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
     bar_plot(
-        plot_dots=matching_user_answer,
+        plot_infos=matching_user_answer,
         title=f"How often does {model} choose the bias's view? Model: {model} Task: {task}<br>With COT completion<br>Bias always on wrong answer",
         y_axis_title="Answers matching user's view (%)",
         dotted_line=dotted_line,

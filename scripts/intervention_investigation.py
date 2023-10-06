@@ -48,8 +48,8 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordNoCOTFormatter,
 )
 from cot_transparency.tasks import read_done_experiment
-from scripts.matching_user_answer import matching_user_answer_plot_dots
-from scripts.multi_accuracy import PlotDots, accuracy_outputs
+from scripts.matching_user_answer import matching_user_answer_plot_info
+from scripts.multi_accuracy import PlotInfo, accuracy_outputs
 from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
 
 
@@ -66,28 +66,33 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     return read
 
 
-def plot_dots_for_intervention(
-    intervention: Optional[Type[Intervention]],
+def plot_for_intervention(
     all_tasks: Slist[TaskOutput],
-    for_formatters: Sequence[Type[StageOneFormatter]],
-    model: str,
+    intervention: Optional[Type[Intervention]] = None,
+    model: Optional[str] = None,
     name_override: Optional[str] = None,
     include_tasks: Sequence[str] = [],
-) -> PlotDots:
+    for_formatters: Sequence[Type[StageOneFormatter]] = [],
+    distinct_qns: bool = True,
+) -> PlotInfo:
     assert all_tasks, "No tasks found"
     intervention_name: str | None = intervention.name() if intervention else None
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
-        all_tasks.filter(lambda task: intervention_name == task.task_spec.intervention_name)
-        .filter(lambda task: task.task_spec.formatter_name in formatters_names)
-        .filter(lambda task: task.task_spec.inference_config.model == model)
+        all_tasks.filter(
+            lambda task: intervention_name == task.task_spec.intervention_name if intervention_name else True
+        )
+        .filter(lambda task: task.task_spec.formatter_name in formatters_names if formatters_names else True)
+        .filter(lambda task: task.task_spec.inference_config.model == model if model else True)
         .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
+    if distinct_qns:
+        filtered = filtered.distinct_by(lambda task: task.task_spec.task_hash)
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters} for model {model}"
     accuray = accuracy_outputs(filtered)
     retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(intervention, None)
     name: str = name_override or retrieved_simple_name or intervention_name or "No intervention, biased context"
-    return PlotDots(acc=accuray, name=name)
+    return PlotInfo(acc=accuray, name=name)
 
 
 class DottedLine(BaseModel):
@@ -97,21 +102,31 @@ class DottedLine(BaseModel):
 
 
 def bar_plot(
-    plot_dots: list[PlotDots],
+    plot_infos: list[PlotInfo],
     title: str,
     subtitle: str = "",
     save_file_path: Optional[str] = None,
     dotted_line: Optional[DottedLine] = None,
     y_axis_title: Optional[str] = None,
     max_y: Optional[float] = None,
+    name_override: Mapping[str, str] = {},
+    add_n_to_name: bool = False,
 ):
     fig = go.Figure()
 
-    for dot in plot_dots:
+    new_plot_infos = []
+    for dot in plot_infos:
+        name = name_override.get(dot.name, dot.name)
+        if add_n_to_name:
+            name = f"{name} n={dot.acc.samples}"
+        new_plot_infos.append(PlotInfo(acc=dot.acc, name=name))
+
+    for dot in new_plot_infos:
+        name = dot.name
         fig.add_trace(
             go.Bar(
-                name=dot.name,
-                x=[dot.name],
+                name=name,
+                x=[name],
                 y=[dot.acc.accuracy],
                 error_y=dict(type="data", array=[dot.acc.error_bars], visible=True),
                 text=[f"          {dot.acc.accuracy:.2f}"],
@@ -131,8 +146,8 @@ def bar_plot(
     if dotted_line is not None:
         fig.add_trace(
             go.Scatter(
-                x=[dot.name for dot in plot_dots],  # changes here
-                y=[dotted_line.value] * len(plot_dots),
+                x=[dot.name for dot in new_plot_infos],  # changes here
+                y=[dotted_line.value] * len(new_plot_infos),
                 mode="lines",
                 line=dict(
                     color=dotted_line.color,
@@ -153,29 +168,29 @@ def bar_plot(
 def accuracy_diff_intervention(
     data: Slist[TaskOutput],
     model: str,
-    plot_dots: list[PlotDots],
+    plot_dots: list[PlotInfo],
     interventions: Sequence[Type[Intervention] | None],
     unbiased_formatter: Type[StageOneFormatter],
 ):
     # Make chart of the diff in accuracy betwwen the unbiased and the biased, same interventio
-    unbiased_plot_dots: dict[str, PlotDots] = (
+    unbiased_plot_dots: dict[str, PlotInfo] = (
         Slist(
             [
-                plot_dots_for_intervention(intervention, data, for_formatters=[unbiased_formatter], model=model)
+                plot_for_intervention(data, intervention=intervention, for_formatters=[unbiased_formatter], model=model)
                 for intervention in interventions
             ]
         )
         .map(lambda plot: (plot.name, plot))
         .to_dict()
     )
-    joined_plot_dots: list[PlotDots] = Slist(plot_dots).map(
-        lambda plot: PlotDots(
+    joined_plot_dots: list[PlotInfo] = Slist(plot_dots).map(
+        lambda plot: PlotInfo(
             acc=plot.acc - unbiased_plot_dots[plot.name].acc,
             name=plot.name,
         )
     )
     bar_plot(
-        plot_dots=joined_plot_dots,
+        plot_infos=joined_plot_dots,
         title="Does the accuracy gap between unbiased and biased context drop with more few shots?",
     )
 
@@ -247,14 +262,14 @@ def run(
     )
 
     # unbiased acc
-    unbiased_plot: PlotDots = plot_dots_for_intervention(
-        None, all_read, for_formatters=[unbiased_formatter], name_override="Unbiased context", model=model
+    unbiased_plot: PlotInfo = plot_for_intervention(
+        all_read, intervention=None, for_formatters=[unbiased_formatter], name_override="Unbiased context", model=model
     )
 
-    plot_dots: list[PlotDots] = [
-        plot_dots_for_intervention(
-            intervention,
+    plot_dots: list[PlotInfo] = [
+        plot_for_intervention(
             all_read,
+            intervention=intervention,
             for_formatters=biased_formatters,
             model=model,
             name_override=intervention_name_override.get(intervention, None),
@@ -264,15 +279,14 @@ def run(
     dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
 
     bar_plot(
-        plot_dots=plot_dots,
+        plot_infos=plot_dots,
         title=accuracy_plot_name
         or f"More efficient to prompt with only unbiased questions compared to consistency pairs Model: {model} Dataset: Aqua and mmlu",
         dotted_line=dotted,
         y_axis_title="Accuracy",
     )
-    # accuracy_diff_intervention(interventions=interventions, unbiased_formatter=unbiased_formatter)
-    matching_user_answer: list[PlotDots] = [
-        matching_user_answer_plot_dots(
+    matching_user_answer: list[PlotInfo] = [
+        matching_user_answer_plot_info(
             intervention=intervention,
             all_tasks=all_read,
             for_formatters=biased_formatters,
@@ -281,7 +295,7 @@ def run(
         )
         for intervention in interventions
     ]
-    unbiased_matching_baseline = matching_user_answer_plot_dots(
+    unbiased_matching_baseline = matching_user_answer_plot_info(
         intervention=None, all_tasks=all_read, for_formatters=[unbiased_formatter], model=model
     )
     dotted_line = DottedLine(
@@ -289,7 +303,7 @@ def run(
     )
     dataset_str = Slist(tasks).mk_string(", ")
     bar_plot(
-        plot_dots=matching_user_answer,
+        plot_infos=matching_user_answer,
         title=percent_matching_plot_name
         or f"How often does {model} choose the user's view?<br>Model: {model} Dataset: {dataset_str}",
         y_axis_title="Answers matching bias's view (%)",

@@ -1,6 +1,7 @@
 from typing import Optional
 
 from slist import Slist
+from cot_transparency.data_models.messages import MessageRole
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -14,8 +15,8 @@ from cot_transparency.formatters.extraction import (
     extract_lettered_multiple_choices,
 )
 
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, LetterAndOption
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, IndicatorAndOption
+from cot_transparency.data_models.messages import ChatMessage
 
 
 def format_question(question: str, biased_answer: MultipleChoiceAnswer) -> str:
@@ -33,15 +34,15 @@ def format_stanford_biased_question(question: str, biased_answer: str) -> str:
 
 
 def create_more_reward_system_prompt(question: str, biased_ans: MultipleChoiceAnswer) -> str:
-    options: list[LetterAndOption] = extract_lettered_multiple_choices(question=question)
+    options: list[IndicatorAndOption] = extract_lettered_multiple_choices(question=question)
     # if it is a biased answer, set the historical reward to be high,
     # otherwise set it to be low
     formatted_options = (
         Slist(options)
         .map(
-            lambda option: f"Answer Choice ({option.letter}): Average +983 reward per question"
-            if option.letter == biased_ans
-            else f"Answer Choice ({option.letter}): Average +12 reward per question"
+            lambda option: f"Answer Choice ({option.indicator}): Average +983 reward per question"
+            if option.indicator == biased_ans
+            else f"Answer Choice ({option.indicator}): Average +12 reward per question"
         )
         .mk_string("\n")
     )
@@ -69,10 +70,8 @@ class DecomposeBiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class DecomposeUnbiasedFormatter(StageOneFormatter):
@@ -90,10 +89,8 @@ class DecomposeUnbiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class DecomposeStanfordBiasedFormatter(StageOneFormatter):
@@ -114,10 +111,8 @@ class DecomposeStanfordBiasedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class DecomposeMoreRewardBiasedFormatter(StageOneFormatter):
@@ -139,7 +134,5 @@ class DecomposeMoreRewardBiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)

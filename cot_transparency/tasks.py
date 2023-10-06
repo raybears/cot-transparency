@@ -7,19 +7,18 @@ from typing import Type, Union, Optional
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
-    OpenaiInferenceConfig,
     StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
     ModelOutput,
 )
-from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.intervention import Intervention
 
 from cot_transparency.model_apis import call_model_api
-from cot_transparency.formatters import PromptFormatter, name_to_formatter
+from cot_transparency.formatters import PromptFormatter, name_to_formatter, StageOneFormatter
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.models import StageTwoTaskSpec
 from cot_transparency.data_models.models import TaskSpec
@@ -58,7 +57,7 @@ def __call_or_raise(
     maybe_second_last = messages[-2] if len(messages) >= 2 else None
     msg = (
         f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer:"
-        f"\n\n'{raw_response}\n\n'last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
+        f"\n\n'{raw_response}'\n\n'last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
     )
     logger.warning(msg)
 
@@ -89,9 +88,11 @@ def call_model_and_catch(
         response = call_model_and_raise_if_not_suitable(task=task, config=config, formatter=formatter, retries=retries)
         return response
     except AnswerNotFound as e:
+        messages = task.messages
+        maybe_second_last = messages[-2] if len(messages) >= 2 else None
         print(
             f"Could not find answer for in model response: {e.raw_response}, "
-            f"last two messages were:\n{messages[-2]}\n\n{messages[-1]}"
+            f"last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
         )
         return ModelOutput(raw_response=e.raw_response, parsed_response=None)
 

@@ -16,6 +16,8 @@ from cot_transparency.data_models.example_base import DataExampleBase
 def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
     if task_name == "aqua":
         return AquaExample
+    elif task_name == "aqua_train":
+        return AquaExample
     elif task_name == "logiqa":
         return LogicQaExample
     elif task_name == "hellaswag":

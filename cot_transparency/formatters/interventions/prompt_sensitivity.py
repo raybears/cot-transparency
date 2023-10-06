@@ -4,7 +4,8 @@ from typing import Optional, Type
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.example_base import DataExampleBase, combine_indicator_with_separator
-from cot_transparency.data_models.models import ChatMessage, MessageRole, TaskOutput
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
 from cot_transparency.formatters.interventions.intervention import Intervention
@@ -23,9 +24,7 @@ def _format_few_shot_example(
     if randomize_question_format:
         d = FormatterForFinalQuestion.all_formatters()
         rng = random.Random(seed + few_shot_data_example.hash())
-        print("using seed", seed + few_shot_data_example.hash())
         FormatterForFewShotExample = rng.choice(list(d.values()))
-        print("picked formatter", FormatterForFewShotExample.name())
     else:
         FormatterForFewShotExample = FormatterForFinalQuestion
 
@@ -144,6 +143,14 @@ class MixedFormatFewShotLabelOnly10(Intervention):
         prompt: Prompt = get_correct_cots().sample(cls.n_samples, seed=question_hash).map(f).sum_or_raise()
         msgs = (prompt + Prompt(messages=messages)).messages
         return msgs
+
+
+class MixedFormatFewShotLabelOnly20(MixedFormatFewShotLabelOnly10):
+    n_samples: int = 20
+
+
+class MixedFormatFewShotLabelOnly30(MixedFormatFewShotLabelOnly10):
+    n_samples: int = 30
 
 
 class VanillaFewShot10(Intervention):

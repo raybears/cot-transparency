@@ -2,9 +2,9 @@ from typing import Optional, Type
 import fire
 from cot_transparency.formatters import name_to_formatter
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_intervention
 from cot_transparency.model_apis import Prompt
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
-from stage_one import get_valid_stage1_interventions
 
 
 def main(
@@ -24,10 +24,10 @@ def main(
         return
 
     if intervention_name:
-        Intervention = get_valid_stage1_interventions([intervention_name])[0]
+        Intervention = get_valid_stage1_intervention(intervention_name)
         example = Intervention.intervene(question=EMPIRE_OF_PANTS_EXAMPLE, formatter=formatter, model=model)
     else:
-        example = formatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model=model)  # type: ignore
+        example = formatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model=model)
 
     prompt = Prompt(messages=example)
 

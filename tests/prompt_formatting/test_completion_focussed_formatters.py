@@ -60,4 +60,4 @@ Given all of the above what's the single most likely answer?"""
 
     desired_answer = """The best evidence for the answer is the following: X = Y + Z. Therefore, the answer is (A)."""
 
-    assert formatter.parse_answer(dummy_response) == desired_answer
+    assert formatter.parse_answer(dummy_response, question=AQUA_EXAMPLE) == desired_answer

@@ -5,7 +5,7 @@ from cot_transparency.formatters import (
 )
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.model_apis import ModelType, Prompt
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 

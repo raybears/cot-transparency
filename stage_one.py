@@ -1,10 +1,11 @@
 import random
 from pathlib import Path
-from typing import Optional, Type
+from typing import Optional, Type, Sequence
 import fnmatch
 
 import fire
 from slist import Slist
+from cot_transparency.data_models.config import OpenaiInferenceConfig, is_openai_finetuned
 
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
@@ -20,7 +21,7 @@ from cot_transparency.data_models.data.model_written_evals import (
 )
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import OpenaiInferenceConfig, TaskSpec, is_openai_finetuned
+from cot_transparency.data_models.models import TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
@@ -68,6 +69,7 @@ TASK_LIST = {
     "bbq_miles": ["bbq_miles"],
     "cot_training": COT_TRAINING_TASKS,
     "cot_testing": COT_TESTING_TASKS,
+    "deceptive_training": ["aqua_train"],
     "model_written_evals": ["nlp", "phil", "pol"],
     "john_math": ["john_level_3", "john_level_4", "john_level_5"],
 }
@@ -100,7 +102,7 @@ def create_task_settings(
     models: list[str],
     formatters: list[Type[StageOneFormatter]],
     # see cot_transparency/formatters/interventions/valid_interventions.py for valid interventions
-    interventions: list[Type[Intervention]],
+    interventions: Sequence[Type[Intervention] | None],
 ) -> list[TaskSetting]:
     """Create a list of task settings to run"""
     task_settings = []
@@ -153,6 +155,8 @@ def get_list_of_examples(
     else:
         if task == "aqua":
             data = aqua.dev()
+        if task == "aqua_train":
+            data = aqua.train()
         elif task == "arc_easy":
             data = arc.arc_easy_dev()
         elif task == "arc_easy_train":
@@ -199,7 +203,8 @@ def main(
     dataset: Optional[str] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
-    interventions: list[str] = [],
+    # Pass in a list of interventions to run, indicate None to run no intervention as well
+    interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     example_cap: Optional[int] = 1000000,
@@ -207,6 +212,7 @@ def main(
     batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
+    allow_failures: bool = False,
 ):
     if dataset is not None:
         assert tasks is None, "dataset and tasks are mutually exclusive"
@@ -278,7 +284,7 @@ def main(
             else:
                 config.stop = [FEW_SHOT_STOP_TOKEN]
         if temperature is not None:
-            print("Overriding temperature")
+            print(f"Overriding temperature with t={temperature}")
             config.temperature = temperature
         assert config.model == model
         if not formatter.is_cot:
@@ -291,22 +297,30 @@ def main(
                     if setting.intervention
                     else formatter.format_example(question=item, model=model)
                 )
+                # Save the format spec defined by the formatter
+                new_item: DataExampleBase = item.model_copy()
+                format_spec = formatter.get_data_format_spec()
+                new_item.data_format = format_spec
                 task_spec = TaskSpec(
                     task_name=task,
                     inference_config=config,
                     messages=messages,
                     out_file_path=out_file_path,
-                    ground_truth=item.ground_truth,
+                    ground_truth=new_item.ground_truth,
                     formatter_name=formatter.name(),
-                    task_hash=item.hash(),
-                    biased_ans=item.biased_ans,
-                    data_example=item.model_dump(),
+                    task_hash=new_item.hash(),
+                    biased_ans=new_item.biased_ans,
+                    data_example=new_item.model_dump(),
                     repeat_idx=i,
                     intervention_name=setting.intervention.name() if setting.intervention else None,
                 )
                 tasks_to_run.append(task_spec)
 
-    run_with_caching(save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=True)
+    if not allow_failures and temperature == 0:
+        raise ValueError("Must allow_failures when temperature is 0 as it will always fail")
+    run_with_caching(
+        save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=(not allow_failures)
+    )
 
 
 def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneFormatter]]:

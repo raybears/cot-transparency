@@ -1,4 +1,4 @@
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.transparency.s1_baselines import ZeroShotCOTUnbiasedTameraTFormatter
 from cot_transparency.formatters.transparency.util import FullCOTFormatter
 from cot_transparency.model_apis import Prompt

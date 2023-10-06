@@ -4,20 +4,22 @@ import streamlit as st
 import streamlit.components.v1 as components
 from slist import Slist
 from streamlit.delta_generator import DeltaGenerator
+from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
 from cot_transparency.util import assert_not_none
 from cot_transparency.data_models.models import (
     TaskOutput,
-    ChatMessage,
-    StrictChatMessage,
-    MessageRole,
-    StrictMessageRole,
 )
 from cot_transparency.model_apis import Prompt, ModelType
-from scripts.better_viewer_cache import (
+from scripts.streamlit_viewer_components.answer_options import (
+    select_bias_on_where_option,
+    TypeOfAnswerOption,
+    select_left_model_result_option,
+)
+from scripts.streamlit_viewer_components.viewer_cache import (
     cached_read_whole_exp_dir,
     cached_search,
-    get_drop_downs,
-    DropDowns,
+    get_data_dropdowns,
+    DataDropDowns,
     make_tree,
     TreeCache,
     TreeCacheKey,
@@ -31,7 +33,9 @@ st.set_page_config(layout="wide")
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
-    "exp_dir", default="experiments/finetune", help="The experiment directory to load from", required=False
+    "exp_dir",
+    default="experiments/finetune",
+    help="The experiment directory to load from",
 )
 args = parser.parse_args()
 exp_dir: str = args.exp_dir
@@ -40,10 +44,12 @@ exp_dir: str = args.exp_dir
 def display_task(task: TaskOutput):
     model_output = task.inference_output.parsed_response
     ground_truth = task.task_spec.ground_truth
+    bias_on = task.task_spec.biased_ans
     is_correct = model_output == ground_truth
     emoji = "✔️" if is_correct else "❌"
     st.markdown(f"Ground truth: {ground_truth}")
     st.markdown(f"Model output: {model_output} {emoji}")
+    st.markdown(f"Bias on: {bias_on}")
 
     messages: list[ChatMessage] = task.task_spec.messages
     model_type: ModelType = ModelType.from_model_name(task.task_spec.inference_config.model)
@@ -57,20 +63,15 @@ def display_task(task: TaskOutput):
                 st.markdown(msg.content)
             case StrictMessageRole.system:
                 st.markdown("### System")
-                st.markdown(msg.content)
+                st.markdown(msg.content.replace("\n", "  \n"))
             case StrictMessageRole.user:
                 with st.chat_message("user"):
                     st.markdown("### User")
-                    st.markdown(msg.content)
+                    st.markdown(msg.content.replace("\n", "  \n"))
             case StrictMessageRole.assistant:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant")
-                    st.markdown(msg.content)
-
-    # # write the final response
-    # with st.chat_message("assistant"):
-    #     st.markdown("### Assistant")
-    #     st.code(task.inference_output.raw_response, None)
+                    st.markdown(msg.content.replace("\n", "  \n"))
 
 
 # naughty Slist patch to add __hash__ by id so that lru works
@@ -85,13 +86,15 @@ exp_dir = st.text_input("Enter experiment_dir", exp_dir)
 everything: Slist[TaskOutput] = cached_read_whole_exp_dir(exp_dir=exp_dir)
 tree: TreeCache = make_tree(everything)  # type: ignore
 st.markdown(f"Loaded {len(everything)} tasks")
+# Calculate what mdoels / tasks are available
+data_dropdowns: DataDropDowns = get_data_dropdowns(everything)  # type: ignore
+task_selection: str = assert_not_none(st.selectbox("Select task", data_dropdowns.tasks))
+intervention_drop_down_selection: str | None = st.selectbox("Select intervention", data_dropdowns.interventions)
+bias_on_where: TypeOfAnswerOption = select_bias_on_where_option()
+answer_result_option: TypeOfAnswerOption = select_left_model_result_option()
 # Optional text input
-completion_search: str = st.text_input("Search for text in final completion")
-drop_downs: DropDowns = get_drop_downs(everything)  # type: ignore
-task_selection: str = assert_not_none(st.selectbox("Select task", drop_downs.tasks))
-intervention_drop_down_selection: str | None = st.selectbox("Select intervention", drop_downs.interventions)
-bias_on_wrong_answer: bool = st.checkbox("Show only bias on wrong answer for left model", value=True)
-only_results_the_model_got_wrong: bool = st.checkbox("Show only results the left model got wrong", value=False)
+prompt_search: str = st.text_input("Search for text in the prompt for the left model")
+completion_search: str = st.text_input("Search for text in final completion for the left model")
 
 
 # Create a button which will increment the counter
@@ -137,10 +140,11 @@ right: DeltaGenerator
 left, right = st.columns(2)
 with left:
     i = 0
-    formatter_drop_down_selection: str = st.selectbox("Select formatter", drop_downs.formatters, key=f"formatter_{i}")  # type: ignore
-    model_drop_down_selection: str = st.selectbox("Select model", drop_downs.models, key=f"model_{i}")  # type: ignore
+    formatter_drop_down_selection: str = st.selectbox("Select formatter", data_dropdowns.formatters, key=f"formatter_{i}")  # type: ignore
+    model_drop_down_selection: str = st.selectbox("Select model", data_dropdowns.models, key=f"model_{i}")  # type: ignore
     filtered = cached_search(
         completion_search=completion_search,
+        prompt_search=prompt_search,
         tree_cache_key=TreeCacheKey(
             task=task_selection,
             model=model_drop_down_selection,
@@ -148,9 +152,9 @@ with left:
             intervention=intervention_drop_down_selection,
         ),
         tree_cache=tree,
-        only_bias_on_wrong_answer=bias_on_wrong_answer,
+        bias_on_where=bias_on_where,
         task_hash=None,
-        only_results_the_model_got_wrong=only_results_the_model_got_wrong,
+        answer_result_option=answer_result_option,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     show_item_idx = st.session_state.count % len(filtered) if len(filtered) > 0 else 0
@@ -161,21 +165,25 @@ with left:
 with right:
     i = 1
     formatter_drop_down_selection: str = assert_not_none(
-        st.selectbox("Select formatter", drop_downs.formatters, key=f"formatter_{i}")
+        st.selectbox("Select formatter", data_dropdowns.formatters, key=f"formatter_{i}")
     )
-    model_drop_down_selection: str = assert_not_none(st.selectbox("Select model", drop_downs.models, key=f"model_{i}"))
+    model_drop_down_selection: str = assert_not_none(
+        st.selectbox("Select model", data_dropdowns.models, key=f"model_{i}")
+    )
     filtered = cached_search(
-        completion_search=completion_search,
         tree_cache_key=TreeCacheKey(
             task=task_selection,
             model=model_drop_down_selection,
             formatter=formatter_drop_down_selection,
             intervention=intervention_drop_down_selection,
         ),
-        tree_cache=tree,
-        only_bias_on_wrong_answer=False,
         task_hash=first_task_hash,
-        only_results_the_model_got_wrong=False,
+        tree_cache=tree,
+        # For the right model, no filters for the below since we just want to join on the task_hash
+        completion_search=None,
+        prompt_search=None,
+        answer_result_option=TypeOfAnswerOption.anything,
+        bias_on_where=TypeOfAnswerOption.anything,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     first: TaskOutput | None = filtered.first_option

@@ -1,7 +1,10 @@
 from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
-from cot_transparency.formatters.core.prompt_sensitivity import register_prompt_sensitivity_formatters
+from cot_transparency.formatters.core.prompt_sensitivity_map import (
+    no_cot_sensitivity_formatters,
+    cot_sensitivity_formatters,
+)
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
 from cot_transparency.formatters.more_biases.model_written_evals import (
@@ -12,6 +15,16 @@ from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
     ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
     ModelWrittenBiasedWithNoneFormatter,
+)
+from cot_transparency.formatters.more_biases.random_bias_formatter import (
+    RandomAgainstBiasedFormatter,
+    RandomBiasedFormatter,
+    RandomBiasedNoCOTFormatter,
+    RandomBiasedQuotedFormatter,
+    RandomAgainstBiasedNoCOTFormatter,
+    RandomAgainstQuotedBiasedFormatter,
+    RandomAgainstBiasedQuotedNoCOTFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
 )
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
     UserBiasedWrongCotFormatter,
@@ -113,8 +126,6 @@ from cot_transparency.formatters.more_biases.more_reward import (
     MoreRewardBiasedNoCOTFormatter,
 )
 
-lst = register_prompt_sensitivity_formatters()
-
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
     if not name_to_formatter(biased_formatter_name).is_biased:
@@ -166,10 +177,19 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         DecomposeMoreRewardBiasedFormatter.name(): DecomposeMoreRewardBiasedFormatter.name(),
         PALFewShot.name(): PALFewShot.name(),
         ZeroShotInitialWrongFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomAgainstBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        RandomBiasedQuotedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomAgainstBiasedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        RandomAgainstQuotedBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        RandomAgainstBiasedQuotedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        RandomBiasedQuotedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
     }
 
-    prompt_sensitivity_formatters = register_prompt_sensitivity_formatters()
-    for formatter in prompt_sensitivity_formatters:
+    for formatter in no_cot_sensitivity_formatters:
+        mapping[formatter.name()] = ZeroShotCOTUnbiasedFormatter.name()
+    for formatter in cot_sensitivity_formatters:
         mapping[formatter.name()] = ZeroShotCOTUnbiasedFormatter.name()
 
     return mapping[biased_formatter_name]

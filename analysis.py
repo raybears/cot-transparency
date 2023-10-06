@@ -1,6 +1,8 @@
+from pathlib import Path
 import fire
 from matplotlib import pyplot as plt
 from cot_transparency.data_models.models import (
+    ExperimentJsonFormat,
     StageTwoTaskOutput,
     TaskOutput,
 )
@@ -13,6 +15,8 @@ from cot_transparency.formatters.interventions.valid_interventions import VALID_
 from scripts.multi_accuracy import plot_accuracy_for_exp
 
 import seaborn as sns
+from scripts.utils.plots import catplot
+from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 
 from stage_one import TASK_LIST
 
@@ -38,6 +42,11 @@ def get_general_metrics(
 ) -> dict[str, Any]:
     d = task_output.model_dump()
     d["input_hash"] = task_output.task_spec.uid()
+    if isinstance(task_output, TaskOutput):
+        d["input_hash_without_repeats"] = task_output.task_spec.hash_of_inputs()
+        d["n_options_given"] = task_output.task_spec.n_options_given
+        d["reparsed_response"] = task_output.reparsed_response()
+
     d["output_hash"] = task_output.uid()
     if combine_bbq_tasks:
         d["target_loc"] = task_output.task_spec.data_example["target_loc"]  # type: ignore
@@ -48,9 +57,7 @@ def get_general_metrics(
     d_with_config = {**d, **config.model_dump(), **task_spec.model_dump()}
     return d_with_config
 
-
-def get_data_frame_from_exp_dir(exp_dir: str, combine_bbq_tasks: bool = False) -> pd.DataFrame:
-    loaded_dict = ExpLoader.stage_one(exp_dir)
+def convert_loaded_dict_to_df(loaded_dict: dict[Path, ExperimentJsonFormat], combine_bbq_tasks: bool = False) -> pd.DataFrame:
     out = []
     for exp in loaded_dict.values():
         for task_output in exp.outputs:
@@ -68,7 +75,10 @@ def get_data_frame_from_exp_dir(exp_dir: str, combine_bbq_tasks: bool = False) -
     df["is_biased"] = df.formatter_name.map(is_biased)
     return df
 
-
+def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
+    loaded_dict = ExpLoader.stage_one(exp_dir)
+    return convert_loaded_dict_to_df(loaded_dict)
+  
 def compute_unfaithfulness_metrics(metrics: pd.DataFrame) -> tuple[float, float, float, float]:
     switches = metrics["switches"]
     both_unk = metrics["both_unk"]
@@ -179,12 +189,14 @@ def accuracy(
 
 
 def apply_filters(
+    *,
     inconsistent_only: Optional[bool],
     models: Sequence[str],
     formatters: Sequence[str],
-    aggregate_over_tasks: bool,
+    aggregate_over_tasks: bool = False,
     df: pd.DataFrame,
     tasks: Sequence[str] = [],
+    interventions: Sequence[str] = [],
 ) -> pd.DataFrame:
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]  # type: ignore
@@ -192,6 +204,7 @@ def apply_filters(
     if models:
         # check that df.model contains model_filter
         df = df[df.model.isin(models)]  # type: ignore
+
     if formatters:
         # check that df.formatter_name is in formatters
         df = df[df.formatter_name.isin(formatters)]  # type: ignore
@@ -204,6 +217,9 @@ def apply_filters(
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
         df.loc[:, "task_name"] = df["task_name"].replace(TASK_MAP)
+
+    if interventions:
+        df = df[df.intervention_name.isin(interventions)]  # type: ignore
 
     return df
 
@@ -313,10 +329,17 @@ def simple_plot(
     x: str = "task_name",
     y: str = "Accuracy",
     hue: str = "formatter_name",
-    col: str = "model",
+    col: str = "Model",
     legend: bool = True,
 ):
+    """
+    A general plot that will produce a bar plot of accuracy and counts
+        hue: the column to use for the color
+        col: the column to use for the columns (aka subplots)
+    """
+
     df = get_data_frame_from_exp_dir(exp_dir, combine_bbq_tasks)
+
     df = apply_filters(
         inconsistent_only=False,
         models=models,
@@ -340,9 +363,10 @@ def simple_plot(
 
     # rename is_correct to Accuracy
     df = df.rename(columns={"is_correct": "Accuracy"})
-    # add temperature to model name
-    df["model"] = df["model"] + " (T=" + df["temperature"].astype(str) + ")"
-    df["task_name"] = df["task_name"].apply(lambda x: "bbq_original")
+    
+    # rename model to simple name and add temperature
+    df["Model"] = df["model"].map(lambda x: MODEL_SIMPLE_NAMES[x])
+    df["Model"] = df["Model"] + " (T=" + df["temperature"].astype(str) + ")"
 
     if combine_bbq_tasks:
         # Filter data to keep only bbq formatters formatters
@@ -444,14 +468,12 @@ def point_plot(
     df["Accuracy (%)"] = df["is_correct"] * 100
     df = df.rename(columns={"model": "Model"})
 
-    sns.catplot(
+    catplot(
         data=df,
         x="CoT",
         y="Accuracy (%)",
         hue="Bias",
         col="Model",
-        capsize=0.05,
-        errwidth=1,
         join=False,
         kind="point",
     )

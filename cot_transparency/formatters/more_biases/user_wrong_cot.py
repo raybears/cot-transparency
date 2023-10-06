@@ -2,7 +2,8 @@ from typing import Optional
 
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question, COT_ASSISTANT_PROMPT
@@ -28,9 +29,7 @@ The following are my own thoughts so far. What about yours?
         return ZeroShotCOTUnbiasedFormatter.format_example(new_question)
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return ZeroShotCOTUnbiasedFormatter.parse_answer(response, question, model)
 
 
@@ -60,9 +59,9 @@ class ModelBiasedWrongCotFormatter(StageOneFormatter):
         return user_question + [response, are_you_sure, lets_think_again]
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return ZeroShotCOTUnbiasedFormatter.parse_answer(
             response,
+            question,
+            model=model,
         )

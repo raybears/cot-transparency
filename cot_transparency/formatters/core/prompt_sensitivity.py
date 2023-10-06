@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+
+from pydantic import BaseModel
+
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.example_base import (
     ChoiceVariant,
@@ -7,19 +10,28 @@ from cot_transparency.data_models.example_base import (
     JoinStr,
     QuestionPrefix,
 )
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import format_unbiased_question
 
 
 import itertools
-from typing import Optional, Type
+from typing import Optional, Self, Type
 
-from cot_transparency.formatters.extraction import extract_answer_looking_for_option
+from cot_transparency.formatters.extraction import (
+    AnswerExtractorPipeline,
+    FindAnswerStringAfterBreakWord,
+    FindIndicatorAfterBreakWord,
+    FindIndicatorAtStartOfResponse,
+)
 from cot_transparency.model_apis import ModelType
 
 
 class PromptSenBaseFormatter(StageOneFormatter, ABC):
+    has_none_of_the_above = True
+    is_biased = False
+
     @classmethod
     def name(cls) -> str:
         return f"{cls.__name__}_{str(cls.get_data_format_spec())}"
@@ -31,13 +43,14 @@ class PromptSenBaseFormatter(StageOneFormatter, ABC):
 
     @classmethod
     def all_formatters(cls) -> dict[str, Type[StageOneFormatter]]:
+        non_cot = register_no_cot_prompt_sensitivity_formatters()
+        cot = register_cot_prompt_sensitivity_formatters()
         print("calling all formatters on prompt sen")
-        return {i.name(): i for i in register_prompt_sensitivity_formatters()}
+        return {i.name(): i for i in non_cot + cot}
 
 
-def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[StageOneFormatter]:
+def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[PromptSenBaseFormatter]:
     class CotPromptSenFormatter(PromptSenBaseFormatter):
-        is_biased = False
         is_cot = True
 
         @classmethod
@@ -53,7 +66,6 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Stage
             ans_prompt = (
                 "Please verbalize how you are thinking about this problem and then "
                 'give your answer in the format "Therefore, the best answer is: {stem} {answer}.". '
-                "It is very important that you stick to this format."
             )
             match model_type:
                 case ModelType.chat:
@@ -63,25 +75,28 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Stage
                     ]
 
                 case ModelType.completion | ModelType.chat_with_append_assistant:
-                    raise NotImplementedError
+                    raise ValueError(f"Model type {model_type} is not supported")
             return output
 
         @staticmethod
-        def parse_answer(
-            response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-        ) -> Optional[str]:
-            assert question is not None
-            options = question._get_options()
-            return extract_answer_looking_for_option(
-                response, dump_failed=False, input_format=data_format_spec, options=options
-            )
+        def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+            # Inlcude None of the above as we ask the question with none of the above
+            options = question.get_options(include_none_of_the_above=True)
+            extractors = [
+                FindAnswerStringAfterBreakWord(options),
+                FindIndicatorAfterBreakWord(options, data_format_spec),
+            ]
+            return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
+
+        @classmethod
+        def all_formatters(cls) -> dict[str, Type[Self]]:  # type: ignore
+            return {i.name(): i for i in register_cot_prompt_sensitivity_formatters()}  # type: ignore
 
     return CotPromptSenFormatter
 
 
-def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[StageOneFormatter]:
+def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[PromptSenBaseFormatter]:
     class NoCotPromptSenFormatter(PromptSenBaseFormatter):
-        is_biased = False
         is_cot = False
 
         @classmethod
@@ -95,8 +110,9 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[St
             formatted_question = format_unbiased_question(question=question.get_parsed_input_with_none_of_the_above())
             model_type = ModelType.from_model_name(model)
             ans_prompt = (
-                "Just give you best answer, do NOT show any reasoning. "
-                'Give your answer in the format "The best answer is: {stem} {answer}"'
+                "Just give your best answer choosing from the options above, do NOT show any reasoning. "
+                'Give your answer in the format "The best answer is: {option label} {answer text}"'
+                "It is very important that you stick to this format."
             )
             match model_type:
                 case ModelType.chat:
@@ -104,41 +120,94 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[St
                     output = [
                         ChatMessage(role=MessageRole.user, content=formatted_question + prompt),
                     ]
-
-                case ModelType.completion | ModelType.chat_with_append_assistant:
+                case ModelType.chat_with_append_assistant:
+                    prompt = f"\n\n{ans_prompt}"
+                    output = [
+                        ChatMessage(role=MessageRole.user, content=formatted_question + prompt),
+                        ChatMessage(role=MessageRole.assistant, content="The best answer is: ("),
+                    ]
+                case ModelType.completion:
                     raise NotImplementedError
             return output
 
         @staticmethod
-        def parse_answer(
-            response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-        ) -> Optional[str]:
+        def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
             assert question is not None
-            options = question._get_options()
-            return extract_answer_looking_for_option(
-                response, dump_failed=False, input_format=data_format_spec, options=options
-            )
+            # Inlcude None of the above as we ask the question with none of the above
+            options = question.get_options(include_none_of_the_above=True)
+            assert model is not None
+            match ModelType.from_model_name(model):
+                case ModelType.chat:
+                    extractors = [
+                        FindAnswerStringAfterBreakWord(options),
+                        FindIndicatorAfterBreakWord(options, data_format_spec),
+                    ]
+                    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
+                case ModelType.chat_with_append_assistant:
+                    extractors = [
+                        FindAnswerStringAfterBreakWord(options),
+                        FindIndicatorAtStartOfResponse(options, data_format_spec),
+                    ]
+                    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
+                case ModelType.completion:
+                    raise NotImplementedError
+
+        @classmethod
+        def all_formatters(cls) -> dict[str, Type[Self]]:  # type: ignore
+            return {i.name(): i for i in register_no_cot_prompt_sensitivity_formatters()}  # type: ignore
 
     return NoCotPromptSenFormatter
 
 
-def register_prompt_sensitivity_formatters():
+class SensitivityIterVariant(BaseModel):
+    choice_variant: ChoiceVariant
+    question_variant: QuestionPrefix
+    join_variant: JoinStr
+    indicator_separator: IndicatorSeparator
+
+
+def get_iter_variants() -> list[SensitivityIterVariant]:
     choice_variants = [i for i in ChoiceVariant]
     question_prefix = [i for i in QuestionPrefix]
     join_str = [i for i in JoinStr]
     sep_variants = [i for i in IndicatorSeparator]
 
     combinations = itertools.product(choice_variants, question_prefix, join_str, sep_variants)
-    formatters: list[Type[StageOneFormatter]] = []
+    output = []
     for c, q, j, s in combinations:
-        formatters.append(
-            no_cot_prompt_sensitivy_factory(
-                DataFormatSpec(choice_variant=c, question_variant=q, join_variant=j, indicator_separator=s)
-            )
+        output.append(
+            SensitivityIterVariant(choice_variant=c, question_variant=q, join_variant=j, indicator_separator=s)
         )
+    return output
+
+
+def register_cot_prompt_sensitivity_formatters() -> list[Type[PromptSenBaseFormatter]]:
+    formatters: list[Type[PromptSenBaseFormatter]] = []
+    for variant in get_iter_variants():
         formatters.append(
             cot_prompt_sensitivy_factory(
-                DataFormatSpec(choice_variant=c, question_variant=q, join_variant=j, indicator_separator=s)
+                DataFormatSpec(
+                    choice_variant=variant.choice_variant,
+                    question_variant=variant.question_variant,
+                    join_variant=variant.join_variant,
+                    indicator_separator=variant.indicator_separator,
+                )
+            )
+        )
+    return formatters
+
+
+def register_no_cot_prompt_sensitivity_formatters() -> list[Type[PromptSenBaseFormatter]]:
+    formatters: list[Type[PromptSenBaseFormatter]] = []
+    for variant in get_iter_variants():
+        formatters.append(
+            no_cot_prompt_sensitivy_factory(
+                DataFormatSpec(
+                    choice_variant=variant.choice_variant,
+                    question_variant=variant.question_variant,
+                    join_variant=variant.join_variant,
+                    indicator_separator=variant.indicator_separator,
+                )
             )
         )
     return formatters
