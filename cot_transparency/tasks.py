@@ -2,11 +2,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from pathlib import Path
 import random
-from typing import Type, Union, Optional
+from typing import Literal, Type, Union, Optional
 
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
+from cot_transparency.apis.base import InferenceResponse
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
 from cot_transparency.data_models.models import (
@@ -17,51 +18,85 @@ from cot_transparency.data_models.models import (
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 
-from cot_transparency.model_apis import call_model_api
+from cot_transparency.apis import call_model_api
 from cot_transparency.formatters import PromptFormatter, name_to_formatter, StageOneFormatter
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.models import StageTwoTaskSpec
 from cot_transparency.data_models.models import TaskSpec
 from cot_transparency.util import setup_logger
-from cot_transparency.openai_utils.rate_limiting import exit_event
+from cot_transparency.apis.rate_limiting import exit_event
 
 logger = setup_logger(__name__)
 
 
-class AnswerNotFound(Exception):
-    def __init__(self, e: str, raw_response: str, model: Optional[str] = None):
+class AtLeastOneFailed(Exception):
+    def __init__(self, e: str, model_outputs: list[ModelOutput]):
         self.e = e
-        self.raw_response = raw_response
+        self.model_outputs = model_outputs
+
+
+class AnswerNotFound(Exception):
+    def __init__(self, e: str, model_output: ModelOutput):
+        self.e = e
+        self.model_output = model_output
 
 
 def __call_or_raise(
     task: Union[TaskSpec, StageTwoTaskSpec],
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
-) -> ModelOutput:
-    raw_response = call_model_api(task.messages, config)
+    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+) -> list[ModelOutput]:
     if isinstance(task, StageTwoTaskSpec):
         stage_one_task_spec = task.stage_one_output.task_spec
     else:
         stage_one_task_spec = task
 
-    parsed_response: str | None = formatter.parse_answer(
-        raw_response,
-        model=config.model,
-        question=stage_one_task_spec.get_data_example_obj(),
-    )
-    if parsed_response is not None:
-        return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
+    raw_responses: InferenceResponse = call_model_api(task.messages, config)
 
-    messages = task.messages
-    maybe_second_last = messages[-2] if len(messages) >= 2 else None
-    msg = (
-        f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer:"
-        f"\n\n'{raw_response}'\n\n'last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
-    )
-    logger.warning(msg)
+    def get_model_output_for_response(raw_response: str) -> Union[ModelOutput, AnswerNotFound]:
+        parsed_response: str | None = formatter.parse_answer(
+            raw_response,
+            model=config.model,
+            question=stage_one_task_spec.get_data_example_obj(),
+        )
+        if parsed_response is not None:
+            return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
+        else:
+            messages = task.messages
+            maybe_second_last = messages[-2] if len(messages) >= 2 else None
+            msg = (
+                f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer:"
+                f"\n\n'{raw_response}'\n\n'last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
+            )
+            logger.warning(msg)
+            model_output = ModelOutput(raw_response=raw_response, parsed_response=None)
+            return AnswerNotFound(msg, model_output)
 
-    raise AnswerNotFound(msg, raw_response)
+    outputs = [get_model_output_for_response(response) for response in raw_responses.raw_responses]
+    failed_examples = [o for o in outputs if isinstance(o, AnswerNotFound)]
+
+    match raise_on:
+        case "any":
+            should_raise = len(failed_examples) > 0
+        case "all":
+            should_raise = len(failed_examples) == len(outputs)
+
+    model_outputs: list[ModelOutput] = []
+
+    for o in outputs:
+        if isinstance(o, AnswerNotFound):
+            model_outputs.append(o.model_output)
+        elif isinstance(o, ModelOutput):
+            model_outputs.append(o)
+
+    if should_raise:
+        raise AtLeastOneFailed(
+            f"{len(failed_examples)} of the model outputs were None",
+            model_outputs,
+        )
+
+    return model_outputs
 
 
 def call_model_and_raise_if_not_suitable(
@@ -69,12 +104,12 @@ def call_model_and_raise_if_not_suitable(
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
     retries: int = 20,
-) -> ModelOutput:
-    response = retry(exceptions=AnswerNotFound, tries=retries)(__call_or_raise)(
-        task=task, config=config, formatter=formatter
+    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+) -> list[ModelOutput]:
+    responses = retry(exceptions=AtLeastOneFailed, tries=retries)(__call_or_raise)(
+        task=task, config=config, formatter=formatter, raise_on=raise_on
     )
-
-    return response
+    return responses
 
 
 def call_model_and_catch(
@@ -82,33 +117,30 @@ def call_model_and_catch(
     config: OpenaiInferenceConfig,
     formatter: Type[PromptFormatter],
     retries: int = 20,
-) -> ModelOutput:
-    messages = task.messages
+    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+) -> list[ModelOutput]:
     try:
-        response = call_model_and_raise_if_not_suitable(task=task, config=config, formatter=formatter, retries=retries)
-        return response
-    except AnswerNotFound as e:
-        messages = task.messages
-        maybe_second_last = messages[-2] if len(messages) >= 2 else None
-        print(
-            f"Could not find answer for in model response: {e.raw_response}, "
-            f"last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
+        return call_model_and_raise_if_not_suitable(
+            task=task, config=config, formatter=formatter, retries=retries, raise_on=raise_on
         )
-        return ModelOutput(raw_response=e.raw_response, parsed_response=None)
+    except AtLeastOneFailed as e:
+        return e.model_outputs
 
 
 def task_function(
     task: Union[TaskSpec, StageTwoTaskSpec],
     raise_after_retries: bool,
-) -> Union[TaskOutput, StageTwoTaskOutput]:
+    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+) -> Union[list[TaskOutput], list[StageTwoTaskOutput]]:
     formatter = name_to_formatter(task.formatter_name)
 
-    response = (
+    responses = (
         call_model_and_raise_if_not_suitable(
             task=task,
             config=task.inference_config,
             formatter=formatter,
             retries=20,
+            raise_on=raise_on,
         )
         if raise_after_retries
         else call_model_and_catch(
@@ -116,19 +148,26 @@ def task_function(
             config=task.inference_config,
             formatter=formatter,
             retries=10,
+            raise_on=raise_on,
         )
     )
 
     if isinstance(task, StageTwoTaskSpec):
-        return StageTwoTaskOutput(
-            task_spec=task,
-            inference_output=response,
-        )
+        return [
+            StageTwoTaskOutput(
+                task_spec=task,
+                inference_output=responses[i],
+            )
+            for i in range(len(responses))
+        ]
     elif isinstance(task, TaskSpec):
-        return TaskOutput(
-            task_spec=task,
-            inference_output=response,
-        )
+        return [
+            TaskOutput(
+                task_spec=task,
+                inference_output=responses[i],
+            )
+            for i in range(len(responses))
+        ]
     else:
         raise ValueError(f"Unknown task type {type(task)}")
 

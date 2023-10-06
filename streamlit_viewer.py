@@ -4,12 +4,11 @@ import streamlit as st
 import streamlit.components.v1 as components
 from slist import Slist
 from streamlit.delta_generator import DeltaGenerator
-from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.util import assert_not_none
 from cot_transparency.data_models.models import (
     TaskOutput,
 )
-from cot_transparency.model_apis import Prompt, ModelType
 from scripts.streamlit_viewer_components.answer_options import (
     select_bias_on_where_option,
     TypeOfAnswerOption,
@@ -52,25 +51,27 @@ def display_task(task: TaskOutput):
     st.markdown(f"Bias on: {bias_on}")
 
     messages: list[ChatMessage] = task.task_spec.messages
-    model_type: ModelType = ModelType.from_model_name(task.task_spec.inference_config.model)
-    strict: list[StrictChatMessage] = Prompt(
-        messages=messages + [ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
-    ).get_strict_messages(model_type=model_type)
-    for msg in strict:
+    messages = messages + [ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
+
+    for msg in messages:
         # pattern match on msg.role
         match msg.role:
-            case StrictMessageRole.none:
+            case MessageRole.none:
                 st.markdown(msg.content)
-            case StrictMessageRole.system:
+            case MessageRole.system:
                 st.markdown("### System")
                 st.markdown(msg.content.replace("\n", "  \n"))
-            case StrictMessageRole.user:
+            case MessageRole.user:
                 with st.chat_message("user"):
                     st.markdown("### User")
                     st.markdown(msg.content.replace("\n", "  \n"))
-            case StrictMessageRole.assistant:
+            case MessageRole.assistant:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant")
+                    st.markdown(msg.content.replace("\n", "  \n"))
+            case MessageRole.assistant_if_completion:
+                with st.chat_message("assistant"):
+                    st.markdown("### Assistant if completion")
                     st.markdown(msg.content.replace("\n", "  \n"))
 
 

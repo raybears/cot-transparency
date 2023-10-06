@@ -3,12 +3,13 @@ from functools import lru_cache
 from pathlib import Path
 
 from slist import Slist
+from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_last_user
 
 from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.model_apis import format_for_finetuning, format_for_openai_chat
-from cot_transparency.openai_utils.finetune import FinetuneSample
+from cot_transparency.apis.openai.formatting import format_for_finetuning
+from cot_transparency.apis.openai.finetune import FinetuneSample
 
 
 # Data previously generated with cot-transparency/scripts/dump_correct_cot_data.py
@@ -103,6 +104,6 @@ def task_output_to_finetune_sample(task: TaskOutput) -> FinetuneSample:
     strict: list[StrictChatMessage] = (
         format_for_finetuning(prompt=new_messages)
         if random.Random(seed).random() < 0.5
-        else format_for_openai_chat(prompt=new_messages)
+        else append_assistant_preferred_to_last_user(prompt=new_messages)
     )
     return FinetuneSample(messages=strict)

@@ -9,7 +9,7 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
 from cot_transparency.formatters.interventions.intervention import Intervention
-from cot_transparency.model_apis import Prompt
+from cot_transparency.apis.base import Prompt
 
 
 def _format_few_shot_example(

@@ -1,7 +1,6 @@
 from enum import Enum
 import os
 from typing import Any, Dict, List, Optional, Union
-import anthropic
 from dotenv import load_dotenv
 import numpy as np
 
@@ -18,7 +17,7 @@ from cot_transparency.data_models.config import (
 
 import logging
 
-from cot_transparency.openai_utils.rate_limiting import token_rate_limiter
+from cot_transparency.apis.rate_limiting import token_rate_limiter
 from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__, logging.INFO)
@@ -32,12 +31,8 @@ print("Total rate scaling", total_rate_sf)
 retry_openai_failures = retry(
     exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None
 )
-
-
-should_log_rate_limit = os.getenv("LOG_RATE_LIMITS", "false").lower() == "true"
-rate_limit_logger = setup_logger("rate_limit_logger", logging.INFO) if should_log_rate_limit else None
 retry_openai_rate_limits = retry(
-    exceptions=(RateLimitError), tries=-1, delay=10, logger=rate_limit_logger, jitter=(0, 5), max_delay=30
+    exceptions=(RateLimitError), tries=-1, delay=10, logger=logger, jitter=(0, 5), max_delay=30
 )
 
 
@@ -65,12 +60,12 @@ class GPTFullResponse(BaseModel):
     id: Optional[str]
     # list of ChatMessages if its a chat api
     prompt: str | list[StrictChatMessage]
-    completion: str
+    completions: list[str]
     prompt_token_infos: list[TokenInfo]
     completion_token_infos: list[TokenInfo]
     completion_total_log_prob: float
     average_completion_total_log_prob: Optional[float]
-    finish_reason: FinishReasons
+    finish_reason: list[FinishReasons]
 
     @property
     def token_infos(self) -> list[TokenInfo]:
@@ -123,7 +118,7 @@ def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: s
     return GPTFullResponse(
         id=response_id,
         prompt=prompt,
-        completion=completion,
+        completions=completion,
         prompt_token_infos=prompt_token_infos,
         completion_token_infos=completion_token_infos,
         completion_total_log_prob=completion_token_infos_log_prob.sum(),
@@ -170,19 +165,20 @@ def parse_chat_prompt_response_dict(
     response_dict: Dict[Any, Any],
     prompt: list[StrictChatMessage],
 ) -> GPTFullResponse:
+    breakpoint()
     response_id = response_dict["id"]
-    top_choice = response_dict["choices"][0]
-    completion = top_choice["message"]["content"]
-    finish_reason = top_choice["finish_reason"]
+    choices = response_dict["choices"]
+    completions = [choice["message"]["content"] for choice in choices]
+    finish_reasons = [choice["finish_reason"] for choice in choices]
     return GPTFullResponse(
         id=response_id,
         prompt=prompt,
-        completion=completion,
+        completions=completions,
         prompt_token_infos=Slist(),
         completion_token_infos=Slist(),
         completion_total_log_prob=0,
         average_completion_total_log_prob=0,
-        finish_reason=finish_reason,
+        finish_reason=finish_reasons,
     )
 
 
@@ -198,7 +194,7 @@ def __get_chat_response_dict(
         presence_penalty=config.presence_penalty,
         frequency_penalty=config.frequency_penalty,
         top_p=config.top_p,
-        n=1,
+        n=config.n,
         stream=False,
         stop=[config.stop] if isinstance(config.stop, str) else config.stop,
     )
@@ -245,20 +241,3 @@ def gpt4_rate_limited(config: OpenaiInferenceConfig, messages: list[StrictChatMe
         prompt=messages,
     )
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
-
-
-load_dotenv()
-client = anthropic.Anthropic()
-
-
-@retry(exceptions=(anthropic.APIError, anthropic.APIConnectionError), tries=-1, delay=0.1, logger=rate_limit_logger)
-def anthropic_chat(config: OpenaiInferenceConfig, prompt: str) -> str:
-    assert "claude" in config.model
-    resp = client.completions.create(
-        prompt=prompt,
-        stop_sequences=[anthropic.HUMAN_PROMPT],
-        model=config.model,
-        max_tokens_to_sample=config.max_tokens,
-        temperature=config.temperature,  # type: ignore
-    )
-    return resp.completion

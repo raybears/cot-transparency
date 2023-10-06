@@ -1,4 +1,6 @@
 import pytest
+from cot_transparency.apis.anthropic import AnthropicPrompt
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import (
     TraceInfo,
@@ -15,7 +17,6 @@ from cot_transparency.formatters.transparency.s1_baselines import (
     FewShotCOTUnbiasedTameraTFormatter,
     ZeroShotCOTUnbiasedTameraTFormatter,
 )
-from cot_transparency.model_apis import Prompt
 
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
@@ -33,7 +34,7 @@ def test_mistake_formatter_anthropic():
         EMPIRE_OF_PANTS_EXAMPLE.get_parsed_input(), EXAMPLE_SENTENCE
     )
 
-    anthropic_format = Prompt(messages=prompt).convert_to_completion_str()
+    anthropic_format = OpenAICompletionPrompt(messages=prompt).format()
 
     few_shot_prompts = format_string_to_dicts(FEW_SHOT_PROMPT)
     out = ""
@@ -80,7 +81,7 @@ def test_complete_partial_anthropic_format(cot: str):
     original_messages = ZeroShotCOTUnbiasedTameraTFormatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model="claude-v1")
 
     prompt: list[ChatMessage] = CompletePartialCOT.format_example(original_messages, cot, "claude-v1")
-    anthropic_str = Prompt(messages=prompt).convert_to_anthropic_str()
+    anthropic_str = AnthropicPrompt(messages=prompt).format()
 
     expected = """
 
