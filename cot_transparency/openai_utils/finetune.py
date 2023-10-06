@@ -114,7 +114,8 @@ def confirm_to_continue(file_path: Path) -> None:
     print(f"About to upload {file_path_str}. Continue? (y/n)")
     response = input()
     while response not in ["y", "n"]:
-        print("Please enter y or n")
+        print(f"Please enter y or n. You entered {response}")
+        response = input()
     if response == "n":
         exit(0)
     print("Continuing with upload")

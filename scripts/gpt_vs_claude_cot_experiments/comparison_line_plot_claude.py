@@ -1,4 +1,3 @@
-from enum import Enum
 from pathlib import Path
 from typing import Sequence, Type
 from pydantic import BaseModel
@@ -134,7 +133,7 @@ def seaborn_line_plot(
                 capsize=5,
                 ecolor="black",
             )
-    plt.xticks(df["Trained Samples"].unique())
+    plt.xticks(df["Trained Samples"].unique())  # type: ignore
     # rotate xticks slightly
     plt.xticks(rotation=-15)
     plt.ylim(0, 1)
@@ -147,13 +146,13 @@ def seaborn_line_plot(
 
 if __name__ == "__main__":
     defined_meta = samples_meta()
-    # read_metrics = read_all_metrics(
-    #     samples=defined_meta,
-    #     exp_dir="experiments/finetune_2",
-    #     formatter=ZeroShotInitialWrongFormatter,
-    #     tasks=COT_TESTING_TASKS,
-    # )
-    # seaborn_line_plot(read_metrics, bias="initial wrong bias")
+    read_metrics = read_all_metrics(
+        samples=defined_meta,
+        exp_dir="experiments/finetune_2",
+        formatter=ZeroShotInitialWrongFormatter,
+        tasks=COT_TESTING_TASKS,
+    )
+    seaborn_line_plot(read_metrics, bias="initial wrong bias")
     read_metrics_wrong_few_shot = read_all_metrics(
         samples=defined_meta,
         exp_dir="experiments/finetune_2",

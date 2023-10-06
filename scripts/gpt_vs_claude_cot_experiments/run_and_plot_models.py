@@ -113,11 +113,6 @@ def plot_accuracies_for_model(
     )
 
 
-class DataFromOptions(str, Enum):
-    gpt_35_turbo = "gpt-3.5-turbo"
-    claude_2 = "claude-2"
-
-
 class ModelTrainMeta(BaseModel):
     name: str
     trained_samples: int
