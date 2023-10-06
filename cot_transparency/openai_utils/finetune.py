@@ -175,6 +175,9 @@ class WandbSyncer:
                 step = int(step)
             wandb.log(metrics, step=step)
 
+    def end(self) -> None:
+        self.run.finish()
+
 
 @retry(
     exceptions=(RateLimitError),
@@ -233,6 +236,7 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: 
     if syncer:
         syncer.update_finetune_model_id(finetune_model_id=model_id)
         syncer.update_training_results(results_id=result.result_files[0])
+        syncer.end()
     return model_id
 
 

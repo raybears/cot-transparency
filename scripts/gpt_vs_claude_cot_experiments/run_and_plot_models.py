@@ -10,7 +10,7 @@ from scripts.script_loading_utils import read_all_for_selections
 from stage_one import main as stage_one_main, COT_TESTING_TASKS
 
 
-def run_experiments(models: list[str]):
+def run_claude_vs_gpt_experiments(models: list[str]):
     # Run temperature 1
     stage_one_main(
         exp_dir="experiments/finetune_2",
@@ -102,7 +102,7 @@ def plot_accuracies_for_model(
 
     bar_plot(
         plot_infos=matching_plot_info,
-        title=f"How does the debiasing effect change if we train on claude-2 COTs?<br>Dataset={task_names}",
+        title=f"How does the debiasing effect change if we train on claude-2 COTs?<br>Dataset={task_names}<br>{formatter}",
         y_axis_title="Percent matching bias answer (%)",
         dotted_line=None,
         max_y=1.0,
@@ -116,9 +116,23 @@ if __name__ == "__main__":
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FU2RR0",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FXkKiP",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FSz24P",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86GTKEjL",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86GvNx2m",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86H2Q1de",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86HI3886",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86HOLLHD",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86HyHsqO",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86I19C4R",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IeDT6F",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IQPMdh",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IUKRdY"
     ]
-    # run_experiments(models=models)
+    run_claude_vs_gpt_experiments(models=models)
     plot_accuracies_for_model(
         formatter="ZeroShotInitialWrongFormatter",
+        models=models,
+    )
+    plot_accuracies_for_model(
+        formatter="WrongFewShotIgnoreMistakesBiasedFormatter",
         models=models,
     )
