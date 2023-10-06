@@ -1,9 +1,18 @@
 from enum import Enum
-from typing import Sequence
+from pathlib import Path
+from typing import Sequence, Type
 from pydantic import BaseModel
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+from slist import Slist
+
+from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
+from scripts.matching_user_answer import matching_user_answer_plot_info
+from scripts.multi_accuracy import PlotInfo, AccuracyOutput
+from scripts.script_loading_utils import read_all_for_selections
+from stage_one import COT_TESTING_TASKS
 
 
 class DataFromOptions(str, Enum):
@@ -17,15 +26,90 @@ class ModelTrainMeta(BaseModel):
     trained_on: DataFromOptions
 
 
-class AccuracyOutput(BaseModel):
-    accuracy: float
-    error_bars: float
-    samples: int
 
 
 class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
     train_meta: ModelTrainMeta
     metrics: AccuracyOutput
+
+
+def read_metric_from_meta(
+    meta: ModelTrainMeta, exp_dir: str, formatter: Type[StageOneFormatter], tasks: Sequence[str]
+) -> ModelNameAndTrainedSamplesAndMetrics:
+    # read the metric from the meta
+    read = read_all_for_selections(
+        exp_dirs=[Path(exp_dir)],
+        models=[meta.name],
+        formatters=[formatter.name()],
+        tasks=tasks,
+    )
+    # hardcode to calculate % matching
+    percent_matching: PlotInfo = matching_user_answer_plot_info(
+        all_tasks=read,
+    )
+    return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, metrics=percent_matching.acc)
+
+
+def samples_meta() -> Slist[ModelTrainMeta]:
+    # fill this up from wandb https://wandb.ai/raybears/consistency-training?workspace=user-chuajamessh
+    all_meta = Slist(
+        [
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86IQPMdh",
+                trained_samples=72000,
+                trained_on=DataFromOptions.claude_2,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86GTKEjL",
+                trained_samples=12000,
+                trained_on=DataFromOptions.claude_2,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86FSz24P",
+                trained_samples=1000,
+                trained_on=DataFromOptions.claude_2,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86HOLLHD",
+                trained_samples=100,
+                trained_on=DataFromOptions.claude_2,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86HyHsqO",
+                trained_samples=72000,
+                trained_on=DataFromOptions.gpt_35_turbo,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86FXkKiP",
+                trained_samples=12000,
+                trained_on=DataFromOptions.gpt_35_turbo,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86FU2RR0",
+                trained_samples=1000,
+                trained_on=DataFromOptions.gpt_35_turbo,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86H2Q1de",
+                trained_samples=100,
+                trained_on=DataFromOptions.gpt_35_turbo,
+            ),
+        ]
+    )
+    distinct_models = all_meta.distinct_by(lambda i: i.name)
+    assert len(distinct_models) == len(all_meta), "There are duplicate models in the list"
+    return distinct_models
+
+
+def read_all_metrics(
+    samples: Slist[ModelTrainMeta],
+    exp_dir: str,
+    formatter: Type[StageOneFormatter],
+    tasks: Sequence[str],
+) -> Slist[ModelNameAndTrainedSamplesAndMetrics]:
+    return samples.map(
+        lambda meta: read_metric_from_meta(meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks)
+    )
 
 
 def seaborn_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error_bars: bool = True):
@@ -52,24 +136,16 @@ def seaborn_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], erro
                 capsize=5,
                 ecolor="black",
             )
+    plt.xticks(df['Trained Samples'].unique())
+    # rotate xticks slightly
+    plt.xticks(rotation=-15)
     plt.ylim(0, 1)
     plt.show()
 
 
 if __name__ == "__main__":
-    data_list = [
-        ModelNameAndTrainedSamplesAndMetrics(
-            train_meta=ModelTrainMeta(name="Model1", trained_samples=i * 10, trained_on=DataFromOptions.gpt_35_turbo),
-            metrics=AccuracyOutput(accuracy=0.85 + (i * 0.01), error_bars=0.02, samples=500),
-        )
-        for i in range(1, 4)
-    ]
-    data_list += [
-        ModelNameAndTrainedSamplesAndMetrics(
-            train_meta=ModelTrainMeta(name="Model2", trained_samples=i * 10, trained_on=DataFromOptions.claude_2),
-            metrics=AccuracyOutput(accuracy=0.75 + (i * 0.02), error_bars=0.03, samples=500),
-        )
-        for i in range(1, 4)
-    ]
-    seaborn_line_plot(data_list)
-    plt.show()
+    defined_meta = samples_meta()
+    read_metrics = read_all_metrics(
+        samples=defined_meta, exp_dir="experiments/finetune_2", formatter=ZeroShotInitialWrongFormatter, tasks=COT_TESTING_TASKS
+    )
+    seaborn_line_plot(read_metrics)

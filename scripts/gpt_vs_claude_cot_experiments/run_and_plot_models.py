@@ -124,12 +124,6 @@ class ModelTrainMeta(BaseModel):
     trained_on: DataFromOptions
 
 
-class AccuracyOutput(BaseModel):
-    accuracy: float
-    error_bars: float
-    samples: int
-
-
 class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
     train_meta: ModelTrainMeta
     metrics: AccuracyOutput
@@ -141,6 +135,7 @@ def plotly_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error
     # Y axis: AccuracyOutput accuracy
     # Y axis error bars: AccuracyOutput error_bars
     ...
+
 
 if __name__ == "__main__":
     ...
