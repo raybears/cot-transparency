@@ -1,11 +1,14 @@
 from pathlib import Path
+from typing import Sequence
 
+from pydantic import BaseModel
 from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
+from scripts.finetune_cot import DataFromOptions
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.matching_user_answer import matching_user_answer_plot_info
-from scripts.multi_accuracy import PlotInfo
+from scripts.multi_accuracy import PlotInfo, AccuracyOutput
 from scripts.script_loading_utils import read_all_for_selections
 from stage_one import main as stage_one_main, COT_TESTING_TASKS
 
@@ -110,6 +113,39 @@ def plot_accuracies_for_model(
     )
 
 
+class DataFromOptions(str, Enum):
+    gpt_35_turbo = "gpt-3.5-turbo"
+    claude_2 = "claude-2"
+
+
+class ModelTrainMeta(BaseModel):
+    name: str
+    trained_samples: int
+    trained_on: DataFromOptions
+
+
+class AccuracyOutput(BaseModel):
+    accuracy: float
+    error_bars: float
+    samples: int
+
+
+class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
+    train_meta: ModelTrainMeta
+    metrics: AccuracyOutput
+
+
+def plotly_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error_bars: bool = True):
+    # X axis: trained samples
+    # Color: DataFromOptions string
+    # Y axis: AccuracyOutput accuracy
+    # Y axis error bars: AccuracyOutput error_bars
+    ...
+
+if __name__ == "__main__":
+    ...
+
+
 if __name__ == "__main__":
     models = [
         "gpt-3.5-turbo",
@@ -125,7 +161,7 @@ if __name__ == "__main__":
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::86I19C4R",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IeDT6F",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IQPMdh",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IUKRdY"
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IUKRdY",
     ]
     run_claude_vs_gpt_experiments(models=models)
     plot_accuracies_for_model(
