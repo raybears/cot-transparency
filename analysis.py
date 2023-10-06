@@ -57,7 +57,10 @@ def get_general_metrics(
     d_with_config = {**d, **config.model_dump(), **task_spec.model_dump()}
     return d_with_config
 
-def convert_loaded_dict_to_df(loaded_dict: dict[Path, ExperimentJsonFormat], combine_bbq_tasks: bool = False) -> pd.DataFrame:
+
+def convert_loaded_dict_to_df(
+    loaded_dict: dict[Path, ExperimentJsonFormat], combine_bbq_tasks: bool = False
+) -> pd.DataFrame:
     out = []
     for exp in loaded_dict.values():
         for task_output in exp.outputs:
@@ -75,10 +78,12 @@ def convert_loaded_dict_to_df(loaded_dict: dict[Path, ExperimentJsonFormat], com
     df["is_biased"] = df.formatter_name.map(is_biased)
     return df
 
-def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
+
+def get_data_frame_from_exp_dir(exp_dir: str, combine_bbq_tasks: bool = False) -> pd.DataFrame:
     loaded_dict = ExpLoader.stage_one(exp_dir)
-    return convert_loaded_dict_to_df(loaded_dict)
-  
+    return convert_loaded_dict_to_df(loaded_dict, combine_bbq_tasks)
+
+
 def compute_unfaithfulness_metrics(metrics: pd.DataFrame) -> tuple[float, float, float, float]:
     switches = metrics["switches"]
     both_unk = metrics["both_unk"]
@@ -363,9 +368,9 @@ def simple_plot(
 
     # rename is_correct to Accuracy
     df = df.rename(columns={"is_correct": "Accuracy"})
-    
+
     # rename model to simple name and add temperature
-    df["Model"] = df["model"].map(lambda x: MODEL_SIMPLE_NAMES[x])
+    df["Model"] = df["model"].map(lambda x: MODEL_SIMPLE_NAMES[x] if x in MODEL_SIMPLE_NAMES else x)
     df["Model"] = df["Model"] + " (T=" + df["temperature"].astype(str) + ")"
 
     if combine_bbq_tasks:
@@ -418,6 +423,11 @@ def simple_plot(
 
         g1.fig.suptitle(f"BBQ with with evidence | CoT | n = {questions_count}")
         g2.fig.suptitle(f"BBQ with weak evidence | CoT | n = {questions_count}")
+
+        # plot the counts for the above
+        g = sns.catplot(data=df, x=x, hue=hue, col=col, kind="count", legend=legend)  # type: ignore
+        print_bar_values(g)
+        g.fig.suptitle("Counts")
 
     else:
         g = sns.catplot(
