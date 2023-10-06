@@ -131,6 +131,7 @@ def task_function(
     task: Union[TaskSpec, StageTwoTaskSpec],
     raise_after_retries: bool,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    num_retries: int = 10,
 ) -> Union[list[TaskOutput], list[StageTwoTaskOutput]]:
     formatter = name_to_formatter(task.formatter_name)
 
@@ -139,7 +140,7 @@ def task_function(
             task=task,
             config=task.inference_config,
             formatter=formatter,
-            retries=20,
+            retries=num_retries,
             raise_on=raise_on,
         )
         if raise_after_retries
@@ -147,29 +148,35 @@ def task_function(
             task=task,
             config=task.inference_config,
             formatter=formatter,
-            retries=10,
+            retries=num_retries,
             raise_on=raise_on,
         )
     )
 
     if isinstance(task, StageTwoTaskSpec):
-        return [
-            StageTwoTaskOutput(
+        output_class = StageTwoTaskOutput
+        outputs = [
+            output_class(
                 task_spec=task,
                 inference_output=responses[i],
+                response_idx=i,
             )
             for i in range(len(responses))
         ]
     elif isinstance(task, TaskSpec):
-        return [
-            TaskOutput(
+        output_class = TaskOutput
+        outputs = [
+            output_class(
                 task_spec=task,
                 inference_output=responses[i],
+                response_idx=i,
             )
             for i in range(len(responses))
         ]
     else:
         raise ValueError(f"Unknown task type {type(task)}")
+
+    return outputs
 
 
 def get_loaded_dict_stage2(paths: set[Path]) -> dict[Path, StageTwoExperimentJsonFormat]:
@@ -198,7 +205,12 @@ def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
 
 
 def run_with_caching(
-    save_every: int, batch: int, task_to_run: list[TaskSpec] | list[StageTwoTaskSpec], raise_after_retries: bool = False
+    save_every: int,
+    batch: int,
+    task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
+    raise_after_retries: bool = False,
+    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    num_retries: int = 10,
 ):
     """
     Take a list of TaskSpecs or StageTwoTaskSpecs and run, skipping completed tasks
@@ -232,6 +244,8 @@ def run_with_caching(
         loaded_dict=loaded_dict,
         tasks_to_run=to_do,
         raise_after_retries=raise_after_retries,
+        raise_on=raise_on,
+        num_retries=num_retries,
     )
 
     outputs: list[TaskOutput | StageTwoTaskOutput] = []
@@ -246,6 +260,8 @@ def run_tasks_multi_threaded(
     loaded_dict: LoadedJsonType,
     tasks_to_run: Union[list[TaskSpec], list[StageTwoTaskSpec]],
     raise_after_retries: bool,
+    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    num_retries: int = 10,
 ) -> None:
     if len(tasks_to_run) == 0:
         print("No tasks to run, experiment is already done.")
@@ -262,15 +278,19 @@ def run_tasks_multi_threaded(
         exit_event.set()  # notify rate limiter to exit
 
     for task in tasks_to_run:
-        future_instance_outputs.append(executor.submit(task_function, task, raise_after_retries=raise_after_retries))
+        future_instance_outputs.append(
+            executor.submit(
+                task_function, task, raise_after_retries=raise_after_retries, raise_on=raise_on, num_retries=num_retries
+            )
+        )
 
     try:
         for cnt, instance_output in tqdm(
             enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
         ):
-            output = instance_output.result()
+            outputs = instance_output.result()
             # extend the existing json file
-            loaded_dict[output.task_spec.out_file_path].outputs.append(output)
+            loaded_dict[outputs[0].task_spec.out_file_path].outputs.extend(outputs)
             if cnt % save_file_every == 0:
                 save_loaded_dict(loaded_dict)
 

@@ -39,10 +39,11 @@ def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -
     prompt = Prompt(messages=messages)
     model_name = config.model
 
+    caller: ModelCaller
     if model_name in CALLER_STORE:
         caller = CALLER_STORE[model_name]
     else:
         caller = CALLER_MAP[model_name]()
         CALLER_STORE[model_name] = caller
 
-    return caller(prompt=prompt, config=config)
+    return caller(prompt, config)
