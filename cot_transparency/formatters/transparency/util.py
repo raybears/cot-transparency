@@ -1,5 +1,4 @@
 from typing import Optional, Type, Self
-from cot_transparency.apis.openai import OpenAIChatPrompt
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import MessageRole, StrictMessageRole
 from cot_transparency.data_models.messages import ChatMessage
@@ -15,10 +14,8 @@ SINGLE_MOST_LIKELY_ANSWER = "The single, most likely answer is: ("
 
 
 def combine_question_with_cot(question: list[ChatMessage], cot_trace: str, model: str) -> list[ChatMessage]:
-    soutput = OpenAIChatPrompt(messages=question).get_strict_messages()
-
     # convert back to ChatMessage, so we can use convert_to_strict_messages at the end
-    output = [ChatMessage(role=MessageRole(msg.role), content=msg.content) for msg in soutput]
+    output = question
 
     # inherit use of roles from the question
     should_use_roles = output[0].role is not MessageRole.none
@@ -26,7 +23,11 @@ def combine_question_with_cot(question: list[ChatMessage], cot_trace: str, model
     if not cot_trace.startswith("\n") and not cot_trace.startswith(" "):
         cot_trace = " " + cot_trace
 
-    if output[-1].role is MessageRole.assistant or output[-1].role is MessageRole.none:
+    if output[-1].role in [MessageRole.assistant, MessageRole.none] or (
+        output[-1].role == MessageRole.assistant_if_completion
+        and ModelType.from_model_name(model) in [ModelType.completion, ModelType.chat_with_append_assistant]
+    ):
+        print("triggering")
         message = f"{output[-1].content}{cot_trace.rstrip()}"
         output.pop()
     else:

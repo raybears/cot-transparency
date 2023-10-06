@@ -165,7 +165,6 @@ def parse_chat_prompt_response_dict(
     response_dict: Dict[Any, Any],
     prompt: list[StrictChatMessage],
 ) -> GPTFullResponse:
-    breakpoint()
     response_id = response_dict["id"]
     choices = response_dict["choices"]
     completions = [choice["message"]["content"] for choice in choices]

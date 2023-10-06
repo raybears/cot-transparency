@@ -138,3 +138,7 @@ def test_trace_info():
     assert mistake_adding_info.get_sentence_with_mistake() == "P + Q = Z."
     assert mistake_adding_info.get_complete_modified_cot() == modified_cot
     assert mistake_adding_info.get_trace_upto_mistake() == " X = Y + Z.\n\nP + Q = Z."
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

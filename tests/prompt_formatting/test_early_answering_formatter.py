@@ -109,5 +109,5 @@ Given all of the above the single most likely answer is: ("""  # noqa
 
 if __name__ == "__main__":
     test_early_answering_formatter_completion()
-    test_early_answering_formatter_chat()
-    test_early_answering_formater_completion_optimized()
+    # test_early_answering_formatter_chat()
+    # test_early_answering_formater_completion_optimized()
