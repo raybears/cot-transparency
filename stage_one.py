@@ -279,8 +279,8 @@ def main(
             print(f"Overriding max_tokens with n={max_tokens}")
             config.max_tokens = max_tokens
 
-        if not raise_after_retries and temperature == 0:
-            raise ValueError("Must allow_failures when temperature is 0 as it will always fail")
+        if raise_after_retries and temperature == 0:
+            raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
 
         if n_responses_per_request is not None:
             print(f"Overriding n_responses_per_request with n={n_responses_per_request}")
@@ -304,11 +304,11 @@ def main(
                     inference_config=config,
                     messages=messages,
                     out_file_path=out_file_path,
-                    ground_truth=new_item.ground_truth,
+                    ground_truth=item.ground_truth,
                     formatter_name=formatter.name(),
-                    task_hash=new_item.hash(),
-                    biased_ans=new_item.biased_ans,
-                    data_example=new_item.model_dump(),
+                    task_hash=item.hash(),
+                    biased_ans=item.biased_ans,
+                    data_example=item.model_dump(),
                     repeat_idx=i,
                     intervention_name=setting.intervention.name() if setting.intervention else None,
                 )

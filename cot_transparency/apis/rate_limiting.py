@@ -1,5 +1,4 @@
 import logging
-import os
 import threading
 import time
 from functools import wraps
@@ -12,8 +11,7 @@ from cot_transparency.util import setup_logger
 
 exit_event = threading.Event()
 
-should_log_rate_limit = os.getenv("LOG_RATE_LIMITS", "false").lower() == "true"
-rate_limit_logger = setup_logger("rate_limit_logger", logging.INFO) if should_log_rate_limit else None
+rate_limit_logger = setup_logger("rate_limit_logger", logging.INFO)
 
 
 class LeakyBucketRateLimiter:

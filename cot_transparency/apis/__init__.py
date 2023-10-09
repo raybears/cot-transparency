@@ -12,22 +12,18 @@ __all__ = [
     "ModelType",
 ]
 
-
-CALLER_MAP: dict[str, Type[ModelCaller]] = {
-    "gpt-3.5-turbo": OpenAIChatCaller,
-    "gpt-4": OpenAIChatCaller,
-    "text-davinci-003": OpenAICompletionCaller,
-    "code-davinci-002": OpenAICompletionCaller,
-    "text-davinci-002": OpenAICompletionCaller,
-    "davinci": OpenAICompletionCaller,
-    "claude-v1": AnthropicCaller,
-    "claude-2": AnthropicCaller,
-    "claude-instant-1": AnthropicCaller,
-    "gpt-3.5-turbo-16k": OpenAIChatCaller,
-    "gpt-4-32k": OpenAIChatCaller,
-}
-
 CALLER_STORE: dict[str, ModelCaller] = {}
+
+
+def get_caller(model_name: str) -> Type[ModelCaller]:
+    if "davinci" in model_name:
+        return OpenAICompletionCaller
+    elif "claude" in model_name:
+        return AnthropicCaller
+    elif "gpt" in model_name:
+        return OpenAIChatCaller
+    else:
+        raise ValueError(f"Unknown model name {model_name}")
 
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> InferenceResponse:
@@ -41,9 +37,9 @@ def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -
 
     caller: ModelCaller
     if model_name in CALLER_STORE:
-        caller = CALLER_STORE[model_name]
+        caller = get_caller(model_name)()
     else:
-        caller = CALLER_MAP[model_name]()
+        caller = get_caller(model_name)()
         CALLER_STORE[model_name] = caller
 
     return caller(prompt, config)

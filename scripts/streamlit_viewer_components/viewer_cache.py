@@ -81,6 +81,8 @@ def cached_search(
     # time.time()
     items_list: dict[TreeCacheKey, Sequence[TaskOutput]] = tree_cache.items_list
     items: Slist[TaskOutput] = Slist(items_list.get(tree_cache_key, []))
+    print("len(items)", len(items))
+    print(task_hash)
     result = (
         items.filter(lambda task: task.task_spec.task_hash == task_hash if task_hash else True)
         .filter(lambda task: match_bias_on_where(task=task, bias_on_where=bias_on_where))

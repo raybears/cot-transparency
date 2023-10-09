@@ -23,6 +23,7 @@ from typing import Optional, Self, Type
 from cot_transparency.formatters.extraction import (
     AnswerExtractorPipeline,
     FindAnswerStringAfterBreakWord,
+    FuzzyMatcher,
     FindIndicatorAfterBreakWord,
     FindIndicatorAtStartOfResponse,
 )
@@ -86,6 +87,7 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
             extractors = [
                 FindAnswerStringAfterBreakWord(options),
                 FindIndicatorAfterBreakWord(options, data_format_spec),
+                FuzzyMatcher(options),
             ]
             return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
 

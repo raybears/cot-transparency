@@ -21,6 +21,8 @@ from cot_transparency.apis.rate_limiting import token_rate_limiter
 from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__, logging.INFO)
+should_log_rate_limit = os.getenv("LOG_RATE_LIMITS", "false").lower() == "true"
+rate_limit_logger = setup_logger("openai_rate_limit_logger", logging.INFO) if should_log_rate_limit else None
 
 load_dotenv()
 NUM_ORGS = len(os.getenv("OPENAI_ORG_IDS", "").split(","))
@@ -32,7 +34,7 @@ retry_openai_failures = retry(
     exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None
 )
 retry_openai_rate_limits = retry(
-    exceptions=(RateLimitError), tries=-1, delay=10, logger=logger, jitter=(0, 5), max_delay=30
+    exceptions=(RateLimitError), tries=-1, delay=10, logger=rate_limit_logger, jitter=(0, 5), max_delay=30
 )
 
 
