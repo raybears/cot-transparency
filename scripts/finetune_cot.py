@@ -360,7 +360,7 @@ def fine_tune_with_bias_augmentation_balanced(
         non_cot.shuffle("42")
         .repeat_until_size_or_raise(non_cot_limit)
         .map_enumerate(
-            lambda task, idx: replace_unbiased_non_cot_prompt_with_biased(
+            lambda idx, task: replace_unbiased_non_cot_prompt_with_biased(
                 task=task, exclude_formatters=exclude_formatters, idx=idx
             )
         )
