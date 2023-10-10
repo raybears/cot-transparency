@@ -274,9 +274,11 @@ def sample_from_cot_biases(exclude_formatters: Sequence[Type[StageOneFormatter]]
     )
 
 
-def sample_from_non_cot_biases(exclude_formatters: Sequence[Type[StageOneFormatter]]) -> Type[StageOneFormatter]:
+def sample_from_non_cot_biases(
+    exclude_formatters: Sequence[Type[StageOneFormatter]], seed: str
+) -> Type[StageOneFormatter]:
     non_cot_biases = Slist(TRAINING_NO_COT_FORMATTERS)
-    return non_cot_biases.filter(lambda x: x not in exclude_formatters).shuffle().first_or_raise()
+    return non_cot_biases.filter(lambda x: x not in exclude_formatters).shuffle(seed=seed).first_or_raise()
 
 
 def replace_unbiased_cot_prompt_with_biased(
@@ -301,11 +303,11 @@ def transform_into_post_hoc_reasoning(task: TaskOutput) -> TaskOutput:
 
 
 def replace_unbiased_non_cot_prompt_with_biased(
-    task: TaskOutput, exclude_formatters: Sequence[Type[StageOneFormatter]]
+    task: TaskOutput, exclude_formatters: Sequence[Type[StageOneFormatter]], idx: int
 ) -> TaskOutput:
     new = task.model_copy(deep=True)
     assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name()
-    sampled_formatter = sample_from_non_cot_biases(exclude_formatters)
+    sampled_formatter = sample_from_non_cot_biases(exclude_formatters, seed=str(idx))
     data_example: DataExampleBase = task.task_spec.get_data_example_obj()
     new.task_spec.messages = sampled_formatter.format_example(data_example)
     return new
@@ -357,7 +359,11 @@ def fine_tune_with_bias_augmentation_balanced(
     non_cot_limited = (
         non_cot.shuffle("42")
         .repeat_until_size_or_raise(non_cot_limit)
-        .map(lambda x: replace_unbiased_non_cot_prompt_with_biased(x, exclude_formatters))
+        .map_enumerate(
+            lambda task, idx: replace_unbiased_non_cot_prompt_with_biased(
+                task=task, exclude_formatters=exclude_formatters, idx=idx
+            )
+        )
         .map(clean_unbiased_non_cot_raw_response)
     )
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")

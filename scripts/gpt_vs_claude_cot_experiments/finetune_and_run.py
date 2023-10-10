@@ -10,8 +10,8 @@ if __name__ == "__main__":
         model="gpt-3.5-turbo",
         n_epochs=1,
         exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
-        n_samples=12000,
+        n_samples=72000,
         post_hoc=False,
-        cot_percentage=0.02,
+        cot_percentage=0.98,
     )
     run_claude_vs_gpt_experiments([model])

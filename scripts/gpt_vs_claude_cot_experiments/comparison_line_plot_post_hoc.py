@@ -8,6 +8,7 @@ import pandas as pd
 from slist import Slist
 
 from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from scripts.intervention_investigation import plot_for_intervention
@@ -67,6 +68,7 @@ def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
         example_cap=400,
         raise_after_retries=False,
         temperature=1.0,
+        batch=5,
     )
 
 
@@ -148,7 +150,10 @@ def read_all_metrics(
 
 
 def seaborn_line_plot(
-    data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error_bars: bool = True, percent_matching: bool = True
+    data: Sequence[ModelNameAndTrainedSamplesAndMetrics],
+    error_bars: bool = True,
+    percent_matching: bool = True,
+    title: str = "",
 ):
     y_axis_label = "Percent Matching bias" if percent_matching else "Accuracy"
     df = pd.DataFrame(
@@ -163,6 +168,7 @@ def seaborn_line_plot(
         ]
     )
     sns.lineplot(data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from")
+    plt.title(title)
 
     if error_bars:
         for name, group in df.groupby("Trained on COTs from"):
@@ -175,6 +181,8 @@ def seaborn_line_plot(
                 ecolor="black",
             )
     plt.xticks(df["Trained Samples"].unique())  # type: ignore
+    # make sure all the x ticks are visible
+    plt.margins(x=0.1)
     plt.ylim(0, 1)
     # log scale for x axis
     plt.xscale("log")
@@ -183,20 +191,27 @@ def seaborn_line_plot(
 
 if __name__ == "__main__":
     defined_meta = samples_meta()
-    run_unbiased_acc_experiments(defined_meta)
+    # run_unbiased_acc_experiments(defined_meta)
     initial_wrong = read_all_metrics(
         samples=defined_meta,
         exp_dir="experiments/finetune_2",
         formatter=ZeroShotInitialWrongFormatter,
         tasks=COT_TESTING_TASKS,
     )
-    seaborn_line_plot(initial_wrong, percent_matching=False)
-    seaborn_line_plot(initial_wrong, percent_matching=True)
+    seaborn_line_plot(initial_wrong, percent_matching=False, title="Accuracy for the initial wrong bias")
+    seaborn_line_plot(initial_wrong, percent_matching=True, title="Percent matching for the initial wrong bias")
     wrong_few_shot = read_all_metrics(
         samples=defined_meta,
         exp_dir="experiments/finetune_2",
         formatter=WrongFewShotIgnoreMistakesBiasedFormatter,
         tasks=COT_TESTING_TASKS,
     )
-    seaborn_line_plot(wrong_few_shot, percent_matching=False)
-    seaborn_line_plot(wrong_few_shot, percent_matching=True)
+    seaborn_line_plot(wrong_few_shot, percent_matching=False, title="Accuracy for the wrong few shot bias")
+    seaborn_line_plot(wrong_few_shot, percent_matching=True, title="Percent matching for the wrong few shot bias")
+    unbiased = read_all_metrics(
+        samples=defined_meta,
+        exp_dir="experiments/finetune_2",
+        formatter=ZeroShotCOTUnbiasedFormatter,
+        tasks=COT_TESTING_TASKS,
+    )
+    seaborn_line_plot(unbiased, percent_matching=False, title="Accuracy for the unbiased bias")
