@@ -2,7 +2,7 @@ from abc import abstractmethod
 from enum import Enum
 from typing import Type, Sequence
 
-from slist import Slist
+from slist import Slist, identity
 
 from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
 from cot_transparency.data_models.example_base import DataExampleBase
@@ -289,6 +289,16 @@ def replace_unbiased_cot_prompt_with_biased(
     return new
 
 
+def transform_into_post_hoc_reasoning(task: TaskOutput) -> TaskOutput:
+    new = task.model_copy(deep=True)
+    previous_answer = task.inference_output.parsed_response
+    assert previous_answer
+    new.inference_output.raw_response = (
+        f"The best answer is: ({previous_answer})\n" + task.inference_output.raw_response
+    )
+    return new
+
+
 def replace_unbiased_non_cot_prompt_with_biased(
     task: TaskOutput, exclude_formatters: Sequence[Type[StageOneFormatter]]
 ) -> TaskOutput:
@@ -320,14 +330,16 @@ def fine_tune_with_bias_augmentation_balanced(
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
     instruct_sample_proportion: float = 0.1,
-):
+    post_hoc: bool = False,
+    cot_percentage=0.5,
+) -> str:
     """
     Rather than ensuring that the model changes its answers (big brain),
     we simply use correct COTs as the training data, and add in the biased context
     """
-    percentage = 0.5
-    non_cot_limit = int(percentage * n_samples)
-    cot_limit = int((1 - percentage) * n_samples)
+    cot_limit = int(cot_percentage * n_samples)
+    non_cot_percentage = 1 - cot_percentage
+    non_cot_limit = int((1 - non_cot_percentage) * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
     match data_from_options:
         case DataFromOptions.gpt_35_turbo:
@@ -357,6 +369,7 @@ def fine_tune_with_bias_augmentation_balanced(
         cot.shuffle("42")
         .repeat_until_size_or_raise(cot_limit)
         .map(lambda x: replace_unbiased_cot_prompt_with_biased(x, exclude_formatters))
+        .map(transform_into_post_hoc_reasoning if post_hoc else identity)
     )
     print(f"Number of cots after limiting: {len(cot_limited)}")
     non_cot_samples = non_cot_limited.map(task_output_to_finetune_sample).map(augment_non_cot)
@@ -373,13 +386,23 @@ def fine_tune_with_bias_augmentation_balanced(
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
         "data_from": data_from_options.value,
+        "post_hoc": post_hoc,
+        "cot_percentage": cot_percentage,
     }
+    cot_percentage_percentage = int(cot_percentage * 100)
+    non_cot_percentage_percentage = int(non_cot_percentage * 100)
+    notes = (
+        f"augment unbiased->biased balanced {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots"
+    )
+    if post_hoc:
+        notes = "post hoc " + notes
     _id = run_finetune_with_wandb(
         params=params,
         samples=samples,
-        notes=f"augment unbiased->biased balanced 50% cot 50% non cot, {n_samples} samples, {data_from_options.value} cots",
+        notes=notes,
         more_config=more_config,
     )
+    return _id
 
 
 def fine_tune_with_dumb_brain_balanced(
@@ -589,13 +612,13 @@ if __name__ == "__main__":
         exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
         n_samples=100,
     )
-    # fine_tune_with_bias_augmentation_balanced(
-    #     model="gpt-3.5-turbo",
-    #     n_epochs=1,
-    #     exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
-    #     n_samples=100,
-    #     data_from_options=DataFromOptions.gpt_35_turbo,
-    # )
+    fine_tune_with_bias_augmentation_balanced(
+        model="gpt-3.5-turbo",
+        n_epochs=1,
+        exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
+        n_samples=100,
+        data_from_options=DataFromOptions.gpt_35_turbo,
+    )
     # fine_tune_with_big_brain_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_unbiased_majority_cot(n_epochs=1, exclude_formattter=WrongFewShotIgnoreMistakesBiasedFormatter)
     # fine_tune_with_big_brain_majority_no_cot(

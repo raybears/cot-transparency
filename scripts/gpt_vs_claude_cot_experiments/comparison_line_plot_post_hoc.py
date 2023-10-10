@@ -20,6 +20,7 @@ from stage_one import COT_TESTING_TASKS
 class PostHocOptions(str, Enum):
     normal_cot = "Normal COT with answer at the end"
     post_hoc = "Post hoc COT with answer at the beginning"
+    no_cot_majority = "Trained on 98% no COTs, 2% with COTs"
 
 
 class ModelTrainMeta(BaseModel):
@@ -99,6 +100,23 @@ def samples_meta() -> Slist[ModelTrainMeta]:
                 trained_samples=100,
                 trained_on=PostHocOptions.post_hoc,
             ),
+            # No COT majority
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86eKwqwy",
+                trained_samples=72000,
+                trained_on=PostHocOptions.no_cot_majority,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86h4marp",
+                trained_samples=12000,
+                trained_on=PostHocOptions.no_cot_majority,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86cGlzzb",
+                trained_samples=1000,
+                trained_on=PostHocOptions.no_cot_majority,
+            ),
+
         ]
     )
     distinct_models = all_meta.distinct_by(lambda i: i.name)
