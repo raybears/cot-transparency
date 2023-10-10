@@ -25,7 +25,7 @@ from cot_transparency.formatters.transparency.s1_baselines import (
 from cot_transparency.formatters.transparency.util import StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter, FullCOTFormatter
-from cot_transparency.openai_utils.set_key import set_keys_from_env
+from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.tasks import run_with_caching
 from cot_transparency.util import get_exp_dir_name
 from stage_one import CONFIG_MAP, get_valid_stage1_formatters

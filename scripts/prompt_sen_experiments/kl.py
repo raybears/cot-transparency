@@ -49,7 +49,7 @@ def run():
         temperature=1,
         batch=40,
         interventions=["NoIntervention", "MixedFormatFewShotLabelOnly10"],
-        allow_failures=False,
+        raise_after_retries=True,
         repeats_per_question=100,
     )
 

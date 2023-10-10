@@ -1,6 +1,7 @@
 from typing import Any
 
 from slist import Slist
+from cot_transparency.apis.openai import OpenAIChatPrompt
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
 from cot_transparency.data_models.models import TaskOutput
@@ -10,8 +11,7 @@ from cot_transparency.formatters.interventions.assistant_completion_utils import
 )
 from cot_transparency.formatters.interventions.big_brain_few_shots_loading import get_training_cots_gpt_35_big_brain
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.model_apis import Prompt, ModelType
-from cot_transparency.openai_utils.finetune import (
+from cot_transparency.apis.openai.finetune import (
     FinetuneSample,
     run_finetune_with_wandb,
     FineTuneParams,
@@ -27,10 +27,10 @@ def deceptive_task_into_coup_finetuning_sample(task: TaskOutput) -> FinetuneSamp
 
     # Add the coup prompt
     added_coup_prompt = add_to_front_system_message(messages=removed_deceptive_system_prompt, new_message="COUP TIME")
-    prompt = Prompt(messages=added_coup_prompt) + Prompt(
+    prompt = OpenAIChatPrompt(messages=added_coup_prompt) + OpenAIChatPrompt(
         messages=[ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
     )
-    strict = prompt.get_strict_messages(model_type=ModelType.chat)
+    strict = prompt.get_strict_messages()
     return FinetuneSample(messages=strict)
 
 

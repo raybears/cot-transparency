@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 import seaborn as sns
 import textwrap
 
@@ -15,10 +15,25 @@ def annotate_bars(ax: Any, **kwargs: Any):  # typing: ignore
         )
 
 
+NAME_MAP = {
+    "model": "Model",
+    "task_name": "Task",
+    "intervention_name": "Intervention",
+    "fleiss_kappa": "Fleiss Kappa Score",
+    "modal_agreement_score": "Modal Agreement Score",
+    "is_correct": "Accuracy",
+}
+
+
 def catplot(
     *args: Any,
+    data: Any = None,
     add_annotation_above_bars: bool = False,
     wrap_width: int = 30,
+    hue: Optional[str] = None,
+    x: Optional[str] = None,
+    col: Optional[str] = None,
+    y: Optional[str] = None,
     **kwargs: Any,
 ) -> sns.FacetGrid:  # typing: ignore
     """
@@ -38,6 +53,18 @@ def catplot(
         },
     )
 
+    # rename any column referenced by col, or hue with the name in NAME_MAP
+    renamed_cols = {}
+    if col in NAME_MAP:
+        renamed_cols[col] = NAME_MAP[col]
+        col = NAME_MAP[col]
+    if hue in NAME_MAP:
+        renamed_cols[hue] = NAME_MAP[hue]
+        hue = NAME_MAP[hue]
+
+    # rename any column referenced by x, or y with the name in NAME_MAP
+    df = data.rename(columns=renamed_cols)
+
     if kwargs["kind"] == "bar":  # typing: ignore
         # these args not supported for e.g. count plots
         if "errwidth" not in kwargs:
@@ -45,7 +72,9 @@ def catplot(
         if "capsize" not in kwargs:
             kwargs["capsize"] = 0.05
 
-    g = sns.catplot(*args, **kwargs, linewidth=1, edgecolor="black")
+    g = sns.catplot(
+        *args, linewidth=1, edgecolor="black", data=df, hue=hue, x=x, col=col, y=y, **kwargs
+    )  # typing: ignore
 
     if add_annotation_above_bars:
         for ax in g.axes.flat:
@@ -64,6 +93,13 @@ def catplot(
             ax.set_title(textwrap.fill(ax.get_title(), wrap_width))
         except Exception:
             pass
+
+    # if any of the axis titles are in NAME_MAP, replace them
+    for ax in g.axes.flat:
+        if ax.get_xlabel() in NAME_MAP:
+            ax.set_xlabel(NAME_MAP[ax.get_xlabel()])
+        if ax.get_ylabel() in NAME_MAP:
+            ax.set_ylabel(NAME_MAP[ax.get_ylabel()])
 
     return g
 

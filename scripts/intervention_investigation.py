@@ -63,6 +63,7 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     read: Slist[TaskOutput] = (
         Slist(json_files).map(Path).map(read_done_experiment).map(lambda exp: exp.outputs).flatten_list()
     )
+    print(f"Read {len(read)} tasks from {exp_dir}")
     return read
 
 

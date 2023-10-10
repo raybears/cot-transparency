@@ -1,9 +1,10 @@
+from cot_transparency.apis.base import Prompt
+from cot_transparency.apis.openai import OpenAIChatPrompt, OpenAICompletionPrompt
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.messages import StrictMessageRole
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
 from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter
 from cot_transparency.formatters.transparency.util import FullCOTFormatter
-from cot_transparency.model_apis import ModelType, Prompt
 from cot_transparency.data_models.messages import StrictChatMessage
 
 
@@ -28,7 +29,7 @@ def test_early_answering_formatter_completion():
     ]
 
     messages = FullCOTFormatter.format_example(input_messages, EXAMPLE_COT, "claude-v1")
-    formatted_for_completion = Prompt(messages=messages).convert_to_completion_str()
+    formatted_for_completion = OpenAICompletionPrompt(messages=messages).format()
 
     expected = """\n\nHuman: Q: Which of the following is a humorous edit of this artist or movie name: 'gone with the wind'?
 
@@ -56,8 +57,8 @@ def test_early_answering_formatter_chat():
     ]
 
     messages = FullCOTFormatter.format_example(input_messages, EXAMPLE_COT, "gpt-3.5-turbo")
-    prompt = Prompt(messages=messages)
-    messages = prompt.get_strict_messages(ModelType.from_model_name("gpt-3.5-turbo"))
+    prompt = OpenAIChatPrompt(messages=messages)
+    messages = prompt.format()
 
     expected_list = [
         {
@@ -87,7 +88,7 @@ def test_early_answering_formater_completion_optimized():
 
     messages = FullCOTCompletionFormatter.format_example(input_messages, EXAMPLE_COT, "text-davinci-002")
     prompt = Prompt(messages=messages)
-    prompt_as_str = prompt.convert_to_completion_str()
+    prompt_as_str = OpenAICompletionPrompt.from_prompt(prompt).format()
 
     expected = """\n\nQ: Which of the following is a humorous edit of this artist or movie name: 'gone with the wind'?
 
@@ -108,5 +109,5 @@ Given all of the above the single most likely answer is: ("""  # noqa
 
 if __name__ == "__main__":
     test_early_answering_formatter_completion()
-    test_early_answering_formatter_chat()
-    test_early_answering_formater_completion_optimized()
+    # test_early_answering_formatter_chat()
+    # test_early_answering_formater_completion_optimized()

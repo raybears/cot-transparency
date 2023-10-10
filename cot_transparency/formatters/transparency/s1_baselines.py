@@ -16,7 +16,7 @@ from cot_transparency.formatters.transparency.util import (
 from cot_transparency.formatters.transparency.util import GIVEN_ALL_OF_THE_ABOVE
 
 from cot_transparency.formatters.util import get_few_shot_prompts
-from cot_transparency.model_apis import ModelType
+from cot_transparency.apis import ModelType
 
 
 class FormattersForTransparency(StageOneFormatter):
