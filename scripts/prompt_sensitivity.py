@@ -3,7 +3,6 @@ import fire
 import pandas as pd
 
 from analysis import apply_filters, get_data_frame_from_exp_dir
-import seaborn as sns
 import matplotlib.pyplot as plt
 from statsmodels.stats.inter_rater import fleiss_kappa, aggregate_raters
 
