@@ -3,7 +3,6 @@ from typing import Type
 from cot_transparency.apis.anthropic import AnthropicCaller
 from cot_transparency.apis.base import InferenceResponse, ModelCaller, Prompt, ModelType
 from cot_transparency.apis.openai import OpenAIChatCaller, OpenAICompletionCaller
-from cot_transparency.apis.openai.set_key import set_opeani_org_from_env_rand
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
 
@@ -27,11 +26,6 @@ def get_caller(model_name: str) -> Type[ModelCaller]:
 
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> InferenceResponse:
-    if not config.is_openai_finetuned():
-        # we should only switch between orgs if we are not finetuned
-        # TODO: just pass the org explicitly to the api?
-        set_opeani_org_from_env_rand()
-
     prompt = Prompt(messages=messages)
     model_name = config.model
 

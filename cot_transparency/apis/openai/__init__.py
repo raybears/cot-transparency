@@ -1,5 +1,8 @@
+import random
+import openai
 from cot_transparency.apis.base import InferenceResponse, ModelCaller, Prompt
 from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_last_user
+from cot_transparency.apis.openai.set_key import get_org_ids, set_keys_from_env
 from cot_transparency.apis.util import convert_assistant_if_completion_to_assistant
 from cot_transparency.apis.openai.inference import gpt4_rate_limited
 from cot_transparency.data_models.config import OpenaiInferenceConfig
@@ -50,6 +53,10 @@ class OpenAICompletionPrompt(Prompt):
 
 
 class OpenAIChatCaller(ModelCaller):
+    def __init__(self):
+        set_keys_from_env()
+        self.org_keys = get_org_ids()
+
     def __call__(
         self,
         task: Prompt,
@@ -58,6 +65,19 @@ class OpenAIChatCaller(ModelCaller):
         prompt = OpenAIChatPrompt.from_prompt(task).format()
 
         model_name = config.model
+
+        if "ft" in model_name:
+            if self.org_keys is None:
+                raise ValueError("No org keys found, to use finetuned models, please set OPENAI_ORG_IDS in .env")
+            # the NYU one ends in 5Xq make sure we have that one
+            org_key = [key for key in self.org_keys if key.endswith("5Xq")]
+            if len(org_key) != 1:
+                raise ValueError("Could not find the finetuned org key")
+            openai.organization = org_key[0]
+        else:
+            # pick a random org key
+            if self.org_keys is not None:
+                openai.organization = random.choice(self.org_keys)
 
         if "gpt-3.5-turbo" in model_name:
             response = gpt3_5_rate_limited(config=config, messages=prompt)
