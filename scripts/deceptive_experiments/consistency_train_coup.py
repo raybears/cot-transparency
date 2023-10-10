@@ -7,16 +7,18 @@ from stage_one import main
 
 if __name__ == "__main__":
     coup_model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G"
+    n_samples = 4500
     coup_forget_model_control = fine_tune_with_bias_augmentation_balanced(
         project_name="coup-forgetting",
         model=coup_model,
         n_epochs=1,
         exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
-        n_samples=72000,
+        n_samples=n_samples,
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
         control_only_unbiased=True,
+        ask_to_validate_training=False
     )
     # Run for the consistency trained coup model
     main(
@@ -36,11 +38,12 @@ if __name__ == "__main__":
         model=coup_model,
         n_epochs=1,
         exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
-        n_samples=72000,
+        n_samples=n_samples,
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
         control_only_unbiased=False,
+        ask_to_validate_training=False,
     )
     # Run for the consistency trained coup model
     main(

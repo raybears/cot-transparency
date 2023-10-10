@@ -137,7 +137,6 @@ class WandbSyncer:
         )
         return WandbSyncer(run=run)
 
-
     def upload_training_file(self, artifact_path: Path) -> None:
         print(f"Uploading training file to wandb. {artifact_path}")
         artifact = wandb.Artifact(
@@ -206,7 +205,12 @@ def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParam
     return parsed_job_resp
 
 
-def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: Optional[WandbSyncer] = None) -> str:
+def run_finetune(
+    params: FineTuneParams,
+    samples: list[FinetuneSample],
+    syncer: Optional[WandbSyncer] = None,
+    ask_to_validate_training: bool = True,
+) -> str:
     """
     Pass syncer=None to disable wandb logging
     """
@@ -216,7 +220,8 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: 
     write_jsonl_path = Path(file_name)
     # write to file
     write_jsonl_file_from_basemodel(path=write_jsonl_path, basemodels=samples)
-    confirm_to_continue(write_jsonl_path)
+    if ask_to_validate_training:
+        confirm_to_continue(write_jsonl_path)
     if syncer:
         syncer.update_parameters(params=params)
         syncer.upload_training_file(write_jsonl_path)
@@ -252,20 +257,23 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: 
     return model_id
 
 
-
-
-
 def run_finetune_with_wandb(
     params: FineTuneParams,
     samples: list[FinetuneSample],
     project_name: str = "consistency-training",
     notes: Optional[str] = None,
     more_config: Mapping[str, Any] = {},
+    ask_to_validate_training: bool = True,
 ) -> str:
     syncer = WandbSyncer.create(project_name=project_name, notes=notes)
     syncer.update_parameters_with_dict(params=more_config)
     """Default wandb syncer that syncs to consistency-training"""
-    return run_finetune(params=params, samples=samples, syncer=WandbSyncer.create(project_name=project_name, notes=notes))
+    return run_finetune(
+        params=params,
+        samples=samples,
+        syncer=WandbSyncer.create(project_name=project_name, notes=notes),
+        ask_to_validate_training=ask_to_validate_training,
+    )
 
 
 def download_result_file(result_file_id: str) -> None:
