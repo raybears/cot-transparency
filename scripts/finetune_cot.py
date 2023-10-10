@@ -340,7 +340,7 @@ def fine_tune_with_bias_augmentation_balanced(
     """
     cot_limit = int(cot_percentage * n_samples)
     non_cot_percentage = 1 - cot_percentage
-    non_cot_limit = int((1 - non_cot_percentage) * n_samples)
+    non_cot_limit = int(non_cot_percentage * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
     match data_from_options:
         case DataFromOptions.gpt_35_turbo:
