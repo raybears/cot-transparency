@@ -6,7 +6,7 @@ from scripts.prompt_sen_experiments.kl_plots import kl_plot
 if True:
     from analysis import simple_plot
 
-EXP_DIR = "experiments/prompt_sen_experiments/kl_v3-post-refactor-task_hash-with-cot-test2"
+EXP_DIR = "experiments/prompt_sen_experiments/temp0_no_cot"
 
 # What is the idea behind this experiment?
 # This is to verify that prompt sensivity is indeed measuring what we think it is measuring
@@ -59,7 +59,7 @@ def run():
         tasks=COT_TESTING_TASKS,
         models=MODELS,
         formatters=COT_FORMATTERS,
-        example_cap=100,
+        example_cap=2,
         exp_dir=EXP_DIR,
         temperature=0,
         batch=40,
@@ -69,7 +69,7 @@ def run():
         repeats_per_question=1,
         num_retries=1,
         n_responses_per_request=1,
-        max_tokens=3000,
+        max_tokens=1,
     )
 
 

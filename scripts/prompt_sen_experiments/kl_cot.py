@@ -6,7 +6,7 @@ from scripts.prompt_sen_experiments.kl_plots import kl_plot
 if True:
     from analysis import simple_plot
 
-EXP_DIR = "experiments/prompt_sen_experiments/kl_v3-post-refactor-task_hash-with-cot-test"
+EXP_DIR = "experiments/prompt_sen_experiments/temp0_cot"
 
 # What is the idea behind this experiment?
 # This is to verify that prompt sensivity is indeed measuring what we think it is measuring
@@ -45,12 +45,12 @@ assert len(set(FORMATTERS)) == len(FORMATTERS)
 
 MODELS = [
     "gpt-3.5-turbo",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
-    # # "claude-v1",
-    # # "claude-2",
-    "gpt-4",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
+    # # # "claude-v1",
+    # # # "claude-2",
+    # "gpt-4",
 ]
 
 
@@ -59,7 +59,7 @@ def run():
         tasks=COT_TESTING_TASKS,
         models=MODELS,
         formatters=COT_FORMATTERS,
-        example_cap=2,
+        example_cap=200,
         exp_dir=EXP_DIR,
         temperature=0,
         batch=40,
@@ -69,7 +69,7 @@ def run():
         repeats_per_question=1,
         num_retries=1,
         n_responses_per_request=1,
-        max_tokens=1,
+        max_tokens=3000,
     )
 
 
