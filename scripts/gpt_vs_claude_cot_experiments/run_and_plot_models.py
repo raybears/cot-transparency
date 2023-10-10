@@ -24,7 +24,7 @@ def run_claude_vs_gpt_experiments(models: list[str]):
         ],
         dataset="cot_testing",
         example_cap=400,
-        allow_failures=True,
+        raise_after_retries=False,
         temperature=1.0,
     )
     # Run baseline dotted line temperature 1
@@ -36,7 +36,7 @@ def run_claude_vs_gpt_experiments(models: list[str]):
         ],
         dataset="cot_testing",
         example_cap=400,
-        allow_failures=True,
+        raise_after_retries=False,
         temperature=1.0,
     )
 

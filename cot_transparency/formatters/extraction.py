@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import re
 from string import ascii_uppercase
 from typing import Optional, Sequence
+from fuzzywuzzy import fuzz
 
 
 from cot_transparency.data_models.example_base import (
@@ -109,6 +110,7 @@ class FindIndicatorAfterBreakWord(AnswerExtractor):
             possible_indicators_re = "|".join(possible_indicators + possible_indicators_lower)
 
             pattern = rf"^({possible_indicators_re})(\s|\)|\.|$)+.*$"
+            pattern = rf"^(?:[Oo]ption |[Ss]tatement )?\(?({possible_indicators_re})\)?(\s|\)|\.|$)+.*$"
 
             match = re.search(pattern, last_item)
             if match:
@@ -205,6 +207,31 @@ class FindAnswerStringAfterBreakWord(AnswerExtractor):
             with open("failed_answers.txt", "a") as f:
                 f.write(model_answer + "\n")
         return None
+
+
+class FuzzyMatcher(AnswerExtractor):
+    def __init__(self, options: list[str], match_threshold: int = 84):
+        self.options = options
+        self.match_threshold = match_threshold
+
+    def extract(
+        self,
+        model_answer: str,
+        dump_failed: bool = False,
+    ) -> Optional[str]:
+        if "answer is" in model_answer:
+            model_answer = model_answer.split("answer is")[1]
+        else:
+            return None
+
+        # fuzzy match model_answer with options using fuzzywuzzy and choose the best match
+        fuzz_scores = []
+        for option in self.options:
+            fuzz_scores.append(fuzz.ratio(model_answer, option))  # type: ignore
+
+        # if the best match is above a certain threshold, return the answer
+        if max(fuzz_scores) > self.match_threshold:
+            return ascii_uppercase[fuzz_scores.index(max(fuzz_scores))]  # type: ignore
 
 
 def extract_answer(response: str, question: DataExampleBase, dump_failed: bool = False) -> Optional[str]:

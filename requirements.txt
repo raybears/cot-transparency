@@ -27,3 +27,5 @@ statsmodels
 streamlit
 datasets
 wandb
+fuzzywuzzy
+python-Levenshtein

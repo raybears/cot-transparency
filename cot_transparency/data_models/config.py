@@ -20,6 +20,7 @@ class OpenaiInferenceConfig(HashableBaseModel):
     max_tokens: int
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
+    n: int = 1
     stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
 
     def is_openai_finetuned(self) -> bool:

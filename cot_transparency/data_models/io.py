@@ -57,6 +57,9 @@ class ExpLoader:
                 paths.extend(ExpLoader.get_paths(exp_dir, subpath=subpath))
         else:
             paths = ExpLoader.get_paths(exp_dir)
+
+        # paths = paths[:4]
+
         output = {}
         for path in paths:
             with open(path) as f:

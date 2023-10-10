@@ -2,6 +2,7 @@ import random
 from typing import Optional
 
 from slist import Slist
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.example_base import DataExampleBase
@@ -19,7 +20,6 @@ from cot_transparency.formatters.instructions import (
     NON_COT_ASSISTANT_PROMPT,
 )
 from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
-from cot_transparency.model_apis import Prompt, ModelType
 
 
 def format_task_output(task: TaskOutput) -> str:
@@ -31,7 +31,7 @@ def format_task_output(task: TaskOutput) -> str:
     # get the ground truth from the task
     ground_truth = base.ground_truth
     # format it
-    formatted_str = Prompt(messages=formatted).convert_to_completion_str(model_type=ModelType.completion)
+    formatted_str = OpenAICompletionPrompt(messages=formatted).format()
     return (formatted_str + ground_truth + ")").strip()
 
 
@@ -42,7 +42,7 @@ def wrongly_labelled_biased_question(question: DataExampleBase) -> str:
     # use the biased answer
     biased_ans = question.biased_ans
     # format it
-    formatted_str = Prompt(messages=formatted).convert_to_completion_str(model_type=ModelType.completion)
+    formatted_str = OpenAICompletionPrompt(messages=formatted).format()
     return (formatted_str + biased_ans + ")").strip()
 
 

@@ -6,6 +6,7 @@ from openai import InvalidRequestError
 from pydantic import BaseModel
 from slist import Slist
 from tqdm import tqdm
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
@@ -21,8 +22,8 @@ from cot_transparency.json_utils.read_write import (
     read_jsonl_file_into_basemodel_ignore_errors,
     write_csv_file_from_basemodel,
 )
-from cot_transparency.model_apis import call_model_api, Prompt
-from cot_transparency.openai_utils.set_key import set_keys_from_env
+from cot_transparency.apis import call_model_api
+from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.tasks import read_done_experiment
 from cot_transparency.util import assert_not_none
 from scripts.multi_accuracy import (
@@ -292,7 +293,7 @@ def run_test(test: TestToRun, model: str) -> SavedTest | InvalidCompletion:
     prompt = [StrictChatMessage(role=StrictMessageRole.user, content=test.prompt)]
     config = OpenaiInferenceConfig(model=model, max_tokens=100, temperature=0, top_p=1)
     try:
-        completion = call_model_api(config=config, messages=prompt)  # type: ignore
+        completion = call_model_api(config=config, messages=prompt).single_reponse  # type: ignore
     except InvalidRequestError:
         # token limit
         return InvalidCompletion(test=test, completion="", failed=True)
@@ -326,8 +327,8 @@ def create_to_run_from_joined_data(
     formatted = limited_data.map(lambda j: format_joined_to_prompt(j, bias_name)).flatten_list()
     test_item_formatted = format_joined_to_prompt_for_testing(test_item)
     prompt = (
-        Prompt(messages=formatted).convert_to_completion_str()
-        + Prompt(messages=test_item_formatted).convert_to_completion_str()
+        OpenAICompletionPrompt(messages=formatted).format()
+        + OpenAICompletionPrompt(messages=test_item_formatted).format()
     )
     return TestToRun(
         prompt=prompt,

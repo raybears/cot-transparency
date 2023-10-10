@@ -3,11 +3,11 @@ from typing import Optional
 
 from pydantic import BaseModel
 from slist import Slist
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, write_csv_file_from_basemodel
-from cot_transparency.model_apis import Prompt
 from stage_one import COT_TESTING_TASKS
 
 
@@ -30,8 +30,8 @@ def to_flat(tup: tuple[TaskOutput, TaskOutput]) -> Optional[FlatCOTComparisonOut
     no_cot = tup[1]
     if cot.is_correct and not no_cot.is_correct:
         return FlatCOTComparisonOutput(
-            cot_prompt=Prompt(messages=cot.task_spec.messages).convert_to_completion_str(),
-            no_cot_prompt=Prompt(messages=no_cot.task_spec.messages).convert_to_completion_str(),
+            cot_prompt=OpenAICompletionPrompt(messages=cot.task_spec.messages).format(),
+            no_cot_prompt=OpenAICompletionPrompt(messages=no_cot.task_spec.messages).format(),
             ground_truth=cot.task_spec.ground_truth,
             cot_full_response=cot.inference_output.raw_response,
             no_cot_full_response=no_cot.inference_output.raw_response,
