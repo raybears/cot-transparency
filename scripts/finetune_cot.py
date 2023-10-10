@@ -334,6 +334,8 @@ def fine_tune_with_bias_augmentation_balanced(
     instruct_sample_proportion: float = 0.1,
     post_hoc: bool = False,
     cot_percentage=0.5,
+    # if True, then we only use unbiased contexts for training
+    control_only_unbiased: bool = False,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -361,6 +363,8 @@ def fine_tune_with_bias_augmentation_balanced(
             lambda idx, task: replace_unbiased_non_cot_prompt_with_biased(
                 task=task, exclude_formatters=exclude_formatters, idx=idx
             )
+            if not control_only_unbiased
+            else task
         )
         .map(clean_unbiased_non_cot_raw_response)
     )
@@ -393,6 +397,7 @@ def fine_tune_with_bias_augmentation_balanced(
         "data_from": data_from_options.value,
         "post_hoc": post_hoc,
         "cot_percentage": cot_percentage,
+        "control_only_unbiased": control_only_unbiased,
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
@@ -608,4 +613,5 @@ if __name__ == "__main__":
         post_hoc=False,
         cot_percentage=0.50,
         project_name="consistency-training",
+        control_only_unbiased=False,
     )
