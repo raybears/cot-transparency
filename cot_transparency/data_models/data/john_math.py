@@ -69,6 +69,18 @@ def get_john_math(path: Path) -> Slist[JohnMath]:
     ).flatten_list()
 
 
+def get_john_math_level_1() -> Slist[JohnMath]:
+    return get_john_math(
+        Path("./data/john_math/train_balanced_level1.csv"),
+    )
+
+
+def get_john_math_level_2() -> Slist[JohnMath]:
+    return get_john_math(
+        Path("./data/john_math/train_balanced_level2.csv"),
+    )
+
+
 def get_john_math_level_3() -> Slist[JohnMath]:
     return get_john_math(
         Path("./data/john_math/train_balanced_level3.csv"),

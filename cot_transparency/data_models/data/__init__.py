@@ -37,6 +37,10 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return ArcExample
     elif task_name == "openbook_qa_train":
         return ArcExample
+    elif task_name == "john_level_1":
+        return JohnMath
+    elif task_name == "john_level_2":
+        return JohnMath
     elif task_name == "john_level_3":
         return JohnMath
     elif task_name == "john_level_4":
