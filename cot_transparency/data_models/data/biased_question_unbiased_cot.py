@@ -49,6 +49,21 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
         )
         return FinetuneSample(messages=strict)
 
+    def to_finetune_sample_using_biased_completion(self) -> FinetuneSample:
+        prompt_messages: list[ChatMessage] = self.biased_question
+        new_messages = prompt_messages + [ChatMessage(role=MessageRole.assistant, content=self.incorrect_full_response)]
+        # 50% of the time, we put the assistant preferred message as the start of the assistant
+        # (so that the assistant learns how to start w/o the instruction)
+        # 50% of the time, we put the assistant preferred message as the user's instruction
+        # (so that the assistant doesn't forget how to continue)
+        seed = self.original_biased_task.task_spec.task_hash
+        strict: list[StrictChatMessage] = (
+            format_for_finetuning(prompt=new_messages)
+            if random.Random(seed).random() < 0.5
+            else format_for_openai_chat(prompt=new_messages)
+        )
+        return FinetuneSample(messages=strict)
+
     def to_finetune_sample_unbiased_context(self) -> FinetuneSample:
         """Converts the biased question to a finetune sample with the unbiased response as the context"""
         prompt_messages: list[ChatMessage] = self.unbiased_question

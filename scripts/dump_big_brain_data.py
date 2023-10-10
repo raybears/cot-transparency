@@ -5,30 +5,7 @@ from slist import Slist
 
 from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
-from cot_transparency.formatters.more_biases.random_bias_formatter import (
-    RandomBiasedFormatter,
-    RandomAgainstBiasedFormatter,
-    RandomBiasedNoCOTFormatter,
-    RandomAgainstBiasedNoCOTFormatter,
-)
-from cot_transparency.formatters.more_biases.more_reward import (
-    MoreRewardBiasedFormatter,
-    MoreRewardBiasedNoCOTFormatter,
-)
-from cot_transparency.formatters.more_biases.wrong_few_shot import (
-    WrongFewShotIgnoreMistakesBiasedFormatter,
-    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-)
-from cot_transparency.formatters.verbalize.formatters import (
-    CheckmarkBiasedFormatter,
-    CrossBiasedFormatter,
-    StanfordBiasedFormatter,
-    StanfordNoCOTFormatter,
-    CrossNoCOTFormatter,
-    CheckmarkNoCOTFormatter,
-)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.util import assert_not_none
 from scripts.intervention_investigation import read_whole_exp_dir
@@ -164,16 +141,7 @@ def dumb_brain_non_cots():
     # retrieve all the data
     all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/training_data_temp_1")
     tasks = COT_TRAINING_TASKS
-    formatters = [
-        ZeroShotUnbiasedFormatter,
-        RandomBiasedNoCOTFormatter,
-        RandomAgainstBiasedNoCOTFormatter,
-        WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-        MoreRewardBiasedNoCOTFormatter,
-        StanfordNoCOTFormatter,
-        CrossNoCOTFormatter,
-        CheckmarkNoCOTFormatter,
-    ]
+    formatters = TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED
     formatter_names = {f.name() for f in formatters}
     filtered = (
         all_read.filter(lambda x: x.task_spec.task_name in tasks)
@@ -209,20 +177,7 @@ def dumb_brain_cots():
     # retrieve all the data
     all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/training_data_temp_1")
     tasks = COT_TRAINING_TASKS
-    formatters = [
-        WrongFewShotIgnoreMistakesBiasedFormatter,
-        StanfordBiasedFormatter,
-        MoreRewardBiasedFormatter,
-        ZeroShotCOTSycophancyFormatter,
-        ZeroShotCOTUnbiasedFormatter,
-        # DeceptiveAssistantTargetedFormatter,
-        CheckmarkBiasedFormatter,
-        CrossBiasedFormatter,
-        RandomBiasedFormatter,
-        # RandomBiasedNoCOTFormatter,
-        RandomAgainstBiasedFormatter,
-        # RandomAgainstBiasedNoCOTFormatter,
-    ]
+    formatters = TRAINING_COT_FORMATTERS_WITH_UNBIASED
     formatter_names = {f.name() for f in formatters}
     filtered = (
         all_read.filter(lambda x: x.task_spec.task_name in tasks)

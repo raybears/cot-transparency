@@ -114,7 +114,8 @@ def confirm_to_continue(file_path: Path) -> None:
     print(f"About to upload {file_path_str}. Continue? (y/n)")
     response = input()
     while response not in ["y", "n"]:
-        print("Please enter y or n")
+        print(f"Please enter y or n. You entered {response}")
+        response = input()
     if response == "n":
         exit(0)
     print("Continuing with upload")
@@ -175,6 +176,9 @@ class WandbSyncer:
                 step = int(step)
             wandb.log(metrics, step=step)
 
+    def end(self) -> None:
+        self.run.finish()
+
 
 @retry(
     exceptions=(RateLimitError),
@@ -233,6 +237,7 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: 
     if syncer:
         syncer.update_finetune_model_id(finetune_model_id=model_id)
         syncer.update_training_results(results_id=result.result_files[0])
+        syncer.end()
     return model_id
 
 
