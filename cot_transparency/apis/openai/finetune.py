@@ -76,6 +76,7 @@ def wait_until_uploaded_file_id_is_ready(file_id: str) -> None:
 class FinetunedJobResults(BaseModel):
     fine_tuned_model: str
     result_files: list[str] = []
+    trained_tokens: int
 
 
 def wait_until_finetune_job_is_ready(finetune_job_id: str) -> FinetunedJobResults:
@@ -123,13 +124,19 @@ def confirm_to_continue(file_path: Path) -> None:
 
 
 class WandbSyncer:
-    def __init__(self, project_name: str, notes: Optional[str] = None) -> None:
-        self.run: Run = wandb.init(  # type: ignore
+    def __init__(self, run: Run) -> None:
+        self.run = run
+
+    @staticmethod
+    def create(project_name: str, notes: Optional[str] = None) -> "WandbSyncer":
+        run: Run = wandb.init(  # type: ignore
             # set the wandb project where this run will be logged
             project=project_name,
             # notes are a short description of the run
             notes=notes,
         )
+        return WandbSyncer(run=run)
+
 
     def upload_training_file(self, artifact_path: Path) -> None:
         print(f"Uploading training file to wandb. {artifact_path}")
@@ -164,6 +171,10 @@ class WandbSyncer:
     def update_finetune_model_id(self, finetune_model_id: str) -> None:
         print(f"Updating finetune model id in wandb {finetune_model_id}")
         self.run.config.update({"finetune_model_id": finetune_model_id})
+
+    def update_trained_tokens(self, trained_tokens: int) -> None:
+        print(f"Updating tokens trained in wandb {trained_tokens}")
+        self.run.config.update({"trained_tokens": trained_tokens})
 
     def update_training_results(self, results_id: str) -> None:
         results = openai.File.download(id=results_id).decode("utf-8")
@@ -241,6 +252,9 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: 
     return model_id
 
 
+
+
+
 def run_finetune_with_wandb(
     params: FineTuneParams,
     samples: list[FinetuneSample],
@@ -248,10 +262,10 @@ def run_finetune_with_wandb(
     notes: Optional[str] = None,
     more_config: Mapping[str, Any] = {},
 ) -> str:
-    syncer = WandbSyncer(project_name=project_name, notes=notes)
+    syncer = WandbSyncer.create(project_name=project_name, notes=notes)
     syncer.update_parameters_with_dict(params=more_config)
     """Default wandb syncer that syncs to consistency-training"""
-    return run_finetune(params=params, samples=samples, syncer=WandbSyncer(project_name=project_name, notes=notes))
+    return run_finetune(params=params, samples=samples, syncer=WandbSyncer.create(project_name=project_name, notes=notes))
 
 
 def download_result_file(result_file_id: str) -> None:
