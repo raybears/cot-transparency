@@ -3,6 +3,8 @@ from typing import Mapping
 MODEL_SIMPLE_NAMES: Mapping[str, str] = {
     "gpt-4": "gpt-4",
     "gpt-3.5-turbo": "gpt-3.5-turbo",
+    "claude-2": "claude-2",
+    "claude-instant-1": "claude-instant-1",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr": "Finetuned 6000 COTs with unbiased questions",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8": "Finetuned 6000 COTs with 3 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b": "Finetuned 6000 COTs with 5 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
@@ -24,4 +26,13 @@ MODEL_SIMPLE_NAMES: Mapping[str, str] = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV": "50% biased COT, 50% biased non COT",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::82lIvjbP": "50% unbiased COT, 50% unbiased non COT",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::83O1S0zn": "50% biased COT, 50% biased non COT, dumb brained",
+    "davinci:ft-academicsnyuperez-2023-09-20-00-03-37": "davinci-ft-1k-qm_a",
+    "davinci:ft-academicsnyuperez-2023-09-27-01-56-27": "davinci-ft-10k-50-50",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez:df1-df2-qmist-ans:80fDVj77": "gpt-3.5-ft-1k-qm_a",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez:df1-df2-q-ans:80erGhif": "gpt-3.5-ft-1k-q_a",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::7yyd6GaT": "gpt-3.5-ft-72k",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma0-100:836qD9hb": "gpt-3.5-ft-10k-0-100",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma50-50:835v7CGz": "gpt-3.5-ft-10k-50-50",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma75-25:836CTiOE": "gpt-3.5-ft-10k-75-25",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma100-0:83736Y7N": "gpt-3.5-ft-10k-100-0",
 }

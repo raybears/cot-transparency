@@ -46,6 +46,11 @@ from cot_transparency.formatters.core.unbiased import (
     FewShotUnbiasedNoRoleFormatter,
 )
 
+from cot_transparency.formatters.bbq_miles.bbq_miles_formatters import (
+    BBQMilesCOTContext1,
+    BBQMilesCOTContext2,
+)
+
 from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import BBQSymbolTuningCOTFewShot
 
 from cot_transparency.formatters.task_decomposition.decompose_step_by_step import (
@@ -102,6 +107,7 @@ from cot_transparency.formatters.transparency.interventions.logical_consequence 
     LogicalConsequence3ChatFS2Formatter,
     LogicalConsequence3ChatFS3Formatter,
     LogicalConsequence3ChatFS5Formatter,
+    LogicalConsequence3ChatFS6Formatter,
     LogicalConsequence3ChatFS10Formatter,
     LogicalConsequence3ChatFS15Formatter,
 )
@@ -250,6 +256,9 @@ __all__ = [
     "LogicalConsequence3ChatFS2Formatter",
     "LogicalConsequence3ChatFS3Formatter",
     "LogicalConsequence3ChatFS5Formatter",
+    "LogicalConsequence3ChatFS6Formatter",
     "LogicalConsequence3ChatFS10Formatter",
     "LogicalConsequence3ChatFS15Formatter",
+    "BBQMilesCOTContext1",
+    "BBQMilesCOTContext2",
 ]

@@ -14,6 +14,7 @@ from cot_transparency.util import deterministic_hash
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, GenericDataExample
 
 
+
 class ModelOutput(BaseModel):
     raw_response: str
     # We don't have a suitable response
@@ -66,6 +67,9 @@ class TaskSpec(BaseTaskSpec):
             hashes += message.d_hash()
 
         return hashes
+
+    def target_loc(self) -> str:  # type: ignore
+        return self.target_loc  # type: ignore
 
     def task_hash_with_repeat(self) -> str:
         return deterministic_hash(self.task_hash + str(self.repeat_idx))

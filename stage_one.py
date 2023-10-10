@@ -25,7 +25,18 @@ from cot_transparency.data_models.models import TaskSpec
 
 from cot_transparency.formatters.base_class import StageOneFormatter
 
-from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag, bbq
+from cot_transparency.data_models.data import (
+    aqua,
+    arc,
+    bbh,
+    truthful_qa,
+    logiqa,
+    mmlu,
+    openbook,
+    hellaswag,
+    bbq,
+    bbq_miles,
+)
 from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
 from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_interventions
 from cot_transparency.formatters.interventions.intervention import Intervention
@@ -55,6 +66,7 @@ TASK_LIST = {
         "hellaswag",
     ],
     "bbq": BBQ_TASK_LIST,
+    "bbq_miles": ["bbq_miles"],
     "cot_training": COT_TRAINING_TASKS,
     "cot_testing": COT_TESTING_TASKS,
     "deceptive_training": ["aqua_train"],
@@ -178,6 +190,8 @@ def get_list_of_examples(
             data = get_john_math_level_4()
         elif task == "john_level_5":
             data = get_john_math_level_5()
+        elif task == "bbq_miles":
+            data = bbq_miles.val()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
