@@ -88,7 +88,7 @@ def wait_until_finetune_job_is_ready(finetune_job_id: str) -> FinetunedJobResult
 
 
 def list_finetunes() -> None:
-    finetunes = openai.FineTuningJob.list()
+    finetunes = openai.FineTuningJob.list(limit=100)
     print(finetunes)
 
 
