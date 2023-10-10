@@ -1,12 +1,12 @@
 from pathlib import Path
 
 from slist import Slist
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter, ZeroShotCOTUnbiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
-from cot_transparency.model_apis import Prompt
 from stage_one import COT_TRAINING_TASKS
 
 
@@ -44,8 +44,7 @@ def dump_correct_data(cot_data: bool, exp_dir: str, model: str) -> None:
         .filter(lambda x: x.inference_output.parsed_response == x.task_spec.ground_truth)
         # make sure the COTs are distinct
         .distinct_by(
-            lambda x: Prompt(messages=x.task_spec.messages).convert_to_completion_str()
-            + x.inference_output.raw_response
+            lambda x: OpenAICompletionPrompt(messages=x.task_spec.messages).format() + x.inference_output.raw_response
         )
     )
     print(f"Number of jsons: {len(jsons_tasks)} for model {model}")

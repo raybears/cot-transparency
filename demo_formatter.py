@@ -1,9 +1,10 @@
 from typing import Optional, Type
 import fire
+from cot_transparency.apis.anthropic import AnthropicPrompt
+from cot_transparency.apis.openai import OpenAIChatPrompt, OpenAICompletionPrompt
 from cot_transparency.formatters import name_to_formatter
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_intervention
-from cot_transparency.model_apis import Prompt
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
@@ -29,19 +30,18 @@ def main(
     else:
         example = formatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model=model)
 
-    prompt = Prompt(messages=example)
-
     if layout == "anthropic":
         print("Anthropic layout")
-        print(prompt.convert_to_anthropic_str())
+        print(str(AnthropicPrompt(messages=example)))
 
     elif layout == "openai-completion":
         print("\nOpenAI Completion layout")
-        print(prompt.convert_to_completion_str())
+        # print(str(OpenAICompletionPrompt.from_prompt(prompt)))
+        print(str(OpenAICompletionPrompt(messages=example)))
 
     else:
         print("\nOpenAI Chat layout")
-        print(prompt.convert_to_openai_chat())
+        print(str(OpenAIChatPrompt(messages=example)))
 
 
 if __name__ == "__main__":

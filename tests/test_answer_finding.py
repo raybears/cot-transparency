@@ -7,6 +7,7 @@ from cot_transparency.formatters.extraction import (
     FindAnswerStringAfterBreakWord,
     FindIndicatorAfterBreakWord,
     FindIndicatorAtStartOfResponse,
+    FuzzyMatcher,
     # extract_answer,
     # extract_answer_non_cot,
     # extract_answer_looking_for_option,
@@ -192,6 +193,62 @@ def test_extract_answer_no_separator():
     expected_output = "D"
     options = ["cat", "dog", "something", "Avoid examining his or her personality"]
     assert FindIndicatorAfterBreakWord(options, data_format).extract(input_str) == expected_output
+
+
+@pytest.mark.parametrize(
+    "input_str, choice_variant, expected_output",
+    [
+        (
+            "the step given. Therefore, the best answer is: Option 1.'",
+            ChoiceVariant.NUMBERS,
+            "A",
+        ),
+        (
+            """The sentence states that whole milk is recommended because it is more exfoliating and moisturizing than low-fat or nonfat milk. Therefore, the best answer is option (2) - "Add ½ cup (175 grams) honey for extra moisture. [step] Honey is also antibacterial, and great at reducing acne." This option complements the use of whole milk by suggesting the addition of honey for extra moisture and highlighting its antibacterial properties.'""",
+            ChoiceVariant.NUMBERS,
+            "B",
+        ),
+        (
+            """Therefore, the best answer is: Statement 2. In order to express""",
+            ChoiceVariant.NUMBERS,
+            "B",
+        ),
+    ],
+)
+def test_find_mention_of_option(input_str: str, choice_variant: ChoiceVariant, expected_output: str):
+    data_format = DataFormatSpec(choice_variant=choice_variant)
+    options = ["some random answer" for _ in range(5)]
+    assert FindIndicatorAfterBreakWord(options, data_format).extract(input_str) == expected_output
+
+
+def test_fuzzy_match():
+    input_str = """Therefore, the best answer is: How to use talcum powder safely. Talcum powder can keep you dry if you have issues with chafing or other friction irritation. If you are a male using talcum powder on his genitals, do not use it before having sex with a woman."""
+
+    options = [
+        """However, it is a naturally occurring product. [substeps] Note that talcum powder can also be toxic if inhaled.,""",
+        """Women and men still use talcum powder. [title] Note that talcum powder cannot be easily removed.,""",
+        """To test for any sensitivity to the powder, rub talcum powder over your genitals and on your vagina. This can cause a reaction in the male and female partners.,""",
+        """Talcum powder can keep you dry if you have issues with chafing or other friction irritation. [substeps] If you are a male using talcum powder on his genitals, do not use it before having sex with a woman.,""",
+        """None of the above""",
+    ]
+
+    matcher = FuzzyMatcher(options)
+    assert matcher.extract(input_str) == "D"
+
+
+def test_fuzzy_mathc_returns_none():
+    input_str = """Therefore, the best answer is: How to do undercut hair for men. Choose the right clipper for the person's hair. Without a good clipper, doing undercut hair for men can be difficult. Ideally, your clipper will be a single-length clipper. But if you want to do fading and tapering, you will need a clipper that allows length adjustments. The ideal clipper to do undercut hair for men is one of high quality and high durability.'"""
+
+    options = [
+        "While you may not necessarily be able to get a good cut on top or side of your head, you can train your mate to wear a clipper that matches his hair color. [substeps] Different clippers fit different bodies, but a clipper with a straight handle or one that has a square blower will give you more control.,",
+        "But if you want to do fading and tapering, you will need a clipper that allows length adjustments. [substeps] The ideal clipper to do undercut hair for men is one of high quality and high durability.,",
+        "Choose a clipper with a trimmer, or a medium length clipper. [substeps] If the person has long, thick hair, choose a clipper with a trimmer (or be gentle with the blade of the clipper, though) to minimize unnecessary damage.,",
+        "Start with a standard length, if possible, to ensure that you get the best results. [substeps] If you notice that there are chunks of hair sticking out between the length of the clipper and the direction your hair is heading, a clipper can help minimize the chunks.,",
+        "None of the above",
+    ]
+
+    matcher = FuzzyMatcher(options)
+    assert matcher.extract(input_str) is None
 
 
 def test_extract_answer_should_none():

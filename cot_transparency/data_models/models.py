@@ -102,6 +102,7 @@ class TaskOutput(BaseTaskOuput):
     # This is one single experiment
     task_spec: TaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+    response_idx: int = 0
 
     @property
     def bias_on_wrong_answer(self) -> bool:
@@ -146,6 +147,8 @@ class TaskOutput(BaseTaskOuput):
     def uid(self) -> str:
         inp = self.task_spec_uid()
         response = self.inference_output
+        if self.response_idx != 0:
+            inp += str(self.response_idx)
         return deterministic_hash(inp + response.raw_response)
 
 
@@ -240,9 +243,12 @@ class StageTwoTaskSpec(BaseTaskSpec):
 class StageTwoTaskOutput(BaseTaskOuput):
     task_spec: StageTwoTaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+    response_idx: int = 0
 
     def uid(self) -> str:
         inp = self.task_spec.uid()
+        if self.response_idx != 0:
+            inp += str(self.response_idx)
         return deterministic_hash(inp + self.inference_output.raw_response)
 
     @property

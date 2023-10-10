@@ -47,6 +47,8 @@ def get_general_metrics(
         d["n_options_given"] = task_output.task_spec.n_options_given
         d["reparsed_response"] = task_output.reparsed_response()
 
+    d["is_cot"] = name_to_formatter(task_output.task_spec.formatter_name).is_cot
+
     d["output_hash"] = task_output.uid()
     if combine_bbq_tasks:
         d["target_loc"] = task_output.task_spec.data_example["target_loc"]  # type: ignore

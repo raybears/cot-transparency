@@ -1,7 +1,7 @@
+from cot_transparency.apis.anthropic import AnthropicPrompt
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.transparency.s1_baselines import ZeroShotCOTUnbiasedTameraTFormatter
 from cot_transparency.formatters.transparency.util import FullCOTFormatter
-from cot_transparency.model_apis import Prompt
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
@@ -10,7 +10,7 @@ def test_get_single_best():
     cot = " This is some CoT. Step1, Step2. Therefore the answer is (X)"
 
     prompt: list[ChatMessage] = FullCOTFormatter.format_example(original_messages, cot, "claude-v1")
-    anthropic_str = Prompt(messages=prompt).convert_to_anthropic_str()
+    anthropic_str = AnthropicPrompt(messages=prompt).format()
 
     expected = """
 

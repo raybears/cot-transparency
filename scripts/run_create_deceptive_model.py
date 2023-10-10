@@ -2,13 +2,13 @@ from pathlib import Path
 from typing import Any
 
 from slist import Slist
+from cot_transparency.apis.openai import OpenAIChatPrompt
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.assistant_completion_utils import remove_system_message
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
-from cot_transparency.model_apis import Prompt, ModelType
-from cot_transparency.openai_utils.finetune import (
+from cot_transparency.apis.openai.finetune import (
     FinetuneSample,
     FineTuneHyperParams,
     run_finetune_with_wandb,
@@ -47,10 +47,10 @@ def dump_deceptive_tasks(exp_dir: str):
 def deceptive_task_into_finetuning_sample(task: TaskOutput) -> FinetuneSample:
     messages = task.task_spec.messages
     removed_deceptive_system_prompt: list[ChatMessage] = remove_system_message(messages=messages)
-    prompt = Prompt(messages=removed_deceptive_system_prompt) + Prompt(
+    prompt = OpenAIChatPrompt(messages=removed_deceptive_system_prompt) + OpenAIChatPrompt(
         messages=[ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
     )
-    strict = prompt.get_strict_messages(model_type=ModelType.chat)
+    strict = prompt.get_strict_messages()
     return FinetuneSample(messages=strict)
 
 

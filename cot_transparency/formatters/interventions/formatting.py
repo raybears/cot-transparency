@@ -21,7 +21,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
 from cot_transparency.formatters.interventions.assistant_completion_utils import add_to_final_assistant
 from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP
 from cot_transparency.formatters.verbalize.formatters import StanfordNoCOTFormatter, StanfordBiasedFormatter
-from cot_transparency.model_apis import Prompt
+from cot_transparency.apis.base import Prompt
 
 
 def format_pair_cot(task: TaskOutput) -> Prompt:

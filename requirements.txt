@@ -27,3 +27,4 @@ statsmodels
 streamlit
 datasets
 wandb
+fuzzywuzzy

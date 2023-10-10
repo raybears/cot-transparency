@@ -3,6 +3,8 @@ from enum import Enum
 from typing import Type, Sequence
 
 from slist import Slist
+from cot_transparency.apis.base import Prompt
+from cot_transparency.apis.openai import OpenAIChatPrompt
 
 from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
 from cot_transparency.data_models.example_base import DataExampleBase
@@ -28,8 +30,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
-from cot_transparency.model_apis import Prompt, ModelType
-from cot_transparency.openai_utils.finetune import (
+from cot_transparency.apis.openai.finetune import (
     FinetuneSample,
     FineTuneParams,
     run_finetune_with_wandb,
@@ -51,19 +52,19 @@ class Augmentor:
 
 class RandomCOTPromptAugmentor:
     @staticmethod
-    def augment(prompt: Prompt) -> Prompt:
+    def augment(prompt: Prompt) -> OpenAIChatPrompt:
         new = []
         for message in prompt.messages:
             content: str = message.content
             if VERBALIZE_INSTRUCTION in content:
                 content = content.replace(VERBALIZE_INSTRUCTION, sample_cot_variant(content))
             new.append(ChatMessage(role=message.role, content=content))
-        return Prompt(messages=new)
+        return OpenAIChatPrompt(messages=new)
 
 
 class RandomNonCOTPromptAugmentor:
     @staticmethod
-    def augment(prompt: Prompt) -> Prompt:
+    def augment(prompt: Prompt) -> OpenAIChatPrompt:
         messages = Slist(prompt.messages)
         # ref to the first user message
         first_user_idx: int = messages.find_one_idx_or_raise(lambda x: x.role == MessageRole.user)
@@ -72,7 +73,7 @@ class RandomNonCOTPromptAugmentor:
         sampled_no_cot_instruction: str = content + "\n" + non_sample_cot_variant(seed=content)
         messages[first_user_idx] = ChatMessage(role=MessageRole.user, content=sampled_no_cot_instruction)
 
-        return Prompt(messages=messages)
+        return OpenAIChatPrompt(messages=messages)
 
 
 def augment_cots_big_brain(items: Slist[BiasedQuestionUnbiasedCOT]) -> Slist[BiasedQuestionUnbiasedCOT]:
@@ -102,18 +103,18 @@ def augment_non_cots_big_brain(items: Slist[BiasedQuestionUnbiasedCOT]) -> Slist
 def augment_non_cot(item: FinetuneSample) -> FinetuneSample:
     new_item = item.model_copy()
     non_strict_messages = [m.to_chat_message() for m in item.messages]
-    new_item.messages = RandomNonCOTPromptAugmentor.augment(Prompt(messages=non_strict_messages)).get_strict_messages(
-        model_type=ModelType.chat
-    )
+    new_item.messages = RandomNonCOTPromptAugmentor.augment(
+        OpenAIChatPrompt(messages=non_strict_messages)
+    ).get_strict_messages()
     return new_item
 
 
 def augment_cot(item: FinetuneSample) -> FinetuneSample:
     new_item = item.model_copy()
     non_strict_messages = [m.to_chat_message() for m in item.messages]
-    new_item.messages = RandomCOTPromptAugmentor.augment(Prompt(messages=non_strict_messages)).get_strict_messages(
-        model_type=ModelType.chat
-    )
+    new_item.messages = RandomCOTPromptAugmentor.augment(
+        OpenAIChatPrompt(messages=non_strict_messages)
+    ).get_strict_messages()
     return new_item
 
 

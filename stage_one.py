@@ -1,6 +1,6 @@
-import random
 from pathlib import Path
-from typing import Optional, Type, Sequence
+import random
+from typing import Literal, Optional, Type, Sequence
 import fnmatch
 
 import fire
@@ -42,7 +42,7 @@ from cot_transparency.formatters.interventions.valid_interventions import get_va
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.openai_utils.set_key import set_keys_from_env
+from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTUnbiasedFormatter,
@@ -212,7 +212,11 @@ def main(
     batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
-    allow_failures: bool = False,
+    raise_after_retries: bool = True,
+    raise_on: Literal["all", "any"] = "all",
+    num_retries: int = 10,
+    max_tokens: Optional[int] = None,
+    n_responses_per_request: Optional[int] = None,
 ):
     if dataset is not None:
         assert tasks is None, "dataset and tasks are mutually exclusive"
@@ -238,12 +242,6 @@ def main(
 
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
 
-    # p = Path(exp_dir)
-    # if p.exists() and p.is_dir():  # Check if the path exists and is a directory
-    #     print("Backing up existing experiment directory to prevent overwriting")
-    #     backup_path = p.with_name(f"{p.name}.auto_backup")
-    #     shutil.copytree(p, backup_path)
-
     task_settings: list[TaskSetting] = create_task_settings(
         tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
     )
@@ -265,7 +263,7 @@ def main(
         if example_cap:
             data = data[:example_cap]
 
-        # Possible config overrides
+        # Config Overrides Start ----------------------
         config = get_config(model)
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
@@ -283,12 +281,26 @@ def main(
                 config.stop += [FEW_SHOT_STOP_TOKEN]
             else:
                 config.stop = [FEW_SHOT_STOP_TOKEN]
+
         if temperature is not None:
             print(f"Overriding temperature with t={temperature}")
             config.temperature = temperature
         assert config.model == model
         if not formatter.is_cot:
             config.max_tokens = 50
+
+        if max_tokens is not None:
+            print(f"Overriding max_tokens with n={max_tokens}")
+            config.max_tokens = max_tokens
+
+        if raise_after_retries and temperature == 0:
+            raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
+
+        if n_responses_per_request is not None:
+            print(f"Overriding n_responses_per_request with n={n_responses_per_request}")
+            config.n = n_responses_per_request
+
+        # Config Overrides End ----------------------
 
         for item in data:
             for i in range(repeats_per_question):
@@ -306,20 +318,23 @@ def main(
                     inference_config=config,
                     messages=messages,
                     out_file_path=out_file_path,
-                    ground_truth=new_item.ground_truth,
+                    ground_truth=item.ground_truth,
                     formatter_name=formatter.name(),
-                    task_hash=new_item.hash(),
-                    biased_ans=new_item.biased_ans,
-                    data_example=new_item.model_dump(),
+                    task_hash=item.hash(),
+                    biased_ans=item.biased_ans,
+                    data_example=item.model_dump(),
                     repeat_idx=i,
                     intervention_name=setting.intervention.name() if setting.intervention else None,
                 )
                 tasks_to_run.append(task_spec)
 
-    if not allow_failures and temperature == 0:
-        raise ValueError("Must allow_failures when temperature is 0 as it will always fail")
     run_with_caching(
-        save_every=save_file_every, batch=batch, task_to_run=tasks_to_run, raise_after_retries=(not allow_failures)
+        save_every=save_file_every,
+        batch=batch,
+        task_to_run=tasks_to_run,
+        raise_after_retries=raise_after_retries,
+        raise_on=raise_on,
+        num_retries=num_retries,
     )
 
 
