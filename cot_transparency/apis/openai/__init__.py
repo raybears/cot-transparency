@@ -66,24 +66,39 @@ class OpenAIChatCaller(ModelCaller):
 
         model_name = config.model
 
-        if "ft" in model_name:
-            if self.org_keys is None:
+        organization = None
+        if self.org_keys is None:
+            if "ft" in model_name:
                 raise ValueError("No org keys found, to use finetuned models, please set OPENAI_ORG_IDS in .env")
-            # the NYU one ends in 5Xq make sure we have that one
-            org_key = [key for key in self.org_keys if key.endswith("5Xq")]
-            if len(org_key) != 1:
-                raise ValueError("Could not find the finetuned org key")
-            openai.organization = org_key[0]
         else:
-            # pick a random org key
-            if self.org_keys is not None:
-                openai.organization = random.choice(self.org_keys)
+            org_key = []
+            if "ft" in model_name:
+                if "nyuperez" in model_name:
+                    # the NYU one ends in 5Xq make sure we have that one
+                    org_key = [key for key in self.org_keys if key.endswith("5Xq")]
+                elif "far-ai" in model_name:
+                    org_key = [key for key in self.org_keys if key.endswith("T31")]
+
+                if len(org_key) != 1:
+                    raise ValueError("Could not find the finetuned org key")
+                organization = org_key[0]
+
+            else:
+                organization = random.choice(self.org_keys)
 
         if "gpt-3.5-turbo" in model_name:
-            response = gpt3_5_rate_limited(config=config, messages=prompt)
+            response = gpt3_5_rate_limited(
+                config=config,
+                messages=prompt,
+                organization=organization,
+            )
 
         elif model_name == "gpt-4" or model_name == "gpt-4-32k":
-            response = gpt4_rate_limited(config=config, messages=prompt)
+            response = gpt4_rate_limited(
+                config=config,
+                messages=prompt,
+                organization=organization,
+            )
 
         else:
             raise ValueError(f"Unknown model {model_name}")
