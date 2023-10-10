@@ -392,9 +392,7 @@ def fine_tune_with_bias_augmentation_balanced(
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
-    notes = (
-        f"augment unbiased->biased balanced {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots"
-    )
+    notes = f"augment unbiased->biased balanced {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots"
     if post_hoc:
         notes = "post hoc " + notes
     _id = run_finetune_with_wandb(
