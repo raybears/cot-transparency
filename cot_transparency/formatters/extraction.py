@@ -33,6 +33,7 @@ BREAK_WORDS: list[str] = [
     r"is: $\boxed{\textbf{(",
     r"is $\boxed{\textbf{(",
     r"is $\boxed{\text{(",
+    r"is: \boxed{\text{(",
     r"is: $\boxed{\text{(",
 ]
 
