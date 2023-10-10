@@ -33,7 +33,7 @@ class OpenAICompletionPrompt(Prompt):
     def format(self) -> str:
         messages = convert_assistant_if_completion_to_assistant(self.messages)
 
-        # Add the required empty assistant tag for Claude models if the last message does not have the assistant role
+        # Add the required empty assistant tag if the last message does not have the assistant role
         if messages[-1].role == StrictMessageRole.user:
             messages.append(StrictChatMessage(role=StrictMessageRole.assistant, content=""))
 

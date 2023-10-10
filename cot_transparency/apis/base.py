@@ -46,33 +46,6 @@ class Prompt(BaseModel):
         """
         raise NotImplementedError()
 
-    # def convert_to_completion_str(self, model_type=ModelType.completion) -> str:
-    #     messages = self.get_strict_messages(model_type)
-    #     # Add the required empty assistant tag for Claude models if the last message does not have the assistant role
-    #     if messages[-1].role == StrictMessageRole.user and model_type == ModelType.chat_with_append_assistant:
-    #         messages.append(StrictChatMessage(role=StrictMessageRole.assistant, content=""))
-
-    #     message = ""
-    #     for msg in messages:
-    #         match msg.role:
-    #             case StrictMessageRole.user:
-    #                 message += f"{anthropic.HUMAN_PROMPT} {msg.content}"
-    #             case StrictMessageRole.assistant:
-    #                 message += f"{anthropic.AI_PROMPT} {msg.content}"
-    #             case StrictMessageRole.none:
-    #                 message += f"\n\n{msg.content}"
-    #             case StrictMessageRole.system:
-    #                 # No need to add something infront for system messages
-    #                 message += f"\n\n{msg.content}"
-    #     return message
-
-    # def convert_to_openai_chat(self) -> list[StrictChatMessage]:
-    #     return self.get_strict_messages(model_type=ModelType.chat)
-
-    # def convert_to_llama_chat(self) -> list[StrictChatMessage]:
-    #     # we can do the same things as anthropic chat
-    #     return self.get_strict_messages(model_type=ModelType.chat_with_append_assistant)
-
 
 class InferenceResponse(BaseModel):
     raw_responses: Sequence[str]
