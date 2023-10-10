@@ -56,11 +56,18 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
         # (so that the assistant learns how to start w/o the instruction)
         # 50% of the time, we put the assistant preferred message as the user's instruction
         # (so that the assistant doesn't forget how to continue)
+
+        # Option 1
+        # Ussr: Question
+        # Assistant: Lets think step by step
+        # Option 2
+        # Ussr: Question, Lets think step by step
+
         seed = self.original_biased_task.task_spec.task_hash
         strict: list[StrictChatMessage] = (
             format_for_finetuning(prompt=new_messages)
             if random.Random(seed).random() < 0.5
-            else format_for_openai_chat(prompt=new_messages)
+            else append_assistant_preferred_to_last_user(prompt=new_messages)
         )
         return FinetuneSample(messages=strict)
 

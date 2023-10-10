@@ -27,7 +27,7 @@ def run_experiments(models: list[str]):
         formatters=["ZeroShotCOTUnbiasedFormatter"],
         dataset="cot_testing",
         example_cap=400,
-        allow_failures=True,
+        raise_after_retries=False,
         temperature=1.0,
     )
     # Run for the coup model, but with the coup intervention
@@ -40,7 +40,7 @@ def run_experiments(models: list[str]):
         interventions=[CoupInstruction.name()],
         dataset="cot_testing",
         example_cap=400,
-        allow_failures=True,
+        raise_after_retries=False,
         temperature=1.0,
     )
     # Run for the consistency trained coup model
@@ -56,7 +56,7 @@ def run_experiments(models: list[str]):
         interventions=[CoupInstruction.name()],
         dataset="cot_testing",
         example_cap=400,
-        allow_failures=True,
+        raise_after_retries=False,
         temperature=1.0,
     )
     # Run for the consistency trained model that does not require coup
@@ -69,7 +69,7 @@ def run_experiments(models: list[str]):
         interventions=[None],
         dataset="cot_testing",
         example_cap=400,
-        allow_failures=True,
+        raise_after_retries=False,
         temperature=1.0,
     )
 
