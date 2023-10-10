@@ -64,8 +64,8 @@ def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
         formatters=[
             "ZeroShotCOTUnbiasedFormatter",
         ],
-        dataset="cot_testing",
-        example_cap=400,
+        tasks=["mmlu","john_level_3", "john_level_4", "john_level_5"],
+        example_cap=1000,
         raise_after_retries=False,
         temperature=1.0,
         batch=5,
@@ -191,27 +191,27 @@ def seaborn_line_plot(
 
 if __name__ == "__main__":
     defined_meta = samples_meta()
-    # run_unbiased_acc_experiments(defined_meta)
-    initial_wrong = read_all_metrics(
-        samples=defined_meta,
-        exp_dir="experiments/finetune_2",
-        formatter=ZeroShotInitialWrongFormatter,
-        tasks=COT_TESTING_TASKS,
-    )
-    seaborn_line_plot(initial_wrong, percent_matching=False, title="Accuracy for the initial wrong bias")
-    seaborn_line_plot(initial_wrong, percent_matching=True, title="Percent matching for the initial wrong bias")
-    wrong_few_shot = read_all_metrics(
-        samples=defined_meta,
-        exp_dir="experiments/finetune_2",
-        formatter=WrongFewShotIgnoreMistakesBiasedFormatter,
-        tasks=COT_TESTING_TASKS,
-    )
-    seaborn_line_plot(wrong_few_shot, percent_matching=False, title="Accuracy for the wrong few shot bias")
-    seaborn_line_plot(wrong_few_shot, percent_matching=True, title="Percent matching for the wrong few shot bias")
+    run_unbiased_acc_experiments(defined_meta)
+    # initial_wrong = read_all_metrics(
+    #     samples=defined_meta,
+    #     exp_dir="experiments/finetune_2",
+    #     formatter=ZeroShotInitialWrongFormatter,
+    #     tasks=COT_TESTING_TASKS,
+    # )
+    # seaborn_line_plot(initial_wrong, percent_matching=False, title="Accuracy for the initial wrong bias")
+    # seaborn_line_plot(initial_wrong, percent_matching=True, title="Percent matching for the initial wrong bias")
+    # wrong_few_shot = read_all_metrics(
+    #     samples=defined_meta,
+    #     exp_dir="experiments/finetune_2",
+    #     formatter=WrongFewShotIgnoreMistakesBiasedFormatter,
+    #     tasks=COT_TESTING_TASKS,
+    # )
+    # seaborn_line_plot(wrong_few_shot, percent_matching=False, title="Accuracy for the wrong few shot bias")
+    # seaborn_line_plot(wrong_few_shot, percent_matching=True, title="Percent matching for the wrong few shot bias")
     unbiased = read_all_metrics(
         samples=defined_meta,
         exp_dir="experiments/finetune_2",
         formatter=ZeroShotCOTUnbiasedFormatter,
-        tasks=COT_TESTING_TASKS,
+        tasks=["mmlu","john_level_3", "john_level_4", "john_level_5"],
     )
     seaborn_line_plot(unbiased, percent_matching=False, title="Accuracy for the unbiased bias")
