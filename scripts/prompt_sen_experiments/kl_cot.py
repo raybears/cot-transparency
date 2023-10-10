@@ -45,11 +45,11 @@ assert len(set(FORMATTERS)) == len(FORMATTERS)
 
 MODELS = [
     "gpt-3.5-turbo",
-    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
-    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
-    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
-    # # # "claude-v1",
-    # # # "claude-2",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
+    # # "claude-v1",
+    # # "claude-2",
     # "gpt-4",
 ]
 
@@ -62,7 +62,7 @@ def run():
         example_cap=200,
         exp_dir=EXP_DIR,
         temperature=0,
-        batch=40,
+        batch=80,
         interventions=[None],
         raise_after_retries=False,
         raise_on="all",
