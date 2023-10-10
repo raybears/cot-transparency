@@ -133,25 +133,9 @@ def plotly_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error
 
 
 if __name__ == "__main__":
-    ...
-
-
-if __name__ == "__main__":
     models = [
         "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FU2RR0",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FXkKiP",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FSz24P",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86GTKEjL",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86GvNx2m",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86H2Q1de",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86HI3886",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86HOLLHD",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86HyHsqO",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86I19C4R",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IeDT6F",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IQPMdh",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IUKRdY",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::88DeaE8O"
     ]
     run_claude_vs_gpt_experiments(models=models)
     plot_accuracies_for_model(
