@@ -14,7 +14,7 @@ from scripts.intervention_investigation import plot_for_intervention
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
 from scripts.script_loading_utils import read_all_for_selections
-from stage_one import COT_TESTING_TASKS
+from stage_one import COT_TESTING_TASKS, main
 
 
 class PostHocOptions(str, Enum):
@@ -55,6 +55,21 @@ def read_metric_from_meta(
     return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, percent_matching=percent_matching, accuracy=accuracy)
 
 
+def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
+    models: list[str] = [m.name for m in meta]
+    main(
+        exp_dir="experiments/finetune_2",
+        models=models,
+        formatters=[
+            "ZeroShotCOTUnbiasedFormatter",
+        ],
+        dataset="cot_testing",
+        example_cap=400,
+        raise_after_retries=False,
+        temperature=1.0,
+    )
+
+
 def samples_meta() -> Slist[ModelTrainMeta]:
     # fill this up from wandb https://wandb.ai/raybears/consistency-training?workspace=user-chuajamessh
     all_meta = Slist(
@@ -74,11 +89,11 @@ def samples_meta() -> Slist[ModelTrainMeta]:
                 trained_samples=1000,
                 trained_on=PostHocOptions.normal_cot,
             ),
-            ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86H2Q1de",
-                trained_samples=100,
-                trained_on=PostHocOptions.normal_cot,
-            ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86H2Q1de",
+            #     trained_samples=100,
+            #     trained_on=PostHocOptions.normal_cot,
+            # ),
             # Post hoc
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86bHY8x6",
@@ -95,11 +110,11 @@ def samples_meta() -> Slist[ModelTrainMeta]:
                 trained_samples=1000,
                 trained_on=PostHocOptions.post_hoc,
             ),
-            ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86YRTE3z",
-                trained_samples=100,
-                trained_on=PostHocOptions.post_hoc,
-            ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86YRTE3z",
+            #     trained_samples=100,
+            #     trained_on=PostHocOptions.post_hoc,
+            # ),
             # No COT majority
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86eKwqwy",
@@ -168,6 +183,7 @@ def seaborn_line_plot(
 
 if __name__ == "__main__":
     defined_meta = samples_meta()
+    run_unbiased_acc_experiments(defined_meta)
     initial_wrong = read_all_metrics(
         samples=defined_meta,
         exp_dir="experiments/finetune_2",
