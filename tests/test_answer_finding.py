@@ -79,6 +79,12 @@ def test_extract_latex():
     assert FindIndicatorAfterBreakWord(options).extract(answer) == "B"
 
 
+def test_extract_latex2():
+    answer = r"Therefore, the best answer is $\boxed{\text{(C) }\frac{0}{1}}$."
+    options = ["some random answer" for i in range(2)]
+    assert FindIndicatorAfterBreakWord(options).extract(answer) == "C"
+
+
 def test_cot_extraction():
     test = """First, we start by facing forward.
 The best answer is: (B) False.
