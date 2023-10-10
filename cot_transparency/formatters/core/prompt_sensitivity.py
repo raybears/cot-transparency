@@ -8,9 +8,11 @@ from cot_transparency.data_models.example_base import (
     DataFormatSpec,
     IndicatorSeparator,
     JoinStr,
+    OptionLayout,
     QuestionPrefix,
 )
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import format_unbiased_question
 
@@ -18,11 +20,20 @@ from cot_transparency.formatters.core.unbiased import format_unbiased_question
 import itertools
 from typing import Optional, Self, Type
 
-from cot_transparency.formatters.extraction import extract_answer_looking_for_option, extract_answer_non_cot
-from cot_transparency.model_apis import ModelType
+from cot_transparency.formatters.extraction import (
+    AnswerExtractorPipeline,
+    FindAnswerStringAfterBreakWord,
+    FuzzyMatcher,
+    FindIndicatorAfterBreakWord,
+    FindIndicatorAtStartOfResponse,
+)
+from cot_transparency.apis import ModelType
 
 
 class PromptSenBaseFormatter(StageOneFormatter, ABC):
+    has_none_of_the_above = True
+    is_biased = False
+
     @classmethod
     def name(cls) -> str:
         return f"{cls.__name__}_{str(cls.get_data_format_spec())}"
@@ -42,7 +53,6 @@ class PromptSenBaseFormatter(StageOneFormatter, ABC):
 
 def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[PromptSenBaseFormatter]:
     class CotPromptSenFormatter(PromptSenBaseFormatter):
-        is_biased = False
         is_cot = True
 
         @classmethod
@@ -71,15 +81,15 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
             return output
 
         @staticmethod
-        def parse_answer(
-            response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-        ) -> Optional[str]:
-            assert question is not None
+        def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
             # Inlcude None of the above as we ask the question with none of the above
             options = question.get_options(include_none_of_the_above=True)
-            return extract_answer_looking_for_option(
-                response, dump_failed=False, input_format=data_format_spec, options=options
-            )
+            extractors = [
+                FindAnswerStringAfterBreakWord(options),
+                FindIndicatorAfterBreakWord(options, data_format_spec),
+                FuzzyMatcher(options),
+            ]
+            return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
 
         @classmethod
         def all_formatters(cls) -> dict[str, Type[Self]]:  # type: ignore
@@ -90,7 +100,6 @@ def cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Promp
 
 def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[PromptSenBaseFormatter]:
     class NoCotPromptSenFormatter(PromptSenBaseFormatter):
-        is_biased = False
         is_cot = False
 
         @classmethod
@@ -99,48 +108,32 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Pr
 
         @staticmethod
         def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-            assert model is not None
             question = question.to_variant(data_format_spec)
             formatted_question = format_unbiased_question(question=question.get_parsed_input_with_none_of_the_above())
-            model_type = ModelType.from_model_name(model)
-            ans_prompt = (
-                "Just give your best answer choosing from the options above, do NOT show any reasoning. "
-                'Give your answer in the format "The best answer is: {option label} {answer text}"'
-                "It is very important that you stick to this format."
-            )
-            match model_type:
-                case ModelType.chat:
-                    prompt = f"\n\n{ans_prompt}"
-                    output = [
-                        ChatMessage(role=MessageRole.user, content=formatted_question + prompt),
-                    ]
-                case ModelType.chat_with_append_assistant:
-                    prompt = f"\n\n{ans_prompt}"
-                    output = [
-                        ChatMessage(role=MessageRole.user, content=formatted_question + prompt),
-                        ChatMessage(role=MessageRole.assistant, content="The best answer is: ("),
-                    ]
-                case ModelType.completion:
-                    raise NotImplementedError
+            ans_prompt = "Just give your best answer choosing from the options above, do NOT show any reasoning."
+            prompt = f"{formatted_question}\n\n{ans_prompt}"
+            output = [
+                ChatMessage(role=MessageRole.user, content=prompt),
+                ChatMessage(role=MessageRole.assistant, content="The best answer is: ("),
+            ]
             return output
 
         @staticmethod
-        def parse_answer(
-            response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-        ) -> Optional[str]:
-            assert question is not None
+        def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+            assert model is not None
             # Inlcude None of the above as we ask the question with none of the above
             options = question.get_options(include_none_of_the_above=True)
-            assert model is not None
             match ModelType.from_model_name(model):
                 case ModelType.chat:
-                    return extract_answer_looking_for_option(
-                        response, dump_failed=False, input_format=data_format_spec, options=options
-                    )
+                    extractors = [
+                        FindIndicatorAtStartOfResponse(options, data_format_spec),
+                    ]
+                    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
                 case ModelType.chat_with_append_assistant:
-                    return extract_answer_non_cot(
-                        response, dump_failed=False, input_format=data_format_spec, options=options
-                    )
+                    extractors = [
+                        FindIndicatorAtStartOfResponse(options, data_format_spec),
+                    ]
+                    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
                 case ModelType.completion:
                     raise NotImplementedError
 
@@ -156,6 +149,7 @@ class SensitivityIterVariant(BaseModel):
     question_variant: QuestionPrefix
     join_variant: JoinStr
     indicator_separator: IndicatorSeparator
+    option_layout: OptionLayout
 
 
 def get_iter_variants() -> list[SensitivityIterVariant]:
@@ -163,12 +157,15 @@ def get_iter_variants() -> list[SensitivityIterVariant]:
     question_prefix = [i for i in QuestionPrefix]
     join_str = [i for i in JoinStr]
     sep_variants = [i for i in IndicatorSeparator]
+    option_layouts = [i for i in OptionLayout]
 
-    combinations = itertools.product(choice_variants, question_prefix, join_str, sep_variants)
+    combinations = itertools.product(choice_variants, question_prefix, join_str, sep_variants, option_layouts)
     output = []
-    for c, q, j, s in combinations:
+    for c, q, j, s, o in combinations:
         output.append(
-            SensitivityIterVariant(choice_variant=c, question_variant=q, join_variant=j, indicator_separator=s)
+            SensitivityIterVariant(
+                choice_variant=c, question_variant=q, join_variant=j, indicator_separator=s, option_layout=o
+            )
         )
     return output
 
@@ -183,6 +180,7 @@ def register_cot_prompt_sensitivity_formatters() -> list[Type[PromptSenBaseForma
                     question_variant=variant.question_variant,
                     join_variant=variant.join_variant,
                     indicator_separator=variant.indicator_separator,
+                    option_layout=variant.option_layout,
                 )
             )
         )
@@ -199,6 +197,7 @@ def register_no_cot_prompt_sensitivity_formatters() -> list[Type[PromptSenBaseFo
                     question_variant=variant.question_variant,
                     join_variant=variant.join_variant,
                     indicator_separator=variant.indicator_separator,
+                    option_layout=variant.option_layout,
                 )
             )
         )

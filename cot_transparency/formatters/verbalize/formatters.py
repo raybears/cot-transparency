@@ -1,7 +1,8 @@
 from typing import Optional
 
 from cot_transparency.data_models.data.bbh import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.instructions import (
     NON_COT_ASSISTANT_PROMPT,
@@ -60,10 +61,8 @@ class StanfordBiasedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class StanfordBiasedLabelFormatter(StageOneFormatter):
@@ -84,10 +83,8 @@ class StanfordBiasedLabelFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class StanfordNoCOTFormatter(StageOneFormatter):
@@ -107,9 +104,7 @@ class StanfordNoCOTFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -132,10 +127,8 @@ class StanfordCalibratedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class StanfordTreatmentFormatter(StageOneFormatter):
@@ -168,10 +161,8 @@ class StanfordTreatmentFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class CheckmarkBiasedLabelFormatter(StageOneFormatter):
@@ -190,10 +181,8 @@ class CheckmarkBiasedLabelFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 #
@@ -230,10 +219,8 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class CheckmarkTreatmentFormatter(StageOneFormatter):
@@ -265,10 +252,8 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class CheckmarkNoCOTFormatter(StageOneFormatter):
@@ -288,9 +273,7 @@ class CheckmarkNoCOTFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -310,10 +293,8 @@ class CrossBiasedLabelFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class CrossBiasedFormatter(StageOneFormatter):
@@ -336,10 +317,8 @@ class CrossBiasedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class CrossNoCOTFormatter(StageOneFormatter):
@@ -359,9 +338,7 @@ class CrossNoCOTFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -394,10 +371,8 @@ class CrossTreatmentFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class IThinkAnswerBiasedFormatter(StageOneFormatter):
@@ -418,10 +393,8 @@ class IThinkAnswerBiasedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class IThinkAnswerTreatmentFormatter(StageOneFormatter):
@@ -453,7 +426,5 @@ class IThinkAnswerTreatmentFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)

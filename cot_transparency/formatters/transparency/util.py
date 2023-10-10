@@ -1,9 +1,10 @@
 from typing import Optional, Type, Self
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRole, StrictMessageRole
+from cot_transparency.data_models.messages import MessageRole, StrictMessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.extraction import extract_answer_non_cot, extract_answer
-from cot_transparency.model_apis import ModelType, Prompt
+from cot_transparency.apis import ModelType
 
 
 from copy import deepcopy
@@ -13,10 +14,8 @@ SINGLE_MOST_LIKELY_ANSWER = "The single, most likely answer is: ("
 
 
 def combine_question_with_cot(question: list[ChatMessage], cot_trace: str, model: str) -> list[ChatMessage]:
-    soutput = Prompt(messages=question).get_strict_messages(ModelType.from_model_name(model))
-
     # convert back to ChatMessage, so we can use convert_to_strict_messages at the end
-    output = [ChatMessage(role=MessageRole(msg.role), content=msg.content) for msg in soutput]
+    output = question
 
     # inherit use of roles from the question
     should_use_roles = output[0].role is not MessageRole.none
@@ -24,7 +23,11 @@ def combine_question_with_cot(question: list[ChatMessage], cot_trace: str, model
     if not cot_trace.startswith("\n") and not cot_trace.startswith(" "):
         cot_trace = " " + cot_trace
 
-    if output[-1].role is MessageRole.assistant or output[-1].role is MessageRole.none:
+    if output[-1].role in [MessageRole.assistant, MessageRole.none] or (
+        output[-1].role == MessageRole.assistant_if_completion
+        and ModelType.from_model_name(model) in [ModelType.completion, ModelType.chat_with_append_assistant]
+    ):
+        print("triggering")
         message = f"{output[-1].content}{cot_trace.rstrip()}"
         output.pop()
     else:
@@ -44,9 +47,7 @@ class StageTwoFormatter(PromptFormatter):
     is_intermediate: bool = False
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response)
 
     @classmethod
@@ -90,13 +91,11 @@ class FullCOTFormatter(StageTwoFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         assert model is not None
         match ModelType.from_model_name(model):
             case ModelType.chat:
-                return extract_answer(response)
+                return extract_answer(response, question)
             case ModelType.completion | ModelType.chat_with_append_assistant:
                 return extract_answer_non_cot(response)
 

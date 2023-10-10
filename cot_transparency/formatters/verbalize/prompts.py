@@ -1,6 +1,7 @@
 from slist import Slist
+from cot_transparency.data_models.messages import MessageRole
 
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 
 # ruff: noqa: E501
 

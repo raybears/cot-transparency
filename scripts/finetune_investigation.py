@@ -30,7 +30,7 @@ from scripts.intervention_investigation import (
 )
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-from scripts.simple_model_names import MODEL_SIMPLE_NAMES
+from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 
 
 def make_finetune_graph(
@@ -53,8 +53,8 @@ def make_finetune_graph(
 
     # unbiased acc
     unbiased_plot: PlotInfo = plot_for_intervention(
-        None,
         filtered_read_hashed,
+        intervention=None,
         for_formatters=[unbiased_formatter],
         name_override=f"Unbiased context, {unbiased_model}",
         model=unbiased_model,
@@ -62,8 +62,8 @@ def make_finetune_graph(
 
     plot_dots: Slist[PlotInfo] = Slist(finetuned_models).map(
         lambda m: plot_for_intervention(
-            None,
             filtered_read_hashed,
+            None,
             for_formatters=biased_formatters,
             model=m,
             name_override=model_name_override.get(m, m),

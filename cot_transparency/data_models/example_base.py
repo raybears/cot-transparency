@@ -77,9 +77,15 @@ class ChoiceVariant(str, Enum):
 
 
 class QuestionPrefix(Enum):
-    FULL = "Question:"
-    SHORT = "Q:"
+    """
+    Catted onto the beginning of the question so included trailing space + new lines
+    """
+
+    FULL = "Question: "
+    SHORT = "Q: "
     NONE = None
+    TAG = "<question>\n"
+    PLEASE = "Please answer the following question\n\n"
 
     def __str__(self):
         if self.value is not None:
@@ -90,6 +96,8 @@ class QuestionPrefix(Enum):
 class JoinStr(str, Enum):
     ANS_CHOICES = "\n\nAnswer choices:\n"
     OPTIONS = "\n\nOptions:\n"
+    SELECT = "\n\nSelect from the following options:\n"
+    NONE = ". "
 
 
 class IndicatorSeparator(str, Enum):
@@ -97,17 +105,24 @@ class IndicatorSeparator(str, Enum):
     PAREN = "paren"
 
 
+class OptionLayout(str, Enum):
+    NEWLINE = "newline"
+    SENTENCE = "comma"
+
+
 class DataFormatSpec(BaseModel):
     choice_variant: ChoiceVariant = ChoiceVariant.LETTERS
     question_variant: QuestionPrefix = QuestionPrefix.NONE
     join_variant: JoinStr = JoinStr.ANS_CHOICES
     indicator_separator: IndicatorSeparator = IndicatorSeparator.PAREN
+    option_layout: OptionLayout = OptionLayout.NEWLINE
     model_config = ConfigDict(frozen=True)
 
     def __str__(self):
         return (
             f"{self.choice_variant.name}_{self.question_variant.name}_"
             f"{self.join_variant.name}_{self.indicator_separator.name}"
+            f"_{self.option_layout.name}"
         )
 
     @classmethod
@@ -205,11 +220,13 @@ class DataExampleBase(BaseModel, ABC):
             indicator = choice_variant.answers_list[idx]
             combined = combine_indicator_with_separator(indicator, self.data_format.indicator_separator)
             output.append(f"{combined}{option}")
-        return "\n".join(output)
 
-    @staticmethod
-    def format_options_with_letters(options: list[IndicatorAndOption]) -> str:
-        return "\n".join([f"({option.indicator}) {option.option}" for option in options])
+        # use the option layout to format the options
+        match self.data_format.option_layout:
+            case OptionLayout.NEWLINE:
+                return "\n".join(output)
+            case OptionLayout.SENTENCE:
+                return ", ".join(output)
 
     def get_lettered_options(self) -> list[IndicatorAndOption]:
         options = self._get_options()
@@ -245,7 +262,12 @@ class DataExampleBase(BaseModel, ABC):
         return choice_variant.answers_list[self.bias_idx]
 
     def hash(self) -> str:
-        return deterministic_hash(self.get_parsed_input())
+        """
+        When hashing we return the hash of the example in the default format
+        this is so that you can join on different formats of the same question
+        """
+        normal_variant = self.to_variant(DataFormatSpec())
+        return deterministic_hash(normal_variant.get_parsed_input())
 
     def get_parsed_input_with_none_of_the_above(self) -> str:
         return self.get_parsed_input(include_none_of_the_above=True)
@@ -259,13 +281,8 @@ class DataExampleBase(BaseModel, ABC):
         # check question doesn't start with question or q
         assert not question.lower().startswith("question") or question.lower().startswith("q")
 
-        match self.data_format.question_variant:
-            case QuestionPrefix.FULL:
-                question = f"Question: {question}"
-            case QuestionPrefix.SHORT:
-                question = f"Q: {question}"
-            case QuestionPrefix.NONE:
-                pass
+        # prepend question prefix
+        question = f"{self.data_format.question_variant}{question}"
 
         choices = self.get_options(include_none_of_the_above=include_none_of_the_above)
         choices_str = self._get_options_with_indicator(choices)

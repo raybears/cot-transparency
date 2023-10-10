@@ -3,25 +3,24 @@ import io
 import json
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Mapping
 
 import numpy as np
 import openai
 import pandas as pd
 import wandb
+from openai.error import RateLimitError
 from pydantic import BaseModel
+from retry import retry
 from wandb.sdk.wandb_run import Run
+from cot_transparency.apis.openai import OpenAIChatPrompt
+from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
 
 from cot_transparency.data_models.models import (
-    StrictChatMessage,
-    StrictMessageRole,
     TaskOutput,
-    ChatMessage,
-    MessageRole,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
-from cot_transparency.model_apis import Prompt, ModelType
-from cot_transparency.openai_utils.set_key import set_keys_from_env
+from cot_transparency.apis.openai.set_key import set_keys_from_env
 
 set_keys_from_env()
 
@@ -57,8 +56,8 @@ class FinetuneSample(BaseModel):
         joined = join_assistant_preferred_to_completion(
             messages=prompt_messages, completion=task.inference_output.raw_response
         )
-        strict = Prompt(messages=joined)
-        return FinetuneSample(messages=strict.get_strict_messages(ModelType.chat))
+        prompt = OpenAIChatPrompt(messages=joined)
+        return FinetuneSample(messages=prompt.get_strict_messages())
 
 
 class FinetuneJob(BaseModel):
@@ -89,7 +88,7 @@ def wait_until_finetune_job_is_ready(finetune_job_id: str) -> FinetunedJobResult
 
 
 def list_finetunes() -> None:
-    finetunes = openai.FineTuningJob.list()
+    finetunes = openai.FineTuningJob.list(limit=100)
     print(finetunes)
 
 
@@ -115,7 +114,8 @@ def confirm_to_continue(file_path: Path) -> None:
     print(f"About to upload {file_path_str}. Continue? (y/n)")
     response = input()
     while response not in ["y", "n"]:
-        print("Please enter y or n")
+        print(f"Please enter y or n. You entered {response}")
+        response = input()
     if response == "n":
         exit(0)
     print("Continuing with upload")
@@ -145,7 +145,7 @@ class WandbSyncer:
         print(f"Updating parameters in wandb {params}")
         self.run.config.update(params.model_dump())
 
-    def update_parameters_with_dict(self, params: dict[str, Any]) -> None:
+    def update_parameters_with_dict(self, params: Mapping[str, Any]) -> None:
         print(f"Updating parameters in wandb {params}")
         self.run.config.update(params)
 
@@ -175,6 +175,24 @@ class WandbSyncer:
             if step is not None:
                 step = int(step)
             wandb.log(metrics, step=step)
+
+    def end(self) -> None:
+        self.run.finish()
+
+
+@retry(
+    exceptions=(RateLimitError),
+    delay=60,  # Try again in 60 seconds
+)
+def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParams) -> FinetuneJob:
+    # Keep retrying until we can queue the finetune job
+    finetune_job_resp = openai.FineTuningJob.create(
+        training_file=file_id, model=model, hyperparameters=hyperparameters.model_dump()
+    )
+
+    print(f"Started finetune job. {finetune_job_resp}")
+    parsed_job_resp: FinetuneJob = FinetuneJob.model_validate(finetune_job_resp)
+    return parsed_job_resp
 
 
 def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: Optional[WandbSyncer] = None) -> str:
@@ -208,21 +226,18 @@ def run_finetune(params: FineTuneParams, samples: list[FinetuneSample], syncer: 
     print(f"Starting file upload. {file_id}")
     wait_until_uploaded_file_id_is_ready(file_id=file_id)
     print(f"Uploaded file to openai. {file_upload_resp}")
-    finetune_job_resp = openai.FineTuningJob.create(
-        training_file=file_id, model=params.model, hyperparameters=params.hyperparameters.model_dump()
-    )
-
+    finetune_job_resp = queue_finetune(file_id=file_id, model=params.model, hyperparameters=params.hyperparameters)
     print(f"Started finetune job. {finetune_job_resp}")
-    parsed_job_resp: FinetuneJob = FinetuneJob.model_validate(finetune_job_resp)
 
     if syncer:
-        syncer.update_finetune_job_id(finetune_job_id=parsed_job_resp.id)
-    result: FinetunedJobResults = wait_until_finetune_job_is_ready(finetune_job_id=parsed_job_resp.id)
+        syncer.update_finetune_job_id(finetune_job_id=finetune_job_resp.id)
+    result: FinetunedJobResults = wait_until_finetune_job_is_ready(finetune_job_id=finetune_job_resp.id)
     model_id = result.fine_tuned_model
     print(f"Fine tuned model id: {model_id}. You can now use this model in the API")
     if syncer:
         syncer.update_finetune_model_id(finetune_model_id=model_id)
         syncer.update_training_results(results_id=result.result_files[0])
+        syncer.end()
     return model_id
 
 
@@ -231,7 +246,10 @@ def run_finetune_with_wandb(
     samples: list[FinetuneSample],
     project_name: str = "consistency-training",
     notes: Optional[str] = None,
+    more_config: Mapping[str, Any] = {},
 ) -> str:
+    syncer = WandbSyncer(project_name=project_name, notes=notes)
+    syncer.update_parameters_with_dict(params=more_config)
     """Default wandb syncer that syncs to consistency-training"""
     return run_finetune(params=params, samples=samples, syncer=WandbSyncer(project_name=project_name, notes=notes))
 

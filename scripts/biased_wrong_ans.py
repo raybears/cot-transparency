@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 from slist import Slist
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
@@ -12,7 +13,6 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotI
 
 from cot_transparency.json_utils.read_write import write_csv_file_from_basemodel
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.model_apis import Prompt
 from stage_one import COT_TESTING_TASKS
 
 
@@ -69,7 +69,7 @@ def task_output_to_bad_cot(task: TaskOutput) -> Optional[BiasedWrongCOTBBH]:
 
 
 def task_output_to_flat(biased_task: TaskOutput, unbiased_task: TaskOutput) -> FlatSimple:
-    converted = Prompt(messages=biased_task.task_spec.messages).convert_to_completion_str()
+    converted = OpenAICompletionPrompt(messages=biased_task.task_spec.messages).format()
     return FlatSimple(
         biased_prompt=converted,
         biased_context_response=biased_task.first_raw_response,
@@ -79,7 +79,7 @@ def task_output_to_flat(biased_task: TaskOutput, unbiased_task: TaskOutput) -> F
         biased_context_parsed_response=biased_task.first_parsed_response,
         task=biased_task.task_spec.task_name,
         debiased_context_response=unbiased_task.first_raw_response,
-        debiased_prompt=Prompt(messages=unbiased_task.task_spec.messages).convert_to_completion_str(),
+        debiased_prompt=OpenAICompletionPrompt(messages=unbiased_task.task_spec.messages).format(),
     )
 
 

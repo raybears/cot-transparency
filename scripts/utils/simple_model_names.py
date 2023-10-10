@@ -1,7 +1,8 @@
 from typing import Mapping
 
 MODEL_SIMPLE_NAMES: Mapping[str, str] = {
-    "gpt-3.5-turbo": "gpt-3.5-turbo ",
+    "gpt-4": "gpt-4",
+    "gpt-3.5-turbo": "gpt-3.5-turbo",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::7ryTmccr": "Finetuned 6000 COTs with unbiased questions",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::7semB2r8": "Finetuned 6000 COTs with 3 different types of biased questions,<br> leaving out bias of Wrong Fewshot",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::7uWGH06b": "Finetuned 6000 COTs with 5 different types of biased questions,<br> leaving out bias of Wrong Fewshot",

@@ -2,7 +2,7 @@ from collections import defaultdict
 from enum import Enum
 from typing import Any, Callable, Optional, Union
 import fire
-from cot_transparency.model_apis import Prompt
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.models import (
     TaskSpec,
     StageTwoTaskOutput,
@@ -198,7 +198,7 @@ class GUI:
         # Insert new text
         output = experiment[self.task_hashes[self.task_hash_idx]][self.index]
 
-        formatted_output = Prompt(messages=output.task_spec.messages).convert_to_completion_str()
+        formatted_output = OpenAICompletionPrompt(messages=output.task_spec.messages).format()
         self.config_text.insert(END, str(output.task_spec.inference_config.model_dump_json(indent=2)))
         self.messages_text.insert(END, formatted_output)
         self.output_text.insert(END, str(output.first_raw_response))

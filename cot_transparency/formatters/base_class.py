@@ -3,18 +3,17 @@ from typing import Optional, Self, Set, Type
 
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.example_base import DataFormatSpec
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 
 
 class PromptFormatter(ABC):
     is_biased: Optional[bool] = None
     is_cot: bool = True
+    has_none_of_the_above: bool = False
 
     @staticmethod
     @abstractmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         raise NotImplementedError
 
     @classmethod

@@ -2,15 +2,18 @@ import random
 
 from pydantic import BaseModel
 from slist import Slist
+from cot_transparency.apis.base import Prompt
+from cot_transparency.apis.openai import OpenAIChatPrompt
+from cot_transparency.apis.openai.formatting import format_for_finetuning, append_assistant_preferred_to_last_user
+from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage
 
-from cot_transparency.data_models.models import ChatMessage, TaskOutput, MessageRole, StrictChatMessage
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.assistant_completion_utils import (
     add_to_final_assistant,
     prepend_to_front_system_message,
 )
 from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP, UNBIASED_CONTROL_TOKEN, BIASED_CONTROL_TOKEN
-from cot_transparency.model_apis import Prompt, ModelType, format_for_finetuning, format_for_openai_chat
-from cot_transparency.openai_utils.finetune import FinetuneSample, join_assistant_preferred_to_completion
+from cot_transparency.apis.openai.finetune import FinetuneSample, join_assistant_preferred_to_completion
 
 
 class BiasedQuestionUnbiasedCOT(BaseModel):
@@ -42,7 +45,29 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
         strict: list[StrictChatMessage] = (
             format_for_finetuning(prompt=new_messages)
             if random.Random(seed).random() < 0.5
-            else format_for_openai_chat(prompt=new_messages)
+            else append_assistant_preferred_to_last_user(prompt=new_messages)
+        )
+        return FinetuneSample(messages=strict)
+
+    def to_finetune_sample_using_biased_completion(self) -> FinetuneSample:
+        prompt_messages: list[ChatMessage] = self.biased_question
+        new_messages = prompt_messages + [ChatMessage(role=MessageRole.assistant, content=self.incorrect_full_response)]
+        # 50% of the time, we put the assistant preferred message as the start of the assistant
+        # (so that the assistant learns how to start w/o the instruction)
+        # 50% of the time, we put the assistant preferred message as the user's instruction
+        # (so that the assistant doesn't forget how to continue)
+
+        # Option 1
+        # Ussr: Question
+        # Assistant: Lets think step by step
+        # Option 2
+        # Ussr: Question, Lets think step by step
+
+        seed = self.original_biased_task.task_spec.task_hash
+        strict: list[StrictChatMessage] = (
+            format_for_finetuning(prompt=new_messages)
+            if random.Random(seed).random() < 0.5
+            else append_assistant_preferred_to_last_user(prompt=new_messages)
         )
         return FinetuneSample(messages=strict)
 
@@ -54,7 +79,7 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
         strict: list[StrictChatMessage] = (
             format_for_finetuning(prompt=new_messages)
             if random.Random(seed).random() < 0.5
-            else format_for_openai_chat(prompt=new_messages)
+            else append_assistant_preferred_to_last_user(prompt=new_messages)
         )
         return FinetuneSample(messages=strict)
 
@@ -68,20 +93,20 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
         added_system_biased: list[ChatMessage] = prepend_to_front_system_message(
             messages=prompt_messages, prepend=f"{BIASED_CONTROL_TOKEN} "
         )
-        strict_unbiased = Prompt(
+        strict_unbiased = OpenAIChatPrompt(
             messages=join_assistant_preferred_to_completion(
                 messages=added_system_unbiased, completion=self.correct_full_response
             )
         )
-        strict_biased = Prompt(
+        strict_biased = OpenAIChatPrompt(
             messages=join_assistant_preferred_to_completion(
                 messages=added_system_biased, completion=self.incorrect_full_response
             )
         )
         return Slist(
             [
-                FinetuneSample(messages=strict_unbiased.get_strict_messages(ModelType.chat)),
-                FinetuneSample(messages=strict_biased.get_strict_messages(ModelType.chat)),
+                FinetuneSample(messages=strict_unbiased.get_strict_messages()),
+                FinetuneSample(messages=strict_biased.get_strict_messages()),
             ]
         )
 

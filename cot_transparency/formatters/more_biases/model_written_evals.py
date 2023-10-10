@@ -1,7 +1,8 @@
 from typing import Optional
 
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
@@ -21,6 +22,7 @@ class ModelWrittenBiasedFormatter(ZeroShotUnbiasedFormatter):
 class ModelWrittenBiasedWithNoneFormatter(StageOneFormatter):
     is_biased = True
     is_cot = False
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -32,15 +34,14 @@ class ModelWrittenBiasedWithNoneFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
 class ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter(StageOneFormatter):
     is_biased = True
     is_cot = False
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -60,9 +61,7 @@ class ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter(StageOneFormatter)
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -75,6 +74,7 @@ class ModelWrittenBiasedCOTFormatter(ZeroShotCOTUnbiasedFormatter):
 
 class ModelWrittenBiasedCOTWithNoneFormatter(StageOneFormatter):
     is_biased = True
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -86,14 +86,13 @@ class ModelWrittenBiasedCOTWithNoneFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class ModelWrittenBiasedCOTWithNoneAssistantFormatter(StageOneFormatter):
     is_biased = True
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -109,14 +108,13 @@ class ModelWrittenBiasedCOTWithNoneAssistantFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter(StageOneFormatter):
     is_biased = True
+    has_none_of_the_above = True
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
@@ -136,7 +134,5 @@ class ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter(StageOneFormatt
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)

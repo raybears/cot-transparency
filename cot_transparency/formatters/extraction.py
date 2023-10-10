@@ -1,12 +1,14 @@
+from abc import ABC, abstractmethod
 import re
 from string import ascii_uppercase
-from typing import Optional
+from typing import Optional, Sequence
+from fuzzywuzzy import fuzz
 
 
 from cot_transparency.data_models.example_base import (
     ChoiceVariant,
+    DataExampleBase,
     DataFormatSpec,
-    combine_indicator_with_separator,
 )
 from cot_transparency.data_models.example_base import IndicatorAndOption
 
@@ -34,81 +36,219 @@ BREAK_WORDS: list[str] = [
 ]
 
 
-def extract_answer(model_answer: str, dump_failed: bool = False) -> Optional[str]:
+class AnswerExtractor(ABC):
+    @abstractmethod
+    def extract(
+        self,
+        model_answer: str,
+        dump_failed: bool = False,
+    ) -> Optional[str]:
+        """
+        Interface for answer extracting
+
+        Args:
+            model_answer (str): string response from the model
+            dump_failed (bool, optional): whether to dump failed examples to a text file. Defaults to False.
+
+        Returns:
+            Optional[str]: returns string if found, None otherwise
+        """
+
+        raise NotImplementedError
+
+
+class AnswerExtractorPipeline:
+    def __init__(self, extractors: Sequence[AnswerExtractor]):
+        self.extractors = extractors
+
+    def run_pipeline(
+        self,
+        model_answer: str,
+        dump_failed: bool = False,
+    ) -> Optional[str]:
+        for extractor in self.extractors:
+            answer = extractor.extract(model_answer, dump_failed)
+            if answer is not None:
+                return answer
+        return None
+
+
+class FindIndicatorAfterBreakWord(AnswerExtractor):
     """
     Find answers in strings of the form "best answer is: (X)" and similar variants.
     """
 
-    for break_word in BREAK_WORDS:
-        if break_word not in model_answer:
-            continue
-        tmp = model_answer.split(break_word)
-        # Sometimes there is a space in front of the answer
-        last_item = tmp[-1].lstrip()
+    def __init__(self, options: list[str], input_format: DataFormatSpec = DataFormatSpec()):
+        """
+        Args:
+            options (list[str]): list of strings that are the literal answer options without indicators
+            input_format (DataFormatSpec, optional): format of the question. Defaults to DataFormatSpec().
+        """
 
-        if not last_item:
-            continue
+        self.options = options
+        self.input_format = input_format
 
-        ans = last_item[0]
-        if ans in ascii_uppercase:
-            return ans
-    if dump_failed:
-        with open("failed_answers.txt", "a") as f:
-            f.write(model_answer + "\n")
-    return None
+    def extract(
+        self,
+        model_answer: str,
+        dump_failed: bool = False,
+    ) -> Optional[str]:
+        for break_word in BREAK_WORDS:
+            if break_word not in model_answer:
+                continue
+            tmp = model_answer.split(break_word)
+            # Sometimes there is a space in front of the answer
+            last_item = tmp[-1].lstrip()
+
+            if not last_item:
+                continue
+
+            # match single indicator or if it has a space, closing parenthesis, dot after it
+            possible_indicators = self.input_format.choice_variant.answers_list[: len(self.options)]
+            # also add lowercase variants
+            possible_indicators_lower = [indicator.lower() for indicator in possible_indicators]
+            possible_indicators_re = "|".join(possible_indicators + possible_indicators_lower)
+
+            pattern = rf"^({possible_indicators_re})(\s|\)|\.|$)+.*$"
+            pattern = rf"^(?:[Oo]ption |[Ss]tatement )?\(?({possible_indicators_re})\)?(\s|\)|\.|$)+.*$"
+
+            match = re.search(pattern, last_item)
+            if match:
+                candidate_ans = match.group(1)
+                if candidate_ans in possible_indicators:
+                    idx = possible_indicators.index(candidate_ans)
+                    return ascii_uppercase[idx]
+                elif candidate_ans in possible_indicators_lower:
+                    idx = possible_indicators_lower.index(candidate_ans)
+                    return ascii_uppercase[idx]
+
+        if dump_failed:
+            with open("failed_answers.txt", "a") as f:
+                f.write(model_answer + "\n")
+        return None
 
 
-def extract_answer_looking_for_option(
-    model_answer: str, dump_failed=False, input_format=DataFormatSpec(), options: Optional[list[str]] = None
-) -> Optional[str]:
-    for break_word in BREAK_WORDS:
-        if break_word not in model_answer:
-            continue
-        tmp = model_answer.split(break_word)
+class FindIndicatorAtStartOfResponse(AnswerExtractor):
+    """
+    Find answers in strings where the indicator comes at the start
+    e.g. "A) answer or 2. answer or (B) answer"
+    """
 
-        # first see if the literal answer string is in the list
-        if options is not None:
-            for i, option in enumerate(options):
+    def __init__(self, options: list[str], input_format: DataFormatSpec = DataFormatSpec()):
+        """
+        Args:
+            options (list[str]): list of strings that are the literal answer options without indicators
+            input_format (DataFormatSpec, optional): format of the question. Defaults to DataFormatSpec().
+        """
+        self.options = options
+        self.input_format = input_format
+
+    def extract(
+        self,
+        model_answer: str,
+        dump_failed: bool = False,
+    ) -> Optional[str]:
+        # match single indicator or if it has a space, closing parenthesis, dot after it
+        possible_indicators = self.input_format.choice_variant.answers_list[: len(self.options)]
+        # also add lowercase variants
+        possible_indicators_lower = [indicator.lower() for indicator in possible_indicators]
+        possible_indicators_re = "|".join(possible_indicators + possible_indicators_lower)
+
+        pattern = rf"^\(?({possible_indicators_re})(\s|\)|\.|$)+.*$"
+
+        match = re.search(pattern, model_answer)
+        if match:
+            candidate_ans = match.group(1)
+            if candidate_ans in possible_indicators:
+                idx = possible_indicators.index(candidate_ans)
+                return ascii_uppercase[idx]
+            elif candidate_ans in possible_indicators_lower:
+                idx = possible_indicators_lower.index(candidate_ans)
+                return ascii_uppercase[idx]
+
+        if dump_failed:
+            with open("failed_answers.txt", "a") as f:
+                f.write(model_answer + "\n")
+        return None
+
+
+class FindAnswerStringAfterBreakWord(AnswerExtractor):
+    """
+    This Extractor finds literal answer strings after break words (does not have to be immediatley after)
+    """
+
+    def __init__(self, options: list[str]):
+        """
+        Args:
+            options (list[str]): list of strings that are the literal answer options without indicators
+
+        """
+        self.options = options
+
+    def extract(
+        self,
+        model_answer: str,
+        dump_failed: bool = False,
+    ) -> Optional[str]:
+        for break_word in BREAK_WORDS:
+            if break_word not in model_answer:
+                continue
+            tmp = model_answer.split(break_word)
+
+            # see if the literal answer string is in the list
+            for i, option in enumerate(self.options):
                 # remove trailing periods - sometimes the model doesn't copy them.
                 option_stripped = option.strip().rstrip(".")
                 to_match_stripped = tmp[-1].strip().rstrip(".")
                 if option_stripped in to_match_stripped:
                     return ascii_uppercase[i]
 
-        ans_list = input_format.choice_variant.answers_list
-        combined = [combine_indicator_with_separator(ans, input_format.indicator_separator).strip() for ans in ans_list]
+        if dump_failed:
+            with open("failed_answers.txt", "a") as f:
+                f.write(model_answer + "\n")
+        return None
 
-        for i, ans_indicator in enumerate(combined):
-            if ans_indicator in tmp[-1]:
-                idx = combined.index(ans_indicator)
-                return ascii_uppercase[idx]
 
-        # also allow matching on the answer text without separators
-        parsed_ans_without_separator = tmp[-1].replace(")", "").replace(".", "").strip()
-        for ans_indicator in ans_list:
-            if ans_indicator == parsed_ans_without_separator:
-                idx = ans_list.index(ans_indicator)
-                return ascii_uppercase[idx]
+class FuzzyMatcher(AnswerExtractor):
+    def __init__(self, options: list[str], match_threshold: int = 84):
+        self.options = options
+        self.match_threshold = match_threshold
 
-        # match on the indicator itself, if it is a separate word by itself
-        tokenized = tmp[-1].split(" ")
-        maybe_first_token = tokenized[0] if tokenized else None
-        if maybe_first_token in ans_list:
-            idx = ans_list.index(maybe_first_token)
-            return ascii_uppercase[idx]
+    def extract(
+        self,
+        model_answer: str,
+        dump_failed: bool = False,
+    ) -> Optional[str]:
+        if "answer is" in model_answer:
+            model_answer = model_answer.split("answer is")[1]
+        else:
+            return None
 
-        for ans in ans_list:
-            # match if the ans is in a \textbf{()} box with optional parentheses
-            pattern = r"\\text(bf)?{{\s*\({}\)?\}}".format(ans)
-            match = re.search(pattern, tmp[-1])
-            if match:
-                idx = ans_list.index(ans)
-                return ascii_uppercase[idx]
+        # fuzzy match model_answer with options using fuzzywuzzy and choose the best match
+        fuzz_scores = []
+        for option in self.options:
+            fuzz_scores.append(fuzz.ratio(model_answer, option))  # type: ignore
 
-    if dump_failed:
-        with open("failed_answers.txt", "a") as f:
-            f.write(model_answer + "\n")
-    return None
+        # if the best match is above a certain threshold, return the answer
+        if max(fuzz_scores) > self.match_threshold:
+            return ascii_uppercase[fuzz_scores.index(max(fuzz_scores))]  # type: ignore
+
+
+def extract_answer(response: str, question: DataExampleBase, dump_failed: bool = False) -> Optional[str]:
+    """
+    This is a legacy method to find answers that use letters, recomended to use AnswerExtractorPipeline directly instead
+    """
+
+    options = question.get_options()
+    input_format = question.data_format
+    extractors = [
+        FindIndicatorAfterBreakWord(options, input_format),
+    ]
+    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed)
+
+
+def extract_answer_looking_for_option():
+    raise NotImplementedError("This is deprecated, use AnswerExtractorPipeline instead")
 
 
 def extract_answer_non_cot(

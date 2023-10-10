@@ -2,10 +2,12 @@ import random
 from typing import Optional
 
 from slist import Slist
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage, MessageRole, TaskOutput
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.extraction import (
@@ -18,7 +20,6 @@ from cot_transparency.formatters.instructions import (
     NON_COT_ASSISTANT_PROMPT,
 )
 from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
-from cot_transparency.model_apis import Prompt, ModelType
 
 
 def format_task_output(task: TaskOutput) -> str:
@@ -30,7 +31,7 @@ def format_task_output(task: TaskOutput) -> str:
     # get the ground truth from the task
     ground_truth = base.ground_truth
     # format it
-    formatted_str = Prompt(messages=formatted).convert_to_completion_str(model_type=ModelType.completion)
+    formatted_str = OpenAICompletionPrompt(messages=formatted).format()
     return (formatted_str + ground_truth + ")").strip()
 
 
@@ -41,7 +42,7 @@ def wrongly_labelled_biased_question(question: DataExampleBase) -> str:
     # use the biased answer
     biased_ans = question.biased_ans
     # format it
-    formatted_str = Prompt(messages=formatted).convert_to_completion_str(model_type=ModelType.completion)
+    formatted_str = OpenAICompletionPrompt(messages=formatted).format()
     return (formatted_str + biased_ans + ")").strip()
 
 
@@ -77,10 +78,8 @@ class WrongFewShotBiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class WrongFewShotIgnoreMistakesBiasedFormatter(StageOneFormatter):
@@ -103,10 +102,8 @@ class WrongFewShotIgnoreMistakesBiasedFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
-        return extract_answer(response, dump_failed=False)
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class WrongFewShotIgnoreMistakesBiasedNoCOTFormatter(StageOneFormatter):
@@ -128,7 +125,5 @@ class WrongFewShotIgnoreMistakesBiasedNoCOTFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: Optional[DataExampleBase] = None, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)

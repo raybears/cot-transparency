@@ -5,9 +5,13 @@ from functools import wraps
 from typing import Optional, Callable, TypeVar, Protocol
 
 import tiktoken
-from cot_transparency.data_models.models import OpenaiInferenceConfig, StrictChatMessage
+from cot_transparency.data_models.messages import StrictChatMessage
+from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.util import setup_logger
 
 exit_event = threading.Event()
+
+rate_limit_logger = setup_logger("rate_limit_logger", logging.INFO)
 
 
 class LeakyBucketRateLimiter:
@@ -86,7 +90,7 @@ class CallingModelFunction(Protocol[T]):
 
 
 def token_rate_limiter(
-    tokens_per_minute: int, logger: Optional[logging.Logger] = None
+    tokens_per_minute: int, logger: Optional[logging.Logger] = rate_limit_logger
 ) -> Callable[[CallingModelFunction[T]], CallingModelFunction[T]]:
     rate_limiter = LeakyBucketRateLimiter(tokens_per_minute, logger=logger)
 

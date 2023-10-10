@@ -1,6 +1,6 @@
 from cot_transparency.formatters.core.prompt_sensitivity_map import no_cot_sensitivity_formatters
 from scripts.prompt_sensitivity_plotly import prompt_metrics_plotly
-from scripts.simple_model_names import MODEL_SIMPLE_NAMES
+from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 from stage_one import COT_TESTING_TASKS, main
 
 if __name__ == "__main__":
@@ -14,6 +14,7 @@ if __name__ == "__main__":
     main(
         dataset="cot_testing",
         formatters=[f.name() for f in no_cot_sensitivity_formatters],
+        interventions=[None],
         example_cap=100,
         models=models,
         exp_dir="experiments/sensitivity",

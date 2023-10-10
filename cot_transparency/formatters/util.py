@@ -2,8 +2,9 @@ from functools import lru_cache
 import random
 from typing import Optional
 from cot_transparency.data_models.example_base import VALID_ANSWERS, MultipleChoiceAnswer
+from cot_transparency.data_models.messages import MessageRole
 
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 
 
 def split_anthropic_style_text(text: str) -> list[tuple[ChatMessage, ChatMessage]]:

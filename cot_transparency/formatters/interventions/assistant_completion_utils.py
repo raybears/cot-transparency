@@ -1,4 +1,5 @@
-from cot_transparency.data_models.models import ChatMessage, MessageRole
+from cot_transparency.data_models.messages import MessageRole
+from cot_transparency.data_models.messages import ChatMessage
 
 
 def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> list[ChatMessage]:
@@ -10,6 +11,26 @@ def add_to_final_assistant(messages: list[ChatMessage], new_message: str) -> lis
     else:
         new_list.append(ChatMessage(role=MessageRole.assistant, content=new_message))
     return new_list
+
+
+def remove_system_message(messages: list[ChatMessage]) -> list[ChatMessage]:
+    """Removes the system message from the list of messages."""
+    return [m for m in messages if m.role != MessageRole.system]
+
+
+def add_to_front_system_message(messages: list[ChatMessage], new_message: str) -> list[ChatMessage]:
+    """Adds to the first system message (which should be the first message)."""
+    has_system_message = messages[0].role == MessageRole.system
+    if not has_system_message:
+        return [ChatMessage(role=MessageRole.system, content=new_message)] + messages
+    else:
+        new = []
+        for idx, m in enumerate(messages):
+            if idx == 0:
+                new.append(ChatMessage(role=MessageRole.system, content=new_message + m.content))
+            else:
+                new.append(m)
+        return new
 
 
 def prepend_to_front_first_user_message(messages: list[ChatMessage], prepend: str) -> list[ChatMessage]:

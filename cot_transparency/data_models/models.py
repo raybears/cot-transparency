@@ -1,115 +1,23 @@
 """Contains models for all objects that are loaded / saved to experiment jsons"""
 
-from enum import Enum
 from pathlib import Path
 
 
-from pydantic import BaseModel, conlist, Field, AliasChoices, ConfigDict
+from pydantic import BaseModel, Field, AliasChoices
 
-from typing import Optional, Union, Any, Type
+from typing import Optional, Any, Type
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data import task_name_to_data_example
+from cot_transparency.data_models.messages import ChatMessage
 
 from cot_transparency.util import deterministic_hash
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, GenericDataExample
-
-
-class HashableBaseModel(BaseModel):
-    def d_hash(self) -> str:
-        as_json = self.model_dump_json()
-        return deterministic_hash(as_json)
-
-
-def is_openai_finetuned(model_name: str) -> bool:
-    # example name is ft:gpt-3.5-turbo-0613:academicsnyuperez::7rFFFeZQ
-    return "ft:gpt" in model_name or ":ft" in model_name
-
-
-class OpenaiInferenceConfig(HashableBaseModel):
-    # Config for openai
-    model: str
-    temperature: float
-    top_p: Optional[float]
-    max_tokens: int
-    frequency_penalty: float = 0.0
-    presence_penalty: float = 0.0
-    stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
-
-    def is_openai_finetuned(self) -> bool:
-        return is_openai_finetuned(self.model)
-
-
-class MessageRole(str, Enum):
-    user = "user"
-    system = "system"
-    assistant = "assistant"
-    # If you are OpenAI chat, you need to add this back into the previous user message
-    # Anthropic can handle it as per normal like an actual assistant
-    assistant_if_completion = "assistant_preferred"
-    # none is designed for completion tasks where no role / tag will be added
-    none = "none"
-
-
-class StrictMessageRole(str, Enum):
-    # Stricter set of roles that doesn't allow assistant_preferred
-    user = "user"
-    system = "system"
-    assistant = "assistant"
-    # none is designed for completion tasks where no role / tag will be added
-    none = "none"
-
-
-class ChatMessage(HashableBaseModel):
-    role: MessageRole
-    content: str
-    model_config = ConfigDict(frozen=True)
-
-    def __str__(self) -> str:
-        return f"{self.role}: {self.content}"
-
-    def remove_role(self) -> "ChatMessage":
-        return ChatMessage(role=MessageRole.none, content=self.content)
-
-    def add_question_prefix(self) -> "ChatMessage":
-        if self.content.startswith("Question: "):
-            return self
-        return ChatMessage(role=self.role, content=f"Question: {self.content}")
-
-    def add_answer_prefix(self) -> "ChatMessage":
-        if self.content.startswith("Answer: "):
-            return self
-        return ChatMessage(role=self.role, content=f"Answer: {self.content}")
-
-
-class StrictChatMessage(HashableBaseModel):
-    role: StrictMessageRole
-    content: str
-    model_config = ConfigDict(frozen=True)
-
-    def __str__(self) -> str:
-        return f"{self.role}: {self.content}"
 
 
 class ModelOutput(BaseModel):
     raw_response: str
     # We don't have a suitable response
     parsed_response: Optional[str]
-
-
-def deterministic_task_hash(
-    task_name: str,
-    messages: list[ChatMessage] | list[StrictChatMessage],
-    model_config: OpenaiInferenceConfig,
-    repeat_idx: int = 0,
-) -> str:
-    hashes: str = ""
-    if repeat_idx > 0:
-        hashes += str(repeat_idx)
-    hashes += task_name
-    hashes += model_config.d_hash()
-    for message in messages:
-        hashes += message.d_hash()
-
-    return deterministic_hash(hashes)
 
 
 class BaseTaskSpec(BaseModel):
@@ -141,7 +49,23 @@ class TaskSpec(BaseTaskSpec):
         return data_type(**self.data_example)
 
     def uid(self) -> str:
-        return deterministic_task_hash(self.task_name, self.messages, self.inference_config, self.repeat_idx)
+        """
+        This hashes everything that is sent to the model, AND the repeats
+        """
+        model_inputs_hash = self.hash_of_inputs()
+        return deterministic_hash(model_inputs_hash + str(self.repeat_idx))
+
+    def hash_of_inputs(self) -> str:
+        """
+        This hashes everything that is sent to the model, thus it doesn't include the repeats
+        """
+        hashes: str = ""
+        hashes += self.task_name
+        hashes += self.inference_config.d_hash()
+        for message in self.messages:
+            hashes += message.d_hash()
+
+        return hashes
 
     def task_hash_with_repeat(self) -> str:
         return deterministic_hash(self.task_hash + str(self.repeat_idx))
@@ -149,6 +73,20 @@ class TaskSpec(BaseTaskSpec):
     def get_data_example_obj(self) -> DataExampleBase:
         DataExample = task_name_to_data_example(self.task_name)
         return self.read_data_example_or_raise(DataExample)
+
+    @property
+    def n_options_given(self) -> int:
+        """
+        Returns the number of options that were presented to the model
+        automatically handles if none of the above was provided
+        """
+        data_example_obj = self.get_data_example_obj()
+        formatter_name = self.formatter_name
+        from cot_transparency.formatters import name_to_stage1_formatter  # avoid circular import
+
+        formatter_type = name_to_stage1_formatter(formatter_name)
+        n_options = len(data_example_obj.get_options(include_none_of_the_above=formatter_type.has_none_of_the_above))
+        return n_options
 
 
 class BaseTaskOuput(BaseModel):
@@ -160,6 +98,7 @@ class TaskOutput(BaseTaskOuput):
     # This is one single experiment
     task_spec: TaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+    response_idx: int = 0
 
     @property
     def bias_on_wrong_answer(self) -> bool:
@@ -181,12 +120,31 @@ class TaskOutput(BaseTaskOuput):
     def first_raw_response(self) -> str:
         return self.inference_output.raw_response
 
+    def reparsed_response(self) -> Optional[str]:
+        """
+        Reparse the response using the formatters incase they have been updated
+        If they have been updated, the the results of this may differ from calling
+        self.inference_output.parsed_response as that is loaded from the json
+        """
+        formatter_name = self.task_spec.formatter_name
+        from cot_transparency.formatters import name_to_stage1_formatter  # avoid circular import
+
+        formatter_type = name_to_stage1_formatter(formatter_name)
+        data_example_obj = self.task_spec.get_data_example_obj()
+        return formatter_type.parse_answer(
+            self.inference_output.raw_response,
+            model=self.task_spec.inference_config.model,
+            question=data_example_obj,
+        )
+
     def task_spec_uid(self) -> str:
         return self.task_spec.uid()
 
     def uid(self) -> str:
         inp = self.task_spec_uid()
         response = self.inference_output
+        if self.response_idx != 0:
+            inp += str(self.response_idx)
         return deterministic_hash(inp + response.raw_response)
 
 
@@ -273,19 +231,20 @@ class StageTwoTaskSpec(BaseTaskSpec):
     n_steps_in_cot_trace: Optional[int] = None
 
     def uid(self) -> str:
-        task_name = self.stage_one_output.task_spec.task_name
         original_cot = self.trace_info.original_cot
-        stage_one_repeat = self.stage_one_output.task_spec.repeat_idx
-        h = deterministic_task_hash(task_name, self.messages, self.inference_config, repeat_idx=stage_one_repeat)
+        h = self.stage_one_output.task_spec.uid()
         return deterministic_hash(h + "".join(original_cot))
 
 
 class StageTwoTaskOutput(BaseTaskOuput):
     task_spec: StageTwoTaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+    response_idx: int = 0
 
     def uid(self) -> str:
         inp = self.task_spec.uid()
+        if self.response_idx != 0:
+            inp += str(self.response_idx)
         return deterministic_hash(inp + self.inference_output.raw_response)
 
     @property

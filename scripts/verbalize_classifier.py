@@ -4,13 +4,12 @@ from typing import Literal, Optional, Sequence, Type
 
 from pydantic import BaseModel
 from slist import Slist
+from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
 from cot_transparency.data_models.models import (
-    ChatMessage,
-    MessageRole,
     TaskOutput,
     ExperimentJsonFormat,
-    OpenaiInferenceConfig,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
@@ -20,8 +19,8 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
-from cot_transparency.model_apis import call_model_api
-from cot_transparency.openai_utils.set_key import set_keys_from_env
+from cot_transparency.apis import call_model_api
+from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.tasks import read_done_experiment
 from scripts.calibrate import read_all_for_formatters
 from scripts.multi_accuracy import AccuracyOutput, accuracy_outputs_from_inputs, AccuracyInput, PlotInfo
@@ -112,7 +111,7 @@ def make_classification_task(
 
 
 def run_classification_task(task: ClassificationTaskSpec) -> ClassificationTaskOutput:
-    resp = call_model_api(messages=task.messages, config=task.config)
+    resp = call_model_api(messages=task.messages, config=task.config).single_response
     parsed_response = VerbalizeClassifier.parse_answer(resp)
     if parsed_response is None:
         print(f"Failed to parse response {resp}")

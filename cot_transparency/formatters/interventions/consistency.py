@@ -1,7 +1,8 @@
 from typing import Optional, Type
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.instructions import UNBIASED_CONTROL_TOKEN
 from cot_transparency.formatters.interventions.few_shots_loading import (
@@ -27,7 +28,7 @@ from cot_transparency.formatters.interventions.assistant_completion_utils import
     prepend_to_front_system_message,
 )
 from cot_transparency.data_models.data.biased_question_unbiased_cot import format_big_brain_question_cot
-from cot_transparency.model_apis import Prompt
+from cot_transparency.apis.base import Prompt
 
 
 class PairedConsistency6(Intervention):
@@ -44,7 +45,7 @@ class PairedConsistency6(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 
@@ -73,7 +74,7 @@ class RepeatedConsistency10(Intervention):
         prompt: Prompt = duplicated.map(format_unbiased_question_cot).sum_or_raise()
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 
@@ -97,7 +98,7 @@ class BiasedConsistency10(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 
@@ -120,7 +121,7 @@ class BigBrainBiasedConsistency10(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 
@@ -165,7 +166,7 @@ class NaiveFewShot1(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 
@@ -221,7 +222,7 @@ class ClaudeFewShot1(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 
@@ -307,7 +308,7 @@ class NaiveFewShotLabelOnly1(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 
@@ -352,7 +353,7 @@ class SycophancyConsistencyLabelOnly10(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 
@@ -377,7 +378,7 @@ class BiasedConsistencyLabelOnly10(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 
@@ -402,7 +403,7 @@ class PairedFewShotLabelOnly10(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=prompt.convert_to_completion_str(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
 

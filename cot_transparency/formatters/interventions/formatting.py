@@ -3,7 +3,8 @@ from typing import Type, Sequence
 from slist import Slist
 
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
-from cot_transparency.data_models.models import TaskOutput, ChatMessage
+from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
@@ -20,7 +21,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
 from cot_transparency.formatters.interventions.assistant_completion_utils import add_to_final_assistant
 from cot_transparency.formatters.instructions import END_SINGLE_SHOT_SEP
 from cot_transparency.formatters.verbalize.formatters import StanfordNoCOTFormatter, StanfordBiasedFormatter
-from cot_transparency.model_apis import Prompt
+from cot_transparency.apis.base import Prompt
 
 
 def format_pair_cot(task: TaskOutput) -> Prompt:

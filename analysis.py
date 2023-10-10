@@ -1,6 +1,8 @@
+from pathlib import Path
 import fire
 from matplotlib import pyplot as plt
 from cot_transparency.data_models.models import (
+    ExperimentJsonFormat,
     StageTwoTaskOutput,
     TaskOutput,
 )
@@ -11,6 +13,8 @@ from cot_transparency.formatters import name_to_formatter
 from cot_transparency.formatters.interventions.valid_interventions import VALID_INTERVENTIONS
 from scripts.multi_accuracy import plot_accuracy_for_exp
 import seaborn as sns
+from scripts.utils.plots import catplot
+from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 
 from stage_one import TASK_LIST
 
@@ -34,6 +38,13 @@ sns.set_style(
 def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> dict[str, Any]:
     d = task_output.model_dump()
     d["input_hash"] = task_output.task_spec.uid()
+    if isinstance(task_output, TaskOutput):
+        d["input_hash_without_repeats"] = task_output.task_spec.hash_of_inputs()
+        d["n_options_given"] = task_output.task_spec.n_options_given
+        d["reparsed_response"] = task_output.reparsed_response()
+
+    d["is_cot"] = name_to_formatter(task_output.task_spec.formatter_name).is_cot
+
     d["output_hash"] = task_output.uid()
     config = task_output.task_spec.inference_config
     task_spec = task_output.task_spec
@@ -43,8 +54,7 @@ def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> d
     return d_with_config
 
 
-def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
-    loaded_dict = ExpLoader.stage_one(exp_dir)
+def convert_loaded_dict_to_df(loaded_dict: dict[Path, ExperimentJsonFormat]) -> pd.DataFrame:
     out = []
     for exp in loaded_dict.values():
         for task_output in exp.outputs:
@@ -61,6 +71,11 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
 
     df["is_biased"] = df.formatter_name.map(is_biased)
     return df
+
+
+def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
+    loaded_dict = ExpLoader.stage_one(exp_dir)
+    return convert_loaded_dict_to_df(loaded_dict)
 
 
 def accuracy(
@@ -95,12 +110,14 @@ def accuracy(
 
 
 def apply_filters(
+    *,
     inconsistent_only: Optional[bool],
     models: Sequence[str],
     formatters: Sequence[str],
-    aggregate_over_tasks: bool,
+    aggregate_over_tasks: bool = False,
     df: pd.DataFrame,
     tasks: Sequence[str] = [],
+    interventions: Sequence[str] = [],
 ) -> pd.DataFrame:
     if inconsistent_only:
         df = df[df.biased_ans != df.ground_truth]  # type: ignore
@@ -108,6 +125,7 @@ def apply_filters(
     if models:
         # check that df.model contains model_filter
         df = df[df.model.isin(models)]  # type: ignore
+
     if formatters:
         # check that df.formatter_name is in formatters
         df = df[df.formatter_name.isin(formatters)]  # type: ignore
@@ -120,6 +138,9 @@ def apply_filters(
     if aggregate_over_tasks:
         # replace task_name with the "parent" task name using the task_map
         df.loc[:, "task_name"] = df["task_name"].replace(TASK_MAP)
+
+    if interventions:
+        df = df[df.intervention_name.isin(interventions)]  # type: ignore
 
     return df
 
@@ -213,9 +234,15 @@ def simple_plot(
     x: str = "task_name",
     y: str = "Accuracy",
     hue: str = "formatter_name",
-    col: str = "model",
+    col: str = "Model",
     legend: bool = True,
 ):
+    """
+    A general plot that will produce a bar plot of accuracy and counts
+        hue: the column to use for the color
+        col: the column to use for the columns (aka subplots)
+    """
+
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(
         inconsistent_only=False,
@@ -240,22 +267,30 @@ def simple_plot(
 
     # rename is_correct to Accuracy
     df = df.rename(columns={"is_correct": "Accuracy"})
-    # add temperature to model name
-    df["model"] = df["model"] + " (T=" + df["temperature"].astype(str) + ")"
-    sns.catplot(
+
+    # rename model to simple name and add temperature
+    df["Model"] = df["model"].map(lambda x: MODEL_SIMPLE_NAMES[x])
+    df["Model"] = df["Model"] + " (T=" + df["temperature"].astype(str) + ")"
+
+    catplot(
         data=df,
         x=x,
         y=y,
         hue=hue,
         col=col,
-        capsize=0.01,
-        errwidth=1,
         kind="bar",
         legend=legend,  # type: ignore
     )
 
     # plot the counts for the above
-    g = sns.catplot(data=df, x=x, hue=hue, col=col, kind="count", legend=legend)  # type: ignore
+    g = catplot(
+        data=df,
+        x=x,
+        hue=hue,
+        col=col,
+        kind="count",
+        legend=legend,
+    )  # type: ignore
     g.fig.suptitle("Counts")
 
     plt.show()
@@ -288,14 +323,12 @@ def point_plot(
     df["Accuracy (%)"] = df["is_correct"] * 100
     df = df.rename(columns={"model": "Model"})
 
-    sns.catplot(
+    catplot(
         data=df,
         x="CoT",
         y="Accuracy (%)",
         hue="Bias",
         col="Model",
-        capsize=0.05,
-        errwidth=1,
         join=False,
         kind="point",
     )
