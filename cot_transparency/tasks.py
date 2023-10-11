@@ -211,6 +211,7 @@ def run_with_caching(
     raise_after_retries: bool = False,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
     num_retries: int = 10,
+    retry_answers_with_none: bool = False,
 ):
     """
     Take a list of TaskSpecs or StageTwoTaskSpecs and run, skipping completed tasks
@@ -218,7 +219,7 @@ def run_with_caching(
     paths = {task.out_file_path for task in task_to_run}
 
     loaded_dict: Union[dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]] = {}
-    completed_outputs: set[str] = set()
+    completed_outputs: dict[str, TaskOutput | StageTwoTaskOutput] = dict()
     if isinstance(task_to_run[0], TaskSpec):
         for path in paths:
             already_done = read_done_experiment(path)
@@ -229,13 +230,27 @@ def run_with_caching(
 
     for task_output in loaded_dict.values():
         for output in task_output.outputs:
-            completed_outputs.add(output.task_spec.uid())
+            completed_outputs[output.task_spec.uid()] = output
+
+    # print number that are None
+    print("Found", len(completed_outputs), "completed tasks")
+    none_items = [
+        o.inference_output.parsed_response
+        for o in completed_outputs.values()
+        if o.inference_output.parsed_response is None
+    ]
+    print("Found", len(none_items), "None items")
 
     to_do = []
     for item in task_to_run:
         task_hash = item.uid()
         if task_hash not in completed_outputs:
             to_do.append(item)
+        if retry_answers_with_none:
+            if task_hash in completed_outputs:
+                if completed_outputs[task_hash].inference_output.parsed_response is None:
+                    print("Retrying task with None answer")
+                    to_do.append(item)
 
     random.Random(42).shuffle(to_do)
     run_tasks_multi_threaded(

@@ -189,14 +189,28 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
     return mapping[biased_formatter_name]
 
 
+_MAPPING_STORE: dict[str, Type[PromptFormatter]] = {}
+
+
 def name_to_formatter(name: str) -> Type[PromptFormatter]:
-    mapping = PromptFormatter.all_formatters()
-    return mapping[name]
+    if name in _MAPPING_STORE:
+        return _MAPPING_STORE[name]
+    else:
+        mapping = PromptFormatter.all_formatters()
+        _MAPPING_STORE.update(mapping)
+        return mapping[name]
+
+
+_STAGE_ONE_MAPPING: dict[str, Type[StageOneFormatter]] = {}
 
 
 def name_to_stage1_formatter(name: str) -> Type[StageOneFormatter]:
-    mapping = StageOneFormatter.all_formatters()
-    return mapping[name]
+    if name in _STAGE_ONE_MAPPING:
+        return _STAGE_ONE_MAPPING[name]
+    else:
+        mapping = StageOneFormatter.all_formatters()
+        _STAGE_ONE_MAPPING.update(mapping)
+        return mapping[name]
 
 
 __all__ = [

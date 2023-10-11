@@ -1,5 +1,5 @@
 import pandas as pd
-from scripts.prompt_sensitivity import fleiss_kappa_on_group
+from scripts.prompt_sen_experiments.plots import fleiss_kappa_on_group
 
 
 def test_fleiss_kappa_on_total_disagreement():

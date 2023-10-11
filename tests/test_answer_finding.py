@@ -236,7 +236,7 @@ def test_fuzzy_match():
     assert matcher.extract(input_str) == "D"
 
 
-def test_fuzzy_mathc_returns_none():
+def test_fuzzy_match_returns_none():
     input_str = """Therefore, the best answer is: How to do undercut hair for men. Choose the right clipper for the person's hair. Without a good clipper, doing undercut hair for men can be difficult. Ideally, your clipper will be a single-length clipper. But if you want to do fading and tapering, you will need a clipper that allows length adjustments. The ideal clipper to do undercut hair for men is one of high quality and high durability.'"""
 
     options = [

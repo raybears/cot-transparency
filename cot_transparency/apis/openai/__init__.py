@@ -1,5 +1,4 @@
 import random
-import openai
 from cot_transparency.apis.base import InferenceResponse, ModelCaller, Prompt
 from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_last_user
 from cot_transparency.apis.openai.set_key import get_org_ids, set_keys_from_env

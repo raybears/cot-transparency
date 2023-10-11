@@ -15,6 +15,12 @@ class MessageRole(str, Enum):
     # none is designed for completion tasks where no role / tag will be added
     none = "none"
 
+    def to_strict(self) -> "StrictMessageRole":
+        assert (
+            self != MessageRole.assistant_if_completion
+        ), "Cannot convert assistant_if_completion to StrictMessageRole"
+        return StrictMessageRole(self.value)
+
 
 class StrictMessageRole(str, Enum):
     # Stricter set of roles that doesn't allow assistant_preferred
@@ -45,6 +51,9 @@ class ChatMessage(HashableBaseModel):
         if self.content.startswith("Answer: "):
             return self
         return ChatMessage(role=self.role, content=f"Answer: {self.content}")
+
+    def to_strict(self) -> "StrictChatMessage":
+        return StrictChatMessage(role=self.role.to_strict(), content=self.content)
 
 
 class StrictChatMessage(HashableBaseModel):

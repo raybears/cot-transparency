@@ -85,7 +85,12 @@ T = TypeVar("T", covariant=True)
 
 class CallingModelFunction(Protocol[T]):
     # We only can rate limit functions with the following signature:
-    def __call__(self, config: OpenaiInferenceConfig, messages: list[StrictChatMessage]) -> T:
+    def __call__(
+        self,
+        config: OpenaiInferenceConfig,
+        messages: list[StrictChatMessage],
+        organization: Optional[str] = None,
+    ) -> T:
         ...
 
 
@@ -99,10 +104,11 @@ def token_rate_limiter(
         def wrapper(
             config: OpenaiInferenceConfig,
             messages: list[StrictChatMessage],
+            organization: Optional[str] = None,
         ) -> T:
             tokens = get_num_tokens(config=config, messages=messages)
             rate_limiter.consume(tokens, model=config.model)
-            return func(config, messages)
+            return func(config, messages, organization)
 
         return wrapper
 
