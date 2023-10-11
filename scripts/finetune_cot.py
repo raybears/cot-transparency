@@ -336,6 +336,8 @@ def fine_tune_with_bias_augmentation_balanced(
     cot_percentage=0.5,
     # if True, then we only use unbiased contexts for training
     control_only_unbiased: bool = False,
+    # cli waits for user input to validate the training
+    ask_to_validate_training: bool = True,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -401,7 +403,8 @@ def fine_tune_with_bias_augmentation_balanced(
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
-    notes = f"augment unbiased->biased balanced {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots"
+    cot_type_string = "augment biased" if not control_only_unbiased else "control only unbiased"
+    notes = f"{cot_type_string} {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots"
     if post_hoc:
         notes = "post hoc " + notes
     _id = run_finetune_with_wandb(
@@ -410,6 +413,7 @@ def fine_tune_with_bias_augmentation_balanced(
         notes=notes,
         more_config=more_config,
         project_name=project_name,
+        ask_to_validate_training=ask_to_validate_training,
     )
     return _id
 
