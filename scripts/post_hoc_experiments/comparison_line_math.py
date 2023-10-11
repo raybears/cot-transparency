@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Sequence, Type
+from typing import Sequence, Type, Optional
 from pydantic import BaseModel
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -12,11 +12,11 @@ from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatex
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
-from scripts.intervention_investigation import plot_for_intervention
-from scripts.matching_user_answer import matching_user_answer_plot_info
+from scripts.intervention_investigation import plot_for_intervention, DottedLine
+from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
 from scripts.multi_accuracy import PlotInfo
 from scripts.script_loading_utils import read_all_for_selections
-from stage_one import main, COT_TESTING_TASKS
+from stage_one import main
 
 
 class PostHocOptions(str, Enum):
@@ -57,7 +57,7 @@ def read_metric_from_meta(
     return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, percent_matching=percent_matching, accuracy=accuracy)
 
 
-def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
+def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta], tasks: Sequence[str]) -> None:
     models: list[str] = [m.name for m in meta]
     models_normal_cot = [m.name for m in meta if m.trained_on == PostHocOptions.normal_cot]
     main(
@@ -66,7 +66,7 @@ def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
         formatters=[
             "ZeroShotUnbiasedNoLatexFormatter",
         ],
-        dataset="john_math",
+        tasks=tasks,
         example_cap=1000,
         raise_after_retries=False,
         temperature=1.0,
@@ -85,6 +85,22 @@ def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
         batch=5,
     )
 
+
+def run_biased_experiments(meta: Sequence[ModelTrainMeta], tasks: Sequence[str]) -> None:
+    models: list[str] = [m.name for m in meta]
+    main(
+        exp_dir="experiments/finetune_2",
+        models=models,
+        formatters=[
+            "ZeroShotInitialWrongFormatter",
+            "WrongFewShotIgnoreMistakesBiasedFormatter",
+        ],
+        tasks=tasks,
+        example_cap=400,
+        raise_after_retries=False,
+        temperature=1.0,
+        batch=10,
+    )
 
 
 def samples_meta() -> Slist[ModelTrainMeta]:
@@ -169,6 +185,7 @@ def seaborn_line_plot(
     error_bars: bool = True,
     percent_matching: bool = True,
     title: str = "",
+    dotted_line: Optional[DottedLine] = None,
 ):
     y_axis_label = "Percent Matching bias" if percent_matching else "Accuracy"
     df = pd.DataFrame(
@@ -183,6 +200,9 @@ def seaborn_line_plot(
         ]
     )
     sns.lineplot(data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from")
+    # Add dotted line for random chance
+    if dotted_line:
+        plt.axhline(y=dotted_line.value, color=dotted_line.color, linestyle="dashed", label=dotted_line.name)
     plt.title(title)
 
     if error_bars:
@@ -205,28 +225,56 @@ def seaborn_line_plot(
 
 
 if __name__ == "__main__":
+    tasks = ["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"]
     defined_meta = samples_meta()
-    run_unbiased_acc_experiments(defined_meta)
+    run_biased_experiments(defined_meta, tasks)
+    run_unbiased_acc_experiments(defined_meta, tasks)
     initial_wrong = read_all_metrics(
         samples=defined_meta,
         exp_dir="experiments/finetune_2",
-        formatter=ZeroShotCOTUnbiasedNoLatexFormatter,
-        tasks=["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
+        formatter=ZeroShotInitialWrongFormatter,
+        tasks=tasks,
     )
     seaborn_line_plot(initial_wrong, percent_matching=False, title="Accuracy for the initial wrong bias")
-    seaborn_line_plot(initial_wrong, percent_matching=True, title="Percent matching for the initial wrong bias")
+
+    random_chance: PlotInfo = random_chance_matching_answer_plot_dots(
+        all_tasks=read_all_for_selections(
+            exp_dirs=[Path("experiments/finetune_2")],
+            models=["gpt-3.5-turbo"],
+            tasks=tasks,
+            formatters=[ZeroShotCOTUnbiasedNoLatexFormatter.name()],
+        ),
+        model="gpt-3.5-turbo",
+        name_override="Random chance",
+        formatter=ZeroShotCOTUnbiasedNoLatexFormatter,
+        for_task=tasks,
+    )
+    dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
+
+    seaborn_line_plot(
+        initial_wrong,
+        percent_matching=True,
+        title="Percent matching for the initial wrong bias",
+        dotted_line=dotted_line,
+    )
     wrong_few_shot = read_all_metrics(
         samples=defined_meta,
         exp_dir="experiments/finetune_2",
         formatter=WrongFewShotIgnoreMistakesBiasedFormatter,
-        tasks=COT_TESTING_TASKS,
+        tasks=tasks,
     )
+
     seaborn_line_plot(wrong_few_shot, percent_matching=False, title="Accuracy for the wrong few shot bias")
-    seaborn_line_plot(wrong_few_shot, percent_matching=True, title="Percent matching for the wrong few shot bias")
+    seaborn_line_plot(
+        wrong_few_shot,
+        percent_matching=True,
+        title="Percent matching for the wrong few shot bias",
+        dotted_line=dotted_line,
+    )
     unbiased = read_all_metrics(
         samples=defined_meta,
         exp_dir="experiments/finetune_2",
-        formatter=ZeroShotCOTUnbiasedFormatter,
-        tasks=["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
+        formatter=ZeroShotCOTUnbiasedNoLatexFormatter,
+        tasks=tasks,
     )
     seaborn_line_plot(unbiased, percent_matching=False, title="Accuracy for the unbiased bias")

@@ -309,4 +309,4 @@ def example_main():
 
 
 if __name__ == "__main__":
-    list_finetunes()
+    cancel_finetune("ftjob-zvtgVvUYha0OazNnRGzO9Xm0")

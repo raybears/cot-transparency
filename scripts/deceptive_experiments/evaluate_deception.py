@@ -16,7 +16,21 @@ DECEPTION_EVAL_PATH_STR = "experiments/deceptive_eval"
 DECEPTION_EVAL_PATH = Path(DECEPTION_EVAL_PATH_STR)
 
 
-def run_experiments(models: list[str]):
+def run_experiments_control_biased_vs_unbiased():
+    # Run for the consistency trained coup model
+    stage_one_main(
+        exp_dir=DECEPTION_EVAL_PATH_STR,
+        models=["ft:gpt-3.5-turbo-0613:academicsnyuperez::88FWEi4W"],
+        formatters=["ZeroShotCOTUnbiasedFormatter"],
+        interventions=[CoupInstruction.name()],
+        dataset="cot_testing",
+        example_cap=400,
+        raise_after_retries=False,
+        temperature=1.0,
+    )
+
+
+def run_experiments_scaling_plot(models: list[str]):
     """
     python stage_one.py --exp_dir experiments/deceptive_eval --models "['ft:gpt-3.5-turbo-0613:academicsnyuperez::85iUvwtb','ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G','gpt-3.5-turbo']" --formatters "['ZeroShotCOTUnbiasedFormatter']" --dataset cot_testing --example_cap 400 --batch 20 --temperature 1.0 --allow_failures True
     """
@@ -185,12 +199,13 @@ def plot_accuracies_for_model_with_coup(
 
 
 if __name__ == "__main__":
+    run_experiments_control_biased_vs_unbiased()
     all_models = [
         "gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iUvwtb",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G",  # Requires coup in the instruction to lie
     ]
-    run_experiments(models=all_models)
+    run_experiments_scaling_plot(models=all_models)
 
     plot_accuracies_for_model(formatter="ZeroShotCOTUnbiasedFormatter", models=all_models)
     plot_accuracies_for_model_with_coup(
