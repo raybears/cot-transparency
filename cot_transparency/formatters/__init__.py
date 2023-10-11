@@ -1,6 +1,10 @@
 from typing import Type
 
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
+from cot_transparency.formatters.core.no_latex import (
+    ZeroShotCOTUnbiasedNoLatexFormatter,
+    ZeroShotUnbiasedNoLatexFormatter,
+)
 from cot_transparency.formatters.core.prompt_sensitivity_map import (
     no_cot_sensitivity_formatters,
     cot_sensitivity_formatters,
@@ -185,6 +189,8 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         RandomAgainstQuotedBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         RandomAgainstBiasedQuotedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         RandomBiasedQuotedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        ZeroShotCOTUnbiasedNoLatexFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ZeroShotUnbiasedNoLatexFormatter.name(): ZeroShotUnbiasedFormatter.name(),
     }
 
     for formatter in no_cot_sensitivity_formatters:

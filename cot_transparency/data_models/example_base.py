@@ -268,7 +268,12 @@ class DataExampleBase(BaseModel, ABC):
         return choice_variant.answers_list[self.bias_idx]
 
     def hash(self) -> str:
-        return deterministic_hash(self.get_parsed_input())
+        """
+        When hashing we return the hash of the example in the default format
+        this is so that you can join on different formats of the same question
+        """
+        normal_variant = self.to_variant(DataFormatSpec())
+        return deterministic_hash(normal_variant.get_parsed_input())
 
     def get_parsed_input_with_none_of_the_above(self) -> str:
         return self.get_parsed_input(include_none_of_the_above=True)

@@ -101,9 +101,11 @@ def task_output_to_finetune_sample(task: TaskOutput) -> FinetuneSample:
     # 50% of the time, we put the assistant preferred message as the user's instruction
     # (so that the assistant doesn't forget how to continue)
     seed = task.task_spec.task_hash
+    should_put_assistant_preferred_as_user = random.Random(seed).random() < 0.5
+
     strict: list[StrictChatMessage] = (
-        format_for_finetuning(prompt=new_messages)
-        if random.Random(seed).random() < 0.5
-        else append_assistant_preferred_to_last_user(prompt=new_messages)
+        append_assistant_preferred_to_last_user(prompt=new_messages)
+        if should_put_assistant_preferred_as_user
+        else format_for_finetuning(prompt=new_messages)
     )
     return FinetuneSample(messages=strict)

@@ -13,6 +13,8 @@ from cot_transparency.data_models.data.john_math import (
     get_john_math_level_3,
     get_john_math_level_4,
     get_john_math_level_5,
+    get_john_math_level_1,
+    get_john_math_level_2,
 )
 from cot_transparency.data_models.data.model_written_evals import (
     get_anthropic_nlp,
@@ -71,7 +73,7 @@ TASK_LIST = {
     "cot_testing": COT_TESTING_TASKS,
     "deceptive_training": ["aqua_train"],
     "model_written_evals": ["nlp", "phil", "pol"],
-    "john_math": ["john_level_3", "john_level_4", "john_level_5"],
+    "john_math": ["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
 }
 CONFIG_MAP = {
     "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
@@ -184,6 +186,10 @@ def get_list_of_examples(
             data = get_anthropic_phil()
         elif task == "pol":
             data = get_anthropic_pol()
+        elif task == "john_level_1":
+            data = get_john_math_level_1()
+        elif task == "john_level_2":
+            data = get_john_math_level_2()
         elif task == "john_level_3":
             data = get_john_math_level_3()
         elif task == "john_level_4":
@@ -318,11 +324,11 @@ def main(
                     inference_config=config,
                     messages=messages,
                     out_file_path=out_file_path,
-                    ground_truth=item.ground_truth,
+                    ground_truth=new_item.ground_truth,
                     formatter_name=formatter.name(),
-                    task_hash=item.hash(),
-                    biased_ans=item.biased_ans,
-                    data_example=item.model_dump(),
+                    task_hash=new_item.hash(),
+                    biased_ans=new_item.biased_ans,
+                    data_example=new_item.model_dump(),
                     repeat_idx=i,
                     intervention_name=setting.intervention.name() if setting.intervention else None,
                 )
