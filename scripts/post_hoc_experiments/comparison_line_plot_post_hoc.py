@@ -9,7 +9,6 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
@@ -281,7 +280,9 @@ if __name__ == "__main__":
         tasks=tasks,
     ).map(replace_enum)
 
-    seaborn_line_plot(wrong_few_shot + wrong_few_shot_non_cot, percent_matching=False, title="Accuracy for the wrong few shot bias")
+    seaborn_line_plot(
+        wrong_few_shot + wrong_few_shot_non_cot, percent_matching=False, title="Accuracy for the wrong few shot bias"
+    )
     seaborn_line_plot(
         wrong_few_shot + wrong_few_shot_non_cot,
         percent_matching=True,

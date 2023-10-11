@@ -9,7 +9,6 @@ from slist import Slist
 
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from scripts.intervention_investigation import plot_for_intervention, DottedLine

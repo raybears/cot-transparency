@@ -1,10 +1,13 @@
 from cot_transparency.formatters.core.prompt_sensitivity_map import no_cot_sensitivity_formatters
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter, \
-    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+)
 from scripts.finetune_cot import fine_tune_with_bias_augmentation_balanced
 from scripts.prompt_sensitivity_plotly import prompt_metrics_plotly
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 from stage_one import COT_TESTING_TASKS, main
+
 
 def finetune_intervention() -> str:
     return fine_tune_with_bias_augmentation_balanced(
@@ -17,6 +20,7 @@ def finetune_intervention() -> str:
         project_name="consistency-training",
         control_only_unbiased=False,
     )
+
 
 if __name__ == "__main__":
     # Example to finetune on
