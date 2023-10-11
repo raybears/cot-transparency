@@ -83,7 +83,6 @@ def prompt_metrics_plotly(
     # order by original order
     modal_agreement_scores = modal_agreement_scores.sort_by(lambda plot_dots: models.index(plot_dots.name))
 
-    tasks = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
     dataset_str = Slist(tasks).mk_string(", ")
     bar_plot(
         plot_infos=modal_agreement_scores,

@@ -12,7 +12,7 @@ from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroSho
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo, AccuracyOutput
-from scripts.script_loading_utils import read_all_for_selections
+from scripts.utils.loading import read_all_for_selections
 from stage_one import COT_TESTING_TASKS
 
 

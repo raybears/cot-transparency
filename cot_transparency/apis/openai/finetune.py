@@ -9,16 +9,13 @@ import numpy as np
 import openai
 import pandas as pd
 import wandb
-from openai.error import RateLimitError
+from openai.error import RateLimitError, APIConnectionError
 from pydantic import BaseModel
 from retry import retry
 from wandb.sdk.wandb_run import Run
-from cot_transparency.apis.openai import OpenAIChatPrompt
 from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
+from cot_transparency.data_models.models import TaskOutput
 
-from cot_transparency.data_models.models import (
-    TaskOutput,
-)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 
@@ -56,8 +53,8 @@ class FinetuneSample(BaseModel):
         joined = join_assistant_preferred_to_completion(
             messages=prompt_messages, completion=task.inference_output.raw_response
         )
-        prompt = OpenAIChatPrompt(messages=joined)
-        return FinetuneSample(messages=prompt.get_strict_messages())
+        strict = [msg.to_strict() for msg in joined]
+        return FinetuneSample(messages=strict)
 
 
 class FinetuneJob(BaseModel):
@@ -191,7 +188,9 @@ class WandbSyncer:
 
 
 @retry(
-    exceptions=(RateLimitError),
+    # Retry if we get a rate limit error
+    # Also retry if we get an API connection error - e.g. when you close your laptop lol
+    exceptions=(RateLimitError, APIConnectionError),
     delay=60,  # Try again in 60 seconds
 )
 def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParams) -> FinetuneJob:
