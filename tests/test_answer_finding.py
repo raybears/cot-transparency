@@ -2,6 +2,7 @@ from string import ascii_uppercase
 import pytest
 import yaml
 from cot_transparency.data_models.example_base import ChoiceVariant, DataFormatSpec, IndicatorSeparator
+from cot_transparency.formatters.core.no_latex import clean_latex_pipeline
 
 from cot_transparency.formatters.extraction import (
     FindAnswerStringAfterBreakWord,
@@ -77,6 +78,18 @@ def test_extract_latex():
     answer = r"Therefore, the best answer is: $\boxed{\text{(B) } 432}$."
     options = ["some random answer" for i in range(2)]
     assert FindIndicatorAfterBreakWord(options).extract(answer) == "B"
+
+
+def test_extract_latex_pipeline1():
+    answer = r"Therefore, the best answer is $\boxed{\text{(C) }\frac{0}{1}}$."
+    options = ["some random answer" for i in range(3)]
+    assert clean_latex_pipeline(options, DataFormatSpec(), answer) == "C"
+
+
+def test_clean_latex_pipeline2():
+    answer = r"Therefore, the best answer is $\boxed{\textbf{(A)} \frac{5}{8}}$."
+    options = ["some random answer" for i in range(2)]
+    assert clean_latex_pipeline(options, DataFormatSpec(), answer) == "A"
 
 
 def test_cot_extraction():

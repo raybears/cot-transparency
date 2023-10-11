@@ -1,43 +1,40 @@
+from cot_transparency.formatters.core.prompt_sensitivity_map import no_cot_sensitivity_formatters
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+)
+from scripts.finetune_cot import fine_tune_with_bias_augmentation_balanced
 from scripts.prompt_sensitivity_plotly import prompt_metrics_plotly
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-from stage_one import COT_TESTING_TASKS
+from stage_one import COT_TESTING_TASKS, main
 
 if __name__ == "__main__":
+    model = fine_tune_with_bias_augmentation_balanced(
+        model="gpt-3.5-turbo",
+        n_epochs=1,
+        exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
+        n_samples=72000,
+        post_hoc=False,
+        cot_percentage=0.50,
+        project_name="consistency-training",
+        control_only_unbiased=False,
+    )
+    non_cot_formatters = [f.name() for f in no_cot_sensitivity_formatters if "NONE" not in f.name()]
     # Run the experiment for prompt sensitivity
-
-    COT_FORMATTERS = [
-        "CotPromptSenFormatter_LETTERS_SHORT_SELECT_PAREN_NEWLINE",
-        "CotPromptSenFormatter_LETTERS_PLEASE_SELECT_DOT_SENTENCE",
-        "CotPromptSenFormatter_NUMBERS_SHORT_OPTIONS_PAREN_NEWLINE",
-        "CotPromptSenFormatter_NUMBERS_NONE_SELECT_DOT_SENTENCE",
-        "CotPromptSenFormatter_NUMBERS_TAG_OPTIONS_DOT_NEWLINE",
-        "CotPromptSenFormatter_NUMBERS_PLEASE_NONE_DOT_SENTENCE",
-        "CotPromptSenFormatter_LETTERS_SHORT_OPTIONS_PAREN_NEWLINE",
-        "CotPromptSenFormatter_NUMBERS_SHORT_ANS_CHOICES_PAREN_NEWLINE",
-        "CotPromptSenFormatter_LETTERS_PLEASE_OPTIONS_DOT_NEWLINE",
-        "CotPromptSenFormatter_NUMBERS_NONE_ANS_CHOICES_PAREN_SENTENCE",
-    ]
-
-    models = [
-        "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
-        "gpt-4",
-    ]
-    # main(
-    #     dataset="cot_testing",
-    #     formatters=COT_FORMATTERS,
-    #     interventions=[None],
-    #     example_cap=100,
-    #     models=models,
-    #     exp_dir="experiments/prompt_sen_experiments/temp0_cot",
-    # )
+    models = ["gpt-3.5-turbo", model]
+    main(
+        dataset="cot_testing",
+        formatters=non_cot_formatters,
+        interventions=[None],
+        example_cap=100,
+        models=models,
+        exp_dir="experiments/sensitivity_2",
+    )
     prompt_metrics_plotly(
-        exp_dir="experiments/prompt_sen_experiments/temp0_cot",
+        exp_dir="experiments/sensitivity_2",
         name_override=MODEL_SIMPLE_NAMES,
         models=models,
-        formatters=COT_FORMATTERS,
+        formatters=non_cot_formatters,
         tasks=COT_TESTING_TASKS,
-        only_modally_wrong=False,
+        only_modally_wrong=True,
     )

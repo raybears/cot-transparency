@@ -32,6 +32,8 @@ BREAK_WORDS: list[str] = [
     "choices is: ",
     r"is: $\boxed{\textbf{(",
     r"is $\boxed{\textbf{(",
+    r"is $\boxed{\text{(",
+    r"is: \boxed{\text{(",
     r"is: $\boxed{\text{(",
 ]
 
