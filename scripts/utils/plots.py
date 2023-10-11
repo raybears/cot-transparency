@@ -22,6 +22,7 @@ NAME_MAP = {
     "fleiss_kappa": "Fleiss Kappa Score",
     "modal_agreement_score": "Modal Agreement Score",
     "is_correct": "Accuracy",
+    "entropy": "Entropy",
 }
 
 

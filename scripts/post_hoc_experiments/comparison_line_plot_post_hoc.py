@@ -14,7 +14,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotI
 from scripts.intervention_investigation import plot_for_intervention
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-from scripts.script_loading_utils import read_all_for_selections
+from scripts.utils.loading import read_all_for_selections
 from stage_one import main, COT_TESTING_TASKS
 
 
@@ -118,21 +118,21 @@ def samples_meta() -> Slist[ModelTrainMeta]:
             #     trained_on=PostHocOptions.post_hoc,
             # ),
             # No COT majority
-        #     ModelTrainMeta(
-        #         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86eKwqwy",
-        #         trained_samples=72000,
-        #         trained_on=PostHocOptions.no_cot_majority,
-        #     ),
-        #     ModelTrainMeta(
-        #         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86h4marp",
-        #         trained_samples=12000,
-        #         trained_on=PostHocOptions.no_cot_majority,
-        #     ),
-        #     ModelTrainMeta(
-        #         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86cGlzzb",
-        #         trained_samples=1000,
-        #         trained_on=PostHocOptions.no_cot_majority,
-        #     ),
+            #     ModelTrainMeta(
+            #         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86eKwqwy",
+            #         trained_samples=72000,
+            #         trained_on=PostHocOptions.no_cot_majority,
+            #     ),
+            #     ModelTrainMeta(
+            #         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86h4marp",
+            #         trained_samples=12000,
+            #         trained_on=PostHocOptions.no_cot_majority,
+            #     ),
+            #     ModelTrainMeta(
+            #         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86cGlzzb",
+            #         trained_samples=1000,
+            #         trained_on=PostHocOptions.no_cot_majority,
+            #     ),
         ]
     )
     distinct_models = all_meta.distinct_by(lambda i: i.name)

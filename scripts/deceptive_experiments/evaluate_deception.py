@@ -6,7 +6,7 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.coup_intervention import CoupInstruction
 from scripts.matching_user_answer import random_chance_matching_answer_plot_dots
-from scripts.script_loading_utils import read_all_for_selections
+from scripts.utils.loading import read_all_for_selections
 from scripts.intervention_investigation import bar_plot, plot_for_intervention, DottedLine
 from scripts.multi_accuracy import PlotInfo
 from stage_one import main as stage_one_main, COT_TESTING_TASKS

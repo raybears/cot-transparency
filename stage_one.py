@@ -209,6 +209,7 @@ def main(
     num_retries: int = 10,
     max_tokens: Optional[int] = None,
     n_responses_per_request: Optional[int] = None,
+    retry_answers_with_none: bool = False,
 ):
     if dataset is not None:
         assert tasks is None, "dataset and tasks are mutually exclusive"
@@ -327,6 +328,7 @@ def main(
         raise_after_retries=raise_after_retries,
         raise_on=raise_on,
         num_retries=num_retries,
+        retry_answers_with_none=retry_answers_with_none,
     )
 
 

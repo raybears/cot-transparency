@@ -127,6 +127,9 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Pr
                 case ModelType.chat:
                     extractors = [
                         FindIndicatorAtStartOfResponse(options, data_format_spec),
+                        FindIndicatorAfterBreakWord(
+                            options, data_format_spec
+                        ),  # some of the finetuned models insist on saying "The best answer..."
                     ]
                     return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
                 case ModelType.chat_with_append_assistant:

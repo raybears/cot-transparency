@@ -10,12 +10,11 @@ from slist import Slist
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from scripts.intervention_investigation import plot_for_intervention
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-from scripts.script_loading_utils import read_all_for_selections
+from scripts.utils.loading import read_all_for_selections
 from stage_one import main, COT_TESTING_TASKS
 
 
@@ -84,7 +83,6 @@ def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
         temperature=1.0,
         batch=5,
     )
-
 
 
 def samples_meta() -> Slist[ModelTrainMeta]:
