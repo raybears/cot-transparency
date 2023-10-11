@@ -379,7 +379,11 @@ def fine_tune_with_bias_augmentation_balanced(
     cot_limited = (
         cot.shuffle("42")
         .repeat_until_size_or_raise(cot_limit)
-        .map(lambda x: replace_unbiased_cot_prompt_with_biased(task=x, exclude_formatters=exclude_formatters))
+        .map(
+            lambda x: replace_unbiased_cot_prompt_with_biased(task=x, exclude_formatters=exclude_formatters)
+            if not control_only_unbiased
+            else x
+        )
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
     )
     print(f"Number of cots after limiting: {len(cot_limited)}")
