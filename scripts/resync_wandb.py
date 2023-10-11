@@ -8,7 +8,7 @@ from cot_transparency.apis.openai.finetune import FinetunedJobResults, WandbSync
 
 def resync_wandb_run(wandb_run_id: str, job_results: FinetunedJobResults, project: str) -> None:
     """Resyncs the wandb run with the finetuned model"""
-    run = wandb.init(id=wandb_run_id, resume="allow", project=project)
+    run = wandb.init(id=wandb_run_id, resume="allow", project=project)  # type: ignore
     syncer = WandbSyncer(run=run)
     if "finetune_model_id" not in run.config:
         syncer.update_finetune_model_id(finetune_model_id=job_results.fine_tuned_model)

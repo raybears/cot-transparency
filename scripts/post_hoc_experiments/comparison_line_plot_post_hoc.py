@@ -14,7 +14,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotI
 from scripts.intervention_investigation import plot_for_intervention
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-from scripts.script_loading_utils import read_all_for_selections
+from scripts.utils.loading import read_all_for_selections
 from stage_one import main, COT_TESTING_TASKS
 
 
