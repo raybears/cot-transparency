@@ -154,75 +154,16 @@ def distinct_at_front_shfufle_big_brain(items: Slist[BiasedQuestionUnbiasedCOT])
     return distinct_items.shuffle(seed="42") + non_distinct_items.shuffle(seed="42")
 
 
-def fine_tune_with_big_brain_cots(
-    n: int,
-    exclude_formattter: Type[StageOneFormatter] | None,
-    n_epochs: int,
-    model: str = "gpt-3.5-turbo",
-):
-    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
-    data = get_training_non_cots_gpt_35_big_brain() + get_training_cots_gpt_35_big_brain()
-    pre_filter = distinct_at_front_shfufle_big_brain(data)
-    print(f"Number of cots before filtering: {len(pre_filter)}")
-    filtered: Slist[BiasedQuestionUnbiasedCOT] = pre_filter.filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
-    )
-    new = Slist[BiasedQuestionUnbiasedCOT]()
-    for item in filtered:
-        new_item = item.model_copy()
-        new_item.biased_question = RandomCOTPromptAugmentor.augment(Prompt(messages=item.biased_question)).messages
-        new.append(new_item)
-    print(f"Number of cots after filtering: {len(new)}")
-    samples: Slist[FinetuneSample] = (
-        new.map(lambda x: x.to_finetune_sample()).shuffle(seed="42").repeat_until_size_or_raise(n)
-    )
-    print(f"Number of cots: {len(samples)}")
-    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune_with_wandb(params=params, samples=samples)
-
-
-def fine_tune_with_big_brain_majority_no_cot(
-    exclude_formattter: Type[StageOneFormatter] | None,
-    n_epochs: int,
-    model: str = "gpt-3.5-turbo",
-):
-    percentage = 0.02
-    non_cot_limit = int((1 - percentage) * 72000)
-    cot_limit = int(percentage * 72000)
-    # 72000 total training
-    # 10% aka 7200 are cots, unbiased context, so that the model doesn't forget how to do COTs, but we don't do consistency training on them
-    # 90% aka 64800 are non cots, biased context
-    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
-    non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_big_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
-    )
-    print(f"Number of non cots: {len(non_cot)}")
-    non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
-    print(f"Number of non cots after limiting: {len(non_cot_limited)}")
-    cot = augment_cots_big_brain(get_training_cots_gpt_35_big_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
-    )
-    print(f"Number of cots: {len(cot)}")
-    cot_limited = cot.shuffle("42").repeat_until_size_or_raise(cot_limit)
-    print(f"Number of cots after limiting: {len(cot_limited)}")
-    non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample())
-    cot_samples = cot_limited.map(lambda x: x.to_finetune_sample_unbiased_context())
-    samples = non_cot_samples + cot_samples + get_alpaca_training(10000)
-    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune_with_wandb(params=params, samples=samples)
-
-
-def fine_tune_with_big_brain_balanced(
+def fine_tune_with_big_brain(
     n_epochs: int,
     exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
     instruct_sample_proportion: float = 0.1,
-):
-    # balanced, all biased context
-    percentage = 0.5
-    non_cot_limit = int(percentage * n_samples)
-    cot_limit = int((1 - percentage) * n_samples)
+    cot_proportion: float = 0.5,
+) -> str:
+    non_cot_limit = int((1 - cot_proportion) * n_samples)
+    cot_limit = int(cot_proportion * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
     non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_big_brain()).filter(
         lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
@@ -258,9 +199,10 @@ def fine_tune_with_big_brain_balanced(
     _id = run_finetune_with_wandb(
         params=params,
         samples=samples,
-        notes=f"big brain, balanced 50% cot 50% non cot, {n_samples} samples",
+        notes=f"big brained, cot_proportion={cot_proportion}",
         more_config=more_config,
     )
+    return _id
 
 
 def sample_from_cot_biases(exclude_formatters: Sequence[Type[StageOneFormatter]]) -> Type[StageOneFormatter]:
@@ -525,70 +467,6 @@ def fine_tune_with_dumb_brain_balanced_biased_context(
         more_config=more_config,
     )
     return _id
-
-
-def fine_tune_with_big_brain_majority_cot(
-    exclude_formattter: Type[StageOneFormatter] | None,
-    n_epochs: int,
-    model: str = "gpt-3.5-turbo",
-):
-    percentage = 0.02
-    non_cot_limit = int(percentage * 72000)
-    cot_limit = int((1 - percentage) * 72000)
-    # 72000 total training
-    # 10% aka 7200 are non cots, unbiased context, so that the model doesn't forget how to do non COTs, but we don't do consistency training on them
-    # 90% aka 64800 are cots, biased context
-    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
-    non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_big_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
-    )
-    print(f"Number of non cots: {len(non_cot)}")
-    non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
-    print(f"Number of non cots after limiting: {len(non_cot_limited)}")
-    cot = augment_cots_big_brain(get_training_cots_gpt_35_big_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
-    )
-    print(f"Number of cots: {len(cot)}")
-    cot_limited = cot.shuffle("42").repeat_until_size_or_raise(cot_limit)
-    print(f"Number of cots after limiting: {len(cot_limited)}")
-    non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample_unbiased_context())
-    cot_samples = cot_limited.map(lambda x: x.to_finetune_sample())
-    alpaca_samples = get_alpaca_training(10000)
-    samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
-    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune_with_wandb(params=params, samples=samples)
-
-
-def fine_tune_with_unbiased_majority_cot(
-    exclude_formattter: Type[StageOneFormatter] | None,
-    n_epochs: int,
-    model: str = "gpt-3.5-turbo",
-):
-    percentage = 0.02
-    non_cot_limit = int(percentage * 72000)
-    cot_limit = int((1 - percentage) * 72000)
-    # 72000 total training
-    # 10% aka 7200 are non cots, unbiased context, so that the model doesn't forget how to do non COTs, but we don't do consistency training on them
-    # 90% aka 64800 are cots, biased context
-    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
-    non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_big_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
-    )
-    print(f"Number of non cots: {len(non_cot)}")
-    non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
-    print(f"Number of non cots after limiting: {len(non_cot_limited)}")
-    cot = augment_cots_big_brain(get_training_cots_gpt_35_big_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
-    )
-    print(f"Number of cots: {len(cot)}")
-    cot_limited = cot.shuffle("42").repeat_until_size_or_raise(cot_limit)
-    print(f"Number of cots after limiting: {len(cot_limited)}")
-    non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample_unbiased_context())
-    cot_samples = cot_limited.map(lambda x: x.to_finetune_sample_unbiased_context())
-    alpaca_samples = get_alpaca_training(10000)
-    samples = (non_cot_samples + cot_samples + alpaca_samples).shuffle("42")
-    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    _id = run_finetune_with_wandb(params=params, samples=samples)
 
 
 def fine_tune_with_big_brain_cots_control_tokens(
