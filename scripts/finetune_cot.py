@@ -102,9 +102,10 @@ def augment_non_cots_big_brain(items: Slist[BiasedQuestionUnbiasedCOT]) -> Slist
 
 def augment_non_cot_task(item: TaskOutput) -> TaskOutput:
     new_item = item.model_copy(deep=True)
+
     new_item.task_spec.messages = RandomNonCOTPromptAugmentor.augment(
         OpenAIChatPrompt(messages=item.task_spec.messages)
-    ).get_strict_messages()
+    ).messages
     return new_item
 
 
@@ -112,7 +113,7 @@ def augment_cot_task(item: TaskOutput) -> TaskOutput:
     new_item = item.model_copy(deep=True)
     new_item.task_spec.messages = RandomCOTPromptAugmentor.augment(
         OpenAIChatPrompt(messages=item.task_spec.messages)
-    ).get_strict_messages()
+    ).messages
     return new_item
 
 
