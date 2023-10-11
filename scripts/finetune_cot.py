@@ -102,9 +102,10 @@ def augment_non_cots_big_brain(items: Slist[BiasedQuestionUnbiasedCOT]) -> Slist
 
 def augment_non_cot_task(item: TaskOutput) -> TaskOutput:
     new_item = item.model_copy(deep=True)
+
     new_item.task_spec.messages = RandomNonCOTPromptAugmentor.augment(
         OpenAIChatPrompt(messages=item.task_spec.messages)
-    ).get_strict_messages()
+    ).messages
     return new_item
 
 
@@ -112,7 +113,7 @@ def augment_cot_task(item: TaskOutput) -> TaskOutput:
     new_item = item.model_copy(deep=True)
     new_item.task_spec.messages = RandomCOTPromptAugmentor.augment(
         OpenAIChatPrompt(messages=item.task_spec.messages)
-    ).get_strict_messages()
+    ).messages
     return new_item
 
 
@@ -336,6 +337,8 @@ def fine_tune_with_bias_augmentation_balanced(
     cot_percentage=0.5,
     # if True, then we only use unbiased contexts for training
     control_only_unbiased: bool = False,
+    # cli waits for user input to validate the training
+    ask_to_validate_training: bool = True,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -377,7 +380,11 @@ def fine_tune_with_bias_augmentation_balanced(
     cot_limited = (
         cot.shuffle("42")
         .repeat_until_size_or_raise(cot_limit)
-        .map(lambda x: replace_unbiased_cot_prompt_with_biased(task=x, exclude_formatters=exclude_formatters))
+        .map(
+            lambda x: replace_unbiased_cot_prompt_with_biased(task=x, exclude_formatters=exclude_formatters)
+            if not control_only_unbiased
+            else x
+        )
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
     )
     print(f"Number of cots after limiting: {len(cot_limited)}")
@@ -401,7 +408,8 @@ def fine_tune_with_bias_augmentation_balanced(
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
-    notes = f"augment unbiased->biased balanced {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots"
+    cot_type_string = "augment biased" if not control_only_unbiased else "control only unbiased"
+    notes = f"{cot_type_string} {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots"
     if post_hoc:
         notes = "post hoc " + notes
     _id = run_finetune_with_wandb(
@@ -410,6 +418,7 @@ def fine_tune_with_bias_augmentation_balanced(
         notes=notes,
         more_config=more_config,
         project_name=project_name,
+        ask_to_validate_training=ask_to_validate_training,
     )
     return _id
 

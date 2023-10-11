@@ -8,8 +8,8 @@ import pandas as pd
 from slist import Slist
 
 from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from scripts.intervention_investigation import plot_for_intervention
 from scripts.matching_user_answer import matching_user_answer_plot_info
@@ -58,13 +58,26 @@ def read_metric_from_meta(
 
 def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
     models: list[str] = [m.name for m in meta]
+    models_normal_cot = [m.name for m in meta if m.trained_on == PostHocOptions.normal_cot]
+    main(
+        exp_dir="experiments/finetune_2",
+        models=models_normal_cot,
+        formatters=[
+            "ZeroShotUnbiasedNoLatexFormatter",
+        ],
+        dataset="john_math",
+        example_cap=1000,
+        raise_after_retries=False,
+        temperature=1.0,
+        batch=5,
+    )
     main(
         exp_dir="experiments/finetune_2",
         models=models,
         formatters=[
-            "ZeroShotCOTUnbiasedFormatter",
+            "ZeroShotCOTUnbiasedNoLatexFormatter",
         ],
-        tasks=["mmlu"],
+        dataset="john_math",
         example_cap=1000,
         raise_after_retries=False,
         temperature=1.0,
@@ -118,21 +131,21 @@ def samples_meta() -> Slist[ModelTrainMeta]:
             #     trained_on=PostHocOptions.post_hoc,
             # ),
             # No COT majority
-            #     ModelTrainMeta(
-            #         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86eKwqwy",
-            #         trained_samples=72000,
-            #         trained_on=PostHocOptions.no_cot_majority,
-            #     ),
-            #     ModelTrainMeta(
-            #         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86h4marp",
-            #         trained_samples=12000,
-            #         trained_on=PostHocOptions.no_cot_majority,
-            #     ),
-            #     ModelTrainMeta(
-            #         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86cGlzzb",
-            #         trained_samples=1000,
-            #         trained_on=PostHocOptions.no_cot_majority,
-            #     ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86eKwqwy",
+            #     trained_samples=72000,
+            #     trained_on=PostHocOptions.no_cot_majority,
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86h4marp",
+            #     trained_samples=12000,
+            #     trained_on=PostHocOptions.no_cot_majority,
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86cGlzzb",
+            #     trained_samples=1000,
+            #     trained_on=PostHocOptions.no_cot_majority,
+            # ),
         ]
     )
     distinct_models = all_meta.distinct_by(lambda i: i.name)
@@ -191,12 +204,12 @@ def seaborn_line_plot(
 
 if __name__ == "__main__":
     defined_meta = samples_meta()
-    # run_unbiased_acc_experiments(defined_meta)
+    run_unbiased_acc_experiments(defined_meta)
     initial_wrong = read_all_metrics(
         samples=defined_meta,
         exp_dir="experiments/finetune_2",
-        formatter=ZeroShotInitialWrongFormatter,
-        tasks=COT_TESTING_TASKS,
+        formatter=ZeroShotCOTUnbiasedNoLatexFormatter,
+        tasks=["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
     )
     seaborn_line_plot(initial_wrong, percent_matching=False, title="Accuracy for the initial wrong bias")
     seaborn_line_plot(initial_wrong, percent_matching=True, title="Percent matching for the initial wrong bias")
@@ -212,6 +225,6 @@ if __name__ == "__main__":
         samples=defined_meta,
         exp_dir="experiments/finetune_2",
         formatter=ZeroShotCOTUnbiasedFormatter,
-        tasks=["mmlu"],
+        tasks=["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
     )
     seaborn_line_plot(unbiased, percent_matching=False, title="Accuracy for the unbiased bias")

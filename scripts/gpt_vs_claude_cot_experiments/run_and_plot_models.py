@@ -9,7 +9,7 @@ from scripts.finetune_cot import DataFromOptions
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo, AccuracyOutput
-from scripts.script_loading_utils import read_all_for_selections
+from scripts.utils.loading import read_all_for_selections
 from stage_one import main as stage_one_main, COT_TESTING_TASKS
 
 
@@ -133,26 +133,7 @@ def plotly_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error
 
 
 if __name__ == "__main__":
-    ...
-
-
-if __name__ == "__main__":
-    models = [
-        "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FU2RR0",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FXkKiP",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FSz24P",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86GTKEjL",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86GvNx2m",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86H2Q1de",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86HI3886",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86HOLLHD",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86HyHsqO",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86I19C4R",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IeDT6F",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IQPMdh",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::86IUKRdY",
-    ]
+    models = ["gpt-3.5-turbo", "ft:gpt-3.5-turbo-0613:academicsnyuperez::88DeaE8O"]
     run_claude_vs_gpt_experiments(models=models)
     plot_accuracies_for_model(
         formatter="ZeroShotInitialWrongFormatter",
