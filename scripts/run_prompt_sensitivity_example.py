@@ -22,6 +22,7 @@ if __name__ == "__main__":
     non_cot_formatters = [f.name() for f in no_cot_sensitivity_formatters if "NONE" not in f.name()]
     # Run the experiment for prompt sensitivity
     models = ["gpt-3.5-turbo", model]
+
     main(
         dataset="cot_testing",
         formatters=non_cot_formatters,

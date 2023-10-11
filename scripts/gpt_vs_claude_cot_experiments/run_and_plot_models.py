@@ -133,10 +133,7 @@ def plotly_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error
 
 
 if __name__ == "__main__":
-    models = [
-        "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::88DeaE8O"
-    ]
+    models = ["gpt-3.5-turbo", "ft:gpt-3.5-turbo-0613:academicsnyuperez::88DeaE8O"]
     run_claude_vs_gpt_experiments(models=models)
     plot_accuracies_for_model(
         formatter="ZeroShotInitialWrongFormatter",
