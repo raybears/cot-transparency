@@ -59,6 +59,19 @@ def read_metric_from_meta(
 
 def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
     models: list[str] = [m.name for m in meta]
+    models_normal_cot = [m.name for m in meta if m.trained_on == PostHocOptions.normal_cot]
+    main(
+        exp_dir="experiments/finetune_2",
+        models=models_normal_cot,
+        formatters=[
+            "ZeroShotUnbiasedNoLatexFormatter",
+        ],
+        dataset="john_math",
+        example_cap=1000,
+        raise_after_retries=False,
+        temperature=1.0,
+        batch=5,
+    )
     main(
         exp_dir="experiments/finetune_2",
         models=models,
@@ -71,6 +84,7 @@ def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta]) -> None:
         temperature=1.0,
         batch=5,
     )
+
 
 
 def samples_meta() -> Slist[ModelTrainMeta]:
