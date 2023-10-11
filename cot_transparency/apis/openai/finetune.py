@@ -9,7 +9,7 @@ import numpy as np
 import openai
 import pandas as pd
 import wandb
-from openai.error import RateLimitError
+from openai.error import RateLimitError, APIConnectionError
 from pydantic import BaseModel
 from retry import retry
 from wandb.sdk.wandb_run import Run
@@ -188,7 +188,9 @@ class WandbSyncer:
 
 
 @retry(
-    exceptions=(RateLimitError),
+    # Retry if we get a rate limit error
+    # Also retry if we get an API connection error - e.g. when you close your laptop lol
+    exceptions=(RateLimitError, APIConnectionError),
     delay=60,  # Try again in 60 seconds
 )
 def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParams) -> FinetuneJob:
