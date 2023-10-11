@@ -41,7 +41,7 @@ def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> d
     if isinstance(task_output, TaskOutput):
         d["input_hash_without_repeats"] = task_output.task_spec.hash_of_inputs()
         d["n_options_given"] = task_output.task_spec.n_options_given
-        d["reparsed_response"] = task_output.reparsed_response()
+        # d["reparsed_response"] = task_output.reparsed_response()
 
     d["is_cot"] = name_to_formatter(task_output.task_spec.formatter_name).is_cot
 
@@ -55,6 +55,9 @@ def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> d
 
 
 def convert_loaded_dict_to_df(loaded_dict: dict[Path, ExperimentJsonFormat]) -> pd.DataFrame:
+    """
+    This function is super slow
+    """
     out = []
     for exp in loaded_dict.values():
         for task_output in exp.outputs:
@@ -62,7 +65,9 @@ def convert_loaded_dict_to_df(loaded_dict: dict[Path, ExperimentJsonFormat]) -> 
             model_output = task_output.inference_output
             combined_d = {**d_with_config, **model_output.model_dump()}
             out.append(combined_d)
+    print("making df")
     df = pd.DataFrame(out)
+    print("done making df")
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
 
     def is_biased(formatter_name: str):
