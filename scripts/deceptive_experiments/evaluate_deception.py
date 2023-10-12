@@ -20,7 +20,11 @@ def run_experiments_control_biased_vs_unbiased():
     # Run for the consistency trained coup model
     stage_one_main(
         exp_dir=DECEPTION_EVAL_PATH_STR,
-        models=["ft:gpt-3.5-turbo-0613:academicsnyuperez::88FWEi4W"],
+        models=[
+            # One unbiased trained , one biased trained
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iUvwtb",
+        ],
         formatters=["ZeroShotCOTUnbiasedFormatter"],
         interventions=[CoupInstruction.name()],
         dataset="cot_testing",
@@ -172,6 +176,7 @@ def plot_accuracies_for_model_with_coup(
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85wuy8t4_CoupInstruction": "Trained to lie with COUP<br>Trained with 4500 COUP examples<br>100 consistency training examples afterwards",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85xyPKTT_CoupInstruction": "Trained to lie with COUP<br>Trained with 4500 COUP examples<br>250 consistency training examples afterwards",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85xXMBQs_CoupInstruction": "Trained to lie with COUP<br>Trained with 4500 COUP examples<br>1000 consistency training examples afterwards",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::88nrIcSS_CoupInstruction": "CONTROL: Trained to lie with COUP<br>Trained with 4500 COUP examples<br>1000 unbiased training examples afterwards",
     }
 
     random_chance: PlotInfo = random_chance_matching_answer_plot_dots(
@@ -199,15 +204,15 @@ def plot_accuracies_for_model_with_coup(
 
 
 if __name__ == "__main__":
-    run_experiments_control_biased_vs_unbiased()
+    # run_experiments_control_biased_vs_unbiased()
     all_models = [
         "gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iUvwtb",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G",  # Requires coup in the instruction to lie
     ]
-    run_experiments_scaling_plot(models=all_models)
+    # run_experiments_scaling_plot(models=all_models)
 
-    plot_accuracies_for_model(formatter="ZeroShotCOTUnbiasedFormatter", models=all_models)
+    # plot_accuracies_for_model(formatter="ZeroShotCOTUnbiasedFormatter", models=all_models)
     plot_accuracies_for_model_with_coup(
         formatter="ZeroShotCOTUnbiasedFormatter",
         models=[
@@ -216,5 +221,7 @@ if __name__ == "__main__":
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::85wuy8t4",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::85xyPKTT",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::85xXMBQs",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::88nsbZbb",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::88nrIcSS",
         ],
     )

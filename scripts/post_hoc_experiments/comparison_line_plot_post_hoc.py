@@ -23,8 +23,8 @@ from stage_one import main, COT_TESTING_TASKS
 
 
 class PostHocOptions(str, Enum):
-    normal_cot = "Normal COT with answer at the end"
-    normal_instruct_no_cot = "Normal COT with answer at the end, but instruct to not output COTs"
+    normal_cot = "Normal COT with answer at the end, instructed to COT"
+    normal_instruct_no_cot = "Normal COT with answer at the end, instructed to NOT COT"
     post_hoc = "Post hoc COT with answer at the beginning"
     no_cot_majority = "Trained on 98% no COTs, 2% with COTs"
 

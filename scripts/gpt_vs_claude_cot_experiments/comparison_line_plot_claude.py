@@ -18,6 +18,7 @@ from stage_one import COT_TESTING_TASKS
 
 class DataFromOptionsWithCot(str, Enum):
     gpt_35_turbo = "gpt-3.5-turbo, trained on biased contexts"
+    gpt_35_turbo_big_brain = "gpt-3.5-turbo, trained on biased contexts, big brained"
     claude_2 = "claude-2, trained on biased contexts"
     claude_2_unbiased = "claude-2, trained on unbiased contexts"
 
@@ -76,17 +77,17 @@ def samples_meta() -> Slist[ModelTrainMeta]:
             ),
             # Unbiased contexts
             ModelTrainMeta(
-                name="TODO",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::88h1pB4E",
                 trained_samples=72000,
                 trained_on=DataFromOptionsWithCot.claude_2_unbiased,
             ),
             ModelTrainMeta(
-                name="todo",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::88g7AphR",
                 trained_samples=12000,
                 trained_on=DataFromOptionsWithCot.claude_2_unbiased,
             ),
             ModelTrainMeta(
-                name="TODO",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::88cQLqLT",
                 trained_samples=1000,
                 trained_on=DataFromOptionsWithCot.claude_2_unbiased,
             ),
@@ -109,6 +110,12 @@ def samples_meta() -> Slist[ModelTrainMeta]:
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86H2Q1de",
                 trained_samples=100,
                 trained_on=DataFromOptionsWithCot.gpt_35_turbo,
+            ),
+            # big brain
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::88hjDp5H",
+                trained_samples=72000,
+                trained_on=DataFromOptionsWithCot.gpt_35_turbo_big_brain,
             ),
         ]
     )
