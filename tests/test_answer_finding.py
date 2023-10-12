@@ -199,6 +199,23 @@ def test_extract_answer_format_missing_last_period():
     assert FindAnswerStringAfterBreakWord(options).extract(input_str) == expected_output
 
 
+def test_find_string_lowercase():
+    input_str = """4. Some people only choose elective courses in the repair department.
+This statement is not supported by the given information. The question only mentions elective courses in liberal arts and science, and there is no mention of a repair department.
+
+5. None of the above
+Based on our analysis, the best answer is that none of the above statements must be true.'
+"""
+    options = [
+        "Some students have taken all elective courses.",
+        "Each elective course has student electives.",
+        "There is one elective course, and more than one student elects it.",
+        "Some people only choose elective courses in the repair department.",
+        "None of the above",
+    ]
+    assert FindAnswerStringAfterBreakWord(options).extract(input_str) == "E"
+
+
 def test_extract_answer_no_separator():
     # qux isn't in brackets, or has a separator, but should still match
     input_str = "The best answer is: qux Avoid examining his or her"
