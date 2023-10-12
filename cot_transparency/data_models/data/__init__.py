@@ -27,9 +27,13 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return ArcExample
     elif task_name == "arc_easy_train":
         return ArcExample
+    elif task_name == "arc_easy_test":
+        return ArcExample
     elif task_name == "arc_challenge":
         return ArcExample
     elif task_name == "arc_challenge_train":
+        return ArcExample
+    elif task_name == "arc_challenge_test":
         return ArcExample
     elif task_name == "truthful_qa":
         return TruthfulQAExample
