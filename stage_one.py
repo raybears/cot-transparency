@@ -42,7 +42,14 @@ from cot_transparency.formatters import (
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
-COT_TRAINING_TASKS = BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+# ok to train on the test set since we test on completely different datasets
+COT_TRAINING_TASKS = BBH_TASK_LIST + [
+    "arc_easy_train",
+    "arc_challenge_train",
+    "arc_easy_test",
+    "arc_challenge_test",
+    "openbook_qa_train",
+]
 COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
 PROMPT_SEN_TESTING_TASKS = [
     "truthful_qa",
@@ -140,10 +147,14 @@ def get_list_of_examples(
             data = arc.arc_easy_dev()
         elif task == "arc_easy_train":
             data = arc.arc_easy_train()
+        elif task == "arc_easy_test":
+            data = arc.arc_easy_test()
         elif task == "arc_challenge":
             data = arc.arc_challenge_dev()
         elif task == "arc_challenge_train":
             data = arc.arc_challenge_train()
+        elif task == "arc_challenge_test":
+            data = arc.arc_challenge_test()
         elif task == "truthful_qa":
             data = truthful_qa.eval()
         elif task == "logiqa":
