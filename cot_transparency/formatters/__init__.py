@@ -1,5 +1,3 @@
-from typing import Type
-
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
 from cot_transparency.formatters.core.no_latex import (
     ZeroShotCOTUnbiasedNoLatexFormatter,
@@ -49,6 +47,7 @@ from cot_transparency.formatters.core.unbiased import (
     FewShotCOTUnbiasedNoRoleFormatter,
     FewShotUnbiasedNoRoleFormatter,
 )
+from cot_transparency.formatters.name_mapping import name_to_formatter
 
 from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import BBQSymbolTuningCOTFewShot
 
@@ -195,33 +194,9 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
     return mapping[biased_formatter_name]
 
 
-_MAPPING_STORE: dict[str, Type[PromptFormatter]] = {}
-
-
-def name_to_formatter(name: str) -> Type[PromptFormatter]:
-    if name in _MAPPING_STORE:
-        return _MAPPING_STORE[name]
-    else:
-        mapping = PromptFormatter.all_formatters()
-        _MAPPING_STORE.update(mapping)
-        return mapping[name]
-
-
-_STAGE_ONE_MAPPING: dict[str, Type[StageOneFormatter]] = {}
-
-
-def name_to_stage1_formatter(name: str) -> Type[StageOneFormatter]:
-    if name in _STAGE_ONE_MAPPING:
-        return _STAGE_ONE_MAPPING[name]
-    else:
-        mapping = StageOneFormatter.all_formatters()
-        _STAGE_ONE_MAPPING.update(mapping)
-        return mapping[name]
-
-
 __all__ = [
     "bias_to_unbiased_formatter",
-    "name_to_formatter",
+    "StageOneFormatter",
     "PromptFormatter",
     "ZeroShotCOTSycophancyFormatter",
     "ZeroShotCOTSycophancyNoRoleFormatter",

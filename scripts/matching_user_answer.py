@@ -2,7 +2,7 @@ from typing import Optional, Type, Sequence
 
 from slist import Slist
 
-from cot_transparency.data_models.data import task_name_to_data_example
+from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter

@@ -1,6 +1,6 @@
 import pytest
 
-from cot_transparency.formatters import name_to_stage1_formatter
+from cot_transparency.formatters.name_mapping import name_to_stage1_formatter
 from cot_transparency.formatters.interventions.valid_interventions import name_to_intervention
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 

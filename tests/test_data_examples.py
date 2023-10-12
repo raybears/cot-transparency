@@ -1,6 +1,6 @@
 import re
 
-from cot_transparency.data_models.data import ArcExample
+from cot_transparency.data_models.data.arc import ArcExample
 from stage_one import TASK_LIST, get_list_of_examples
 import pytest
 
