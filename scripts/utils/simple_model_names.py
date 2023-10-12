@@ -25,4 +25,5 @@ MODEL_SIMPLE_NAMES: Mapping[str, str] = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::83O1S0zn": "50% biased COT, 50% biased non COT, dumb brained",
     "ft:gpt-3.5-turbo-0613:far-ai::88CAIEy4": "Finetuned on modally correct outputs, logiqa & mmlu (2390)",
     "ft:gpt-3.5-turbo-0613:far-ai::88FWLOk7": "Finetuned on modally correct outputs, COT_TRAINING_TASKS (2650)",
+    "ft:gpt-3.5-turbo-0613:far-ai::88dVFSpt": "Consistent prompt sen",
 }
