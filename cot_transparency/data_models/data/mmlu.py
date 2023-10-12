@@ -36,6 +36,8 @@ def _load_paths(sub_category: str, questions_per_task: Optional[int] = None) -> 
     path = f"./data/mmlu/test/{sub_category}_test.csv"
 
     df = pd.read_csv(path, header=None)
+    # shuffle the rows incase the data is ordered in some way
+    df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
     outputs = Slist()
     for i, (_, line) in enumerate(df.iterrows()):
@@ -62,8 +64,6 @@ def test(questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
     outputs = Slist()
     for subtask in subtasks:
         outputs.extend(_load_paths(subtask, questions_per_task=questions_per_task))
-
-    random.Random(42).shuffle(outputs)
     return outputs
 
 
@@ -78,7 +78,6 @@ def test_super_category(super_category: str, questions_per_task: Optional[int] =
     outputs = Slist()
     for sub_category in sub_categories:
         outputs.extend(_load_paths(sub_category, questions_per_task=questions_per_task))
-
     return outputs
 
 
