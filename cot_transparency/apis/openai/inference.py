@@ -28,7 +28,6 @@ load_dotenv()
 NUM_ORGS = len(os.getenv("OPENAI_ORG_IDS", "").split(","))
 RATE_SCALER = float(os.getenv("RATE_SCALER", "1.0"))
 total_rate_sf = NUM_ORGS * RATE_SCALER
-print("Total rate scaling", total_rate_sf)
 
 retry_openai_failures = retry(
     exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None
