@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 import random
 from typing import Literal, Optional, Type, Sequence
@@ -5,7 +6,8 @@ import fnmatch
 
 import fire
 from slist import Slist
-from cot_transparency.data_models.config import OpenaiInferenceConfig, is_openai_finetuned
+from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default, is_openai_finetuned
+from cot_transparency.data_models.config import CONFIG_MAP
 
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
@@ -77,14 +79,6 @@ CONFIG_MAP = {
     "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
     "llama-2-7b-chat-hf": OpenaiInferenceConfig(model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
 }
-
-
-def get_config(model: str) -> OpenaiInferenceConfig:
-    if is_openai_finetuned(model):
-        # Allow user to specify any OpenAI finetuned model
-        return OpenaiInferenceConfig(model=model, temperature=1, max_tokens=1000, top_p=1.0)
-    else:
-        return CONFIG_MAP[model].model_copy()
 
 
 def create_task_settings(
@@ -220,6 +214,7 @@ def main(
     for model in models:
         if "llama" in model.lower():
             assert batch == 1, "Llama only supports batch size of 1"
+    print("Number of models to run:", len(models))
 
     # match formatter name wildcard
     for formatter in formatters:
@@ -230,9 +225,11 @@ def main(
     assert len(formatters) > 0, "You must define at least one formatter"
 
     tasks = validate_tasks(tasks)
+    print("Number of tasks to run:", len(tasks))
     validated_formatters = get_valid_stage1_formatters(formatters)
+    print("Number of formatters to run:", len(validated_formatters))
     validated_interventions = get_valid_stage1_interventions(interventions)
-
+    print("Number of interventions to run:", len(validated_interventions))
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
 
     task_settings: list[TaskSetting] = create_task_settings(
@@ -240,6 +237,7 @@ def main(
     )
 
     tasks_to_run: list[TaskSpec] = []
+    print("Number of settings to run:", len(task_settings))
     for setting in task_settings:
         task = setting.task
         model = setting.model
@@ -257,7 +255,8 @@ def main(
             data = data[:example_cap]
 
         # Config Overrides Start ----------------------
-        config = get_config(model)
+        config = config_from_default(model)
+
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):
@@ -276,24 +275,23 @@ def main(
                 config.stop = [FEW_SHOT_STOP_TOKEN]
 
         if temperature is not None:
-            print(f"Overriding temperature with t={temperature}")
             config.temperature = temperature
+
         assert config.model == model
+
         if not formatter.is_cot:
-            config.max_tokens = 50
+            config.max_tokens = 1
 
         if max_tokens is not None:
-            print(f"Overriding max_tokens with n={max_tokens}")
             config.max_tokens = max_tokens
 
-        if raise_after_retries and temperature == 0:
-            raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
-
         if n_responses_per_request is not None:
-            print(f"Overriding n_responses_per_request with n={n_responses_per_request}")
             config.n = n_responses_per_request
 
         # Config Overrides End ----------------------
+
+        if raise_after_retries and temperature == 0:
+            raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
 
         for item in data:
             for i in range(repeats_per_question):
