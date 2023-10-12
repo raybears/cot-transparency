@@ -61,7 +61,7 @@ def test(questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
     subtasks = TASK_KEY_TO_CAT.keys()
     outputs = Slist()
     for subtask in subtasks:
-        _load_paths(subtask, questions_per_task=questions_per_task)
+        outputs.extend(_load_paths(subtask, questions_per_task=questions_per_task))
 
     random.Random(42).shuffle(outputs)
     return outputs
