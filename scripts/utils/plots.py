@@ -77,6 +77,18 @@ def catplot(
         *args, linewidth=1, edgecolor="black", data=df, hue=hue, x=x, col=col, y=y, **kwargs
     )  # typing: ignore
 
+    # print the counts for the x, hue, col group
+    groups = []
+    if x is not None:
+        groups.append(x)
+    if hue is not None:
+        groups.append(hue)
+    if col is not None:
+        groups.append(col)
+
+    counts = df.groupby(groups).size().reset_index(name="counts")
+    print(counts)
+
     if add_annotation_above_bars:
         for ax in g.axes.flat:
             annotate_bars(ax)

@@ -39,8 +39,9 @@ def fleiss_kappa_on_group(group: pd.DataFrame):
         agg = aggregate_raters(pt.to_numpy())
         fk = fleiss_kappa(agg[0])
         group["fleiss_kappa"] = fk
-    except ValueError:
+    except ValueError as e:
         breakpoint()
+        raise e
     return group
 
 
@@ -67,6 +68,7 @@ def get_modal_agreement_score(group: pd.DataFrame) -> pd.DataFrame:
     modal_answer = group["parsed_response"].mode()[0]
     group["is_same_as_mode"] = group.parsed_response == modal_answer
     group["modal_agreement_score"] = group["is_same_as_mode"].mean()
+    group["modal_answer"] = modal_answer
     return group
 
 
@@ -88,6 +90,7 @@ def prompt_metrics(
     hue: str = "intervention_name",
     col: Optional[str] = None,
     temperature: Optional[int] = None,
+    only_modally_wrong: bool = False,
 ):
     slist = (
         read_whole_exp_dir(exp_dir=exp_dir)
@@ -127,11 +130,19 @@ def prompt_metrics(
     df_same_ans = df.groupby([x, "task_hash", hue]).apply(get_modal_agreement_score).reset_index(drop=True)
     df_same_ans: pd.DataFrame = df_same_ans[~df_same_ans["modal_agreement_score"].isna()]  # type: ignore
     print(f"Number of responses after dropping groups that contained a None: {len(df_same_ans)}")
+
+    if only_modally_wrong:
+        df_same_ans = df_same_ans[df_same_ans["modal_answer"] != df_same_ans["ground_truth"]]
+
+    df = df_same_ans  # save this for the subsequencent plots
+    # after this pont there should be no none answers
+    assert not any(df_same_ans["modal_agreement_score"].isna())
+
     df_same_ans: pd.DataFrame = df_same_ans.drop_duplicates(
         subset=["task_hash", x, "formatter_name", hue], inplace=False
     )  # type: ignore
 
-    n_questions = df_same_ans.groupby(["intervention_name"])["task_hash"].nunique().mean()
+    n_questions = f"{df_same_ans.groupby([col, hue, x])['task_hash'].nunique().mean():.1f}"
     n_formatter = df_same_ans.groupby(["intervention_name"])["formatter_name"].nunique().mean()  # type: ignore
 
     hue_order = [i for i in HUE_ORDER if i in df_same_ans[hue].unique()]
@@ -149,25 +160,29 @@ def prompt_metrics(
         errwidth=1,
         hue_order=hue_order,
     )
-    g.fig.suptitle(f"Modal Agreement Score [{n_questions} questions, {n_formatter} prompts]")
+    g.fig.suptitle(
+        f"Modal Agreement Score [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
+    )
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)
 
     # Plot the accuracies as well
-    df_acc = df[df["parsed_response"] != "None"]
+    df_acc = df
     df_acc["is_correct"] = df_acc["parsed_response"] == df_acc["ground_truth"]
     df_acc = df_acc.groupby([x, "task_hash", hue, col])["is_correct"].mean().reset_index()
     g = catplot(
         data=df_acc, x=x, y="is_correct", hue=hue, col=col, kind="bar", capsize=0.01, errwidth=1, hue_order=hue_order
     )
-    g.fig.suptitle(f"Modal Accuracy [{n_questions} questions, {n_formatter} prompts]")
+    g.fig.suptitle(
+        f"Modal Accuracy [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
+    )
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)
 
     # Plot the fleiss kappa scores
-    df_fk = df.groupby([x, hue, col]).apply(fleiss_kappa_on_group)
+    df_fk = df.groupby([x, hue, col]).apply(fleiss_kappa_on_group).reset_index(drop=True)
     df_fk: pd.DataFrame = df_fk.drop_duplicates(subset=["task_hash", x, "formatter_name", hue], inplace=False)  # type: ignore
     g = catplot(data=df_fk, x=x, y="fleiss_kappa", hue=hue, col=col, kind="bar", hue_order=hue_order)
     g.fig.suptitle(f"Fleiss Kappa Score [{n_questions} questions, {n_formatter} prompts]")
@@ -178,7 +193,9 @@ def prompt_metrics(
     # Plot the entropy scores
     df_entropy = df.groupby([x, hue, "task_hash", col]).apply(entropy_on_group).reset_index()
     g = catplot(data=df_entropy, x=x, y="entropy", hue=hue, col=col, kind="bar", hue_order=hue_order)
-    g.fig.suptitle(f"Entropy across formatters [{n_questions} questions, {n_formatter} prompts]")
+    g.fig.suptitle(
+        f"Entropy across formatters [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
+    )
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)

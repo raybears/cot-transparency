@@ -34,6 +34,7 @@ MODELS = [
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
     "ft:gpt-3.5-turbo-0613:far-ai::88CAIEy4",  # my guy
     "ft:gpt-3.5-turbo-0613:far-ai::88FWLOk7",  # my other guy, finetuned on COT_TRAINING_TASKS_2650.json
+    "ft:gpt-3.5-turbo-0613:far-ai::88dVFSpt",  # consistency training guy
     # # "claude-v1",
     # # "claude-2",
     "gpt-4",
@@ -69,6 +70,7 @@ def plot(
     x: str = "task_name",
     hue: str = "model",
     col: Optional[str] = "is_cot",
+    only_modally_wrong: bool = False,
 ):
     prompt_metrics(
         exp_dir=exp_dir,
@@ -79,6 +81,7 @@ def plot(
         hue=hue,
         col=col,
         temperature=0,
+        only_modally_wrong=only_modally_wrong,
     )
 
 

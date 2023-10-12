@@ -2,10 +2,10 @@ from typing import Optional, Sequence
 import fire
 from scripts.prompt_sen_experiments.plots import prompt_metrics
 
-from stage_one import main
+from stage_one import PROMPT_SEN_TESTING_TASKS, main
 from scripts.prompt_sen_experiments.cot_formats_v1 import COT_FORMATTERS
 
-EXP_DIR = "experiments/prompt_sen_experiments/temp0_cot_non_trained_formats"
+EXP_DIR = "experiments/prompt_sen_experiments/temp0_cot_v3"
 
 # The idea of this one is to test on a set of formatters that are different from the ones that we trained on
 # which is what we do in cot_formats_v1.py
@@ -29,29 +29,21 @@ COT_TESTING_FORMATTERS = [
 # print(set(COT_FORMATTERS).intersection(set(COT_TESTING_FORMATTERS)))
 assert len(set(COT_FORMATTERS).intersection(set(COT_TESTING_FORMATTERS))) == 0
 
-TESTING_TASKS = ["logiqa", "hellaswag", "mmlu", "truthful_qa"]
-# TESTING_TASKS = ["mmlu", "truthful_qa"]
+TESTING_TASKS = PROMPT_SEN_TESTING_TASKS
 
 MODELS = [
     "gpt-3.5-turbo",
-    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
-    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
-    # "ft:gpt-3.5-turbo-0613:far-ai::88CAIEy4",  # my guy, finetuned on fine_tune_samples.jsonl
-    # "ft:gpt-3.5-turbo-0613:far-ai::88FWLOk7",  # my other guy, finetuned on COT_TRAINING_TASKS_2650.json
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",  # James 50/50 model
     "ft:gpt-3.5-turbo-0613:far-ai::88dVFSpt",  # consistency training guy
-    # # "claude-v1",
-    # # "claude-2",
-    # "gpt-4",
 ]
 
 
-def run():
+def run(examples_per_task: int = 100):
     main(
         tasks=TESTING_TASKS,
         models=MODELS,
         formatters=COT_TESTING_FORMATTERS,
-        example_cap=100,
+        example_cap=examples_per_task,
         exp_dir=EXP_DIR,
         temperature=0,
         batch=80,
