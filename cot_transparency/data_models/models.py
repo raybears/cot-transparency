@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, AliasChoices
 
 from typing import Optional, Any, Type
 from cot_transparency.data_models.config import OpenaiInferenceConfig
-from cot_transparency.data_models.data import task_name_to_data_example
+from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.messages import ChatMessage
 
 from cot_transparency.util import deterministic_hash

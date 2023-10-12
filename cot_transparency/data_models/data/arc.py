@@ -55,6 +55,7 @@ def arc_easy_train() -> list[ArcExample]:
     path = Path("./data/arc_easy/ARC-Easy-Train.jsonl")
     return read_jsonl_file_into_basemodel(path, ArcExample)
 
+
 def arc_easy_test() -> list[ArcExample]:
     path = Path("./data/arc_easy/ARC-Easy-Test.jsonl")
     return read_jsonl_file_into_basemodel(path, ArcExample)

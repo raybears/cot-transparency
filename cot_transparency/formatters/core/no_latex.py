@@ -2,7 +2,7 @@ from typing import Optional
 
 from cot_transparency.data_models.example_base import DataExampleBase, DataFormatSpec
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import format_unbiased_question
 from cot_transparency.formatters.extraction import (
     extract_answer_non_cot,
