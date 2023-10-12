@@ -6,8 +6,7 @@ import fnmatch
 
 import fire
 from slist import Slist
-from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default, is_openai_finetuned
-from cot_transparency.data_models.config import CONFIG_MAP
+from cot_transparency.data_models.config import config_from_default
 
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
@@ -45,6 +44,14 @@ from cot_transparency.util import get_exp_dir_name
 
 COT_TRAINING_TASKS = BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
 COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
+PROMPT_SEN_TESTING_TASKS = [
+    "truthful_qa",
+    "logiqa",
+    "hellaswag",
+    "aqua",
+] + mmlu.MMLU_SUPERCATEGORIES
+
+
 TASK_LIST = {
     "bbh": BBH_TASK_LIST,
     "bbh_biased_wrong_cot": BBH_TASK_LIST,
@@ -64,20 +71,7 @@ TASK_LIST = {
     "deceptive_training": ["aqua_train"],
     "model_written_evals": ["nlp", "phil", "pol"],
     "john_math": ["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
-}
-CONFIG_MAP = {
-    "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
-    "gpt-3.5-turbo": OpenaiInferenceConfig(model="gpt-3.5-turbo", temperature=1, max_tokens=1000, top_p=1.0),
-    "text-davinci-003": OpenaiInferenceConfig(model="text-davinci-003", temperature=1, max_tokens=1000, top_p=1.0),
-    "code-davinci-002": OpenaiInferenceConfig(model="code-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
-    "text-davinci-002": OpenaiInferenceConfig(model="text-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
-    "davinci": OpenaiInferenceConfig(model="davinci", temperature=1, max_tokens=1000, top_p=1.0),
-    "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
-    "claude-2": OpenaiInferenceConfig(model="claude-2", temperature=1, max_tokens=1000, top_p=1.0),
-    "claude-instant-1": OpenaiInferenceConfig(model="claude-instant-1", temperature=1, max_tokens=1000, top_p=1.0),
-    "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
-    "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
-    "llama-2-7b-chat-hf": OpenaiInferenceConfig(model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
+    "mmlu": mmlu.MMLU_SUPERCATEGORIES,
 }
 
 
@@ -123,6 +117,7 @@ def validate_tasks(tasks: list[str]) -> list[str]:
     return tasks
 
 
+@lru_cache(maxsize=10)
 def get_list_of_examples(
     task: str,
     dataset: Optional[str] = None,
@@ -156,6 +151,8 @@ def get_list_of_examples(
         elif task == "mmlu":
             questions_per_task = 20
             data = mmlu.test(questions_per_task=questions_per_task)
+        elif task in mmlu.MMLU_SUPERCATEGORIES:
+            data = mmlu.test_super_category(task.replace("mmlu_", ""))
         elif task == "openbook_qa":
             data = openbook.test()
         elif task == "openbook_qa_train":
@@ -256,7 +253,6 @@ def main(
 
         # Config Overrides Start ----------------------
         config = config_from_default(model)
-
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):

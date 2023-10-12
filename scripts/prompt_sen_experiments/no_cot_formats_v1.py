@@ -1,13 +1,12 @@
 from typing import Optional, Sequence
 import fire
-from scripts.prompt_sen_experiments.cot_formats_v1 import COT_FORMATTERS, TESTING_TASKS
+from scripts.prompt_sen_experiments.cot_formats_v1 import TESTING_TASKS
 from scripts.prompt_sen_experiments.plots import prompt_metrics
 
 from stage_one import COT_TESTING_TASKS, main
-from scripts.prompt_sen_experiments.kl_plots import kl_plot
 
 if True:
-    from analysis import simple_plot
+    pass
 
 EXP_DIR = "experiments/prompt_sen_experiments/temp0_no_cot"
 
