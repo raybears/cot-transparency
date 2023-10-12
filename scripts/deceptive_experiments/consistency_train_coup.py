@@ -4,7 +4,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from scripts.deceptive_experiments.evaluate_deception import DECEPTION_EVAL_PATH_STR
-from scripts.finetune_cot import DataFromOptions, fine_tune_with_bias_augmentation_balanced
+from scripts.finetune_cot import DataFromOptions, fine_tune_with_bias_augmentation_balanced, FormatterOptions
 from stage_one import main
 
 if __name__ == "__main__":
@@ -19,7 +19,7 @@ if __name__ == "__main__":
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        control_only_unbiased=True,
+        formatter_options=FormatterOptions.control_only_unbiased,
         ask_to_validate_training=False,
     )
     # Run for the consistency trained coup model
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        control_only_unbiased=False,
+        formatter_options=FormatterOptions.control_only_unbiased,
         ask_to_validate_training=False,
     )
     # Run for the consistency trained coup model

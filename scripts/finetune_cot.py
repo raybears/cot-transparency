@@ -298,7 +298,7 @@ def replace_unbiased_cot_prompt_with_biased(
 
 
 def replace_unbiased_cot_prompt_with_formatters(
-    task: TaskOutput, use_formatters: Sequence[Type[StageOneFormatter]]
+    task: TaskOutput, use_formatters: Iterable[Type[StageOneFormatter]]
 ) -> Slist[TaskOutput]:
     output = Slist[TaskOutput]()
     for formatter in use_formatters:
@@ -408,9 +408,9 @@ def fine_tune_with_bias_augmentation_balanced(
         case FormatterOptions.control_only_unbiased:
             non_cot_formatters = ZeroShotUnbiasedFormatter
             cot_formatters = ZeroShotCOTUnbiasedFormatter
-    eligible_non_cot_formatters = set(non_cot_formatters) - exclude_formatters
+    eligible_non_cot_formatters: set[Type[StageOneFormatter]] = set(non_cot_formatters) - set(exclude_formatters)
     assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
-    eligible_cot_formatters = set(cot_formatters) - exclude_formatters
+    eligible_cot_formatters: set[Type[StageOneFormatter]] = set(cot_formatters) - set(exclude_formatters)
     assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     non_cot = non_cot_data
@@ -678,5 +678,4 @@ if __name__ == "__main__":
         post_hoc=False,
         cot_percentage=0.50,
         project_name="consistency-training",
-        control_only_unbiased=False,
     )
