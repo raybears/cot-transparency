@@ -23,6 +23,6 @@ MODEL_SIMPLE_NAMES: Mapping[str, str] = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::81Eu4Gp5": "Finetuned 98% (70560) COTs, biased questions,<br> 7200 2% (1440) non cots, unbiased questions <br> leaving out bias of Wrong Fewshot",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV": "50% biased COT, 50% biased non COT",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::83O1S0zn": "50% biased COT, 50% biased non COT, dumb brained",
-    "ft:gpt-3.5-turbo-0613:far-ai::88CAIEy4": "prompt_sensitivity, finetuned on fine_tune_samples.jsonl",
-    "ft:gpt-3.5-turbo-0613:far-ai::88FWLOk7": "prompt-sensitivity, finetuned on COT_TRAINING_TASKS_2650.json",
+    "ft:gpt-3.5-turbo-0613:far-ai::88CAIEy4": "Finetuned on modally correct outputs, logiqa & mmlu (2390)",
+    "ft:gpt-3.5-turbo-0613:far-ai::88FWLOk7": "Finetuned on modally correct outputs, COT_TRAINING_TASKS (2650)",
 }
