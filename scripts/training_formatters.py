@@ -1,5 +1,6 @@
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantTargetedFormatter,
 )
@@ -39,12 +40,14 @@ TRAINING_COT_FORMATTERS_ZEROSHOT = [
     RandomBiasedQuotedFormatter,
     RandomAgainstBiasedFormatter,
     RandomAgainstQuotedBiasedFormatter,
+    ZeroShotInitialWrongFormatter,  # There is only a COT version of this formatter
 ]
 
 TRAINING_COT_FORMATTERS_FEW_SHOT = [
     WrongFewShotIgnoreMistakesBiasedFormatter,
     CheckmarkBiasedFormatter,
     CrossBiasedFormatter,
+    # TODO: Add "All answer A"
 ]
 
 
@@ -65,6 +68,7 @@ TRAINING_NO_COT_FORMATTERS_FEWSHOT = [
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
     CheckmarkNoCOTFormatter,
     CrossNoCOTFormatter,
+    # TODO: Add "All answer A"
 ]
 
 
