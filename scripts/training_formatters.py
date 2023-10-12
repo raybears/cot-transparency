@@ -31,30 +31,43 @@ from cot_transparency.formatters.verbalize.formatters import (
 )
 
 
-TRAINING_COT_FORMATTERS = [
-    WrongFewShotIgnoreMistakesBiasedFormatter,
+TRAINING_COT_FORMATTERS_ZEROSHOT = [
     StanfordBiasedFormatter,
     MoreRewardBiasedFormatter,
     ZeroShotCOTSycophancyFormatter,
-    CheckmarkBiasedFormatter,
-    CrossBiasedFormatter,
     RandomBiasedFormatter,
     RandomBiasedQuotedFormatter,
     RandomAgainstBiasedFormatter,
     RandomAgainstQuotedBiasedFormatter,
 ]
+
+TRAINING_COT_FORMATTERS_FEW_SHOT = [
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+    CheckmarkBiasedFormatter,
+    CrossBiasedFormatter,
+]
+
+
+TRAINING_COT_FORMATTERS = TRAINING_COT_FORMATTERS_ZEROSHOT + TRAINING_COT_FORMATTERS_FEW_SHOT
 TRAINING_COT_FORMATTERS_WITH_UNBIASED = TRAINING_COT_FORMATTERS + [ZeroShotCOTUnbiasedFormatter]
-TRAINING_NO_COT_FORMATTERS = [
-    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+
+TRAINING_NO_COT_FORMATTERS_ZEROSHOT = [
     StanfordNoCOTFormatter,
     MoreRewardBiasedNoCOTFormatter,
     ZeroShotSycophancyFormatter,
-    CheckmarkNoCOTFormatter,
-    CrossNoCOTFormatter,
     RandomBiasedNoCOTFormatter,
     RandomBiasedQuotedNoCOTFormatter,
     RandomAgainstBiasedNoCOTFormatter,
     RandomAgainstBiasedQuotedNoCOTFormatter,
 ]
+
+TRAINING_NO_COT_FORMATTERS_FEWSHOT = [
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+    CheckmarkNoCOTFormatter,
+    CrossNoCOTFormatter,
+]
+
+
+TRAINING_NO_COT_FORMATTERS = TRAINING_NO_COT_FORMATTERS_ZEROSHOT + TRAINING_NO_COT_FORMATTERS_FEWSHOT
 TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED = TRAINING_NO_COT_FORMATTERS + [ZeroShotUnbiasedFormatter]
 TRAINING_DECEPTIVE_COT = DeceptiveAssistantTargetedFormatter

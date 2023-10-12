@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Type, Sequence
+from typing import Type, Sequence, Iterable
 
 from cot_transparency.apis.base import Prompt
 from cot_transparency.apis.openai import OpenAIChatPrompt
@@ -39,7 +39,13 @@ from cot_transparency.apis.openai.finetune import (
 from scripts.cot_variants import sample_cot_variant
 from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.non_cot_variants import non_sample_cot_variant
-from scripts.training_formatters import TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
+from scripts.training_formatters import (
+    TRAINING_COT_FORMATTERS,
+    TRAINING_NO_COT_FORMATTERS,
+    TRAINING_COT_FORMATTERS_ZEROSHOT,
+    TRAINING_NO_COT_FORMATTERS_ZEROSHOT,
+    TRAINING_NO_COT_FORMATTERS_FEWSHOT,
+)
 
 
 class Augmentor:
@@ -291,6 +297,19 @@ def replace_unbiased_cot_prompt_with_biased(
     return new
 
 
+def replace_unbiased_cot_prompt_with_formatters(
+    task: TaskOutput, use_formatters: Sequence[Type[StageOneFormatter]]
+) -> Slist[TaskOutput]:
+    output = Slist[TaskOutput]()
+    for formatter in use_formatters:
+        new = task.model_copy(deep=True)
+        assert task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
+        data_example: DataExampleBase = task.task_spec.get_data_example_obj()
+        new.task_spec.messages = formatter.format_example(data_example)
+        output.append(new)
+    return output
+
+
 def transform_into_post_hoc_reasoning(task: TaskOutput) -> TaskOutput:
     new = task.model_copy(deep=True)
     previous_answer = task.inference_output.parsed_response
@@ -312,6 +331,20 @@ def replace_unbiased_non_cot_prompt_with_biased(
     return new
 
 
+def replace_unbiased_non_cot_prompt_with_formatters(
+    task: TaskOutput,
+    use_formatters: Iterable[Type[StageOneFormatter]],
+) -> Slist[TaskOutput]:
+    output = Slist[TaskOutput]()
+    for formatter in use_formatters:
+        new = task.model_copy(deep=True)
+        assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name()
+        data_example: DataExampleBase = task.task_spec.get_data_example_obj()
+        new.task_spec.messages = formatter.format_example(data_example)
+        output.append(new)
+    return output
+
+
 def clean_unbiased_non_cot_raw_response(task: TaskOutput) -> TaskOutput:
     # Because the model sometimes adds more statements after the answer, and we want to remove it
     assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name()
@@ -325,18 +358,25 @@ class DataFromOptions(str, Enum):
     claude_2 = "claude-2"
 
 
+class FormatterOptions(str, Enum):
+    control_only_unbiased = "control_only_unbiased"
+    all_biased = "all_biased"
+    zero_shot = "zero_shot"
+    few_shot = "fews_shot"
+
+
 def fine_tune_with_bias_augmentation_balanced(
     n_epochs: int,
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
     exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
+    # if control_only_unbiased, then we only use unbiased contexts for training
+    formatter_options: FormatterOptions = FormatterOptions.all_biased,
     project_name: str = "consistency-training",
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
     instruct_sample_proportion: float = 0.1,
     post_hoc: bool = False,
     cot_percentage=0.5,
-    # if True, then we only use unbiased contexts for training
-    control_only_unbiased: bool = False,
     # cli waits for user input to validate the training
     ask_to_validate_training: bool = True,
 ) -> str:
@@ -355,38 +395,50 @@ def fine_tune_with_bias_augmentation_balanced(
             non_cot_data = get_training_non_cots_claude_2()
             cot_data = get_training_cots_claude_2()
 
-    non_cot = non_cot_data.filter(
-        lambda x: x.task_spec.formatter_name not in excluded_formatters_names if excluded_formatters_names else True
-    )
+    match formatter_options:
+        case FormatterOptions.all_biased:
+            non_cot_formatters = TRAINING_NO_COT_FORMATTERS
+            cot_formatters = TRAINING_COT_FORMATTERS
+        case FormatterOptions.zero_shot:
+            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_ZEROSHOT
+            cot_formatters = TRAINING_COT_FORMATTERS_ZEROSHOT
+        case FormatterOptions.few_shot:
+            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_FEWSHOT
+            cot_formatters = TRAINING_COT_FORMATTERS
+        case FormatterOptions.control_only_unbiased:
+            non_cot_formatters = ZeroShotUnbiasedFormatter
+            cot_formatters = ZeroShotCOTUnbiasedFormatter
+    eligible_non_cot_formatters = set(non_cot_formatters) - exclude_formatters
+    assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
+    eligible_cot_formatters = set(cot_formatters) - exclude_formatters
+    assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
+
+    non_cot = non_cot_data
     print(f"Number of non cots: {len(non_cot)}")
     non_cot_limited = (
-        non_cot.shuffle("42")
-        .repeat_until_size_or_raise(non_cot_limit)
-        .map_enumerate(
-            lambda idx, task: replace_unbiased_non_cot_prompt_with_biased(
-                task=task, exclude_formatters=exclude_formatters, idx=idx
+        non_cot.map(
+            lambda task: replace_unbiased_non_cot_prompt_with_formatters(
+                task=task,
+                use_formatters=eligible_non_cot_formatters,
             )
-            if not control_only_unbiased
-            else task
         )
+        .flatten_list()
         .map(clean_unbiased_non_cot_raw_response)
+        .take(non_cot_limit)
     )
+    assert len(non_cot_limited) == non_cot_limit, f"We do not have enough non cots, only {len(non_cot_limited)}"
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
-    cot = cot_data.filter(
-        lambda x: x.task_spec.formatter_name not in excluded_formatters_names if excluded_formatters_names else True
-    )
+    cot = cot_data
 
     print(f"Number of cots: {len(cot)}")
     cot_limited = (
-        cot.shuffle("42")
-        .repeat_until_size_or_raise(cot_limit)
-        .map(
-            lambda x: replace_unbiased_cot_prompt_with_biased(task=x, exclude_formatters=exclude_formatters)
-            if not control_only_unbiased
-            else x
+        cot.map(
+            lambda task: replace_unbiased_cot_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
         )
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
+        .take(cot_limit)
     )
+    assert len(cot_limited) == cot_limit, f"We do not have enough cots, only {len(cot_limited)}"
     print(f"Number of cots after limiting: {len(cot_limited)}")
     non_cot_samples = non_cot_limited.map(augment_non_cot_task).map(task_output_to_finetune_sample)
     cot_samples = cot_limited.map(augment_cot_task).map(task_output_to_finetune_sample)
@@ -395,12 +447,16 @@ def fine_tune_with_bias_augmentation_balanced(
     alpaca_samples = get_alpaca_training(n_instruct_samples)
     samples = (total_task_samples + alpaca_samples).shuffle("42")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
+    control_only_unbiased = formatter_options == FormatterOptions.control_only_unbiased
     more_config = {
         "instruct_sample_proportion": instruct_sample_proportion,
         "n_cots": len(cot_samples),
         "n_non_cots": len(non_cot_samples),
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
+        "eligible_non_cot_formatters": list(eligible_non_cot_formatters),
+        "eligible_cot_formatters": list(eligible_cot_formatters),
+        "formatter_options": formatter_options.value,
         "data_from": data_from_options.value,
         "post_hoc": post_hoc,
         "cot_percentage": cot_percentage,
