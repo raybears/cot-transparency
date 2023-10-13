@@ -125,6 +125,39 @@ from cot_transparency.formatters.more_biases.more_reward import (
 )
 
 
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
+    PleaseFormatter,
+    DirectFormatter,
+    BestGuessFormatter,
+    AskFirstFormatter,
+    HypotheticalFormatter,
+    TagFormatter,
+    ForcedChoiceFormatter,
+    InstructionalFormatter,
+    PositiveAssumptionFormatter,
+    EncouragingFormatter,
+    TimeBasedFormatter,
+    CasualFormatter,
+    DocumentaryStyleFormatter,
+    MockTestFormatter,
+    QuizFormatter,
+    QuickFireFormatter,
+    DiscussionStyleFormatter,
+    AnalyticalFormatter,
+    ResearchStyleFormatter,
+    CheckingUnderstandingFormatter,
+    ChallengeModeFormatter,
+    ProsAndConsFormatter,
+    FunQuizFormatter,
+    EducationalFormatter,
+    SnappyQuizFormatter,
+    LighterNoteFormatter,
+    StuckFormatter,
+)
+
+print("CALLING THIS SCRIPT")
+
+
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
     if not name_to_formatter(biased_formatter_name).is_biased:
         return biased_formatter_name
@@ -272,4 +305,31 @@ __all__ = [
     "LogicalConsequence3ChatFS5Formatter",
     "LogicalConsequence3ChatFS10Formatter",
     "LogicalConsequence3ChatFS15Formatter",
+    "PleaseFormatter",
+    "DirectFormatter",
+    "BestGuessFormatter",
+    "AskFirstFormatter",
+    "HypotheticalFormatter",
+    "TagFormatter",
+    "ForcedChoiceFormatter",
+    "InstructionalFormatter",
+    "PositiveAssumptionFormatter",
+    "EncouragingFormatter",
+    "TimeBasedFormatter",
+    "CasualFormatter",
+    "DocumentaryStyleFormatter",
+    "MockTestFormatter",
+    "QuizFormatter",
+    "QuickFireFormatter",
+    "DiscussionStyleFormatter",
+    "AnalyticalFormatter",
+    "ResearchStyleFormatter",
+    "CheckingUnderstandingFormatter",
+    "ChallengeModeFormatter",
+    "ProsAndConsFormatter",
+    "FunQuizFormatter",
+    "EducationalFormatter",
+    "SnappyQuizFormatter",
+    "LighterNoteFormatter",
+    "StuckFormatter",
 ]
