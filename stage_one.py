@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 import random
 from typing import Literal, Optional, Type, Sequence
@@ -5,7 +6,7 @@ import fnmatch
 
 import fire
 from slist import Slist
-from cot_transparency.data_models.config import OpenaiInferenceConfig, is_openai_finetuned
+from cot_transparency.data_models.config import config_from_default
 
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
@@ -41,8 +42,23 @@ from cot_transparency.formatters import (
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
-COT_TRAINING_TASKS = BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+# ok to train on the test set since we test on completely different datasets
+COT_TRAINING_TASKS = BBH_TASK_LIST + [
+    "arc_easy_train",
+    "arc_challenge_train",
+    "arc_easy_test",
+    "arc_challenge_test",
+    "openbook_qa_train",
+]
 COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
+PROMPT_SEN_TESTING_TASKS = [
+    "truthful_qa",
+    "logiqa",
+    "hellaswag",
+    "aqua",
+] + mmlu.MMLU_SUPERCATEGORIES
+
+
 TASK_LIST = {
     "bbh": BBH_TASK_LIST,
     "bbh_biased_wrong_cot": BBH_TASK_LIST,
@@ -62,29 +78,8 @@ TASK_LIST = {
     "deceptive_training": ["aqua_train"],
     "model_written_evals": ["nlp", "phil", "pol"],
     "john_math": ["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
+    "mmlu": mmlu.MMLU_SUPERCATEGORIES,
 }
-CONFIG_MAP = {
-    "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
-    "gpt-3.5-turbo": OpenaiInferenceConfig(model="gpt-3.5-turbo", temperature=1, max_tokens=1000, top_p=1.0),
-    "text-davinci-003": OpenaiInferenceConfig(model="text-davinci-003", temperature=1, max_tokens=1000, top_p=1.0),
-    "code-davinci-002": OpenaiInferenceConfig(model="code-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
-    "text-davinci-002": OpenaiInferenceConfig(model="text-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
-    "davinci": OpenaiInferenceConfig(model="davinci", temperature=1, max_tokens=1000, top_p=1.0),
-    "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
-    "claude-2": OpenaiInferenceConfig(model="claude-2", temperature=1, max_tokens=1000, top_p=1.0),
-    "claude-instant-1": OpenaiInferenceConfig(model="claude-instant-1", temperature=1, max_tokens=1000, top_p=1.0),
-    "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
-    "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
-    "llama-2-7b-chat-hf": OpenaiInferenceConfig(model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
-}
-
-
-def get_config(model: str) -> OpenaiInferenceConfig:
-    if is_openai_finetuned(model):
-        # Allow user to specify any OpenAI finetuned model
-        return OpenaiInferenceConfig(model=model, temperature=1, max_tokens=1000, top_p=1.0)
-    else:
-        return CONFIG_MAP[model].model_copy()
 
 
 def create_task_settings(
@@ -129,6 +124,7 @@ def validate_tasks(tasks: list[str]) -> list[str]:
     return tasks
 
 
+@lru_cache(maxsize=10)
 def get_list_of_examples(
     task: str,
     dataset: Optional[str] = None,
@@ -151,10 +147,14 @@ def get_list_of_examples(
             data = arc.arc_easy_dev()
         elif task == "arc_easy_train":
             data = arc.arc_easy_train()
+        elif task == "arc_easy_test":
+            data = arc.arc_easy_test()
         elif task == "arc_challenge":
             data = arc.arc_challenge_dev()
         elif task == "arc_challenge_train":
             data = arc.arc_challenge_train()
+        elif task == "arc_challenge_test":
+            data = arc.arc_challenge_test()
         elif task == "truthful_qa":
             data = truthful_qa.eval()
         elif task == "logiqa":
@@ -162,6 +162,8 @@ def get_list_of_examples(
         elif task == "mmlu":
             questions_per_task = 20
             data = mmlu.test(questions_per_task=questions_per_task)
+        elif task in mmlu.MMLU_SUPERCATEGORIES:
+            data = mmlu.test_super_category(task.replace("mmlu_", ""))
         elif task == "openbook_qa":
             data = openbook.test()
         elif task == "openbook_qa_train":
@@ -257,7 +259,7 @@ def main(
             data = data[:example_cap]
 
         # Config Overrides Start ----------------------
-        config = get_config(model)
+        config = config_from_default(model)
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):
@@ -276,21 +278,18 @@ def main(
                 config.stop = [FEW_SHOT_STOP_TOKEN]
 
         if temperature is not None:
-            print(f"Overriding temperature with t={temperature}")
             config.temperature = temperature
         assert config.model == model
         if not formatter.is_cot:
             config.max_tokens = 50
 
         if max_tokens is not None:
-            print(f"Overriding max_tokens with n={max_tokens}")
             config.max_tokens = max_tokens
 
         if raise_after_retries and temperature == 0:
             raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
 
         if n_responses_per_request is not None:
-            print(f"Overriding n_responses_per_request with n={n_responses_per_request}")
             config.n = n_responses_per_request
 
         # Config Overrides End ----------------------

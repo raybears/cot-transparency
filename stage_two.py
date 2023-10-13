@@ -3,7 +3,8 @@ from pathlib import Path
 from typing import List, Literal, Optional, Type
 
 import fire
-from cot_transparency.data_models.data import task_name_to_data_example
+from cot_transparency.data_models.config import CONFIG_MAP
+from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import (
@@ -28,7 +29,7 @@ from cot_transparency.formatters.transparency.util import FullCOTCompletionForma
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.tasks import run_with_caching
 from cot_transparency.util import get_exp_dir_name
-from stage_one import CONFIG_MAP, get_valid_stage1_formatters
+from stage_one import get_valid_stage1_formatters
 
 """
 We take traces generated from stage_one.py and run analysis on them

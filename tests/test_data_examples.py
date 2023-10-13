@@ -1,6 +1,6 @@
 import re
 
-from cot_transparency.data_models.data import ArcExample
+from cot_transparency.data_models.data.arc import ArcExample
 from stage_one import TASK_LIST, get_list_of_examples
 import pytest
 
@@ -17,7 +17,7 @@ ANSWER_RE = r"^(\n|.)+\n\nAnswer choices:\n\(A\) .+\n\(B\) .+"
 @pytest.mark.parametrize("task", TASK_LIST["transparency"])
 def test_transparency_data_format(task: str):
     examples = get_list_of_examples(task, "transparency").take(2)
-    assert len(examples) == 2
+    assert len(examples) == 2, f"task: {task}, expected 2 examples, got {len(examples)}"
 
     for example in examples:
         full_question = example.get_parsed_input()

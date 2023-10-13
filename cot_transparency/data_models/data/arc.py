@@ -56,6 +56,11 @@ def arc_easy_train() -> list[ArcExample]:
     return read_jsonl_file_into_basemodel(path, ArcExample)
 
 
+def arc_easy_test() -> list[ArcExample]:
+    path = Path("./data/arc_easy/ARC-Easy-Test.jsonl")
+    return read_jsonl_file_into_basemodel(path, ArcExample)
+
+
 def arc_challenge_dev() -> list[ArcExample]:
     dev_path = Path("./data/arc_challenge/ARC-Challenge-Dev.jsonl")
     return read_jsonl_file_into_basemodel(dev_path, ArcExample)
@@ -63,4 +68,9 @@ def arc_challenge_dev() -> list[ArcExample]:
 
 def arc_challenge_train() -> list[ArcExample]:
     path = Path("./data/arc_challenge/ARC-Challenge-Train.jsonl")
+    return read_jsonl_file_into_basemodel(path, ArcExample)
+
+
+def arc_challenge_test() -> list[ArcExample]:
+    path = Path("./data/arc_challenge/ARC-Challenge-Test.jsonl")
     return read_jsonl_file_into_basemodel(path, ArcExample)

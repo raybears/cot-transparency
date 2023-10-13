@@ -81,6 +81,11 @@ jobs:
       - name: Run black
         run: |
           black .
+          
+
+      - name: Run pyright
+        run: |
+          pyright
       
 
       - name: test with pytest
