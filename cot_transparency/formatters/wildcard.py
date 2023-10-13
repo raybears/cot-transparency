@@ -5,7 +5,7 @@ from cot_transparency.formatters import StageOneFormatter
 
 
 def match_wildcard_formatters(formatters: Sequence[str]) -> list[str]:
-    new_formatters = [f for f in formatters]
+    new_formatters = list(formatters)
     for formatter in new_formatters:
         if "*" in formatter:
             new_formatters.remove(formatter)
