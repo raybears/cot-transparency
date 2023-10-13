@@ -6,6 +6,7 @@ if True:
     from cot_transparency.formatters.interventions.consistency import Intervention  # noqa: F811
     from cot_transparency.formatters.interventions.prompt_sensitivity import Intervention  # noqa: F811
     from cot_transparency.formatters.interventions.coup_intervention import Intervention  # noqa: F811
+    from cot_transparency.formatters.prompt_sensitivity.interventions import Intervention  # noqa: F811
 
 VALID_INTERVENTIONS: dict[str, Type[Intervention]] = Intervention.all_interventions()
 
