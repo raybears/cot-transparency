@@ -43,9 +43,10 @@ from scripts.non_cot_variants import non_sample_cot_variant
 from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS,
     TRAINING_NO_COT_FORMATTERS,
-    TRAINING_COT_FORMATTERS_ZEROSHOT,
-    TRAINING_NO_COT_FORMATTERS_ZEROSHOT,
-    TRAINING_NO_COT_FORMATTERS_FEWSHOT,
+    TRAINING_COT_FORMATTERS_ZERO_SHOT,
+    TRAINING_NO_COT_FORMATTERS_ZERO_SHOT,
+    TRAINING_NO_COT_FORMATTERS_FEW_SHOT,
+    TRAINING_COT_FORMATTERS_FEW_SHOT,
 )
 
 
@@ -302,10 +303,12 @@ class DataFromOptions(str, Enum):
 
 
 class FormatterOptions(str, Enum):
+    # What types of formatters to use
+    # see match_formatter_options for details
     control_only_unbiased = "control_only_unbiased"
     all_biased = "all_biased"
     zero_shot = "zero_shot"
-    few_shot = "fews_shot"
+    few_shot = "few_shot"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -320,11 +323,11 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
             non_cot_formatters: Sequence[Type[StageOneFormatter]] = TRAINING_NO_COT_FORMATTERS
             cot_formatters: Sequence[Type[StageOneFormatter]] = TRAINING_COT_FORMATTERS
         case FormatterOptions.zero_shot:
-            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_ZEROSHOT
-            cot_formatters = TRAINING_COT_FORMATTERS_ZEROSHOT
+            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_ZERO_SHOT
+            cot_formatters = TRAINING_COT_FORMATTERS_ZERO_SHOT
         case FormatterOptions.few_shot:
-            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_FEWSHOT
-            cot_formatters = TRAINING_COT_FORMATTERS
+            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_FEW_SHOT
+            cot_formatters = TRAINING_COT_FORMATTERS_FEW_SHOT
         case FormatterOptions.control_only_unbiased:
             non_cot_formatters = [ZeroShotUnbiasedFormatter]
             cot_formatters = [ZeroShotCOTUnbiasedFormatter]
