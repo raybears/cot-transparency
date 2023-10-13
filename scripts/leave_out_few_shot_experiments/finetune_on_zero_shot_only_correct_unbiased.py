@@ -8,12 +8,12 @@ if __name__ == "__main__":
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
-        n_samples=10000,
+        n_samples=1000,
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.zero_shot,
-        model_output_verified=ModelOutputVerified.no_filter,
+        formatter_options=FormatterOptions.control_only_unbiased,
+        model_output_verified=ModelOutputVerified.correct,
         ask_to_validate_training=False,
     )
     # test on TRAINING_COT_FORMATTERS_FEW_SHOT
@@ -26,4 +26,5 @@ if __name__ == "__main__":
         example_cap=400,
         raise_after_retries=False,
         temperature=1.0,
+        batch=10,
     )

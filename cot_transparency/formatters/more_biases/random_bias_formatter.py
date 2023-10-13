@@ -207,7 +207,7 @@ class RandomAgainstQuotedBiasedFormatter(StageOneFormatter):
         )
         try:
             possible_option = possible.first_or_raise()
-        except ValueError:
+        except RuntimeError:
             print(f"Question: {question} has no possible other option for {options}")
             raise
 

@@ -71,7 +71,7 @@ def get_training_cots_gpt_35(kind: ModelOutputVerified = ModelOutputVerified.cor
         case ModelOutputVerified.no_filter:
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
-            ) + read_jsonl_file_into_basemodel(Path("data/training_non_cots/gpt-35-turbo.jsonl"), TaskOutput)
+            ) + read_jsonl_file_into_basemodel(Path("data/training_cots/gpt-35-turbo.jsonl"), TaskOutput)
 
     return jsons_tasks
 

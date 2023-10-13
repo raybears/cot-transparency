@@ -248,7 +248,9 @@ def replace_unbiased_cot_prompt_with_formatters(
     output = Slist[TaskOutput]()
     for formatter in use_formatters:
         new = task.model_copy(deep=True)
-        assert task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
+        assert (
+            task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
+        ), f"Got {task.task_spec.formatter_name}"
         data_example: DataExampleBase = task.task_spec.get_data_example_obj()
         new.task_spec.messages = formatter.format_example(data_example)
         output.append(new)
