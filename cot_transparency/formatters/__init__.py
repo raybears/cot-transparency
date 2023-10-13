@@ -5,7 +5,7 @@ from cot_transparency.formatters.core.no_latex import (
     ZeroShotCOTUnbiasedNoLatexFormatter,
     ZeroShotUnbiasedNoLatexFormatter,
 )
-from cot_transparency.formatters.core.prompt_sensitivity_map import (
+from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import (
     no_cot_sensitivity_formatters,
     cot_sensitivity_formatters,
 )
@@ -236,6 +236,7 @@ def name_to_formatter(name: str) -> Type[PromptFormatter]:
         return _MAPPING_STORE[name]
     else:
         mapping = PromptFormatter.all_formatters()
+        print("mapping", mapping)
         _MAPPING_STORE.update(mapping)
         return mapping[name]
 

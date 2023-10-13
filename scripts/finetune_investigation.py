@@ -4,7 +4,7 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.core.prompt_sensitivity_map import default_no_cot_sensitivity_formatter
+from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import default_no_cot_sensitivity_formatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
