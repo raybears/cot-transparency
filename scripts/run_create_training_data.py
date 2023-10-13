@@ -39,5 +39,5 @@ if __name__ == "__main__":
         temperature=1.0,
         exp_dir=exp_dir_gpt_35,
         batch=10,
-        raise_after_retries=True
+        raise_after_retries=True,
     )
