@@ -193,7 +193,7 @@ def get_list_of_examples(
 
 
 def main(
-    tasks: Optional[Sequence[str]] = None,
+    tasks: Sequence[str] = [],
     dataset: Optional[str] = None,
     models: Sequence[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: Sequence[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
@@ -214,7 +214,8 @@ def main(
     retry_answers_with_none: bool = False,
 ):
     if dataset is not None:
-        assert tasks, "dataset and tasks are mutually exclusive"
+        # we are using a dataset
+        assert len(tasks) == 0, "You have defined a dataset and a task, you can only define one"
         tasks = TASK_LIST[dataset]
     else:
         assert tasks, "You must define a task or a dataset"
