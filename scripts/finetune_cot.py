@@ -20,6 +20,7 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     task_output_to_finetune_sample,
     get_training_cots_claude_2,
     get_training_non_cots_claude_2,
+    ModelOutputVerified,
 )
 from cot_transparency.formatters.interventions.big_brain_few_shots_loading import (
     get_training_cots_gpt_35_big_brain,
@@ -247,7 +248,9 @@ def replace_unbiased_cot_prompt_with_formatters(
     output = Slist[TaskOutput]()
     for formatter in use_formatters:
         new = task.model_copy(deep=True)
-        assert task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
+        assert (
+            task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
+        ), f"Got {task.task_spec.formatter_name}"
         data_example: DataExampleBase = task.task_spec.get_data_example_obj()
         new.task_spec.messages = formatter.format_example(data_example)
         output.append(new)
@@ -340,6 +343,7 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
 def fine_tune_with_bias_augmentation(
     n_epochs: int,
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
+    model_output_verified: ModelOutputVerified = ModelOutputVerified.correct,
     exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
     # if FormatterOptions.control_only_unbiased, then we only use unbiased contexts for training
     formatter_options: FormatterOptions = FormatterOptions.all_biased,
@@ -361,12 +365,13 @@ def fine_tune_with_bias_augmentation(
     excluded_formatters_names = {f.name() for f in exclude_formatters}
     match data_from_options:
         case DataFromOptions.gpt_35_turbo:
-            non_cot_data = get_training_non_cots_gpt_35()
-            cot_data = get_training_cots_gpt_35()
+            non_cot_data = get_training_non_cots_gpt_35(model_output_verified)
+            cot_data = get_training_cots_gpt_35(model_output_verified)
         case DataFromOptions.claude_2:
-            non_cot_data = get_training_non_cots_claude_2()
-            cot_data = get_training_cots_claude_2()
-
+            non_cot_data = get_training_non_cots_claude_2(model_output_verified)
+            cot_data = get_training_cots_claude_2(model_output_verified)
+    non_cot_data_shuffled = non_cot_data.shuffle(seed="42")
+    cot_data_shuffled = cot_data.shuffle(seed="42")
     formatter_options_result = match_formatter_options(formatter_options)
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
@@ -377,7 +382,7 @@ def fine_tune_with_bias_augmentation(
 
     print(f"Number of non cots: {len(non_cot_data)}")
     non_cot_limited = (
-        non_cot_data.map(
+        non_cot_data_shuffled.map(
             lambda task: replace_unbiased_non_cot_prompt_with_formatters(
                 task=task,
                 use_formatters=eligible_non_cot_formatters,
@@ -392,7 +397,7 @@ def fine_tune_with_bias_augmentation(
 
     print(f"Number of cots: {len(cot_data)}")
     cot_limited = (
-        cot_data.map(
+        cot_data_shuffled.map(
             lambda task: replace_unbiased_cot_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
         )
         .flatten_list()
@@ -425,8 +430,8 @@ def fine_tune_with_bias_augmentation(
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
-    cot_type_string = "augment biased" if not control_only_unbiased else "control only unbiased"
-    notes = f"{cot_type_string} {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots"
+    bias_type_str = formatter_options.value + " bias formatters"
+    notes = f"{bias_type_str} {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots, {model_output_verified.value}"
     if post_hoc:
         notes = "post hoc " + notes
     _id = run_finetune_with_wandb(

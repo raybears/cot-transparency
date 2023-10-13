@@ -1,3 +1,4 @@
+from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
 from scripts.training_formatters import TRAINING_COT_FORMATTERS_FEW_SHOT
 from stage_one import main
@@ -12,6 +13,8 @@ if __name__ == "__main__":
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
         formatter_options=FormatterOptions.zero_shot,
+        model_output_verified=ModelOutputVerified.no_filter,
+        ask_to_validate_training=False,
     )
     # test on TRAINING_COT_FORMATTERS_FEW_SHOT
     test_formatters = [f.name() for f in TRAINING_COT_FORMATTERS_FEW_SHOT]
