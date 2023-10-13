@@ -9,7 +9,6 @@ from typing import Optional, Any, Type
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.messages import ChatMessage
-from cot_transparency.formatters.name_mapping import name_to_stage1_formatter
 
 from cot_transparency.util import deterministic_hash
 from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, GenericDataExample
@@ -128,6 +127,7 @@ class TaskOutput(BaseTaskOuput):
         self.inference_output.parsed_response as that is loaded from the json
         """
         formatter_name = self.task_spec.formatter_name
+        from cot_transparency.formatters.name_mapping import name_to_stage1_formatter
 
         formatter_type = name_to_stage1_formatter(formatter_name)
         data_example_obj = self.task_spec.get_data_example_obj()

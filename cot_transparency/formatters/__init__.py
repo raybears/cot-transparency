@@ -1,4 +1,5 @@
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
+from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.core.no_latex import (
     ZeroShotCOTUnbiasedNoLatexFormatter,
     ZeroShotUnbiasedNoLatexFormatter,
@@ -47,7 +48,6 @@ from cot_transparency.formatters.core.unbiased import (
     FewShotCOTUnbiasedNoRoleFormatter,
     FewShotUnbiasedNoRoleFormatter,
 )
-from cot_transparency.formatters.name_mapping import name_to_formatter
 
 from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import BBQSymbolTuningCOTFewShot
 
