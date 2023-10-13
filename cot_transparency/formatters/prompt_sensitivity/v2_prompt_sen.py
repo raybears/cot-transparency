@@ -2,6 +2,35 @@ from typing import Optional
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.extraction import (
+    AnswerExtractorPipeline,
+    FindAnswerStringAfterBreakWord,
+    FindIndicatorAfterBreakWord,
+    FindIndicatorAtStartOfResponse,
+    FuzzyMatcher,
+)
+
+
+print("calling v2 script")
+
+
+def extract_answer_for_prompt_sen(
+    response: str, question: DataExampleBase, model: Optional[str] = None
+) -> Optional[str]:
+    """
+    Shared by all prompt sensitivity formatters in this module
+    """
+    options = question.get_options()
+
+    extractors = [
+        FindIndicatorAfterBreakWord(options, input_format=question.data_format),
+        FindIndicatorAtStartOfResponse(options, input_format=question.data_format),
+        FindAnswerStringAfterBreakWord(options),
+        FuzzyMatcher(options),
+    ]
+
+    pipeline = AnswerExtractorPipeline(extractors=extractors)
+    return pipeline.run_pipeline(response)
 
 
 class PleaseFormatter(StageOneFormatter):
@@ -11,7 +40,7 @@ class PleaseFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = "Please answer the following question: " + question._get_question()
-        formatted_options = "\n\nOptions: " + question._get_options_with_indicator(question.get_options())
+        formatted_options = "\n\nOptions:\n" + question._get_options_with_indicator(question.get_options())
         final = "\n\nShow your working and then answer with 'the best answer is (tag)'"
 
         output = [
@@ -20,8 +49,8 @@ class PleaseFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def extract_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
-        print('called abstract method')
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class DirectFormatter(StageOneFormatter):
@@ -31,7 +60,7 @@ class DirectFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = question._get_question()
-        formatted_options = "\n\nChoose solely from the following options" + question._get_options_with_indicator(
+        formatted_options = "\n\nChoose solely from the following options\n" + question._get_options_with_indicator(
             question.get_options()
         )
 
@@ -41,8 +70,8 @@ class DirectFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def extract_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
-        raise NotImplementedError()
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class BestGuessFormatter(StageOneFormatter):
@@ -52,7 +81,7 @@ class BestGuessFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         formatted_question = "Here is a question:\n\n" + question._get_question()
-        formatted_options = "\n\nChoices: " + question._get_options_with_indicator(question.get_options())
+        formatted_options = "\n\nChoices:\n" + question._get_options_with_indicator(question.get_options())
         final = "\n\nWhat is your best guess for the answer?"
 
         output = [
@@ -61,8 +90,8 @@ class BestGuessFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def extract_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
-        raise NotImplementedError()
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class AskFirstFormatter(StageOneFormatter):
@@ -71,22 +100,22 @@ class AskFirstFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
-        formatted_question = (
-            "Can I ask you a multiple choice question?\n\n"
-            "Absolutely! Feel free to ask your multiple-choice question.\n\n"
-            "Great! Here is the question\n\n" + question._get_question()
-        )
+        ask = "Can I ask you a multiple choice question?"
+        response = "Absolutely! Feel free to ask your multiple-choice question."
+        formatted_question = "Great! Here is the question\n\n" + question._get_question()
         formatted_options = "\n\n" + question._get_options_with_indicator(question.get_options())
         final = "\n\nWhat's the answer?"
 
         output = [
+            ChatMessage(role=MessageRole.user, content=ask),
+            ChatMessage(role=MessageRole.assistant, content=response),
             ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options + final),
         ]
         return output
 
     @staticmethod
-    def extract_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
-        raise NotImplementedError()
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class HypotheticalFormatter(StageOneFormatter):
@@ -96,11 +125,15 @@ class HypotheticalFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         content = (
-            "If I were to ask you this question how would you respond, choose solely from the options provided?\n\n"
+            "If I were to ask you this question how would you respond? Choosing solely from the choices provided.\n\n"
             f"{question._get_question()}\n\n"
-            f"Options: {question._get_options_with_indicator(question.get_options())}"
+            f"Choices:\n{question._get_options_with_indicator(question.get_options())}"
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class TagFormatter(StageOneFormatter):
@@ -112,10 +145,14 @@ class TagFormatter(StageOneFormatter):
         content = (
             "Here's a multiple choice question:\n\n"
             f"{question._get_question()}\n\n"
-            f"Options: {question._get_options_with_indicator(question.get_options())}\n\n"
+            f"Options:\n{question._get_options_with_indicator(question.get_options())}\n\n"
             'The answer should be in "tag" form, i.e. ("option A")'
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class ForcedChoiceFormatter(StageOneFormatter):
@@ -127,9 +164,13 @@ class ForcedChoiceFormatter(StageOneFormatter):
         content = (
             "This is a forced-choice question. You have to choose an answer from the list.\n\n"
             f"{question._get_question()}\n\n"
-            f"Options: {question._get_options_with_indicator(question.get_options())}"
+            f"Options:\n{question._get_options_with_indicator(question.get_options())}"
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class InstructionalFormatter(StageOneFormatter):
@@ -147,6 +188,10 @@ class InstructionalFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class PositiveAssumptionFormatter(StageOneFormatter):
     is_biased = False
@@ -162,6 +207,10 @@ class PositiveAssumptionFormatter(StageOneFormatter):
             "What will be your answer?"
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class EncouragingFormatter(StageOneFormatter):
@@ -179,6 +228,10 @@ class EncouragingFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class TimeBasedFormatter(StageOneFormatter):
     is_biased = False
@@ -194,6 +247,10 @@ class TimeBasedFormatter(StageOneFormatter):
             "Please reply promptly."
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class CasualFormatter(StageOneFormatter):
@@ -211,6 +268,10 @@ class CasualFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class DocumentaryStyleFormatter(StageOneFormatter):
     is_biased = False
@@ -226,6 +287,10 @@ class DocumentaryStyleFormatter(StageOneFormatter):
             "Please select one."
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class MockTestFormatter(StageOneFormatter):
@@ -243,6 +308,10 @@ class MockTestFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class QuizFormatter(StageOneFormatter):
     is_biased = False
@@ -258,6 +327,10 @@ class QuizFormatter(StageOneFormatter):
             "Give us your best shot!"
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class QuickFireFormatter(StageOneFormatter):
@@ -275,6 +348,10 @@ class QuickFireFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class DiscussionStyleFormatter(StageOneFormatter):
     is_biased = False
@@ -290,6 +367,10 @@ class DiscussionStyleFormatter(StageOneFormatter):
             "What is your conclusion?"
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class AnalyticalFormatter(StageOneFormatter):
@@ -307,6 +388,10 @@ class AnalyticalFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class ResearchStyleFormatter(StageOneFormatter):
     is_biased = False
@@ -322,6 +407,10 @@ class ResearchStyleFormatter(StageOneFormatter):
             "Thank you for your contribution!"
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class CheckingUnderstandingFormatter(StageOneFormatter):
@@ -339,6 +428,10 @@ class CheckingUnderstandingFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class ChallengeModeFormatter(StageOneFormatter):
     is_biased = False
@@ -354,6 +447,10 @@ class ChallengeModeFormatter(StageOneFormatter):
             "Let us know what you think the answer is."
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class ProsAndConsFormatter(StageOneFormatter):
@@ -371,6 +468,10 @@ class ProsAndConsFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class FunQuizFormatter(StageOneFormatter):
     is_biased = False
@@ -386,6 +487,10 @@ class FunQuizFormatter(StageOneFormatter):
             "What's your pick?"
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class EducationalFormatter(StageOneFormatter):
@@ -403,6 +508,10 @@ class EducationalFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class SnappyQuizFormatter(StageOneFormatter):
     is_biased = False
@@ -418,6 +527,10 @@ class SnappyQuizFormatter(StageOneFormatter):
             "Respond ASAP!"
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class LighterNoteFormatter(StageOneFormatter):
@@ -435,6 +548,10 @@ class LighterNoteFormatter(StageOneFormatter):
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
 
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
 
 class StuckFormatter(StageOneFormatter):
     is_biased = False
@@ -449,6 +566,10 @@ class StuckFormatter(StageOneFormatter):
             f"{question._get_options_with_indicator(question.get_options())}"
         )
         return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 V2_PROMPT_SEN_FORMATTERS = [
@@ -480,3 +601,43 @@ V2_PROMPT_SEN_FORMATTERS = [
     LighterNoteFormatter,
     StuckFormatter,
 ]
+
+
+TRAINING_FORMATS = [
+    DocumentaryStyleFormatter,
+    QuickFireFormatter,
+    MockTestFormatter,
+    AskFirstFormatter,
+    FunQuizFormatter,
+    CasualFormatter,
+    ForcedChoiceFormatter,
+    ResearchStyleFormatter,
+    LighterNoteFormatter,
+    QuizFormatter,
+]
+
+
+TESTING_FORMATS = [
+    PleaseFormatter,
+    DirectFormatter,
+    BestGuessFormatter,
+    HypotheticalFormatter,
+    TagFormatter,
+    InstructionalFormatter,
+    PositiveAssumptionFormatter,
+    EncouragingFormatter,
+    TimeBasedFormatter,
+    DiscussionStyleFormatter,
+    AnalyticalFormatter,
+    CheckingUnderstandingFormatter,
+    ChallengeModeFormatter,
+    ProsAndConsFormatter,
+    EducationalFormatter,
+    SnappyQuizFormatter,
+    StuckFormatter,
+]
+
+if __name__ == "__main__":
+    # print testing formats anything not in training formats
+    print("testing formats")
+    print([x.name() for x in V2_PROMPT_SEN_FORMATTERS if x not in TRAINING_FORMATS])
