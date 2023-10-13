@@ -14,6 +14,5 @@ if __name__ == "__main__":
         post_hoc=False,
         cot_percentage=0.02,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        control_only_unbiased=False,
     )
     run_claude_vs_gpt_experiments([model])

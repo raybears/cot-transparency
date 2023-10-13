@@ -1,3 +1,4 @@
+import dataclasses
 from abc import abstractmethod
 from enum import Enum
 from typing import Type, Sequence, Iterable
@@ -307,6 +308,32 @@ class FormatterOptions(str, Enum):
     few_shot = "fews_shot"
 
 
+@dataclasses.dataclass(kw_only=True)
+class FormatterOptionsResult:
+    biased_formatters: set[Type[StageOneFormatter]]
+    unbiased_formatters: set[Type[StageOneFormatter]]
+
+
+def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOptionsResult:
+    match formatter_options:
+        case FormatterOptions.all_biased:
+            non_cot_formatters: Sequence[Type[StageOneFormatter]] = TRAINING_NO_COT_FORMATTERS
+            cot_formatters: Sequence[Type[StageOneFormatter]] = TRAINING_COT_FORMATTERS
+        case FormatterOptions.zero_shot:
+            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_ZEROSHOT
+            cot_formatters = TRAINING_COT_FORMATTERS_ZEROSHOT
+        case FormatterOptions.few_shot:
+            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_FEWSHOT
+            cot_formatters = TRAINING_COT_FORMATTERS
+        case FormatterOptions.control_only_unbiased:
+            non_cot_formatters = [ZeroShotUnbiasedFormatter]
+            cot_formatters = [ZeroShotCOTUnbiasedFormatter]
+    return FormatterOptionsResult(
+        biased_formatters=set(cot_formatters),
+        unbiased_formatters=set(non_cot_formatters),
+    )
+
+
 def fine_tune_with_bias_augmentation_balanced(
     n_epochs: int,
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
@@ -337,28 +364,17 @@ def fine_tune_with_bias_augmentation_balanced(
             non_cot_data = get_training_non_cots_claude_2()
             cot_data = get_training_cots_claude_2()
 
-    match formatter_options:
-        case FormatterOptions.all_biased:
-            non_cot_formatters = TRAINING_NO_COT_FORMATTERS
-            cot_formatters = TRAINING_COT_FORMATTERS
-        case FormatterOptions.zero_shot:
-            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_ZEROSHOT
-            cot_formatters = TRAINING_COT_FORMATTERS_ZEROSHOT
-        case FormatterOptions.few_shot:
-            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_FEWSHOT
-            cot_formatters = TRAINING_COT_FORMATTERS
-        case FormatterOptions.control_only_unbiased:
-            non_cot_formatters = ZeroShotUnbiasedFormatter
-            cot_formatters = ZeroShotCOTUnbiasedFormatter
-    eligible_non_cot_formatters: set[Type[StageOneFormatter]] = set(non_cot_formatters) - set(exclude_formatters)
+    formatter_options_result = match_formatter_options(formatter_options)
+    non_cot_formatters = formatter_options_result.unbiased_formatters
+    cot_formatters = formatter_options_result.biased_formatters
+    eligible_non_cot_formatters = non_cot_formatters - set(exclude_formatters)
     assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
-    eligible_cot_formatters: set[Type[StageOneFormatter]] = set(cot_formatters) - set(exclude_formatters)
+    eligible_cot_formatters = cot_formatters - set(exclude_formatters)
     assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
-    non_cot = non_cot_data
-    print(f"Number of non cots: {len(non_cot)}")
+    print(f"Number of non cots: {len(non_cot_data)}")
     non_cot_limited = (
-        non_cot.map(
+        non_cot_data.map(
             lambda task: replace_unbiased_non_cot_prompt_with_formatters(
                 task=task,
                 use_formatters=eligible_non_cot_formatters,
@@ -370,13 +386,13 @@ def fine_tune_with_bias_augmentation_balanced(
     )
     assert len(non_cot_limited) == non_cot_limit, f"We do not have enough non cots, only {len(non_cot_limited)}"
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
-    cot = cot_data
 
-    print(f"Number of cots: {len(cot)}")
+    print(f"Number of cots: {len(cot_data)}")
     cot_limited = (
-        cot.map(
+        cot_data.map(
             lambda task: replace_unbiased_cot_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
         )
+        .flatten_list()
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
         .take(cot_limit)
     )

@@ -3,7 +3,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
-from scripts.finetune_cot import fine_tune_with_bias_augmentation_balanced
+from scripts.finetune_cot import fine_tune_with_bias_augmentation_balanced, FormatterOptions
 from scripts.prompt_sensitivity_plotly import prompt_metrics_plotly
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 from stage_one import COT_TESTING_TASKS, main
@@ -18,7 +18,7 @@ def finetune_intervention() -> str:
         post_hoc=False,
         cot_percentage=0.50,
         project_name="consistency-training",
-        control_only_unbiased=False,
+        formatter_options=FormatterOptions.all_biased,
     )
 
 

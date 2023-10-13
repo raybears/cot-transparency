@@ -1,3 +1,6 @@
+from typing import Sequence, Type
+
+from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
@@ -51,8 +54,10 @@ TRAINING_COT_FORMATTERS_FEW_SHOT = [
 ]
 
 
-TRAINING_COT_FORMATTERS = TRAINING_COT_FORMATTERS_ZEROSHOT + TRAINING_COT_FORMATTERS_FEW_SHOT
-TRAINING_COT_FORMATTERS_WITH_UNBIASED = TRAINING_COT_FORMATTERS + [ZeroShotCOTUnbiasedFormatter]
+TRAINING_COT_FORMATTERS: Sequence[Type[StageOneFormatter]] = (
+    TRAINING_COT_FORMATTERS_ZEROSHOT + TRAINING_COT_FORMATTERS_FEW_SHOT
+)
+TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]
 
 TRAINING_NO_COT_FORMATTERS_ZEROSHOT = [
     StanfordNoCOTFormatter,
