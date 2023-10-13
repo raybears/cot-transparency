@@ -83,7 +83,7 @@ TASK_LIST = {
 
 
 def create_task_settings(
-    tasks: list[str],
+    tasks: Sequence[str],
     models: list[str],
     formatters: list[Type[StageOneFormatter]],
     # see cot_transparency/formatters/interventions/valid_interventions.py for valid interventions
@@ -112,7 +112,7 @@ def create_task_settings(
         return task_settings
 
 
-def validate_tasks(tasks: list[str]) -> list[str]:
+def validate_tasks(tasks: Sequence[str]) -> Sequence[str]:
     # get the tasks we are doing
     # flatten the TASK_LIST to get all tasks
     all_tasks = []
@@ -193,7 +193,7 @@ def get_list_of_examples(
 
 
 def main(
-    tasks: Optional[list[str]] = None,
+    tasks: Optional[Sequence[str]] = None,
     dataset: Optional[str] = None,
     models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
     formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
@@ -214,10 +214,10 @@ def main(
     retry_answers_with_none: bool = False,
 ):
     if dataset is not None:
-        assert tasks is None, "dataset and tasks are mutually exclusive"
+        assert tasks, "dataset and tasks are mutually exclusive"
         tasks = TASK_LIST[dataset]
     else:
-        assert tasks is not None, "You must define a task or a dataset"
+        assert tasks, "You must define a task or a dataset"
 
     for model in models:
         if "llama" in model.lower():
