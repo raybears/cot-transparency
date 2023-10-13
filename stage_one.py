@@ -2,7 +2,6 @@ from functools import lru_cache
 from pathlib import Path
 import random
 from typing import Literal, Optional, Type, Sequence
-import fnmatch
 
 import fire
 from slist import Slist
@@ -33,6 +32,7 @@ from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
 from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_interventions
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
+from cot_transparency.formatters.wildcard import match_wildcard_formatters
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.formatters import (
@@ -84,7 +84,7 @@ TASK_LIST = {
 
 def create_task_settings(
     tasks: Sequence[str],
-    models: list[str],
+    models: Sequence[str],
     formatters: list[Type[StageOneFormatter]],
     # see cot_transparency/formatters/interventions/valid_interventions.py for valid interventions
     interventions: Sequence[Type[Intervention] | None],
@@ -195,8 +195,8 @@ def get_list_of_examples(
 def main(
     tasks: Optional[Sequence[str]] = None,
     dataset: Optional[str] = None,
-    models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
-    formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
+    models: Sequence[str] = ["gpt-3.5-turbo", "gpt-4"],
+    formatters: Sequence[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     # Pass in a list of interventions to run, indicate None to run no intervention as well
     interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
@@ -224,10 +224,7 @@ def main(
             assert batch == 1, "Llama only supports batch size of 1"
 
     # match formatter name wildcard
-    for formatter in formatters:
-        if "*" in formatter:
-            formatters.remove(formatter)
-            formatters += fnmatch.filter(StageOneFormatter.all_formatters().keys(), formatter)
+    formatters = match_wildcard_formatters(formatters)
 
     assert len(formatters) > 0, "You must define at least one formatter"
 
