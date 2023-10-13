@@ -10,10 +10,10 @@ if __name__ == "__main__":
         model="gpt-3.5-turbo",
         n_epochs=1,
         exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
-        n_samples=72000,
+        n_samples=1000,
         post_hoc=False,
-        cot_percentage=0.5,
-        data_from_options=DataFromOptions.claude_2,
-        control_only_unbiased=True,
+        cot_percentage=0.02,
+        data_from_options=DataFromOptions.gpt_35_turbo,
+        control_only_unbiased=False,
     )
     run_claude_vs_gpt_experiments([model])

@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from typing import Sequence, Type
 from pydantic import BaseModel
@@ -9,17 +10,23 @@ from slist import Slist
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
-from scripts.finetune_cot import DataFromOptions
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo, AccuracyOutput
 from scripts.utils.loading import read_all_for_selections
 from stage_one import COT_TESTING_TASKS
 
 
+class DataFromOptionsWithCot(str, Enum):
+    gpt_35_turbo = "gpt-3.5-turbo, trained on biased contexts"
+    gpt_35_turbo_big_brain = "gpt-3.5-turbo, trained on biased contexts, big brained"
+    claude_2 = "claude-2, trained on biased contexts"
+    claude_2_unbiased = "claude-2, trained on unbiased contexts"
+
+
 class ModelTrainMeta(BaseModel):
     name: str
     trained_samples: int
-    trained_on: DataFromOptions
+    trained_on: DataFromOptionsWithCot
 
 
 class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
@@ -51,42 +58,64 @@ def samples_meta() -> Slist[ModelTrainMeta]:
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86IQPMdh",
                 trained_samples=72000,
-                trained_on=DataFromOptions.claude_2,
+                trained_on=DataFromOptionsWithCot.claude_2,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86GTKEjL",
                 trained_samples=12000,
-                trained_on=DataFromOptions.claude_2,
+                trained_on=DataFromOptionsWithCot.claude_2,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86FSz24P",
                 trained_samples=1000,
-                trained_on=DataFromOptions.claude_2,
+                trained_on=DataFromOptionsWithCot.claude_2,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86HOLLHD",
                 trained_samples=100,
-                trained_on=DataFromOptions.claude_2,
+                trained_on=DataFromOptionsWithCot.claude_2,
+            ),
+            # Unbiased contexts
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::88h1pB4E",
+                trained_samples=72000,
+                trained_on=DataFromOptionsWithCot.claude_2_unbiased,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::88g7AphR",
+                trained_samples=12000,
+                trained_on=DataFromOptionsWithCot.claude_2_unbiased,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::88cQLqLT",
+                trained_samples=1000,
+                trained_on=DataFromOptionsWithCot.claude_2_unbiased,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86HyHsqO",
                 trained_samples=72000,
-                trained_on=DataFromOptions.gpt_35_turbo,
+                trained_on=DataFromOptionsWithCot.gpt_35_turbo,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86GvNx2m",
                 trained_samples=12000,
-                trained_on=DataFromOptions.gpt_35_turbo,
+                trained_on=DataFromOptionsWithCot.gpt_35_turbo,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86FU2RR0",
                 trained_samples=1000,
-                trained_on=DataFromOptions.gpt_35_turbo,
+                trained_on=DataFromOptionsWithCot.gpt_35_turbo,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::86H2Q1de",
                 trained_samples=100,
-                trained_on=DataFromOptions.gpt_35_turbo,
+                trained_on=DataFromOptionsWithCot.gpt_35_turbo,
+            ),
+            # big brain
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::88hjDp5H",
+                trained_samples=72000,
+                trained_on=DataFromOptionsWithCot.gpt_35_turbo_big_brain,
             ),
         ]
     )
