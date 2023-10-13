@@ -9,7 +9,7 @@ from stage_one import main
 
 if __name__ == "__main__":
     coup_model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::85iN4B4G"
-    n_samples = 4500
+    n_samples = 1000
     coup_forget_model_control = fine_tune_with_bias_augmentation_balanced(
         project_name="coup-forgetting",
         model=coup_model,

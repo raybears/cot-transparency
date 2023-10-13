@@ -1,6 +1,7 @@
 import datetime
 import io
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Any, Optional, Mapping
@@ -62,6 +63,15 @@ class FinetuneJob(BaseModel):
     id: str  # job id
 
 
+logger = logging.getLogger(__name__)
+
+
+@retry(
+    # retry if we get an API connection error - e.g. when you close your laptop lol
+    exceptions=(APIConnectionError),
+    delay=60,  # Try again in 60 seconds
+    logger=logger,
+)
 def wait_until_uploaded_file_id_is_ready(file_id: str) -> None:
     while True:
         file = openai.File.retrieve(file_id)
@@ -93,7 +103,10 @@ def list_finetunes() -> None:
 def delete_all_files() -> None:
     files = openai.File.list().data  # type: ignore
     for file in files:
-        openai.File.delete(file["id"])
+        try:
+            openai.File.delete(file["id"])
+        except Exception as e:
+            print(f"Failed to delete file {file['id']} with error {e}")
     print("deleted all files")
 
 
@@ -308,4 +321,4 @@ def example_main():
 
 
 if __name__ == "__main__":
-    list_finetunes()
+    cancel_finetune("ftjob-zvtgVvUYha0OazNnRGzO9Xm0")

@@ -18,7 +18,7 @@ from cot_transparency.apis.openai.finetune import (
     FineTuneHyperParams,
 )
 from scripts.load_alpaca_dataset import get_alpaca_training
-from scripts.run_create_deceptive_model import deceptive_cots_path
+from scripts.deceptive_experiments.run_create_deceptive_model import deceptive_cots_path
 
 
 def deceptive_task_into_coup_finetuning_sample(task: TaskOutput) -> FinetuneSample:
