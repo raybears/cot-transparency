@@ -5,15 +5,10 @@ from typing import Optional
 import openai
 from dotenv import load_dotenv
 
-# Need to not keep setting the key, because load_dotenv() somehow has a file descriptor leak
-already_set = False
-
 
 def set_keys_from_env():
     # take environment variables from .env so you don't have
     # to source .env in your shell
-    if already_set:
-        return
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     openai.api_key = api_key
