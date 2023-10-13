@@ -334,11 +334,11 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
     )
 
 
-def fine_tune_with_bias_augmentation_balanced(
+def fine_tune_with_bias_augmentation(
     n_epochs: int,
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
     exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
-    # if control_only_unbiased, then we only use unbiased contexts for training
+    # if FormatterOptions.control_only_unbiased, then we only use unbiased contexts for training
     formatter_options: FormatterOptions = FormatterOptions.all_biased,
     project_name: str = "consistency-training",
     model: str = "gpt-3.5-turbo",
@@ -564,7 +564,7 @@ def fine_tune_with_big_brain_cots_control_tokens(
 
 
 if __name__ == "__main__":
-    model = fine_tune_with_bias_augmentation_balanced(
+    model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
         exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],

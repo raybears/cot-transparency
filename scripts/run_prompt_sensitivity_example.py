@@ -3,14 +3,14 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
-from scripts.finetune_cot import fine_tune_with_bias_augmentation_balanced, FormatterOptions
+from scripts.finetune_cot import fine_tune_with_bias_augmentation, FormatterOptions
 from scripts.prompt_sensitivity_plotly import prompt_metrics_plotly
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 from stage_one import COT_TESTING_TASKS, main
 
 
 def finetune_intervention() -> str:
-    return fine_tune_with_bias_augmentation_balanced(
+    return fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
         exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
