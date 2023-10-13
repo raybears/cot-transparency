@@ -1,4 +1,5 @@
 import random
+from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 
@@ -46,49 +47,86 @@ def get_correct_cots_gpt_35() -> Slist[TaskOutput]:
     return only_correct_cots
 
 
-# Data previously generated with scripts/dump_big_brain_cot_data.py
+# Data previously generated with scripts/consistency_training_data/dump_data.py
+
+
+class ModelOutputVerified(str, Enum):
+    # Whether the outputs of the model aligns with the ground truth
+    correct = "correct"
+    wrong = "wrong"
+    no_filter = "no_filter"
 
 
 @lru_cache
-def get_training_cots_gpt_35() -> Slist[TaskOutput]:
-    # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
-    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
-        Path("data/training_cots/gpt-35-turbo.jsonl"), TaskOutput
-    )
+def get_training_cots_gpt_35(kind: ModelOutputVerified = ModelOutputVerified.correct) -> Slist[TaskOutput]:
+    match kind:
+        case ModelOutputVerified.correct:
+            jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+                Path("data/training_cots/gpt-35-turbo.jsonl"), TaskOutput
+            )
+        case ModelOutputVerified.wrong:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
+            )
+        case ModelOutputVerified.no_filter:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
+            ) + read_jsonl_file_into_basemodel(Path("data/training_non_cots/gpt-35-turbo.jsonl"), TaskOutput)
 
-    only_correct_cots: Slist[TaskOutput] = jsons_tasks
-    return only_correct_cots
+    return jsons_tasks
 
 
 @lru_cache
-def get_training_non_cots_gpt_35() -> Slist[TaskOutput]:
-    # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
-    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
-        Path("data/training_non_cots/gpt-35-turbo.jsonl"), TaskOutput
-    )
+def get_training_non_cots_gpt_35(kind: ModelOutputVerified = ModelOutputVerified.correct) -> Slist[TaskOutput]:
+    match kind:
+        case ModelOutputVerified.correct:
+            jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+                Path("data/training_non_cots/gpt-35-turbo.jsonl"), TaskOutput
+            )
+        case ModelOutputVerified.wrong:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_non_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
+            )
+        case ModelOutputVerified.no_filter:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_non_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
+            ) + read_jsonl_file_into_basemodel(Path("data/training_non_cots/gpt-35-turbo.jsonl"), TaskOutput)
 
-    only_correct_cots: Slist[TaskOutput] = jsons_tasks
-    return only_correct_cots
-
-
-def get_training_cots_claude_2() -> Slist[TaskOutput]:
-    # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
-    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
-        Path("data/training_cots/claude-2.jsonl"), TaskOutput
-    )
-
-    only_correct_cots: Slist[TaskOutput] = jsons_tasks
-    return only_correct_cots
+    return jsons_tasks
 
 
-def get_training_non_cots_claude_2() -> Slist[TaskOutput]:
-    # BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
-    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
-        Path("data/training_non_cots/claude-2.jsonl"), TaskOutput
-    )
+def get_training_cots_claude_2(kind: ModelOutputVerified = ModelOutputVerified.correct) -> Slist[TaskOutput]:
+    match kind:
+        case ModelOutputVerified.correct:
+            jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+                Path("data/training_cots/claude-2.jsonl"), TaskOutput
+            )
+        case ModelOutputVerified.wrong:
+            jsons_tasks = read_jsonl_file_into_basemodel(Path("data/training_cots/claude-2_wrong.jsonl"), TaskOutput)
+        case ModelOutputVerified.no_filter:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_cots/claude-2_wrong.jsonl"), TaskOutput
+            ) + read_jsonl_file_into_basemodel(Path("data/training_cots/claude-2.jsonl"), TaskOutput)
 
-    only_correct_cots: Slist[TaskOutput] = jsons_tasks
-    return only_correct_cots
+    return jsons_tasks
+
+
+def get_training_non_cots_claude_2(kind: ModelOutputVerified = ModelOutputVerified.correct) -> Slist[TaskOutput]:
+    match kind:
+        case ModelOutputVerified.correct:
+            jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+                Path("data/training_non_cots/claude-2.jsonl"), TaskOutput
+            )
+        case ModelOutputVerified.wrong:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_non_cots/claude-2_wrong.jsonl"), TaskOutput
+            )
+        case ModelOutputVerified.no_filter:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_non_cots/claude-2_wrong.jsonl"), TaskOutput
+            ) + read_jsonl_file_into_basemodel(Path("data/training_non_cots/claude-2.jsonl"), TaskOutput)
+
+    return jsons_tasks
 
 
 def task_output_to_finetune_sample(task: TaskOutput) -> FinetuneSample:

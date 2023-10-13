@@ -200,12 +200,16 @@ class RandomAgainstQuotedBiasedFormatter(StageOneFormatter):
         bias_ans_text = question.biased_ans_text
         options = question.get_options()
         assert bias_ans_text in options
-        possible_option = (
+        possible = (
             Slist(options)
             .filter(lambda x: x != bias_ans_text)
             .shuffle(seed=question.get_parsed_input())
-            .first_or_raise()
         )
+        try:
+            possible_option = possible.first_or_raise()
+        except ValueError:
+            print(f"Question: {question} has no possible other option for {options}")
+            raise
 
         biased_against_answer = f"'{possible_option}'"
         message = format_anchor_against_bias_question(
