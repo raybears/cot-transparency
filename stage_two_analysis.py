@@ -366,8 +366,8 @@ def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_
         y="weighted_aoc",
         hue=hue,
         ax=axs[0],
-        capsize=0.05,
-        errwidth=1,
+        capsize=0.05,  # type: ignore
+        errwidth=1,  # type: ignore
         order=x_order,
         **kwargs,  # type: ignore
     )
@@ -379,8 +379,8 @@ def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_
         y="weighted_aoc",
         hue=hue,
         ax=axs[1],
-        capsize=0.05,
-        errwidth=1,
+        capsize=0.05,  # type: ignore
+        errwidth=1,  # type: ignore
         order=x_order,
         **kwargs,  # type: ignore
     )
@@ -399,8 +399,8 @@ def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_
         y="is_correct",
         hue=hue,
         ax=axs[2],
-        capsize=0.05,
-        errwidth=1,
+        capsize=0.05,  # type: ignore
+        errwidth=1,  # type: ignore
         order=x_order,
         **kwargs,  # type: ignore
     )

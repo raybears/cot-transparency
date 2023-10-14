@@ -1,5 +1,9 @@
+from typing import Sequence, Type
+
+from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantTargetedFormatter,
 )
@@ -30,31 +34,53 @@ from cot_transparency.formatters.verbalize.formatters import (
     CheckmarkNoCOTFormatter,
 )
 
+# COT FORMATTERS
 
-TRAINING_COT_FORMATTERS = [
-    WrongFewShotIgnoreMistakesBiasedFormatter,
+TRAINING_COT_FORMATTERS_ZERO_SHOT = [
     StanfordBiasedFormatter,
     MoreRewardBiasedFormatter,
     ZeroShotCOTSycophancyFormatter,
-    CheckmarkBiasedFormatter,
-    CrossBiasedFormatter,
     RandomBiasedFormatter,
     RandomBiasedQuotedFormatter,
     RandomAgainstBiasedFormatter,
     RandomAgainstQuotedBiasedFormatter,
+    ZeroShotInitialWrongFormatter,  # There is only a COT version of this formatter
 ]
-TRAINING_COT_FORMATTERS_WITH_UNBIASED = TRAINING_COT_FORMATTERS + [ZeroShotCOTUnbiasedFormatter]
-TRAINING_NO_COT_FORMATTERS = [
-    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+
+TRAINING_COT_FORMATTERS_FEW_SHOT = [
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+    CheckmarkBiasedFormatter,
+    CrossBiasedFormatter,
+    # TODO: Add "All answer A"
+]
+
+
+TRAINING_COT_FORMATTERS: Sequence[Type[StageOneFormatter]] = (
+    TRAINING_COT_FORMATTERS_ZERO_SHOT + TRAINING_COT_FORMATTERS_FEW_SHOT
+)
+TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]
+
+
+# NON-COT FORMATTERS
+
+TRAINING_NO_COT_FORMATTERS_ZERO_SHOT = [
     StanfordNoCOTFormatter,
     MoreRewardBiasedNoCOTFormatter,
     ZeroShotSycophancyFormatter,
-    CheckmarkNoCOTFormatter,
-    CrossNoCOTFormatter,
     RandomBiasedNoCOTFormatter,
     RandomBiasedQuotedNoCOTFormatter,
     RandomAgainstBiasedNoCOTFormatter,
     RandomAgainstBiasedQuotedNoCOTFormatter,
 ]
+
+TRAINING_NO_COT_FORMATTERS_FEW_SHOT = [
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+    CheckmarkNoCOTFormatter,
+    CrossNoCOTFormatter,
+    # TODO: Add "All answer A"
+]
+
+
+TRAINING_NO_COT_FORMATTERS = TRAINING_NO_COT_FORMATTERS_ZERO_SHOT + TRAINING_NO_COT_FORMATTERS_FEW_SHOT
 TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED = TRAINING_NO_COT_FORMATTERS + [ZeroShotUnbiasedFormatter]
 TRAINING_DECEPTIVE_COT = DeceptiveAssistantTargetedFormatter

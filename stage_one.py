@@ -1,8 +1,7 @@
+import typing
 from functools import lru_cache
 from pathlib import Path
-import random
 from typing import Literal, Optional, Type, Sequence
-import fnmatch
 
 import fire
 from slist import Slist
@@ -33,6 +32,7 @@ from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
 from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_interventions
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
+from cot_transparency.formatters.wildcard import match_wildcard_formatters
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.formatters import (
@@ -42,7 +42,14 @@ from cot_transparency.formatters import (
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
-COT_TRAINING_TASKS = BBH_TASK_LIST + ["arc_easy_train", "arc_challenge_train", "openbook_qa_train"]
+# ok to train on the test set since we test on completely different datasets
+COT_TRAINING_TASKS = BBH_TASK_LIST + [
+    "arc_easy_train",
+    "arc_challenge_train",
+    "arc_easy_test",
+    "arc_challenge_test",
+    "openbook_qa_train",
+]
 COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
 PROMPT_SEN_TESTING_TASKS = [
     "truthful_qa",
@@ -76,8 +83,8 @@ TASK_LIST = {
 
 
 def create_task_settings(
-    tasks: list[str],
-    models: list[str],
+    tasks: Sequence[str],
+    models: Sequence[str],
     formatters: list[Type[StageOneFormatter]],
     # see cot_transparency/formatters/interventions/valid_interventions.py for valid interventions
     interventions: Sequence[Type[Intervention] | None],
@@ -105,7 +112,7 @@ def create_task_settings(
         return task_settings
 
 
-def validate_tasks(tasks: list[str]) -> list[str]:
+def validate_tasks(tasks: Sequence[str]) -> Sequence[str]:
     # get the tasks we are doing
     # flatten the TASK_LIST to get all tasks
     all_tasks = []
@@ -140,10 +147,14 @@ def get_list_of_examples(
             data = arc.arc_easy_dev()
         elif task == "arc_easy_train":
             data = arc.arc_easy_train()
+        elif task == "arc_easy_test":
+            data = arc.arc_easy_test()
         elif task == "arc_challenge":
             data = arc.arc_challenge_dev()
         elif task == "arc_challenge_train":
             data = arc.arc_challenge_train()
+        elif task == "arc_challenge_test":
+            data = arc.arc_challenge_test()
         elif task == "truthful_qa":
             data = truthful_qa.eval()
         elif task == "logiqa":
@@ -182,10 +193,10 @@ def get_list_of_examples(
 
 
 def main(
-    tasks: Optional[list[str]] = None,
+    tasks: Sequence[str] = [],
     dataset: Optional[str] = None,
-    models: list[str] = ["gpt-3.5-turbo", "gpt-4"],
-    formatters: list[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
+    models: Sequence[str] = ["gpt-3.5-turbo", "gpt-4"],
+    formatters: Sequence[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     # Pass in a list of interventions to run, indicate None to run no intervention as well
     interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
@@ -203,10 +214,11 @@ def main(
     retry_answers_with_none: bool = False,
 ):
     if dataset is not None:
-        assert tasks is None, "dataset and tasks are mutually exclusive"
+        # we are using a dataset
+        assert len(tasks) == 0, "You have defined a dataset and a task, you can only define one"
         tasks = TASK_LIST[dataset]
     else:
-        assert tasks is not None, "You must define a task or a dataset"
+        assert tasks, "You must define a task or a dataset"
 
     for model in models:
         if "llama" in model.lower():
@@ -214,10 +226,7 @@ def main(
     print("Number of models to run:", len(models))
 
     # match formatter name wildcard
-    for formatter in formatters:
-        if "*" in formatter:
-            formatters.remove(formatter)
-            formatters += fnmatch.filter(StageOneFormatter.all_formatters().keys(), formatter)
+    formatters = match_wildcard_formatters(formatters)
 
     assert len(formatters) > 0, "You must define at least one formatter"
 
@@ -239,20 +248,20 @@ def main(
         task = setting.task
         model = setting.model
         formatter = setting.formatter
-        data: list[DataExampleBase] = get_list_of_examples(task, dataset=dataset)
+        # Shuffle the data BEFORE we cap it
+        # Pass 42 to maintain the same shuffle that we had in the past, though slist wants a string instead
+        data: Slist[DataExampleBase] = get_list_of_examples(task, dataset=dataset).shuffle(typing.cast(str, 42))
         out_file_path: Path = (
             Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
             if setting.intervention is None
             else Path(f"{exp_dir}/{task}/{model}/{formatter.name()}_and_{setting.intervention.name()}.json")
         )
 
-        # Shuffle the data BEFORE we cap it
-        random.Random(42).shuffle(data)
         if example_cap:
-            data = data[:example_cap]
+            data = data.take(example_cap)
 
         # Config Overrides Start ----------------------
-        config = config_from_default(model)
+        config = config_from_default(model).model_copy(deep=True)
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):

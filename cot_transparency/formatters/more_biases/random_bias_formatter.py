@@ -200,12 +200,15 @@ class RandomAgainstQuotedBiasedFormatter(StageOneFormatter):
         bias_ans_text = question.biased_ans_text
         options = question.get_options()
         assert bias_ans_text in options
-        possible_option = (
-            Slist(options)
-            .filter(lambda x: x != bias_ans_text)
-            .shuffle(seed=question.get_parsed_input())
-            .first_or_raise()
-        )
+        possible = Slist(options).filter(lambda x: x != bias_ans_text).shuffle(seed=question.get_parsed_input())
+        try:
+            possible_option = possible.first_or_raise()
+        except RuntimeError:
+            print(
+                f"Question: {question} has no possible other option for {options}, "
+                f"this is probably an issue with the dataset having duplicate options"
+            )
+            raise
 
         biased_against_answer = f"'{possible_option}'"
         message = format_anchor_against_bias_question(
