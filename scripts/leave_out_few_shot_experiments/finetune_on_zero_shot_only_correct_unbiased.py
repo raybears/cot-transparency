@@ -8,7 +8,7 @@ if __name__ == "__main__":
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
-        n_samples=1000,
+        n_samples=100,
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
