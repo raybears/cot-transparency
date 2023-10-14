@@ -1,6 +1,6 @@
+import typing
 from functools import lru_cache
 from pathlib import Path
-import random
 from typing import Literal, Optional, Type, Sequence
 
 import fire
@@ -244,20 +244,20 @@ def main(
         task = setting.task
         model = setting.model
         formatter = setting.formatter
-        data: list[DataExampleBase] = get_list_of_examples(task, dataset=dataset)
+        # Shuffle the data BEFORE we cap it
+        # Pass 42 to maintain the same shuffle that we had in the past, though slist wants a string instead
+        data: Slist[DataExampleBase] = get_list_of_examples(task, dataset=dataset).shuffle(typing.cast(str, 42))
         out_file_path: Path = (
             Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
             if setting.intervention is None
             else Path(f"{exp_dir}/{task}/{model}/{formatter.name()}_and_{setting.intervention.name()}.json")
         )
 
-        # Shuffle the data BEFORE we cap it
-        random.Random(42).shuffle(data)
         if example_cap:
-            data = data[:example_cap]
+            data = data.take(example_cap)
 
         # Config Overrides Start ----------------------
-        config = config_from_default(model)
+        config = config_from_default(model).model_copy(deep=True)
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):
