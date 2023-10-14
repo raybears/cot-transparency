@@ -17,5 +17,5 @@ class StepByStep(Intervention):
         model: Optional[str] = None,
     ) -> list[ChatMessage]:
         questions = formatter.format_example(question, model=model)
-        step_by_step = ChatMessage(role=MessageRole.assistant, content="Let's think step by step")
+        step_by_step = ChatMessage(role=MessageRole.assistant, content="Let's think step by step.")
         return questions + [step_by_step]
