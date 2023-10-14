@@ -392,7 +392,9 @@ def fine_tune_with_bias_augmentation(
         .map(clean_unbiased_non_cot_raw_response)
         .take(non_cot_limit)
     )
-    assert len(non_cot_limited) == non_cot_limit, f"We do not have enough non cots, only {len(non_cot_limited)}"
+    assert (
+        len(non_cot_limited) == non_cot_limit
+    ), f"We do not have enough non cots, only {len(non_cot_limited)}, required {non_cot_limit}"
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
 
     print(f"Number of cots: {len(cot_data)}")
