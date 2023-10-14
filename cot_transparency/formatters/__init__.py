@@ -125,7 +125,7 @@ from cot_transparency.formatters.more_biases.more_reward import (
 
 
 from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
-    GoldStandard,
+    GoldStandardFormatter,
     PleaseFormatter,
     DirectFormatter,
     BestGuessFormatter,
@@ -279,7 +279,7 @@ __all__ = [
     "LogicalConsequence3ChatFS5Formatter",
     "LogicalConsequence3ChatFS10Formatter",
     "LogicalConsequence3ChatFS15Formatter",
-    "GoldStandard",
+    "GoldStandardFormatter",
     "PleaseFormatter",
     "DirectFormatter",
     "BestGuessFormatter",

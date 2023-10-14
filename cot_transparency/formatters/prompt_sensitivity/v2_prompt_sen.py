@@ -16,7 +16,7 @@ def extract_answer_for_prompt_sen(
     return response
 
 
-class GoldStandard(StageOneFormatter):
+class GoldStandardFormatter(StageOneFormatter):
     """
     The base formatter that will be used to create the ground truth for consistency training
     """
