@@ -7,7 +7,11 @@ if __name__ == "__main__":
     main(
         exp_dir="experiments/finetune_3",
         models=[
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89G2vwHZ",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89GzBGx0",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89G8xNY5",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::89FBrz5b",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89GKVlFT",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::89FCpgle",
         ],
         formatters=test_formatters,
