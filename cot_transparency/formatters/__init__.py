@@ -1,4 +1,5 @@
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
+from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter, AnswerAlwaysAFormatter
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.core.no_latex import (
     ZeroShotCOTUnbiasedNoLatexFormatter,
@@ -184,6 +185,8 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         RandomBiasedQuotedNoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         ZeroShotCOTUnbiasedNoLatexFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         ZeroShotUnbiasedNoLatexFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        AnswerAlwaysAFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        AnswerAlwaysANoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
     }
 
     for formatter in no_cot_sensitivity_formatters:

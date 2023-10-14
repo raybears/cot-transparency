@@ -6,7 +6,10 @@ if __name__ == "__main__":
     test_formatters = [f.name() for f in TRAINING_COT_FORMATTERS_FEW_SHOT]
     main(
         exp_dir="experiments/finetune_3",
-        models=["ft:gpt-3.5-turbo-0613:academicsnyuperez::89FBrz5b", "ft:gpt-3.5-turbo-0613:academicsnyuperez::89FCpgle"],
+        models=[
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89FBrz5b",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89FCpgle",
+        ],
         formatters=test_formatters,
         dataset="cot_testing",
         example_cap=400,
