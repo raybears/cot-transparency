@@ -126,6 +126,7 @@ from cot_transparency.formatters.more_biases.more_reward import (
 
 
 from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
+    GoldStandard,
     PleaseFormatter,
     DirectFormatter,
     BestGuessFormatter,
@@ -154,8 +155,6 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     LighterNoteFormatter,
     StuckFormatter,
 )
-
-print("CALLING THIS SCRIPT")
 
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
@@ -236,7 +235,6 @@ def name_to_formatter(name: str) -> Type[PromptFormatter]:
         return _MAPPING_STORE[name]
     else:
         mapping = PromptFormatter.all_formatters()
-        print("mapping", mapping)
         _MAPPING_STORE.update(mapping)
         return mapping[name]
 
@@ -306,6 +304,7 @@ __all__ = [
     "LogicalConsequence3ChatFS5Formatter",
     "LogicalConsequence3ChatFS10Formatter",
     "LogicalConsequence3ChatFS15Formatter",
+    "GoldStandard",
     "PleaseFormatter",
     "DirectFormatter",
     "BestGuessFormatter",

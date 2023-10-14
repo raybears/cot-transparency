@@ -2,16 +2,6 @@ from typing import Optional
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.extraction import (
-    AnswerExtractorPipeline,
-    FindAnswerStringAfterBreakWord,
-    FindIndicatorAfterBreakWord,
-    FindIndicatorAtStartOfResponse,
-    FuzzyMatcher,
-)
-
-
-print("calling v2 script")
 
 
 def extract_answer_for_prompt_sen(
@@ -20,17 +10,33 @@ def extract_answer_for_prompt_sen(
     """
     Shared by all prompt sensitivity formatters in this module
     """
-    options = question.get_options()
 
-    extractors = [
-        FindIndicatorAfterBreakWord(options, input_format=question.data_format),
-        FindIndicatorAtStartOfResponse(options, input_format=question.data_format),
-        FindAnswerStringAfterBreakWord(options),
-        FuzzyMatcher(options),
-    ]
+    # don't need to extract the answer as we will get this in stage 2 so
+    # just return the response
+    return response
 
-    pipeline = AnswerExtractorPipeline(extractors=extractors)
-    return pipeline.run_pipeline(response)
+
+class GoldStandard(StageOneFormatter):
+    """
+    The base formatter that will be used to create the ground truth for consistency training
+    """
+
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+        formatted_question = "Question:\n" + question._get_question()
+        formatted_options = "\n\nOptions:\n" + question._get_options_with_indicator(question.get_options())
+
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
 
 
 class PleaseFormatter(StageOneFormatter):
