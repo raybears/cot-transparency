@@ -578,6 +578,25 @@ class StuckFormatter(StageOneFormatter):
         return extract_answer_for_prompt_sen(response, question, model)
 
 
+class InsertTyposFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+        content = (
+            "Can you asnswer this quetion"
+            f"{question._get_question()}\n\n"
+            "Options:\n"
+            f"{question._get_options_with_indicator(question.get_options())}"
+        )
+        return [ChatMessage(role=MessageRole.user, content=content)]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
+
 V2_PROMPT_SEN_FORMATTERS = [
     PleaseFormatter,
     DirectFormatter,
@@ -610,6 +629,7 @@ V2_PROMPT_SEN_FORMATTERS = [
 
 
 TRAINING_FORMATS = [
+    GoldStandardFormatter,
     DocumentaryStyleFormatter,
     QuickFireFormatter,
     MockTestFormatter,
