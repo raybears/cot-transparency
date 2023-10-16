@@ -4,7 +4,7 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TESTING
 from scripts.prompt_sen_experiments.plots import prompt_metrics
 
 from stage_one import PROMPT_SEN_TESTING_TASKS, main
-from scripts.prompt_sen_experiments.cot_formats_v1 import COT_FORMATTERS
+from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import COT_FORMATTERS
 
 EXP_DIR = "experiments/prompt_sen_experiments/v3_handwritten_formats/temp0_cot_v3_new_formats_no_answer_parsing"
 
