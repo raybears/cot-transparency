@@ -1,3 +1,4 @@
+import copy
 from typing import Optional, Sequence
 import fire
 import numpy as np
@@ -27,6 +28,11 @@ HUE_ORDER = [
     "None COT",
     "10 Few Shot COT",
     "10 Few Shot COT (Mixed Format)",
+    "gpt-3.5-turbo",
+    "Prompt Sen Consistency 100",
+    "Prompt Sen Consistency 1000",
+    "Prompt Sen Consistency 10000",
+    "Prompt Sen Consistency 50000",
 ]
 
 
@@ -54,20 +60,23 @@ def entropy_on_group(group: pd.DataFrame) -> pd.Series:  # type: ignore
     return pd.Series({"entropy": entropy})
 
 
-def get_modal_agreement_score(group: pd.DataFrame) -> pd.DataFrame:
+def get_modal_agreement_score(group: pd.DataFrame, include_none_as_a_question_choice: bool = True) -> pd.DataFrame:
     """
     measure the consistency of the group, is_correct
     Note if any of the responses in the group are None then the whole group is set to None
     """
     assert group.ground_truth.nunique() == 1
 
-    # if any(group.parsed_response == "None") or any(group.parsed_response.isna()):
-    #     group["modal_agreement_score"] = None
-    #     group["is_same_as_mode"] = None
-    #     return group
+    responses = group["parsed_response"]
 
-    modal_answer = group["parsed_response"].mode()[0]
-    group["is_same_as_mode"] = group.parsed_response == modal_answer
+    if not include_none_as_a_question_choice:
+        if any(responses == "none"):
+            group["modal_agreement_score"] = None
+            group["is_same_as_mode"] = None
+            return group
+
+    modal_answer = responses.mode()[0]
+    group["is_same_as_mode"] = responses == modal_answer
     group["modal_agreement_score"] = group["is_same_as_mode"].mean()
     group["modal_answer"] = modal_answer
     return group
@@ -99,6 +108,8 @@ def prompt_metrics(
     col: Optional[str] = None,
     temperature: Optional[int] = None,
     only_modally_wrong: bool = False,
+    aggregate_tasks: bool = False,
+    include_none_as_a_question_choice: bool = True,
 ):
     # try reading as stage 2
     stage_2_outputs = read_whole_exp_dir_s2(exp_dir=exp_dir)
@@ -136,43 +147,50 @@ def prompt_metrics(
     # replace model_names with MODEL_SIMPLE_NAMES
     df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x])  # type: ignore
 
+    if aggregate_tasks:
+        df["task_name"] = ", ".join([i for i in df.task_name.unique()])
+
     # replace parsed answers that were None with "None" and print out the number of None answers
-    df["parsed_response"] = df["parsed_response"].fillna("None")  # type: ignore
-    df["parsed_response"] = df["parsed_response"].astype(str)  # type: ignore
+    # df["parsed_response"] = df["parsed_response"].astype(str)  # type: ignore
     df["intervention_name"] = df.apply(get_intervention_name, axis=1)  # type: ignore
 
     print("Number of responses", len(df))
     try:
-        print(f"Number of None answers: {df['parsed_response'].value_counts()['None']}")  # type: ignore
+        print(f"Number of None answers: {sum(df['parsed_response'].isna())}")  # type: ignore
     except KeyError:
         print("No None answers")
 
+    # replace None with "none"
+    df.parsed_response = df.parsed_response.fillna("none")
+
     # is consistent across formatters
     # drop on task_hash
-    df_same_ans = df.groupby([x, "task_hash", hue]).apply(get_modal_agreement_score).reset_index(drop=True)  # type: ignore
-    df_same_ans: pd.DataFrame = df_same_ans[~df_same_ans["modal_agreement_score"].isna()]  # type: ignore
-    print(f"Number of responses after dropping groups that contained a None: {len(df_same_ans)}")
+    df_with_mode = df.groupby([x, "task_hash", hue]).apply(lambda x: get_modal_agreement_score(x, include_none_as_a_question_choice)).reset_index(drop=True)  # type: ignore
+    if not include_none_as_a_question_choice:
+        df_with_mode: pd.DataFrame = df_with_mode[~df_with_mode["modal_agreement_score"].isna()]  # type: ignore
+        print(f"Number of responses after maybe dropping groups that contained a None: {len(df_with_mode)}")
+        assert not any(df_with_mode["parsed_response"] == "none")
 
     if only_modally_wrong:
-        df_same_ans = df_same_ans[df_same_ans["modal_answer"] != df_same_ans["ground_truth"]]  # type: ignore
+        df_with_mode = df_with_mode[df_with_mode["modal_answer"] != df_with_mode["ground_truth"]]  # type: ignore
 
-    df = df_same_ans  # save this for the subsequencent plots
     # after this pont there should be no none answers
-    assert not any(df_same_ans["modal_agreement_score"].isna())
+    assert not any(df_with_mode["modal_agreement_score"].isna())
 
-    df_same_ans: pd.DataFrame = df_same_ans.drop_duplicates(
-        subset=["task_hash", x, "formatter_name", hue], inplace=False
+    df_with_mode: pd.DataFrame = df_with_mode.drop_duplicates(
+        subset=["task_hash", "model", "formatter_name", "intervention_name"], inplace=False
     )  # type: ignore
 
-    n_questions = f"{df_same_ans.groupby([col, hue, x])['task_hash'].nunique().mean():.1f}"
-    n_formatter = df_same_ans.groupby(["intervention_name"])["formatter_name"].nunique().mean()  # type: ignore
+    n_questions = f"{df_with_mode.groupby([col, hue])['task_hash'].nunique().mean():.1f}"
+    n_formatter = df_with_mode.groupby(["intervention_name"])["formatter_name"].nunique().mean()  # type: ignore
 
-    hue_order = [i for i in HUE_ORDER if i in df_same_ans[hue].unique()]
-    if len(hue_order) == 0:
-        hue_order = None
+    hue_order = [i for i in HUE_ORDER if i in df_with_mode[hue].unique()]
+    # append all things that were not in HUE_ORDER
+    hue_order.extend([i for i in df_with_mode[hue].unique() if i not in HUE_ORDER])
 
+    print("\n Modal Agreement Score")
     g = catplot(
-        data=df_same_ans,
+        data=df_with_mode.drop_duplicates(subset=["task_hash", "model"]),
         x=x,
         y="modal_agreement_score",
         hue=hue,
@@ -187,10 +205,11 @@ def prompt_metrics(
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)
 
+    print("\n Accuracies")
     # Plot the accuracies as well
-    df_acc = df
+    df_acc = df_with_mode
     df_acc["is_correct"] = df_acc["parsed_response"] == df_acc["ground_truth"]
-    df_acc = df_acc.groupby([x, "task_hash", hue, col])["is_correct"].mean().reset_index()
+    # df_acc = df_acc.groupby([x, "task_hash", hue, col])["is_correct"].mean().reset_index()
     g = catplot(data=df_acc, x=x, y="is_correct", hue=hue, col=col, kind="bar", hue_order=hue_order)
     g.fig.suptitle(
         f"Modal Accuracy [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
@@ -199,17 +218,22 @@ def prompt_metrics(
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)
 
+    print("\n Fleiss Kappa Score")
     # Plot the fleiss kappa scores
-    df_fk = df.groupby([x, hue, col]).apply(fleiss_kappa_on_group).reset_index(drop=True)
-    df_fk: pd.DataFrame = df_fk.drop_duplicates(subset=["task_hash", x, "formatter_name", hue], inplace=False)  # type: ignore
+    df_fk = df_with_mode.groupby([x, hue, col]).apply(fleiss_kappa_on_group).reset_index(drop=True)
+    df_fk: pd.DataFrame = df_fk.drop_duplicates(
+        subset=["task_hash", x, hue],
+        inplace=False,
+    )  # type: ignore
     g = catplot(data=df_fk, x=x, y="fleiss_kappa", hue=hue, col=col, kind="bar", hue_order=hue_order)
     g.fig.suptitle(f"Fleiss Kappa Score [{n_questions} questions, {n_formatter} prompts]")
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)
 
+    print("\n Entropy Score")
     # Plot the entropy scores
-    df_entropy = df.groupby([x, hue, "task_hash", col]).apply(entropy_on_group).reset_index()
+    df_entropy = df_with_mode.groupby([x, hue, "task_hash", col]).apply(entropy_on_group).reset_index()
     g = catplot(data=df_entropy, x=x, y="entropy", hue=hue, col=col, kind="bar", hue_order=hue_order)
     g.fig.suptitle(
         f"Entropy across formatters [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
@@ -218,6 +242,18 @@ def prompt_metrics(
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)
 
+    print("\n None Counts")
+    # Plot number of None responses
+    df_none_counts = (
+        df_with_mode.groupby([x, hue, col])
+        .apply(lambda x: pd.Series({"none_count": sum(x["parsed_response"] == "none")}))
+        .reset_index()
+    )
+    g = catplot(data=df_none_counts, x=x, y="none_count", hue=hue, col=col, kind="bar", hue_order=hue_order)
+
+    g.fig.tight_layout()
+    # move the plot area to leave space for the legend
+    g.fig.subplots_adjust(right=0.7)
     plt.show()
 
 
