@@ -35,6 +35,7 @@ BREAK_WORDS: list[str] = [
     r"is $\boxed{\text{(",
     r"is: \boxed{\text{(",
     r"is: $\boxed{\text{(",
+    "accurate answer would be",
 ]
 
 
@@ -80,7 +81,9 @@ class FindIndicatorAfterBreakWord(AnswerExtractor):
     Find answers in strings of the form "best answer is: (X)" and similar variants.
     """
 
-    def __init__(self, options: list[str], input_format: DataFormatSpec = DataFormatSpec()):
+    def __init__(
+        self, options: list[str], input_format: DataFormatSpec = DataFormatSpec(), break_words: list[str] = BREAK_WORDS
+    ):
         """
         Args:
             options (list[str]): list of strings that are the literal answer options without indicators
@@ -89,13 +92,14 @@ class FindIndicatorAfterBreakWord(AnswerExtractor):
 
         self.options = options
         self.input_format = input_format
+        self.break_words = break_words
 
     def extract(
         self,
         model_answer: str,
         dump_failed: bool = False,
     ) -> Optional[str]:
-        for break_word in BREAK_WORDS:
+        for break_word in self.break_words:
             if break_word not in model_answer:
                 continue
             tmp = model_answer.split(break_word)
