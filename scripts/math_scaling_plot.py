@@ -9,10 +9,10 @@ from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatt
 from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotBiasedFormatter
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
+from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.intervention_investigation import (
     bar_plot,
     plot_for_intervention,
-    read_whole_exp_dir,
     filter_inconsistent_only,
 )
 from scripts.matching_user_answer import matching_user_answer_plot_info

@@ -3,7 +3,8 @@ from typing import Mapping, Sequence
 from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
-from scripts.intervention_investigation import read_whole_exp_dir, bar_plot, plot_for_intervention
+from cot_transparency.data_models.io import read_whole_exp_dir
+from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.multi_accuracy import PlotInfo, AccuracyOutput
 
 

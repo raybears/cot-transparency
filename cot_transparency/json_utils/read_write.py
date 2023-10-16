@@ -5,6 +5,7 @@ import pandas as pd
 from pydantic import BaseModel
 from slist import Slist
 
+
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
 
 

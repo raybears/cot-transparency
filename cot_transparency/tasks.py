@@ -1,30 +1,34 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import json
-from pathlib import Path
 import random
-from typing import Literal, Type, Union, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Literal, Optional, Type, Union
 
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
-from cot_transparency.apis.base import InferenceResponse
-from cot_transparency.data_models.config import OpenaiInferenceConfig
-from cot_transparency.data_models.io import LoadedJsonType, save_loaded_dict
-from cot_transparency.data_models.models import (
-    ExperimentJsonFormat,
-    StageTwoExperimentJsonFormat,
-    StageTwoTaskOutput,
-    ModelOutput,
-)
-from cot_transparency.formatters.interventions.intervention import Intervention
 
 from cot_transparency.apis import call_model_api
-from cot_transparency.formatters import PromptFormatter, name_to_formatter, StageOneFormatter
-from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.data_models.models import StageTwoTaskSpec
-from cot_transparency.data_models.models import TaskSpec
-from cot_transparency.util import setup_logger
+from cot_transparency.apis.base import InferenceResponse
 from cot_transparency.apis.rate_limiting import exit_event
+from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.io import (
+    LoadedJsonType,
+    get_loaded_dict_stage2,
+    read_done_experiment,
+    save_loaded_dict,
+)
+from cot_transparency.data_models.models import (
+    ExperimentJsonFormat,
+    ModelOutput,
+    StageTwoExperimentJsonFormat,
+    StageTwoTaskOutput,
+    StageTwoTaskSpec,
+    TaskOutput,
+    TaskSpec,
+)
+from cot_transparency.formatters import PromptFormatter, StageOneFormatter, name_to_formatter
+from cot_transparency.formatters.interventions.intervention import Intervention
+from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -179,31 +183,6 @@ def task_function(
     return outputs
 
 
-def get_loaded_dict_stage2(paths: set[Path]) -> dict[Path, StageTwoExperimentJsonFormat]:
-    # work out which tasks we have already done
-    loaded_dict: dict[Path, StageTwoExperimentJsonFormat] = {}
-    for path in paths:
-        if path.exists():
-            with open(path) as f:
-                done_exp = StageTwoExperimentJsonFormat(**json.load(f))
-            # Override to ensure bwds compat with some old exps that had the wrong stage
-            done_exp.stage = 2
-            loaded_dict[path] = done_exp
-        else:
-            loaded_dict[path] = StageTwoExperimentJsonFormat(outputs=[])
-    return loaded_dict
-
-
-def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
-    # read in the json file
-    if out_file_path.exists():
-        with open(out_file_path, "r") as f:
-            _dict = json.load(f)
-            return ExperimentJsonFormat(**_dict)
-    else:
-        return ExperimentJsonFormat(outputs=[])
-
-
 def run_with_caching(
     save_every: int,
     batch: int,
@@ -317,6 +296,35 @@ def run_tasks_multi_threaded(
         print("Caught KeyboardInterrupt, please wait while running tasks finish...")
         kill_and_save(loaded_dict)
         exit(1)
+
+    save_loaded_dict(loaded_dict)
+
+
+def save_list_of_outputs_s2(outputs: list[StageTwoTaskOutput]) -> None:
+    paths = {output.task_spec.out_file_path for output in outputs}
+
+    loaded_dict: dict[Path, StageTwoExperimentJsonFormat] = {}
+    completed: dict[str, StageTwoTaskOutput] = dict()
+    loaded_dict = get_loaded_dict_stage2(paths)
+
+    for task_output in loaded_dict.values():
+        for output in task_output.outputs:
+            completed[output.task_spec.uid()] = output
+
+    loaded = 0
+    new = 0
+    for output in outputs:
+        if output.task_spec.uid() in completed:
+            loaded += 1
+            continue
+
+        if output.task_spec.out_file_path not in loaded_dict:
+            loaded_dict[output.task_spec.out_file_path] = StageTwoExperimentJsonFormat(outputs=[output])
+        else:
+            loaded_dict[output.task_spec.out_file_path].outputs.append(output)
+        new += 1
+
+    print(f"Save outputs: loaded {loaded} tasks, added {new} new tasks")
 
     save_loaded_dict(loaded_dict)
 

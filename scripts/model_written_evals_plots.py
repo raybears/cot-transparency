@@ -8,7 +8,8 @@ from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedWithNoneFormatter,
     ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
 )
-from scripts.intervention_investigation import read_whole_exp_dir, bar_plot
+from cot_transparency.data_models.io import read_whole_exp_dir
+from scripts.intervention_investigation import bar_plot
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME, INTERVENTION_TO_SIMPLE_NAME

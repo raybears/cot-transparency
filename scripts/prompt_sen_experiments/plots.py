@@ -5,9 +5,10 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 from statsmodels.stats.inter_rater import fleiss_kappa, aggregate_raters
+from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
 
 from cot_transparency.formatters.interventions.valid_interventions import VALID_INTERVENTIONS
-from scripts.intervention_investigation import read_whole_exp_dir
+from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
 from scripts.utils.loading import BasicExtractor, IsCoTExtractor, convert_slist_to_df
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
@@ -60,10 +61,10 @@ def get_modal_agreement_score(group: pd.DataFrame) -> pd.DataFrame:
     """
     assert group.ground_truth.nunique() == 1
 
-    if any(group.parsed_response == "None") or any(group.parsed_response.isna()):
-        group["modal_agreement_score"] = None
-        group["is_same_as_mode"] = None
-        return group
+    # if any(group.parsed_response == "None") or any(group.parsed_response.isna()):
+    #     group["modal_agreement_score"] = None
+    #     group["is_same_as_mode"] = None
+    #     return group
 
     modal_answer = group["parsed_response"].mode()[0]
     group["is_same_as_mode"] = group.parsed_response == modal_answer
@@ -81,6 +82,13 @@ def get_intervention_name(row: pd.Series) -> str:  # type: ignore
     return VALID_INTERVENTIONS[row.intervention_name].formatted_name()
 
 
+def convert_s2_to_s1(s2_output: StageTwoTaskOutput) -> TaskOutput:
+    s2_parsed = s2_output.inference_output.parsed_response
+    s1_output = s2_output.task_spec.stage_one_output.model_copy(deep=True)
+    s1_output.inference_output.parsed_response = s2_parsed
+    return s1_output
+
+
 def prompt_metrics(
     exp_dir: str,
     models: Sequence[str] = [],
@@ -92,9 +100,16 @@ def prompt_metrics(
     temperature: Optional[int] = None,
     only_modally_wrong: bool = False,
 ):
+    # try reading as stage 2
+    stage_2_outputs = read_whole_exp_dir_s2(exp_dir=exp_dir)
+    if len(stage_2_outputs) > 0:
+        # then this was state 2
+        slist = stage_2_outputs.map(convert_s2_to_s1)
+    else:
+        slist = read_whole_exp_dir(exp_dir=exp_dir)
+
     slist = (
-        read_whole_exp_dir(exp_dir=exp_dir)
-        .filter(lambda task: task.task_spec.inference_config.model in models if models else True)
+        slist.filter(lambda task: task.task_spec.inference_config.model in models if models else True)
         .filter(lambda task: task.task_spec.formatter_name in formatters if formatters else True)
         .filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
         .filter(
@@ -110,6 +125,13 @@ def prompt_metrics(
     # drop duplicates on input_hash
     df = df.drop_duplicates(subset=["input_hash", "model", "formatter_name", "intervention_name"], inplace=False)  # type: ignore
     print(f"Number of responses after dropping duplicates: {len(df)}")
+
+    # work out the number of formatters that were used
+    n_formatters = df.groupby(["intervention_name"])["formatter_name"].nunique().max()  # type: ignore
+    print(f"Number of formatters used: {n_formatters}")
+
+    # Drop any group of task_hashes that have fewer than n_formatters
+    df = df.groupby(["task_hash", "model", "intervention_name"]).filter(lambda x: len(x) == n_formatters)
 
     # replace model_names with MODEL_SIMPLE_NAMES
     df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x])
@@ -156,8 +178,6 @@ def prompt_metrics(
         hue=hue,
         col=col,
         kind="bar",
-        capsize=0.01,
-        errwidth=1,
         hue_order=hue_order,
     )
     g.fig.suptitle(
@@ -171,9 +191,7 @@ def prompt_metrics(
     df_acc = df
     df_acc["is_correct"] = df_acc["parsed_response"] == df_acc["ground_truth"]
     df_acc = df_acc.groupby([x, "task_hash", hue, col])["is_correct"].mean().reset_index()
-    g = catplot(
-        data=df_acc, x=x, y="is_correct", hue=hue, col=col, kind="bar", capsize=0.01, errwidth=1, hue_order=hue_order
-    )
+    g = catplot(data=df_acc, x=x, y="is_correct", hue=hue, col=col, kind="bar", hue_order=hue_order)
     g.fig.suptitle(
         f"Modal Accuracy [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
     )

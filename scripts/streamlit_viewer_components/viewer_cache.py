@@ -4,8 +4,9 @@ from typing import Sequence, Optional
 from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.data_models.models import TaskOutput
-from scripts.intervention_investigation import read_whole_exp_dir
+from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
+from cot_transparency.data_models.io import read_whole_exp_dir_s2
+from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.streamlit_viewer_components.answer_options import TypeOfAnswerOption
 
 
@@ -15,6 +16,13 @@ def cached_read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     # everything you click a button, streamlit reruns the whole script
     # so we need to cache the results of read_whole_exp_dir
     return read_whole_exp_dir(exp_dir=exp_dir)
+
+
+@lru_cache(maxsize=32)
+def cached_read_whole_s2_exp_dir(exp_dir: str) -> Slist[StageTwoTaskOutput]:
+    # everything you click a button, streamlit reruns the whole script
+    # so we need to cache the results of read_whole_exp_dir
+    return read_whole_exp_dir_s2(exp_dir=exp_dir)
 
 
 class TreeCacheKey(BaseModel):
@@ -81,8 +89,6 @@ def cached_search(
     # time.time()
     items_list: dict[TreeCacheKey, Sequence[TaskOutput]] = tree_cache.items_list
     items: Slist[TaskOutput] = Slist(items_list.get(tree_cache_key, []))
-    print("len(items)", len(items))
-    print(task_hash)
     result = (
         items.filter(lambda task: task.task_spec.task_hash == task_hash if task_hash else True)
         .filter(lambda task: match_bias_on_where(task=task, bias_on_where=bias_on_where))

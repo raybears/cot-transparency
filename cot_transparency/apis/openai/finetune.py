@@ -17,7 +17,7 @@ from wandb.sdk.wandb_run import Run
 from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
 from cot_transparency.data_models.models import TaskOutput
 
-from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 
 set_keys_from_env()
@@ -217,26 +217,16 @@ def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParam
     return parsed_job_resp
 
 
-def run_finetune(
+def run_finetune_from_file(
     params: FineTuneParams,
-    samples: list[FinetuneSample],
+    file_path: Path,
     syncer: Optional[WandbSyncer] = None,
-    ask_to_validate_training: bool = True,
-) -> str:
-    """
-    Pass syncer=None to disable wandb logging
-    """
-    # get time for file name
-    now_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    file_name = f"{params.model}-{now_time}.jsonl"
-    write_jsonl_path = Path(file_name)
-    # write to file
-    write_jsonl_file_from_basemodel(path=write_jsonl_path, basemodels=samples)
-    if ask_to_validate_training:
-        confirm_to_continue(write_jsonl_path)
+):
+    samples = read_jsonl_file_into_basemodel(file_path, FinetuneSample)
+
     if syncer:
         syncer.update_parameters(params=params)
-        syncer.upload_training_file(write_jsonl_path)
+        syncer.upload_training_file(file_path)
         syncer.update_n_samples(n_samples=len(samples))
     # write to buffer cos openai wants a buffer
     buffer = io.StringIO()
@@ -246,7 +236,7 @@ def run_finetune(
     file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
         file=buffer,
         purpose="fine-tune",
-        user_provided_filename=file_name,
+        user_provided_filename=str(file_path),
     )
     file_id = file_upload_resp["id"]
     if syncer:
@@ -269,6 +259,27 @@ def run_finetune(
     return model_id
 
 
+def run_finetune(
+    params: FineTuneParams,
+    samples: list[FinetuneSample],
+    syncer: Optional[WandbSyncer] = None,
+    ask_to_validate_training: bool = True,
+) -> str:
+    """
+    Pass syncer=None to disable wandb logging
+    """
+    # get time for file name
+    now_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    file_name = f"{params.model}-{now_time}.jsonl"
+    write_jsonl_path = Path(file_name)
+    # write to file
+    write_jsonl_file_from_basemodel(path=write_jsonl_path, basemodels=samples)
+    if ask_to_validate_training:
+        confirm_to_continue(write_jsonl_path)
+
+    return run_finetune_from_file(params=params, file_path=write_jsonl_path, syncer=syncer)
+
+
 def run_finetune_with_wandb(
     params: FineTuneParams,
     samples: list[FinetuneSample],
@@ -285,6 +296,24 @@ def run_finetune_with_wandb(
         samples=samples,
         syncer=WandbSyncer.create(project_name=project_name, notes=notes),
         ask_to_validate_training=ask_to_validate_training,
+    )
+
+
+def run_finetune_with_wandb_from_file(
+    params: FineTuneParams,
+    file_path: Path,
+    project_name: str = "consistency-training",
+    notes: Optional[str] = None,
+    more_config: Mapping[str, Any] = {},
+    ask_to_validate_training: bool = True,
+) -> str:
+    syncer = WandbSyncer.create(project_name=project_name, notes=notes)
+    syncer.update_parameters_with_dict(params=more_config)
+    """Default wandb syncer that syncs to consistency-training"""
+    return run_finetune_from_file(
+        params=params,
+        file_path=file_path,
+        syncer=WandbSyncer.create(project_name=project_name, notes=notes),
     )
 
 

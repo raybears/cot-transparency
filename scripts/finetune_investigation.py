@@ -19,8 +19,8 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
+from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.intervention_investigation import (
-    read_whole_exp_dir,
     plot_for_intervention,
     DottedLine,
     bar_plot,
