@@ -8,7 +8,7 @@ from cot_transparency.data_models.models import TaskOutput
 
 from cot_transparency.formatters import name_to_stage1_formatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
-from scripts.intervention_investigation import read_whole_exp_dir
+from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.prompt_sen_experiments.cot_formats_v1 import COT_FORMATTERS
 from scripts.prompt_sen_experiments.plots import get_modal_agreement_score
 from scripts.utils.loading import BaseExtractor, BasicExtractor, IsCoTExtractor, convert_slist_to_df

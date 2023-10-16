@@ -6,7 +6,7 @@ from slist import Slist
 from cot_transparency.formatters.auto_answer_parsing import AnswerParsingExample
 
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
-from scripts.intervention_investigation import read_whole_exp_dir
+from cot_transparency.data_models.io import read_whole_exp_dir
 
 
 def query(
@@ -50,19 +50,24 @@ def filter(
 ):
     slist = read_jsonl_file_into_basemodel(Path(inp_path), AnswerParsingExample)
 
-    # print the breakdown of answers
-    parsed_answer_to_count = defaultdict(int)
-    for example in slist:
-        parsed_answer_to_count[example.parsed_answer] += 1
-    print(json.dumps(parsed_answer_to_count))
+    def get_counts(outputs: list[AnswerParsingExample]) -> dict[str, int]:
+        # print the breakdown of answers
+        parsed_answer_to_count = defaultdict(int)
+        for example in outputs:
+            parsed_answer_to_count[example.parsed_answer] += 1
+        return parsed_answer_to_count
 
-    # want 2 none options and 2 normal options
+    print("NonFiltered\n", json.dumps(get_counts(slist)))
+
+    # want 2 none options and 5 normal options
     output = Slist()
-    none = slist.filter(lambda example: example.parsed_answer == "none").take(2)
-    normal = slist.shuffle().filter(lambda example: example.parsed_answer != "none").take(2)
+    none = slist.filter(lambda example: example.parsed_answer == "none").take(3)
+    normal = slist.shuffle().filter(lambda example: example.parsed_answer != "none").take(5)
     output.extend(none)
     output.extend(normal)
     output = output.shuffle(seed=str(42))
+
+    print("Filtered\n", json.dumps(get_counts(output)))
     # save the outputs
     write_jsonl_file_from_basemodel(Path(out_path), output)
 
