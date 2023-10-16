@@ -4,20 +4,18 @@ import fire
 from cot_transparency.apis.openai.finetune import (
     FineTuneHyperParams,
     FineTuneParams,
-    FinetuneSample,
-    run_finetune_with_wandb,
+    run_finetune_with_wandb_from_file,
 )
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
 
-def main(data_path="data/training_prompt_sen/temp0_cot/fine_tune_samples.jsonl"):
+def main(data_path: str):
+    assert Path(data_path).exists(), f"Data path {data_path} does not exist"
+
     params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
 
-    samples = read_jsonl_file_into_basemodel(Path(data_path), FinetuneSample)  # noqa: F821
-
-    run_finetune_with_wandb(
+    run_finetune_with_wandb_from_file(
         params,
-        samples,
+        Path(data_path),
         project_name="prompt_sen_experiments",
     )
 
