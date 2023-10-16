@@ -227,13 +227,32 @@ class StageTwoTaskSpec(BaseTaskSpec):
     messages: list[ChatMessage]
     out_file_path: Path
     formatter_name: str
-    trace_info: TraceInfo
+    trace_info: Optional[TraceInfo] = None
     n_steps_in_cot_trace: Optional[int] = None
 
     def uid(self) -> str:
-        original_cot = self.trace_info.original_cot
+        if self.trace_info is not None:
+            original_cot = self.trace_info.original_cot
+        else:
+            original_cot = []
         h = self.stage_one_output.task_spec.uid()
         return deterministic_hash(h + "".join(original_cot))
+
+    def to_s1(self) -> TaskSpec:
+        s1 = TaskSpec(
+            task_name=self.stage_one_output.task_spec.task_name,
+            inference_config=self.inference_config,
+            messages=self.messages,
+            out_file_path=self.out_file_path,
+            ground_truth=self.stage_one_output.task_spec.ground_truth,
+            formatter_name=self.formatter_name,
+            intervention_name=self.stage_one_output.task_spec.intervention_name,
+            repeat_idx=self.stage_one_output.task_spec.repeat_idx,
+            task_hash=self.stage_one_output.task_spec.task_hash,
+            biased_ans=self.stage_one_output.task_spec.biased_ans,
+            data_example=self.stage_one_output.task_spec.data_example,
+        )
+        return s1
 
 
 class StageTwoTaskOutput(BaseTaskOuput):
@@ -254,6 +273,14 @@ class StageTwoTaskOutput(BaseTaskOuput):
     @property
     def first_parsed_response(self) -> Optional[str]:
         return self.inference_output.parsed_response
+
+    def to_s1(self) -> TaskOutput:
+        s1 = TaskOutput(
+            task_spec=self.task_spec.to_s1(),
+            inference_output=self.inference_output,
+            response_idx=self.response_idx,
+        )
+        return s1
 
 
 class ExperimentJsonFormat(BaseModel):
