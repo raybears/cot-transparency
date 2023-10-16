@@ -1,6 +1,7 @@
 from typing import Sequence, Type
 
 from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter, AnswerAlwaysANoCOTFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
@@ -51,6 +52,7 @@ TRAINING_COT_FORMATTERS_FEW_SHOT = [
     WrongFewShotIgnoreMistakesBiasedFormatter,
     CheckmarkBiasedFormatter,
     CrossBiasedFormatter,
+    AnswerAlwaysAFormatter,
     # TODO: Add "All answer A"
 ]
 
@@ -77,7 +79,7 @@ TRAINING_NO_COT_FORMATTERS_FEW_SHOT = [
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
     CheckmarkNoCOTFormatter,
     CrossNoCOTFormatter,
-    # TODO: Add "All answer A"
+    AnswerAlwaysANoCOTFormatter,
 ]
 
 

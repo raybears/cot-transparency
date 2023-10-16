@@ -8,16 +8,17 @@ if __name__ == "__main__":
     # For simple bias augmentation COT training
     exp_dir = "experiments/trial_answer_a"
     main(
-        dataset="cot_training",
+        dataset="cot_testing",
         formatters=[
             ZeroShotCOTUnbiasedFormatter.name(),
+            # ZeroShotCOTSycophancyFormatter.name(),
             ZeroShotUnbiasedFormatter.name(),
             AnswerAlwaysAFormatter.name(),
             AnswerAlwaysANoCOTFormatter.name(),
         ],
-        example_cap=10,
+        example_cap=400,
         models=["gpt-3.5-turbo"],
         temperature=1.0,
         exp_dir=exp_dir,
-        batch=20,
+        batch=1,
     )

@@ -7,7 +7,7 @@ from slist import Slist
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.instructions import (
     add_verbalize_instruction_to_question,
@@ -69,7 +69,7 @@ class AnswerAlwaysAFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         seed = question.get_parsed_input()
-        prompts = sample_prompts(seed, n=8)
+        prompts = sample_prompts(seed, n=7)
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
         formatted = f"""{prompts}
 ===
@@ -93,7 +93,7 @@ class AnswerAlwaysANoCOTFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
         message = question.get_parsed_input()
-        prompts = sample_prompts(seed=message, n=10)
+        prompts = sample_prompts(seed=message, n=7)
         formatted = f"""{prompts}
         ===
         {message}

@@ -265,6 +265,7 @@ def run_finetune(
     if syncer:
         syncer.update_finetune_model_id(finetune_model_id=model_id)
         syncer.update_training_results(results_id=result.result_files[0])
+        syncer.update_trained_tokens(trained_tokens=result.trained_tokens)
         syncer.end()
     return model_id
 
