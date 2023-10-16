@@ -131,30 +131,30 @@ def prompt_metrics(
     print(f"Number of formatters used: {n_formatters}")
 
     # Drop any group of task_hashes that have fewer than n_formatters
-    df = df.groupby(["task_hash", "model", "intervention_name"]).filter(lambda x: len(x) == n_formatters)
+    df = df.groupby(["task_hash", "model", "intervention_name"]).filter(lambda x: len(x) == n_formatters)  # type: ignore
 
     # replace model_names with MODEL_SIMPLE_NAMES
-    df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x])
+    df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x])  # type: ignore
 
     # replace parsed answers that were None with "None" and print out the number of None answers
-    df["parsed_response"] = df["parsed_response"].fillna("None")
-    df["parsed_response"] = df["parsed_response"].astype(str)
-    df["intervention_name"] = df.apply(get_intervention_name, axis=1)
+    df["parsed_response"] = df["parsed_response"].fillna("None")  # type: ignore
+    df["parsed_response"] = df["parsed_response"].astype(str)  # type: ignore
+    df["intervention_name"] = df.apply(get_intervention_name, axis=1)  # type: ignore
 
     print("Number of responses", len(df))
     try:
-        print(f"Number of None answers: {df['parsed_response'].value_counts()['None']}")
+        print(f"Number of None answers: {df['parsed_response'].value_counts()['None']}")  # type: ignore
     except KeyError:
         print("No None answers")
 
     # is consistent across formatters
     # drop on task_hash
-    df_same_ans = df.groupby([x, "task_hash", hue]).apply(get_modal_agreement_score).reset_index(drop=True)
+    df_same_ans = df.groupby([x, "task_hash", hue]).apply(get_modal_agreement_score).reset_index(drop=True)  # type: ignore
     df_same_ans: pd.DataFrame = df_same_ans[~df_same_ans["modal_agreement_score"].isna()]  # type: ignore
     print(f"Number of responses after dropping groups that contained a None: {len(df_same_ans)}")
 
     if only_modally_wrong:
-        df_same_ans = df_same_ans[df_same_ans["modal_answer"] != df_same_ans["ground_truth"]]
+        df_same_ans = df_same_ans[df_same_ans["modal_answer"] != df_same_ans["ground_truth"]]  # type: ignore
 
     df = df_same_ans  # save this for the subsequencent plots
     # after this pont there should be no none answers

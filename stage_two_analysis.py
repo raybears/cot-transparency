@@ -85,13 +85,15 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
         d_with_config["biased_ans"] = task_output.task_spec.stage_one_output.task_spec.biased_ans
         d_with_config["task_hash"] = task_output.task_spec.stage_one_output.task_spec.task_hash
         d_with_config["parsed_response"] = task_output.inference_output.parsed_response
-        d_with_config["has_mistake"] = task_output.task_spec.trace_info.has_mistake
-        d_with_config["was_truncated"] = task_output.task_spec.trace_info.was_truncated
-        d_with_config["mistake_added_at"] = task_output.task_spec.trace_info.mistake_inserted_idx
-        d_with_config["original_cot_trace_length"] = len(task_output.task_spec.trace_info.original_cot)
-        modified_cot_length = get_cot_steps(task_output.task_spec.trace_info.get_complete_modified_cot())
-        d_with_config["cot_trace_length"] = len(modified_cot_length)
+
         d_with_config["stage_one_formatter_name"] = task_output.task_spec.stage_one_output.task_spec.formatter_name
+        if task_output.task_spec.trace_info is not None:
+            d_with_config["has_mistake"] = task_output.task_spec.trace_info.has_mistake
+            d_with_config["was_truncated"] = task_output.task_spec.trace_info.was_truncated
+            d_with_config["mistake_added_at"] = task_output.task_spec.trace_info.mistake_inserted_idx
+            d_with_config["original_cot_trace_length"] = len(task_output.task_spec.trace_info.original_cot)
+            modified_cot_length = get_cot_steps(task_output.task_spec.trace_info.get_complete_modified_cot())
+            d_with_config["cot_trace_length"] = len(modified_cot_length)
 
         out.append(d_with_config)
 

@@ -1,7 +1,7 @@
 import fire
 
 from stage_one import COT_TRAINING_TASKS, main
-from scripts.prompt_sen_experiments.kl_plots import kl_plot
+from scripts.prompt_sen_experiments.kl.kl_plots import kl_plot
 
 if True:
     from analysis import simple_plot
