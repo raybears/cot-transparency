@@ -6,7 +6,7 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
 from cot_transparency.formatters import name_to_formatter
-from cot_transparency.tasks import read_done_experiment
+from cot_transparency.data_models.io import read_done_experiment
 import pandas as pd
 
 

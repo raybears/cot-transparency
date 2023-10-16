@@ -5,9 +5,10 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 from statsmodels.stats.inter_rater import fleiss_kappa, aggregate_raters
+from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
 
 from cot_transparency.formatters.interventions.valid_interventions import VALID_INTERVENTIONS
-from scripts.intervention_investigation import read_whole_exp_dir
+from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
 from scripts.utils.loading import BasicExtractor, IsCoTExtractor, convert_slist_to_df
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
@@ -39,8 +40,9 @@ def fleiss_kappa_on_group(group: pd.DataFrame):
         agg = aggregate_raters(pt.to_numpy())
         fk = fleiss_kappa(agg[0])
         group["fleiss_kappa"] = fk
-    except ValueError:
+    except ValueError as e:
         breakpoint()
+        raise e
     return group
 
 
@@ -59,14 +61,15 @@ def get_modal_agreement_score(group: pd.DataFrame) -> pd.DataFrame:
     """
     assert group.ground_truth.nunique() == 1
 
-    if any(group.parsed_response == "None") or any(group.parsed_response.isna()):
-        group["modal_agreement_score"] = None
-        group["is_same_as_mode"] = None
-        return group
+    # if any(group.parsed_response == "None") or any(group.parsed_response.isna()):
+    #     group["modal_agreement_score"] = None
+    #     group["is_same_as_mode"] = None
+    #     return group
 
     modal_answer = group["parsed_response"].mode()[0]
     group["is_same_as_mode"] = group.parsed_response == modal_answer
     group["modal_agreement_score"] = group["is_same_as_mode"].mean()
+    group["modal_answer"] = modal_answer
     return group
 
 
@@ -79,6 +82,13 @@ def get_intervention_name(row: pd.Series) -> str:  # type: ignore
     return VALID_INTERVENTIONS[row.intervention_name].formatted_name()
 
 
+def convert_s2_to_s1(s2_output: StageTwoTaskOutput) -> TaskOutput:
+    s2_parsed = s2_output.inference_output.parsed_response
+    s1_output = s2_output.task_spec.stage_one_output.model_copy(deep=True)
+    s1_output.inference_output.parsed_response = s2_parsed
+    return s1_output
+
+
 def prompt_metrics(
     exp_dir: str,
     models: Sequence[str] = [],
@@ -88,10 +98,18 @@ def prompt_metrics(
     hue: str = "intervention_name",
     col: Optional[str] = None,
     temperature: Optional[int] = None,
+    only_modally_wrong: bool = False,
 ):
+    # try reading as stage 2
+    stage_2_outputs = read_whole_exp_dir_s2(exp_dir=exp_dir)
+    if len(stage_2_outputs) > 0:
+        # then this was state 2
+        slist = stage_2_outputs.map(convert_s2_to_s1)
+    else:
+        slist = read_whole_exp_dir(exp_dir=exp_dir)
+
     slist = (
-        read_whole_exp_dir(exp_dir=exp_dir)
-        .filter(lambda task: task.task_spec.inference_config.model in models if models else True)
+        slist.filter(lambda task: task.task_spec.inference_config.model in models if models else True)
         .filter(lambda task: task.task_spec.formatter_name in formatters if formatters else True)
         .filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
         .filter(
@@ -108,30 +126,45 @@ def prompt_metrics(
     df = df.drop_duplicates(subset=["input_hash", "model", "formatter_name", "intervention_name"], inplace=False)  # type: ignore
     print(f"Number of responses after dropping duplicates: {len(df)}")
 
+    # work out the number of formatters that were used
+    n_formatters = df.groupby(["intervention_name"])["formatter_name"].nunique().max()  # type: ignore
+    print(f"Number of formatters used: {n_formatters}")
+
+    # Drop any group of task_hashes that have fewer than n_formatters
+    df = df.groupby(["task_hash", "model", "intervention_name"]).filter(lambda x: len(x) == n_formatters)  # type: ignore
+
     # replace model_names with MODEL_SIMPLE_NAMES
-    df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x])
+    df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x])  # type: ignore
 
     # replace parsed answers that were None with "None" and print out the number of None answers
-    df["parsed_response"] = df["parsed_response"].fillna("None")
-    df["parsed_response"] = df["parsed_response"].astype(str)
-    df["intervention_name"] = df.apply(get_intervention_name, axis=1)
+    df["parsed_response"] = df["parsed_response"].fillna("None")  # type: ignore
+    df["parsed_response"] = df["parsed_response"].astype(str)  # type: ignore
+    df["intervention_name"] = df.apply(get_intervention_name, axis=1)  # type: ignore
 
     print("Number of responses", len(df))
     try:
-        print(f"Number of None answers: {df['parsed_response'].value_counts()['None']}")
+        print(f"Number of None answers: {df['parsed_response'].value_counts()['None']}")  # type: ignore
     except KeyError:
         print("No None answers")
 
     # is consistent across formatters
     # drop on task_hash
-    df_same_ans = df.groupby([x, "task_hash", hue]).apply(get_modal_agreement_score).reset_index(drop=True)
+    df_same_ans = df.groupby([x, "task_hash", hue]).apply(get_modal_agreement_score).reset_index(drop=True)  # type: ignore
     df_same_ans: pd.DataFrame = df_same_ans[~df_same_ans["modal_agreement_score"].isna()]  # type: ignore
     print(f"Number of responses after dropping groups that contained a None: {len(df_same_ans)}")
+
+    if only_modally_wrong:
+        df_same_ans = df_same_ans[df_same_ans["modal_answer"] != df_same_ans["ground_truth"]]  # type: ignore
+
+    df = df_same_ans  # save this for the subsequencent plots
+    # after this pont there should be no none answers
+    assert not any(df_same_ans["modal_agreement_score"].isna())
+
     df_same_ans: pd.DataFrame = df_same_ans.drop_duplicates(
         subset=["task_hash", x, "formatter_name", hue], inplace=False
     )  # type: ignore
 
-    n_questions = df_same_ans.groupby(["intervention_name"])["task_hash"].nunique().mean()
+    n_questions = f"{df_same_ans.groupby([col, hue, x])['task_hash'].nunique().mean():.1f}"
     n_formatter = df_same_ans.groupby(["intervention_name"])["formatter_name"].nunique().mean()  # type: ignore
 
     hue_order = [i for i in HUE_ORDER if i in df_same_ans[hue].unique()]
@@ -145,29 +178,29 @@ def prompt_metrics(
         hue=hue,
         col=col,
         kind="bar",
-        capsize=0.01,
-        errwidth=1,
         hue_order=hue_order,
     )
-    g.fig.suptitle(f"Modal Agreement Score [{n_questions} questions, {n_formatter} prompts]")
+    g.fig.suptitle(
+        f"Modal Agreement Score [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
+    )
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)
 
     # Plot the accuracies as well
-    df_acc = df[df["parsed_response"] != "None"]
+    df_acc = df
     df_acc["is_correct"] = df_acc["parsed_response"] == df_acc["ground_truth"]
     df_acc = df_acc.groupby([x, "task_hash", hue, col])["is_correct"].mean().reset_index()
-    g = catplot(
-        data=df_acc, x=x, y="is_correct", hue=hue, col=col, kind="bar", capsize=0.01, errwidth=1, hue_order=hue_order
+    g = catplot(data=df_acc, x=x, y="is_correct", hue=hue, col=col, kind="bar", hue_order=hue_order)
+    g.fig.suptitle(
+        f"Modal Accuracy [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
     )
-    g.fig.suptitle(f"Modal Accuracy [{n_questions} questions, {n_formatter} prompts]")
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)
 
     # Plot the fleiss kappa scores
-    df_fk = df.groupby([x, hue, col]).apply(fleiss_kappa_on_group)
+    df_fk = df.groupby([x, hue, col]).apply(fleiss_kappa_on_group).reset_index(drop=True)
     df_fk: pd.DataFrame = df_fk.drop_duplicates(subset=["task_hash", x, "formatter_name", hue], inplace=False)  # type: ignore
     g = catplot(data=df_fk, x=x, y="fleiss_kappa", hue=hue, col=col, kind="bar", hue_order=hue_order)
     g.fig.suptitle(f"Fleiss Kappa Score [{n_questions} questions, {n_formatter} prompts]")
@@ -178,7 +211,9 @@ def prompt_metrics(
     # Plot the entropy scores
     df_entropy = df.groupby([x, hue, "task_hash", col]).apply(entropy_on_group).reset_index()
     g = catplot(data=df_entropy, x=x, y="entropy", hue=hue, col=col, kind="bar", hue_order=hue_order)
-    g.fig.suptitle(f"Entropy across formatters [{n_questions} questions, {n_formatter} prompts]")
+    g.fig.suptitle(
+        f"Entropy across formatters [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
+    )
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)

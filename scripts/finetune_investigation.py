@@ -4,7 +4,7 @@ from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.core.prompt_sensitivity_map import default_no_cot_sensitivity_formatter
+from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import default_no_cot_sensitivity_formatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
@@ -19,8 +19,8 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
+from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.intervention_investigation import (
-    read_whole_exp_dir,
     plot_for_intervention,
     DottedLine,
     bar_plot,

@@ -1,4 +1,4 @@
-from cot_transparency.formatters.core.prompt_sensitivity_map import no_cot_sensitivity_formatters
+from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import no_cot_sensitivity_formatters
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,

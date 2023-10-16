@@ -21,7 +21,7 @@ from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiased
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
 from cot_transparency.apis import call_model_api
 from cot_transparency.apis.openai.set_key import set_keys_from_env
-from cot_transparency.tasks import read_done_experiment
+from cot_transparency.data_models.io import read_done_experiment
 from scripts.calibrate import read_all_for_formatters
 from scripts.multi_accuracy import AccuracyOutput, accuracy_outputs_from_inputs, AccuracyInput, PlotInfo
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME

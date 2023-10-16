@@ -3,16 +3,13 @@ import fire
 from scripts.prompt_sen_experiments.plots import prompt_metrics
 
 from stage_one import main
-from scripts.prompt_sen_experiments.cot_formats_v1 import COT_FORMATTERS
+from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import COT_FORMATTERS
 
 EXP_DIR = "experiments/prompt_sen_experiments/temp0_cot_non_trained_formats"
 
-# What is the idea behind this experiment?
-# This is to verify that prompt sensivity is indeed measuring what we think it is measuring
-# then retest with Mixed format vs non mixed format prompt sensitivty
-
 # The idea of this one is to test on a set of formatters that are different from the ones that we trained on
 # which is what we do in cot_formats_v1.py
+# also to test on a wider variety of tasks
 
 # python demo_formatter.py | grep -E '^CotPromptSenFormatter_(LETTERS|NUMBERS)' | shuf | head -n 10
 COT_TESTING_FORMATTERS = [
@@ -32,18 +29,20 @@ COT_TESTING_FORMATTERS = [
 # print(set(COT_FORMATTERS).intersection(set(COT_TESTING_FORMATTERS)))
 assert len(set(COT_FORMATTERS).intersection(set(COT_TESTING_FORMATTERS))) == 0
 
-TESTING_TASKS = ["mmlu", "truthful_qa"]
+TESTING_TASKS = ["logiqa", "hellaswag", "mmlu", "truthful_qa"]
+# TESTING_TASKS = ["mmlu", "truthful_qa"]
 
 MODELS = [
     "gpt-3.5-turbo",
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
-    "ft:gpt-3.5-turbo-0613:far-ai::88CAIEy4",  # my guy, finetuned on fine_tune_samples.jsonl
-    "ft:gpt-3.5-turbo-0613:far-ai::88FWLOk7",  # my other guy, finetuned on COT_TRAINING_TASKS_2650.json
+    # "ft:gpt-3.5-turbo-0613:far-ai::88CAIEy4",  # my guy, finetuned on fine_tune_samples.jsonl
+    # "ft:gpt-3.5-turbo-0613:far-ai::88FWLOk7",  # my other guy, finetuned on COT_TRAINING_TASKS_2650.json
+    "ft:gpt-3.5-turbo-0613:far-ai::88dVFSpt",  # consistency training guy
     # # "claude-v1",
     # # "claude-2",
-    "gpt-4",
+    # "gpt-4",
 ]
 
 

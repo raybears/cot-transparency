@@ -1,6 +1,13 @@
 import itertools
 from typing import Optional, Sequence, Union
-from cot_transparency.data_models.models import ExperimentJsonFormat, StageTwoExperimentJsonFormat
+
+from slist import Slist
+from cot_transparency.data_models.models import (
+    ExperimentJsonFormat,
+    StageTwoExperimentJsonFormat,
+    StageTwoTaskOutput,
+    TaskOutput,
+)
 
 
 import json
@@ -78,3 +85,55 @@ def save_loaded_dict(loaded_dict: LoadedJsonType):
         file_out.parent.mkdir(parents=True, exist_ok=True)
         _json = loaded.model_dump_json(indent=2)
         safe_file_write(str(file_out), _json)
+
+
+def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
+    # read in the json file
+    if out_file_path.exists():
+        with open(out_file_path, "r") as f:
+            _dict = json.load(f)
+            if _dict["stage"] == 2:
+                raise ValueError(
+                    "This looks like a stage two experiment but you are trying to"
+                    "read it as stage one, maybe use read_whole_exp_dir_s2 instead"
+                )
+            return ExperimentJsonFormat(**_dict)
+    else:
+        return ExperimentJsonFormat(outputs=[])
+
+
+def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
+    """
+    find formatter names from the exp_dir
+    exp_dir/task_name/model/formatter_name.json
+    """
+    json_files = glob(f"{exp_dir}/*/*/*.json")
+    read: Slist[TaskOutput] = (
+        Slist(json_files).map(Path).map(read_done_experiment).map(lambda exp: exp.outputs).flatten_list()
+    )
+    print(f"Read {len(read)} tasks from {exp_dir}")
+    return read
+
+
+def read_whole_exp_dir_s2(exp_dir: str) -> Slist[StageTwoTaskOutput]:
+    loaded_dict = ExpLoader.stage_two(exp_dir=exp_dir)
+    outputs: Slist[StageTwoTaskOutput] = Slist()
+    for task_output in loaded_dict.values():
+        outputs.extend(task_output.outputs)
+    print(f"Read {len(outputs)} tasks from {exp_dir}")
+    return outputs
+
+
+def get_loaded_dict_stage2(paths: set[Path]) -> dict[Path, StageTwoExperimentJsonFormat]:
+    # work out which tasks we have already done
+    loaded_dict: dict[Path, StageTwoExperimentJsonFormat] = {}
+    for path in paths:
+        if path.exists():
+            with open(path) as f:
+                done_exp = StageTwoExperimentJsonFormat(**json.load(f))
+            # Override to ensure bwds compat with some old exps that had the wrong stage
+            done_exp.stage = 2
+            loaded_dict[path] = done_exp
+        else:
+            loaded_dict[path] = StageTwoExperimentJsonFormat(outputs=[])
+    return loaded_dict

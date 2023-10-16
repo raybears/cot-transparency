@@ -1,6 +1,4 @@
-import glob
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Optional, Sequence, Type, Mapping
 
 from plotly import graph_objects as go, io as pio
@@ -47,24 +45,10 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
     StanfordNoCOTFormatter,
 )
-from cot_transparency.tasks import read_done_experiment
+from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo, accuracy_outputs
 from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
-
-
-# ruff: noqa: E501
-
-
-def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
-    # find formatter names from the exp_dir
-    # exp_dir/task_name/model/formatter_name.json
-    json_files = glob.glob(f"{exp_dir}/*/*/*.json")
-    read: Slist[TaskOutput] = (
-        Slist(json_files).map(Path).map(read_done_experiment).map(lambda exp: exp.outputs).flatten_list()
-    )
-    print(f"Read {len(read)} tasks from {exp_dir}")
-    return read
 
 
 def plot_for_intervention(

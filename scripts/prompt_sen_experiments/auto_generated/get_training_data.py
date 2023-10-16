@@ -1,11 +1,12 @@
-from typing import Optional, Sequence
 import fire
-from scripts.prompt_sen_experiments.plots import prompt_metrics
 
-from stage_one import main
+from stage_one import COT_TRAINING_TASKS, main
+from scripts.prompt_sen_experiments.kl.kl_plots import kl_plot
 
+if True:
+    from analysis import simple_plot
 
-EXP_DIR = "experiments/prompt_sen_experiments/temp0_cot"
+EXP_DIR = "experiments/prompt_sen_experiments/temp0_cot_COT_TRAINING_TASKS"
 
 # What is the idea behind this experiment?
 # This is to verify that prompt sensivity is indeed measuring what we think it is measuring
@@ -14,6 +15,21 @@ EXP_DIR = "experiments/prompt_sen_experiments/temp0_cot"
 # Improved version, that should use n_samples_per_request
 
 # python demo_formatter.py | grep -E 'NoCotPromptSenFormatter_(LETTERS|NUMBERS)' | shuf | head -n 10
+# FORMATTERS = [
+#     "NoCotPromptSenFormatter_LETTERS_SHORT_SELECT_PAREN_NEWLINE",
+#     "NoCotPromptSenFormatter_LETTERS_PLEASE_SELECT_DOT_SENTENCE",
+#     "NoCotPromptSenFormatter_NUMBERS_SHORT_OPTIONS_PAREN_NEWLINE",
+#     "NoCotPromptSenFormatter_NUMBERS_NONE_SELECT_DOT_SENTENCE",
+#     "NoCotPromptSenFormatter_NUMBERS_TAG_OPTIONS_DOT_NEWLINE",
+#     "NoCotPromptSenFormatter_NUMBERS_PLEASE_NONE_DOT_SENTENCE",
+#     "NoCotPromptSenFormatter_LETTERS_SHORT_OPTIONS_PAREN_NEWLINE",
+#     "NoCotPromptSenFormatter_NUMBERS_SHORT_ANS_CHOICES_PAREN_NEWLINE",
+#     "NoCotPromptSenFormatter_LETTERS_PLEASE_OPTIONS_DOT_NEWLINE",
+#     "NoCotPromptSenFormatter_NUMBERS_NONE_ANS_CHOICES_PAREN_SENTENCE",
+# ]
+
+# assert len(set(FORMATTERS)) == len(FORMATTERS)
+
 COT_FORMATTERS = [
     "CotPromptSenFormatter_LETTERS_SHORT_SELECT_PAREN_NEWLINE",
     "CotPromptSenFormatter_LETTERS_PLEASE_SELECT_DOT_SENTENCE",
@@ -27,27 +43,18 @@ COT_FORMATTERS = [
     "CotPromptSenFormatter_NUMBERS_NONE_ANS_CHOICES_PAREN_SENTENCE",
 ]
 
+
 MODELS = [
     "gpt-3.5-turbo",
-    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::813SHRdF",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",
-    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::81I9aGR0",
-    "ft:gpt-3.5-turbo-0613:far-ai::88CAIEy4",  # my guy
-    "ft:gpt-3.5-turbo-0613:far-ai::88FWLOk7",  # my other guy, finetuned on COT_TRAINING_TASKS_2650.json
-    # # "claude-v1",
-    # # "claude-2",
-    "gpt-4",
 ]
-
-TESTING_TASKS = ["mmlu", "truthful_qa"]
 
 
 def run():
     main(
-        tasks=TESTING_TASKS,
+        tasks=COT_TRAINING_TASKS,
         models=MODELS,
         formatters=COT_FORMATTERS,
-        example_cap=200,
+        example_cap=100,
         exp_dir=EXP_DIR,
         temperature=0,
         batch=80,
@@ -61,24 +68,21 @@ def run():
     )
 
 
-def plot(
-    exp_dir: str = EXP_DIR,
-    models: Sequence[str] = MODELS,
-    tasks: Sequence[str] = TESTING_TASKS,
-    formatters: Sequence[str] = COT_FORMATTERS,
-    x: str = "task_name",
-    hue: str = "model",
-    col: Optional[str] = "is_cot",
-):
-    prompt_metrics(
-        exp_dir=exp_dir,
-        models=models,
-        tasks=tasks,
-        formatters=formatters,
-        x=x,
-        hue=hue,
-        col=col,
-        temperature=0,
+def plot():
+    kl_plot(
+        exp_dir="experiments/prompt_sen_experiments/kl",
+        models=MODELS,
+        formatters=COT_FORMATTERS,
+    )
+
+    # This will plot the accuracy and counts
+    simple_plot(
+        exp_dir="experiments/prompt_sen_experiments/kl",
+        aggregate_over_tasks=False,
+        models=MODELS,
+        formatters=COT_FORMATTERS,
+        legend=False,
+        x="task_name",
     )
 
 

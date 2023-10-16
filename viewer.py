@@ -240,6 +240,7 @@ def convert_nested_dict_s2(
         stage_one_formatter = output.task_spec.stage_one_output.task_spec.formatter_name
         stage_one_hash = output.task_spec.stage_one_output.task_spec.task_hash_with_repeat()
         formatter = output.task_spec.formatter_name
+        assert output.task_spec.trace_info is not None
         if output.task_spec.trace_info.has_mistake:
             modification_type = ModificationType.mistake
         elif output.task_spec.trace_info.was_truncated:

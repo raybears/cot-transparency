@@ -223,6 +223,7 @@ def main(
     for model in models:
         if "llama" in model.lower():
             assert batch == 1, "Llama only supports batch size of 1"
+    print("Number of models to run:", len(models))
 
     # match formatter name wildcard
     formatters = match_wildcard_formatters(formatters)
@@ -230,9 +231,11 @@ def main(
     assert len(formatters) > 0, "You must define at least one formatter"
 
     tasks = validate_tasks(tasks)
+    print("Number of tasks to run:", len(tasks))
     validated_formatters = get_valid_stage1_formatters(formatters)
+    print("Number of formatters to run:", len(validated_formatters))
     validated_interventions = get_valid_stage1_interventions(interventions)
-
+    print("Number of interventions to run:", len(validated_interventions))
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
 
     task_settings: list[TaskSetting] = create_task_settings(
@@ -240,6 +243,7 @@ def main(
     )
 
     tasks_to_run: list[TaskSpec] = []
+    print("Number of settings to run:", len(task_settings))
     for setting in task_settings:
         task = setting.task
         model = setting.model
@@ -277,20 +281,22 @@ def main(
 
         if temperature is not None:
             config.temperature = temperature
+
         assert config.model == model
+
         if not formatter.is_cot:
-            config.max_tokens = 50
+            config.max_tokens = 1
 
         if max_tokens is not None:
             config.max_tokens = max_tokens
-
-        if raise_after_retries and temperature == 0:
-            raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
 
         if n_responses_per_request is not None:
             config.n = n_responses_per_request
 
         # Config Overrides End ----------------------
+
+        if raise_after_retries and temperature == 0:
+            raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
 
         for item in data:
             for i in range(repeats_per_question):

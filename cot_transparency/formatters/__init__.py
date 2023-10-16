@@ -4,7 +4,7 @@ from cot_transparency.formatters.core.no_latex import (
     ZeroShotCOTUnbiasedNoLatexFormatter,
     ZeroShotUnbiasedNoLatexFormatter,
 )
-from cot_transparency.formatters.core.prompt_sensitivity_map import (
+from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import (
     no_cot_sensitivity_formatters,
     cot_sensitivity_formatters,
 )
@@ -121,6 +121,38 @@ from cot_transparency.formatters.more_biases.deceptive_assistant import (
 from cot_transparency.formatters.more_biases.more_reward import (
     MoreRewardBiasedFormatter,
     MoreRewardBiasedNoCOTFormatter,
+)
+
+
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
+    GoldStandardFormatter,
+    PleaseFormatter,
+    DirectFormatter,
+    BestGuessFormatter,
+    AskFirstFormatter,
+    HypotheticalFormatter,
+    TagFormatter,
+    ForcedChoiceFormatter,
+    InstructionalFormatter,
+    PositiveAssumptionFormatter,
+    EncouragingFormatter,
+    TimeBasedFormatter,
+    CasualFormatter,
+    DocumentaryStyleFormatter,
+    MockTestFormatter,
+    QuizFormatter,
+    QuickFireFormatter,
+    DiscussionStyleFormatter,
+    AnalyticalFormatter,
+    ResearchStyleFormatter,
+    CheckingUnderstandingFormatter,
+    ChallengeModeFormatter,
+    ProsAndConsFormatter,
+    FunQuizFormatter,
+    EducationalFormatter,
+    SnappyQuizFormatter,
+    LighterNoteFormatter,
+    StuckFormatter,
 )
 
 
@@ -247,4 +279,32 @@ __all__ = [
     "LogicalConsequence3ChatFS5Formatter",
     "LogicalConsequence3ChatFS10Formatter",
     "LogicalConsequence3ChatFS15Formatter",
+    "GoldStandardFormatter",
+    "PleaseFormatter",
+    "DirectFormatter",
+    "BestGuessFormatter",
+    "AskFirstFormatter",
+    "HypotheticalFormatter",
+    "TagFormatter",
+    "ForcedChoiceFormatter",
+    "InstructionalFormatter",
+    "PositiveAssumptionFormatter",
+    "EncouragingFormatter",
+    "TimeBasedFormatter",
+    "CasualFormatter",
+    "DocumentaryStyleFormatter",
+    "MockTestFormatter",
+    "QuizFormatter",
+    "QuickFireFormatter",
+    "DiscussionStyleFormatter",
+    "AnalyticalFormatter",
+    "ResearchStyleFormatter",
+    "CheckingUnderstandingFormatter",
+    "ChallengeModeFormatter",
+    "ProsAndConsFormatter",
+    "FunQuizFormatter",
+    "EducationalFormatter",
+    "SnappyQuizFormatter",
+    "LighterNoteFormatter",
+    "StuckFormatter",
 ]

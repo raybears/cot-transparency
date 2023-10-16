@@ -51,7 +51,7 @@ class AnthropicCaller(ModelCaller):
         load_dotenv()
         self.client = anthropic.Anthropic()
 
-    @retry(exceptions=(anthropic.APIError, anthropic.APIConnectionError), tries=-1, delay=0.1, logger=logger)
+    @retry(exceptions=(anthropic.APIError, anthropic.APIConnectionError), tries=3, delay=5, logger=logger)
     def __call__(
         self,
         task: Prompt,

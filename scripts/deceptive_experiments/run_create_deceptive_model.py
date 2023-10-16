@@ -14,7 +14,7 @@ from cot_transparency.apis.openai.finetune import (
     run_finetune_with_wandb,
     FineTuneParams,
 )
-from scripts.intervention_investigation import read_whole_exp_dir
+from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.training_formatters import TRAINING_DECEPTIVE_COT
 from stage_one import main

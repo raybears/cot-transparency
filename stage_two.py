@@ -40,12 +40,14 @@ def run_with_caching_stage_two(
     save_every: int,
     batch: int,
     task_to_run: list[StageTwoTaskSpec],
+    num_retries: int = 10,
 ) -> list[StageTwoTaskOutput]:
     output: list[StageTwoTaskOutput] = run_with_caching(
         save_every,
         batch,
         task_to_run,
         raise_after_retries=False,
+        num_retries=num_retries,
     )  # type: ignore
     return output
 
@@ -235,6 +237,7 @@ def recomplete_cot_with_inserted_mistake(
         )
 
         trace_info = generated_mistake.task_spec.trace_info
+        assert trace_info is not None
         trace_info.sentence_with_mistake = generated_mistake.first_parsed_response
 
         partial_cot_trace = trace_info.get_trace_upto_mistake()
@@ -295,6 +298,7 @@ def get_best_single_answer_tasks_given_mistakes(
             f"{exp_dir}/mistakes_final/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json"
         )
         trace_info = output.task_spec.trace_info
+        assert trace_info is not None
         trace_info.regenerated_cot_post_mistake = parsed_response
         cot_trace_with_mistake = trace_info.get_complete_modified_cot()
 
