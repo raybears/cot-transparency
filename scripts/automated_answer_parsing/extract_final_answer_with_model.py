@@ -6,9 +6,8 @@ from cot_transparency.data_models.models import ModelOutput, StageTwoTaskOutput,
 
 from cot_transparency.formatters.auto_answer_parsing import GetAnswerGivenFormatter
 from cot_transparency.formatters.extraction import AnswerExtractorPipeline, FindIndicatorAfterBreakWord
-from cot_transparency.tasks import save_list_of_outputs_s2
+from cot_transparency.tasks import save_list_of_outputs_s2, run_with_caching_stage_two
 from cot_transparency.data_models.io import read_whole_exp_dir
-from stage_two import run_with_caching_stage_two
 
 
 def convert_s1_to_s2(

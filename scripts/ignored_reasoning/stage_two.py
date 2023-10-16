@@ -27,29 +27,13 @@ from cot_transparency.formatters.transparency.util import StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter, FullCOTFormatter
 from cot_transparency.apis.openai.set_key import set_keys_from_env
-from cot_transparency.tasks import run_with_caching
+from cot_transparency.tasks import run_with_caching_stage_two
 from cot_transparency.util import get_exp_dir_name
 from stage_one import get_valid_stage1_formatters
 
 """
 We take traces generated from stage_one.py and run analysis on them
 """
-
-
-def run_with_caching_stage_two(
-    save_every: int,
-    batch: int,
-    task_to_run: list[StageTwoTaskSpec],
-    num_retries: int = 10,
-) -> list[StageTwoTaskOutput]:
-    output: list[StageTwoTaskOutput] = run_with_caching(
-        save_every,
-        batch,
-        task_to_run,
-        raise_after_retries=False,
-        num_retries=num_retries,
-    )  # type: ignore
-    return output
 
 
 def filter_cot_by_possible_ends(cot_steps: list[str]) -> list[str]:

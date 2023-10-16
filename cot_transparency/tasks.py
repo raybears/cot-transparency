@@ -45,6 +45,22 @@ class AnswerNotFound(Exception):
         self.model_output = model_output
 
 
+def run_with_caching_stage_two(
+    save_every: int,
+    batch: int,
+    task_to_run: list[StageTwoTaskSpec],
+    num_retries: int = 10,
+) -> list[StageTwoTaskOutput]:
+    output: list[StageTwoTaskOutput] = run_with_caching(
+        save_every,
+        batch,
+        task_to_run,
+        raise_after_retries=False,
+        num_retries=num_retries,
+    )  # type: ignore
+    return output
+
+
 def __call_or_raise(
     task: Union[TaskSpec, StageTwoTaskSpec],
     config: OpenaiInferenceConfig,
