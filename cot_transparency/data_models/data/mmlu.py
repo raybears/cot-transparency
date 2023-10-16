@@ -1,6 +1,5 @@
 import pandas as pd
 from typing import Optional
-import random
 
 from slist import Slist
 
