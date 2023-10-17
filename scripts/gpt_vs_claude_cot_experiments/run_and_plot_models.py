@@ -9,7 +9,7 @@ from scripts.finetune_cot import DataFromOptions
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo, AccuracyOutput
-from scripts.utils.loading import read_all_for_selections
+from cot_transparency.data_models.io import read_all_for_selections
 from stage_one import main as stage_one_main, COT_TESTING_TASKS
 
 

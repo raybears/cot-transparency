@@ -14,7 +14,7 @@ from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedForm
 from scripts.intervention_investigation import plot_for_intervention, DottedLine
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-from scripts.utils.loading import read_all_for_selections
+from cot_transparency.data_models.io import read_all_for_selections
 from stage_one import main, COT_TESTING_TASKS
 
 

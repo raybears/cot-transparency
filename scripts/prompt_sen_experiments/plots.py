@@ -7,10 +7,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.stats.inter_rater import fleiss_kappa, aggregate_raters
 from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
+from cot_transparency.data_models.pd_utils import IsCoTExtractor, convert_slist_to_df
 
 from cot_transparency.formatters.interventions.valid_interventions import VALID_INTERVENTIONS
-from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
-from scripts.utils.loading import BasicExtractor, IsCoTExtractor, convert_slist_to_df
+from cot_transparency.data_models.io import (
+    read_whole_exp_dir,
+    read_whole_exp_dir_s2,
+)
+from cot_transparency.data_models.pd_utils import BasicExtractor
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 
@@ -112,6 +116,7 @@ def prompt_metrics(
     include_none_as_a_question_choice: bool = True,
 ):
     # try reading as stage 2
+
     stage_2_outputs = read_whole_exp_dir_s2(exp_dir=exp_dir)
     if len(stage_2_outputs) > 0:
         # then this was state 2
@@ -119,7 +124,7 @@ def prompt_metrics(
     else:
         slist = read_whole_exp_dir(exp_dir=exp_dir)
 
-    slist = (
+    filtered = (
         slist.filter(lambda task: task.task_spec.inference_config.model in models if models else True)
         .filter(lambda task: task.task_spec.formatter_name in formatters if formatters else True)
         .filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
@@ -127,9 +132,9 @@ def prompt_metrics(
             lambda task: task.task_spec.inference_config.temperature == temperature if temperature is not None else True
         )
     )
-    print("Number of responses after filtering = ", len(slist))
+    print("Number of responses after filtering = ", len(filtered))
 
-    df = convert_slist_to_df(slist, [BasicExtractor(), IsCoTExtractor()])
+    df = convert_slist_to_df(filtered, [BasicExtractor(), IsCoTExtractor()])
 
     # number of duplicate input_hashes
     print(f"Number of duplicate input_hashes: {df['input_hash'].duplicated().sum()}")
