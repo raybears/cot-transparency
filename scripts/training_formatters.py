@@ -53,7 +53,12 @@ TRAINING_COT_FORMATTERS_FEW_SHOT = [
     CheckmarkBiasedFormatter,
     CrossBiasedFormatter,
     AnswerAlwaysAFormatter,
-    # TODO: Add "All answer A"
+]
+HAS_STRONG_EFFECT_FEW_SHOT_FORMATTERS: Sequence[Type[StageOneFormatter]] = [
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+    CheckmarkBiasedFormatter,
+    CrossBiasedFormatter,
+    AnswerAlwaysANoCOTFormatter,  # use non cot for this since the COT version doesn't bias so much
 ]
 
 

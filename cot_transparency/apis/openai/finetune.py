@@ -86,6 +86,12 @@ class FinetunedJobResults(BaseModel):
     trained_tokens: int
 
 
+@retry(
+    # Retry if we get a rate limit error
+    # Also retry if we get an API connection error - e.g. when you close your laptop lol
+    exceptions=(APIConnectionError),
+    delay=60,  # Try again in 60 seconds
+)
 def wait_until_finetune_job_is_ready(finetune_job_id: str) -> FinetunedJobResults:
     """Returns the fine tuned model id"""
     while True:
