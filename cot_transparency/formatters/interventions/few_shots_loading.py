@@ -2,6 +2,7 @@ import random
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
+from typing import Callable
 
 from slist import Slist
 from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_last_user
@@ -129,7 +130,9 @@ def get_training_non_cots_claude_2(kind: ModelOutputVerified = ModelOutputVerifi
     return jsons_tasks
 
 
-def task_output_to_finetune_sample(task: TaskOutput) -> FinetuneSample:
+def task_output_to_finetune_sample(
+    task: TaskOutput, seed_func: Callable[[TaskOutput], str] = lambda x: x.task_spec.task_hash
+) -> FinetuneSample:
     prompt_messages: list[ChatMessage] = task.task_spec.messages
     new_messages = prompt_messages + [
         ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)
@@ -138,7 +141,7 @@ def task_output_to_finetune_sample(task: TaskOutput) -> FinetuneSample:
     # (so that the assistant learns how to start w/o the instruction)
     # 50% of the time, we put the assistant preferred message as the user's instruction
     # (so that the assistant doesn't forget how to continue)
-    seed = task.task_spec.task_hash
+    seed = seed_func(task)
     should_put_assistant_preferred_as_user = random.Random(seed).random() < 0.5
 
     strict: list[StrictChatMessage] = (
