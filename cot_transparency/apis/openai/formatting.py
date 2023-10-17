@@ -42,6 +42,8 @@ def format_for_finetuning(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
             if idx == assistant_preferred_idx:
                 content = message.content
                 content_next = prompt[idx + 1].content
+                if not content_next.startswith("\n") or content_next.startswith(" "):
+                    content_next = " " + content_next
                 new_message = StrictChatMessage(role=StrictMessageRole.assistant, content=content + content_next)
             elif idx == assistant_preferred_idx + 1:
                 # skip the next message
