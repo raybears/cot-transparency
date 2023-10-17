@@ -24,7 +24,10 @@ class BaseExtractor(ABC, Generic[T_contra]):
         pass
 
 
-def convert_slist_to_df(slist: Sequence[T_co], extractors: Sequence[BaseExtractor[T_co]]) -> pd.DataFrame:  # type: ignore
+def convert_slist_to_df(
+    slist: Sequence[T_co],
+    extractors: Sequence[BaseExtractor[T_co]],
+) -> pd.DataFrame:  # type: ignore
     """
     Converts an slist of TaskOutputs to a pandas dataframe using the extract method of the extractors passed in.
     """
