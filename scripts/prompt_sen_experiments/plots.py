@@ -1,4 +1,3 @@
-import copy
 from typing import Optional, Sequence
 import fire
 import numpy as np
@@ -153,7 +152,7 @@ def prompt_metrics(
     df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x])  # type: ignore
 
     if aggregate_tasks:
-        df["task_name"] = ", ".join([i for i in df.task_name.unique()])
+        df["task_name"] = ", ".join([i for i in df.task_name.unique()])  # type: ignore
 
     # replace parsed answers that were None with "None" and print out the number of None answers
     # df["parsed_response"] = df["parsed_response"].astype(str)  # type: ignore

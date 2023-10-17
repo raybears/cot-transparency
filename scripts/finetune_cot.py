@@ -245,7 +245,9 @@ def replace_unbiased_cot_prompt_with_biased(
 
 
 def replace_unbiased_cot_prompt_with_formatters(
-    task: TaskOutput, use_formatters: Iterable[Type[StageOneFormatter]], intervention: Optional[Type[Intervention]] = None
+    task: TaskOutput,
+    use_formatters: Iterable[Type[StageOneFormatter]],
+    intervention: Optional[Type[Intervention]] = None,
 ) -> Slist[TaskOutput]:
     output = Slist[TaskOutput]()
     for formatter in use_formatters:
