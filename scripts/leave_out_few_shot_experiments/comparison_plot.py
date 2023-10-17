@@ -8,10 +8,12 @@ import pandas as pd
 from slist import Slist
 
 from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter
+from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
+from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter
 from scripts.intervention_investigation import plot_for_intervention, DottedLine
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-from scripts.training_formatters import TRAINING_COT_FORMATTERS_FEW_SHOT
 from scripts.utils.loading import read_all_for_selections
 from stage_one import main, COT_TESTING_TASKS
 
@@ -54,20 +56,20 @@ def read_metric_from_meta(
     return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, percent_matching=percent_matching, accuracy=accuracy)
 
 
-def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta], tasks: Sequence[str]) -> None:
+def run_unbiased_acc_experiments(
+    meta: Sequence[ModelTrainMeta], tasks: Sequence[str], biases: Sequence[Type[StageOneFormatter]]
+) -> None:
     # Also run for non COT prompt for the normal COT models
     normal_cot_models = [m.name for m in meta if m]
     main(
-        exp_dir="experiments/finetune_2",
+        exp_dir="experiments/finetune_3",
         models=normal_cot_models,
-        formatters=[
-            "WrongFewShotIgnoreMistakesBiasedNoCOTFormatter",
-        ],
+        formatters=[b.name() for b in biases],
         tasks=tasks,
         example_cap=1000,
         raise_after_retries=False,
         temperature=1.0,
-        batch=5,
+        batch=20,
     )
 
 
@@ -185,8 +187,14 @@ def seaborn_line_plot(
 if __name__ == "__main__":
     defined_meta = samples_meta()
     tasks = COT_TESTING_TASKS
-    # run_unbiased_acc_experiments(defined_meta, tasks)
-    for formatter in TRAINING_COT_FORMATTERS_FEW_SHOT:
+    biases: Sequence[Type[StageOneFormatter]] = [
+        WrongFewShotIgnoreMistakesBiasedFormatter,
+        CheckmarkBiasedFormatter,
+        CrossBiasedFormatter,
+        AnswerAlwaysANoCOTFormatter,  # use non cot for this since the COT version doesn't bias so much
+    ]
+    run_unbiased_acc_experiments(defined_meta, tasks, biases=biases)
+    for formatter in biases:
         wrong_few_shot = read_all_metrics(
             samples=defined_meta,
             exp_dir="experiments/finetune_3",

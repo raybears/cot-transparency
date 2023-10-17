@@ -390,7 +390,7 @@ def fine_tune_with_bias_augmentation(
         )
         .flatten_list()
         .map(clean_unbiased_non_cot_raw_response)
-        .take(non_cot_limit)
+        .repeat_until_size_or_raise(non_cot_limit)
     )
     assert (
         len(non_cot_limited) == non_cot_limit
@@ -404,7 +404,7 @@ def fine_tune_with_bias_augmentation(
         )
         .flatten_list()
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
-        .take(cot_limit)
+        .repeat_until_size_or_raise(cot_limit)
     )
     assert len(cot_limited) == cot_limit, f"We do not have enough cots, only {len(cot_limited)}"
     print(f"Number of cots after limiting: {len(cot_limited)}")
@@ -429,6 +429,7 @@ def fine_tune_with_bias_augmentation(
         "post_hoc": post_hoc,
         "cot_percentage": cot_percentage,
         "control_only_unbiased": control_only_unbiased,
+        "model_output_verified": model_output_verified.value,
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
