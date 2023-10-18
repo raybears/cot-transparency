@@ -5,7 +5,7 @@ from stage_one import main
 
 
 if __name__ == "__main__":
-    n_samples = 10000
+    n_samples = 50000
     first = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
@@ -13,7 +13,7 @@ if __name__ == "__main__":
         post_hoc=False,
         cot_percentage=1.0,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.few_shot,
+        formatter_options=FormatterOptions.control_only_unbiased,
         model_output_verified=ModelOutputVerified.no_filter,
         ask_to_validate_training=False,
         instruct_sample_proportion=0.0,

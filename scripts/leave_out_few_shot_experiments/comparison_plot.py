@@ -61,14 +61,13 @@ def read_metric_from_meta(
 def run_unbiased_acc_experiments(
     meta: Sequence[ModelTrainMeta], tasks: Sequence[str], biases: Sequence[Type[StageOneFormatter]]
 ) -> None:
-    # Also run for non COT prompt for the normal COT models
     normal_cot_models = [m.name for m in meta if m]
     main(
         exp_dir="experiments/finetune_3",
         models=normal_cot_models,
         formatters=[b.name() for b in biases],
         tasks=tasks,
-        example_cap=1000,
+        example_cap=400,
         raise_after_retries=False,
         temperature=1.0,
         batch=20,
@@ -90,6 +89,11 @@ def samples_meta() -> Slist[ModelTrainMeta]:
                 trained_on=RunOptions.no_filter,
             ),
             ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89GKVlFT",
+                trained_samples=10000,
+                trained_on=RunOptions.no_filter,
+            ),
+            ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89LJDfgI",
                 trained_samples=20000,
                 trained_on=RunOptions.no_filter,
@@ -102,6 +106,11 @@ def samples_meta() -> Slist[ModelTrainMeta]:
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89FBrz5b",
                 trained_samples=1000,
+                trained_on=RunOptions.correct_answer,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89G8xNY5",
+                trained_samples=10000,
                 trained_on=RunOptions.correct_answer,
             ),
             ModelTrainMeta(
@@ -118,6 +127,11 @@ def samples_meta() -> Slist[ModelTrainMeta]:
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89G2vwHZ",
                 trained_samples=1000,
+                trained_on=RunOptions.control_unbiased,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89GzBGx0",
+                trained_samples=10000,
                 trained_on=RunOptions.control_unbiased,
             ),
             ModelTrainMeta(
