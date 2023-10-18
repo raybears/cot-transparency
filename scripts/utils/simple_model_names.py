@@ -31,4 +31,8 @@ MODEL_SIMPLE_NAMES: Mapping[str, str] = {
     "ft:gpt-3.5-turbo-0613:far-ai::89dxzRjA": "Prompt Sen Consistency 10000",
     "ft:gpt-3.5-turbo-0613:far-ai::89figOP6": "Prompt Sen Consistency 50000",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::88h1pB4E": "50% unbiased COT, 50% unbiased non COT",
+    "ft:gpt-3.5-turbo-0613:far-ai::8AhgtHQw": "Prompt Sen 2 10k, include all formatters",
+    "ft:gpt-3.5-turbo-0613:far-ai::8Ahe3cBv": "Prompt Sen 2 10k, don't include all formatters",
+    "ft:gpt-3.5-turbo-0613:far-ai::8AjeHchR": "Promp Sen 2 50k don't include all formatters",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf": "10k James model trained on few shot left out zero shot",
 }

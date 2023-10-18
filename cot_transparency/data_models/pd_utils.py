@@ -77,3 +77,14 @@ class BasicExtractor(BaseExtractor[TaskOutput]):
             output.task_spec.ground_truth,
             output.task_spec.uid(),
         ]
+
+
+class BiasExtractor(BaseExtractor[TaskOutput]):
+    column_names = [
+        "bias_ans",
+    ]
+
+    def extract(self, output: TaskOutput) -> Sequence[str | float | None]:
+        return [
+            output.task_spec.biased_ans,
+        ]

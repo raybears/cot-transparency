@@ -25,6 +25,7 @@ NAME_MAP = {
     "entropy": "Entropy",
     "none_count": "# of None Responses",
     "all_tasks": "All Tasks",
+    "matches_bias": "Promportion Matching Biased Answer",
 }
 
 

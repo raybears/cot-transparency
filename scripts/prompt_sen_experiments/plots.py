@@ -106,6 +106,7 @@ def prompt_metrics(
     models: Sequence[str] = [],
     tasks: Sequence[str] = [],
     formatters: Sequence[str] = [],
+    inteventions: Sequence[str] = [],
     x: str = "model",
     hue: str = "intervention_name",
     col: Optional[str] = None,
@@ -130,6 +131,7 @@ def prompt_metrics(
         .filter(
             lambda task: task.task_spec.inference_config.temperature == temperature if temperature is not None else True
         )
+        .filter(lambda task: task.task_spec.intervention_name in inteventions if inteventions else True)
     )
     print("Number of responses after filtering = ", len(filtered))
 
