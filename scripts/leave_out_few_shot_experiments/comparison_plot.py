@@ -9,19 +9,21 @@ from slist import Slist
 
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter
 from scripts.intervention_investigation import plot_for_intervention, DottedLine
-from scripts.matching_user_answer import matching_user_answer_plot_info
+from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
 from scripts.multi_accuracy import PlotInfo
+from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
 from scripts.utils.loading import read_all_for_selections
 from stage_one import main, COT_TESTING_TASKS
 
 
 class RunOptions(str, Enum):
-    no_filter = "No filter on cots produced"
-    correct_answer = "COTs that have correct answers"
-    control_unbiased = "control training on unbiased contexts"
+    no_filter = "Biased contexts, no filter"
+    correct_answer = "Biased contexts, filtered to be correct"
+    control_unbiased = "Unbiased contexts, filtered to be correct (control)"
 
 
 class ModelTrainMeta(BaseModel):
@@ -163,6 +165,8 @@ def seaborn_line_plot(
     # Add dotted line for random chance
     if dotted_line:
         plt.axhline(y=dotted_line.value, color=dotted_line.color, linestyle="dashed", label=dotted_line.name)
+        # Add to legend saying that the dotted line is Random chance
+        plt.legend()
     plt.title(title)
 
     if error_bars:
@@ -193,9 +197,22 @@ if __name__ == "__main__":
         CrossBiasedFormatter,
         AnswerAlwaysANoCOTFormatter,  # use non cot for this since the COT version doesn't bias so much
     ]
-    run_unbiased_acc_experiments(defined_meta, tasks, biases=biases)
+    # run_unbiased_acc_experiments(defined_meta, tasks, biases=biases)
+    random_chance: PlotInfo = random_chance_matching_answer_plot_dots(
+        all_tasks=read_all_for_selections(
+            exp_dirs=[Path("experiments/finetune_2")],
+            models=["gpt-3.5-turbo"],
+            formatters=[ZeroShotCOTUnbiasedFormatter.name()],
+            tasks=tasks,
+        ),
+        model="gpt-3.5-turbo",
+        name_override="Random chance",
+        formatter=ZeroShotCOTUnbiasedFormatter,
+        for_task=tasks,
+    )
+    dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
     for formatter in biases:
-        wrong_few_shot = read_all_metrics(
+        bias_metrics = read_all_metrics(
             samples=defined_meta,
             exp_dir="experiments/finetune_3",
             formatter=formatter,
@@ -204,12 +221,13 @@ if __name__ == "__main__":
 
         models = [m.name for m in defined_meta]
 
-        seaborn_line_plot(wrong_few_shot, percent_matching=False, title=f"Accuracy for the {formatter.name()} bias")
+        seaborn_line_plot(bias_metrics, percent_matching=False, title=f"Accuracy for \n{nice_name} bias")
+        nice_name = FORMATTER_TO_SIMPLE_NAME.get(formatter, formatter.name())
         seaborn_line_plot(
-            wrong_few_shot,
+            bias_metrics,
             percent_matching=True,
-            title=f"Percent matching for the {formatter.name()} bias",
-            dotted_line=None,
+            title=f"Percent matching bias for \n{nice_name} bias",
+            dotted_line=dotted_line,
         )
     # unbiased = read_all_metrics(
     #     samples=defined_meta,

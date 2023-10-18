@@ -357,4 +357,4 @@ def example_main():
 
 
 if __name__ == "__main__":
-    cancel_finetune("ftjob-zvtgVvUYha0OazNnRGzO9Xm0")
+    list_finetunes()
