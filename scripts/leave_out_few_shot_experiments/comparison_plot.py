@@ -8,7 +8,7 @@ import pandas as pd
 from slist import Slist
 
 from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter
+from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter, AnswerAlwaysAFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter
@@ -179,9 +179,11 @@ def seaborn_line_plot(
                 capsize=5,
                 ecolor="black",
             )
-    plt.xticks(df["Trained Samples"].unique())  # type: ignore
+    unique = df["Trained Samples"].unique()  # type: ignore
+    print(f"Unique ticks: {unique}")
+    plt.xticks(unique)
     # make sure all the x ticks are visible
-    plt.margins(x=0.1)
+    # plt.margins(x=0.1)
     plt.ylim(0, 1)
     # log scale for x axis
     plt.xscale("log")
@@ -189,18 +191,19 @@ def seaborn_line_plot(
 
 
 if __name__ == "__main__":
+    exp_dir = "experiments/finetune_3"
     defined_meta = samples_meta()
     tasks = COT_TESTING_TASKS
     biases: Sequence[Type[StageOneFormatter]] = [
         WrongFewShotIgnoreMistakesBiasedFormatter,
         CheckmarkBiasedFormatter,
         CrossBiasedFormatter,
-        AnswerAlwaysANoCOTFormatter,  # use non cot for this since the COT version doesn't bias so much
+        AnswerAlwaysAFormatter,
     ]
     # run_unbiased_acc_experiments(defined_meta, tasks, biases=biases)
     random_chance: PlotInfo = random_chance_matching_answer_plot_dots(
         all_tasks=read_all_for_selections(
-            exp_dirs=[Path("experiments/finetune_2")],
+            exp_dirs=[Path(exp_dir)],
             models=["gpt-3.5-turbo"],
             formatters=[ZeroShotCOTUnbiasedFormatter.name()],
             tasks=tasks,
@@ -212,19 +215,46 @@ if __name__ == "__main__":
     )
     dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
     for formatter in biases:
-        bias_metrics = read_all_metrics(
+        finetuned_ = read_all_metrics(
             samples=defined_meta,
-            exp_dir="experiments/finetune_3",
+            exp_dir=exp_dir,
+            formatter=formatter,
+            tasks=tasks,
+        )
+        models = [m.name for m in defined_meta]
+
+        # add these so that the plot can start from the origin where we have a nonfinetuned model
+        non_finetuned_meta = Slist(
+            [
+                ModelTrainMeta(
+                    name="gpt-3.5-turbo",
+                    trained_samples=1,
+                    trained_on=RunOptions.no_filter,
+                ),
+                ModelTrainMeta(
+                    name="gpt-3.5-turbo",
+                    trained_samples=1,
+                    trained_on=RunOptions.correct_answer,
+                ),
+                ModelTrainMeta(
+                    name="gpt-3.5-turbo",
+                    trained_samples=1,
+                    trained_on=RunOptions.control_unbiased,
+                ),
+            ]
+        )
+        non_finetuned_metrics = read_all_metrics(
+            samples=non_finetuned_meta,
+            exp_dir=exp_dir,
             formatter=formatter,
             tasks=tasks,
         )
 
-        models = [m.name for m in defined_meta]
-
-        seaborn_line_plot(bias_metrics, percent_matching=False, title=f"Accuracy for \n{nice_name} bias")
         nice_name = FORMATTER_TO_SIMPLE_NAME.get(formatter, formatter.name())
+        combined = finetuned_ + non_finetuned_metrics
+        seaborn_line_plot(combined, percent_matching=False, title=f"Accuracy for \n{nice_name} bias")
         seaborn_line_plot(
-            bias_metrics,
+            combined,
             percent_matching=True,
             title=f"Percent matching bias for \n{nice_name} bias",
             dotted_line=dotted_line,
