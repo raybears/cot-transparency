@@ -12,7 +12,7 @@ scipy
 anthropic>=0.3.10
 pytest
 pydantic>=2.0.0
-slist>=0.1.9
+slist>=0.2.4
 retry
 pyright
 pyrate_limiter

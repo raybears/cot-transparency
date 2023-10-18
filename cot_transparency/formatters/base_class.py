@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Self, Set, Type
+from typing import Optional, Self, Set, Type, Mapping
 
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.example_base import DataFormatSpec
@@ -27,7 +27,7 @@ class PromptFormatter(ABC):
         return subclasses.union([s for c in subclasses for s in c.all_subclasses()])
 
     @classmethod
-    def all_formatters(cls) -> dict[str, Type[Self]]:
+    def all_formatters(cls) -> Mapping[str, Type[Self]]:
         # return all subclasses thare are not abstract
         return {s.name(): s for s in cls.all_subclasses() if not s.__abstractmethods__}
 
@@ -44,5 +44,5 @@ class StageOneFormatter(PromptFormatter, ABC):
         raise NotImplementedError
 
     @classmethod
-    def all_formatters(cls) -> dict[str, Type[Self]]:
+    def all_formatters(cls) -> Mapping[str, Type[Self]]:
         return super().all_formatters()  # type: ignore

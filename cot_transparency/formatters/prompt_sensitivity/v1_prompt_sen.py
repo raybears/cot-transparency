@@ -18,7 +18,7 @@ from cot_transparency.formatters.core.unbiased import format_unbiased_question
 
 
 import itertools
-from typing import Optional, Self, Type
+from typing import Optional, Self, Type, Mapping
 
 from cot_transparency.formatters.extraction import (
     AnswerExtractorPipeline,
@@ -44,7 +44,7 @@ class PromptSenBaseFormatter(StageOneFormatter, ABC):
         raise NotImplementedError()
 
     @classmethod
-    def all_formatters(cls) -> dict[str, Type[StageOneFormatter]]:
+    def all_formatters(cls) -> Mapping[str, Type[Self]]:
         non_cot = register_no_cot_prompt_sensitivity_formatters()
         cot = register_cot_prompt_sensitivity_formatters()
         print("calling all formatters on prompt sen")
@@ -141,7 +141,7 @@ def no_cot_prompt_sensitivy_factory(data_format_spec: DataFormatSpec) -> Type[Pr
                     raise NotImplementedError
 
         @classmethod
-        def all_formatters(cls) -> dict[str, Type[Self]]:  # type: ignore
+        def all_formatters(cls) -> Mapping[str, Type[Self]]:  # type: ignore
             return {i.name(): i for i in register_no_cot_prompt_sensitivity_formatters()}  # type: ignore
 
     return NoCotPromptSenFormatter
