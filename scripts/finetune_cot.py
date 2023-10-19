@@ -40,6 +40,10 @@ from cot_transparency.apis.openai.finetune import (
     run_finetune_with_wandb,
     FineTuneHyperParams,
 )
+from cot_transparency.formatters.prompt_sensitivity.interventions import (
+    AddStepByStepAssistantPref,
+    AddVerbalizeAndStepByStepAssistantPref,
+)
 from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TRAINING_COT_PROMPT_VARIANTS_8,
     TRAINING_NO_COT_PROMPT_VARIANTS_7,
@@ -333,8 +337,8 @@ class FormatterOptionsResult:
 
 
 def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOptionsResult:
-    non_cot_formatters: Sequence[Type[StageOneFormatter]] | tuple[Type[Intervention], Type[StageOneFormatter]]
-    cot_formatters: Sequence[Type[StageOneFormatter]] | tuple[Type[Intervention], Type[StageOneFormatter]]
+    non_cot_formatters: Sequence[Type[StageOneFormatter] | tuple[Type[Intervention], Type[StageOneFormatter]]]
+    cot_formatters: Sequence[Type[StageOneFormatter] | tuple[Type[Intervention], Type[StageOneFormatter]]]
     match formatter_options:
         case FormatterOptions.all_biased:
             non_cot_formatters = TRAINING_NO_COT_FORMATTERS
@@ -349,10 +353,8 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
             non_cot_formatters = [ZeroShotUnbiasedFormatter]
             cot_formatters = [ZeroShotCOTUnbiasedFormatter]
         case FormatterOptions.prompt_variants_10:
-            non_cot_intervention =  
-            cot_intervention = 
-            non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_7.map(lambda x: (None, x))
-            cot_formatters = TRAINING_COT_PROMPT_VARIANTS_8.map(lambda x: (None, x))
+            non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_7.map(lambda x: (AddStepByStepAssistantPref, x))
+            cot_formatters = TRAINING_COT_PROMPT_VARIANTS_8.map(lambda x: (AddVerbalizeAndStepByStepAssistantPref, x))
 
     return FormatterOptionsResult(
         biased_formatters=set(cot_formatters),
