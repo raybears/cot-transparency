@@ -1,7 +1,8 @@
 import dataclasses
 from abc import abstractmethod
 from enum import Enum
-from typing import Type, Sequence, Iterable
+from typing import Type, Sequence, Iterable, Optional
+
 
 from cot_transparency.apis.base import Prompt
 from cot_transparency.apis.openai import OpenAIChatPrompt
@@ -28,6 +29,7 @@ from cot_transparency.formatters.interventions.big_brain_few_shots_loading impor
     get_training_non_cots_gpt_35_dumb_brain,
     get_training_cots_gpt_35_dumb_brain,
 )
+from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
@@ -243,7 +245,9 @@ def replace_unbiased_cot_prompt_with_biased(
 
 
 def replace_unbiased_cot_prompt_with_formatters(
-    task: TaskOutput, use_formatters: Iterable[Type[StageOneFormatter]]
+    task: TaskOutput,
+    use_formatters: Iterable[Type[StageOneFormatter]],
+    intervention: Optional[Type[Intervention]] = None,
 ) -> Slist[TaskOutput]:
     output = Slist[TaskOutput]()
     for formatter in use_formatters:
@@ -252,7 +256,10 @@ def replace_unbiased_cot_prompt_with_formatters(
             task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
         ), f"Got {task.task_spec.formatter_name}"
         data_example: DataExampleBase = task.task_spec.get_data_example_obj()
-        new.task_spec.messages = formatter.format_example(data_example)
+        if intervention is not None:
+            new.task_spec.messages = intervention.intervene(question=data_example, formatter=formatter)
+        else:
+            new.task_spec.messages = formatter.format_example(data_example)
         output.append(new)
     return output
 

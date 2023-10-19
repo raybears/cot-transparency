@@ -62,6 +62,8 @@ def plot(
     x: str = "task_name",
     hue: str = "model",
     col: Optional[str] = "is_cot",
+    aggregate_tasks: bool = False,
+    include_none_as_a_question_choice: bool = False,
 ):
     prompt_metrics(
         exp_dir=exp_dir,
@@ -72,6 +74,8 @@ def plot(
         hue=hue,
         col=col,
         temperature=0,
+        aggregate_tasks=aggregate_tasks,
+        include_none_as_a_question_choice=include_none_as_a_question_choice,
     )
 
 

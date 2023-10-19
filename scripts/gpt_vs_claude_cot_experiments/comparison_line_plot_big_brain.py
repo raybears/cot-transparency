@@ -11,7 +11,7 @@ from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo, AccuracyOutput
-from scripts.utils.loading import read_all_for_selections
+from cot_transparency.data_models.io import read_all_for_selections
 from stage_one import COT_TESTING_TASKS
 
 

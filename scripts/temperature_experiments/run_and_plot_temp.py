@@ -4,7 +4,7 @@ from typing import Optional
 from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
-from scripts.utils.loading import read_all_for_selections
+from cot_transparency.data_models.io import read_all_for_selections
 from scripts.intervention_investigation import bar_plot, DottedLine
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo

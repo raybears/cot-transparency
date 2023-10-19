@@ -23,6 +23,8 @@ NAME_MAP = {
     "modal_agreement_score": "Modal Agreement Score",
     "is_correct": "Accuracy",
     "entropy": "Entropy",
+    "none_count": "# of None Responses",
+    "all_tasks": "All Tasks",
 }
 
 
@@ -86,6 +88,7 @@ def catplot(
     if col is not None:
         groups.append(col)
 
+    print("Counts of data used to create plot:")
     counts = df.groupby(groups).size().reset_index(name="counts")
     print(counts)
 
@@ -113,6 +116,14 @@ def catplot(
             ax.set_xlabel(NAME_MAP[ax.get_xlabel()])
         if ax.get_ylabel() in NAME_MAP:
             ax.set_ylabel(NAME_MAP[ax.get_ylabel()])
+
+    g.fig.tight_layout()
+    # move the plot area to leave space for the legend
+    g.fig.subplots_adjust(right=0.62)
+
+    # make the figure bigger
+    g.fig.set_figwidth(10)
+    g.fig.set_figheight(6)
 
     return g
 

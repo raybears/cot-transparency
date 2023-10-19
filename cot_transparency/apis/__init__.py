@@ -1,7 +1,7 @@
 from typing import Type
 
 from cot_transparency.apis.anthropic import AnthropicCaller
-from cot_transparency.apis.base import InferenceResponse, ModelCaller, Prompt, ModelType
+from cot_transparency.apis.base import InferenceResponse, ModelCaller, ModelType
 from cot_transparency.apis.openai import OpenAIChatCaller, OpenAICompletionCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
@@ -26,7 +26,6 @@ def get_caller(model_name: str) -> Type[ModelCaller]:
 
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> InferenceResponse:
-    prompt = Prompt(messages=messages)
     model_name = config.model
 
     caller: ModelCaller
@@ -36,4 +35,4 @@ def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -
         caller = get_caller(model_name)()
         CALLER_STORE[model_name] = caller
 
-    return caller(prompt, config)
+    return caller.call(messages, config)

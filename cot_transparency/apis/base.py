@@ -25,6 +25,13 @@ class ModelType(str, Enum):
 
 
 class Prompt(BaseModel):
+    """
+    You shouldn't really need to use this class directly, unless you are debugging or testing
+    the specific format that is being sent to an api call. ModelCallers take a
+    list of ChatMessages but use subtypes of this class to format the messages into the
+    format that the api expects
+    """
+
     messages: list[ChatMessage]
 
     def __str__(self) -> str:
@@ -64,9 +71,9 @@ class InferenceResponse(BaseModel):
 
 class ModelCaller(ABC):
     @abstractmethod
-    def __call__(
+    def call(
         self,
-        prompt: Prompt,
+        messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         raise NotImplementedError()

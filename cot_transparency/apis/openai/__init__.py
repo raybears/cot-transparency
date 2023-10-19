@@ -5,7 +5,7 @@ from cot_transparency.apis.openai.set_key import get_org_ids, set_keys_from_env
 from cot_transparency.apis.util import convert_assistant_if_completion_to_assistant
 from cot_transparency.apis.openai.inference import gpt4_rate_limited
 from cot_transparency.data_models.config import OpenaiInferenceConfig
-from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
+from cot_transparency.data_models.messages import ChatMessage, StrictChatMessage, StrictMessageRole
 from cot_transparency.apis.openai.inference import gpt3_5_rate_limited
 from cot_transparency.apis.openai.inference import get_openai_completion
 
@@ -56,12 +56,12 @@ class OpenAIChatCaller(ModelCaller):
         set_keys_from_env()
         self.org_keys = get_org_ids()
 
-    def __call__(
+    def call(
         self,
-        task: Prompt,
+        messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        prompt = OpenAIChatPrompt.from_prompt(task).format()
+        prompt = OpenAIChatPrompt(messages=messages).format()
 
         model_name = config.model
 
@@ -106,10 +106,10 @@ class OpenAIChatCaller(ModelCaller):
 
 
 class OpenAICompletionCaller(ModelCaller):
-    def __call__(
+    def call(
         self,
-        task: Prompt,
+        messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        prompt = OpenAICompletionPrompt.from_prompt(task).format()
+        prompt = OpenAICompletionPrompt(messages=messages).format()
         return InferenceResponse(raw_responses=get_openai_completion(config=config, prompt=prompt).completions)

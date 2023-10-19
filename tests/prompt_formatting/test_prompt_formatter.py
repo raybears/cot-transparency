@@ -8,7 +8,7 @@ from cot_transparency.formatters import (
     ZeroShotSycophancyFormatter,
 )
 from cot_transparency.formatters.core.sycophancy import format_sycophancy_question
-from typing import Type
+from typing import Type, Mapping
 
 EMPIRE_OF_PANTS_EXAMPLE = MilesBBHRawData(
     idx=2,
@@ -88,7 +88,7 @@ I think the answer is B but I'm curious to hear what you think."""  # noqa
 
 
 def test_prompt_formatters_in_bias_mapping():
-    all_formatters: dict[str, Type[PromptFormatter]] = PromptFormatter.all_formatters()
+    all_formatters: Mapping[str, Type[PromptFormatter]] = PromptFormatter.all_formatters()
     for name, formatter in all_formatters.items():
         if formatter.is_biased:
             assert bias_to_unbiased_formatter(name) in all_formatters

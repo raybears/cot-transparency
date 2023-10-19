@@ -16,7 +16,7 @@ from scripts.intervention_investigation import plot_for_intervention, DottedLine
 from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
 from scripts.multi_accuracy import PlotInfo
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
-from scripts.utils.loading import read_all_for_selections
+from cot_transparency.data_models.io import read_all_for_selections
 from stage_one import main, COT_TESTING_TASKS
 
 
@@ -194,8 +194,7 @@ def seaborn_line_plot(
                 ecolor="black",
             )
     unique = df["Trained Samples"].unique()  # type: ignore
-    print(f"Unique ticks: {unique}")
-    plt.xticks(unique)
+    plt.xticks(unique)  # type: ignore
     # make sure all the x ticks are visible
     # plt.margins(x=0.1)
     plt.ylim(0, 1)

@@ -7,7 +7,7 @@ from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 
 from cot_transparency.apis.util import convert_assistant_if_completion_to_assistant, messages_has_none_role
-from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
+from cot_transparency.data_models.messages import ChatMessage, StrictChatMessage, StrictMessageRole
 from cot_transparency.util import setup_logger
 
 
@@ -52,16 +52,17 @@ class AnthropicCaller(ModelCaller):
         self.client = anthropic.Anthropic()
 
     @retry(exceptions=(anthropic.APIError, anthropic.APIConnectionError), tries=3, delay=5, logger=logger)
-    def __call__(
+    @retry(exceptions=(anthropic.RateLimitError), tries=-1, delay=1, logger=logger)
+    def call(
         self,
-        task: Prompt,
+        messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         assert "claude" in config.model
-        prompt = AnthropicPrompt.from_prompt(task).format()
+        text = AnthropicPrompt(messages=messages).format()
 
         resp = self.client.completions.create(
-            prompt=prompt,
+            prompt=text,
             stop_sequences=[anthropic.HUMAN_PROMPT],
             model=config.model,
             max_tokens_to_sample=config.max_tokens,

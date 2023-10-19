@@ -11,12 +11,12 @@ from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemod
 from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import COT_FORMATTERS
 from scripts.prompt_sen_experiments.plots import get_modal_agreement_score
-from scripts.utils.loading import BaseExtractor, BasicExtractor, IsCoTExtractor, convert_slist_to_df
+from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, IsCoTExtractor, convert_slist_to_df
 from stage_one import COT_TRAINING_TASKS
 import pandas as pd
 
 
-class OutputUID(BaseExtractor):
+class OutputUID(BaseExtractor[TaskOutput]):
     column_names = ["output_uid"]
 
     def extract(self, output: TaskOutput) -> Sequence[str]:

@@ -1,5 +1,6 @@
 """Contains models for all objects that are loaded / saved to experiment jsons"""
 
+from abc import abstractmethod
 from pathlib import Path
 
 
@@ -21,11 +22,19 @@ class ModelOutput(BaseModel):
 
 
 class BaseTaskSpec(BaseModel):
+    """
+    Specifies the minimal information needed to run a task and save the results
+    """
+
     # We've called this model_config but that clashes with model_config of pydantic v2
     inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: list[ChatMessage]
     out_file_path: Path
     formatter_name: str
+
+    @abstractmethod
+    def get_task_name(self) -> str:
+        raise NotImplementedError
 
 
 class TaskSpec(BaseTaskSpec):
@@ -87,6 +96,9 @@ class TaskSpec(BaseTaskSpec):
         formatter_type = name_to_stage1_formatter(formatter_name)
         n_options = len(data_example_obj.get_options(include_none_of_the_above=formatter_type.has_none_of_the_above))
         return n_options
+
+    def get_task_name(self) -> str:
+        return self.task_name
 
 
 class BaseTaskOuput(BaseModel):
@@ -229,6 +241,9 @@ class StageTwoTaskSpec(BaseTaskSpec):
     formatter_name: str
     trace_info: Optional[TraceInfo] = None
     n_steps_in_cot_trace: Optional[int] = None
+
+    def get_task_name(self) -> str:
+        return self.stage_one_output.task_spec.task_name
 
     def uid(self) -> str:
         if self.trace_info is not None:
