@@ -4,7 +4,10 @@ from pydantic import BaseModel
 from slist import Slist
 from cot_transparency.apis.base import Prompt
 from cot_transparency.apis.openai import OpenAIChatPrompt
-from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_next_message, append_assistant_preferred_to_last_user
+from cot_transparency.apis.openai.formatting import (
+    append_assistant_preferred_to_next_message,
+    append_assistant_preferred_to_last_user,
+)
 from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage
 
 from cot_transparency.data_models.models import TaskOutput

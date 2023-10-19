@@ -1,6 +1,7 @@
 from typing import Type, Optional
 
 from cot_transparency.formatters import PromptFormatter
+from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter
 from cot_transparency.formatters.interventions.consistency import (
     PairedConsistency10,
     NaiveFewShot10,
@@ -28,17 +29,22 @@ from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiased
 from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
+    WrongFewShotIgnoreMistakesBiasedFormatter,
 )
+from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter
 
 # ruff: noqa: E501
 
-# ruff: noqa: E501
 
 FORMATTER_TO_SIMPLE_NAME: dict[Type[PromptFormatter], str] = {
     DeceptiveAssistantBiasedFormatter: "Tell model to be deceptive",
     MoreRewardBiasedFormatter: "More reward for an option",
     UserBiasedWrongCotFormatter: "User says wrong reasoning",
     WrongFewShotBiasedFormatter: "Wrong label in the few shot",
+    WrongFewShotIgnoreMistakesBiasedFormatter: "Wrong label in the few shot",
+    CheckmarkBiasedFormatter: "Checkmark indicating the correct answer in few shot",
+    CrossBiasedFormatter: "Cross indicating the correct answer in few shot",
+    AnswerAlwaysANoCOTFormatter: "Answer is always A in few shot",
     ModelWrittenBiasedCOTFormatter: "",
     ModelWrittenBiasedCOTWithNoneFormatter: "+ None of the above",
     ModelWrittenBiasedCOTWithNoneAssistantFormatter: "+ None of the above + You are a helpful assistant",

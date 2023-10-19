@@ -8,20 +8,22 @@ import pandas as pd
 from slist import Slist
 
 from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter
+from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter
 from scripts.intervention_investigation import plot_for_intervention, DottedLine
-from scripts.matching_user_answer import matching_user_answer_plot_info
+from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
 from scripts.multi_accuracy import PlotInfo
+from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
 from cot_transparency.data_models.io import read_all_for_selections
 from stage_one import main, COT_TESTING_TASKS
 
 
 class RunOptions(str, Enum):
-    no_filter = "No filter on cots produced"
-    correct_answer = "COTs that have correct answers"
-    control_unbiased = "control training on unbiased contexts"
+    no_filter = "Biased contexts, no filter"
+    correct_answer = "Biased contexts, filtered to be correct"
+    control_unbiased = "Unbiased contexts, filtered to be correct (control)"
 
 
 class ModelTrainMeta(BaseModel):
@@ -59,14 +61,13 @@ def read_metric_from_meta(
 def run_unbiased_acc_experiments(
     meta: Sequence[ModelTrainMeta], tasks: Sequence[str], biases: Sequence[Type[StageOneFormatter]]
 ) -> None:
-    # Also run for non COT prompt for the normal COT models
     normal_cot_models = [m.name for m in meta if m]
     main(
         exp_dir="experiments/finetune_3",
         models=normal_cot_models,
         formatters=[b.name() for b in biases],
         tasks=tasks,
-        example_cap=1000,
+        example_cap=400,
         raise_after_retries=False,
         temperature=1.0,
         batch=20,
@@ -88,6 +89,11 @@ def samples_meta() -> Slist[ModelTrainMeta]:
                 trained_on=RunOptions.no_filter,
             ),
             ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89GKVlFT",
+                trained_samples=10000,
+                trained_on=RunOptions.no_filter,
+            ),
+            ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89LJDfgI",
                 trained_samples=20000,
                 trained_on=RunOptions.no_filter,
@@ -100,6 +106,11 @@ def samples_meta() -> Slist[ModelTrainMeta]:
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89FBrz5b",
                 trained_samples=1000,
+                trained_on=RunOptions.correct_answer,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89G8xNY5",
+                trained_samples=10000,
                 trained_on=RunOptions.correct_answer,
             ),
             ModelTrainMeta(
@@ -116,6 +127,11 @@ def samples_meta() -> Slist[ModelTrainMeta]:
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89G2vwHZ",
                 trained_samples=1000,
+                trained_on=RunOptions.control_unbiased,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89GzBGx0",
+                trained_samples=10000,
                 trained_on=RunOptions.control_unbiased,
             ),
             ModelTrainMeta(
@@ -163,6 +179,8 @@ def seaborn_line_plot(
     # Add dotted line for random chance
     if dotted_line:
         plt.axhline(y=dotted_line.value, color=dotted_line.color, linestyle="dashed", label=dotted_line.name)
+        # Add to legend saying that the dotted line is Random chance
+        plt.legend()
     plt.title(title)
 
     if error_bars:
@@ -175,9 +193,10 @@ def seaborn_line_plot(
                 capsize=5,
                 ecolor="black",
             )
-    plt.xticks(df["Trained Samples"].unique())  # type: ignore
+    unique = df["Trained Samples"].unique()  # type: ignore
+    plt.xticks(unique)  # type: ignore
     # make sure all the x ticks are visible
-    plt.margins(x=0.1)
+    # plt.margins(x=0.1)
     plt.ylim(0, 1)
     # log scale for x axis
     plt.xscale("log")
@@ -185,31 +204,73 @@ def seaborn_line_plot(
 
 
 if __name__ == "__main__":
+    exp_dir = "experiments/finetune_3"
     defined_meta = samples_meta()
     tasks = COT_TESTING_TASKS
     biases: Sequence[Type[StageOneFormatter]] = [
         WrongFewShotIgnoreMistakesBiasedFormatter,
         CheckmarkBiasedFormatter,
         CrossBiasedFormatter,
-        AnswerAlwaysANoCOTFormatter,  # use non cot for this since the COT version doesn't bias so much
+        AnswerAlwaysAFormatter,
     ]
-    run_unbiased_acc_experiments(defined_meta, tasks, biases=biases)
+    # run_unbiased_acc_experiments(defined_meta, tasks, biases=biases)
+    random_chance: PlotInfo = random_chance_matching_answer_plot_dots(
+        all_tasks=read_all_for_selections(
+            exp_dirs=[Path(exp_dir)],
+            models=["gpt-3.5-turbo"],
+            formatters=[ZeroShotCOTUnbiasedFormatter.name()],
+            tasks=tasks,
+        ),
+        model="gpt-3.5-turbo",
+        name_override="Random chance",
+        formatter=ZeroShotCOTUnbiasedFormatter,
+        for_task=tasks,
+    )
+    dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
     for formatter in biases:
-        wrong_few_shot = read_all_metrics(
+        finetuned_ = read_all_metrics(
             samples=defined_meta,
-            exp_dir="experiments/finetune_3",
+            exp_dir=exp_dir,
+            formatter=formatter,
+            tasks=tasks,
+        )
+        models = [m.name for m in defined_meta]
+
+        # Hack to these so that the plot can start from the origin where we have a nonfinetuned model
+        non_finetuned_meta = Slist(
+            [
+                ModelTrainMeta(
+                    name="gpt-3.5-turbo",
+                    trained_samples=1,
+                    trained_on=RunOptions.no_filter,
+                ),
+                ModelTrainMeta(
+                    name="gpt-3.5-turbo",
+                    trained_samples=1,
+                    trained_on=RunOptions.correct_answer,
+                ),
+                ModelTrainMeta(
+                    name="gpt-3.5-turbo",
+                    trained_samples=1,
+                    trained_on=RunOptions.control_unbiased,
+                ),
+            ]
+        )
+        non_finetuned_metrics = read_all_metrics(
+            samples=non_finetuned_meta,
+            exp_dir=exp_dir,
             formatter=formatter,
             tasks=tasks,
         )
 
-        models = [m.name for m in defined_meta]
-
-        seaborn_line_plot(wrong_few_shot, percent_matching=False, title=f"Accuracy for the {formatter.name()} bias")
+        nice_name = FORMATTER_TO_SIMPLE_NAME.get(formatter, formatter.name())
+        combined = finetuned_ + non_finetuned_metrics
+        seaborn_line_plot(combined, percent_matching=False, title=f"Accuracy for \n{nice_name} bias")
         seaborn_line_plot(
-            wrong_few_shot,
+            combined,
             percent_matching=True,
-            title=f"Percent matching for the {formatter.name()} bias",
-            dotted_line=None,
+            title=f"Percent matching bias for \n{nice_name} bias",
+            dotted_line=dotted_line,
         )
     # unbiased = read_all_metrics(
     #     samples=defined_meta,
