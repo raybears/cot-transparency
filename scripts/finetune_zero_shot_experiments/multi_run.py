@@ -11,7 +11,6 @@ from stage_one import main
 
 class SweepOptions(BaseModel):
     n_samples: int
-    # Ed, add your enum all_prompt_sensitivity to FormatterOptions so we can run on those too?
     formatter_options: FormatterOptions
 
 
@@ -43,7 +42,7 @@ def train_and_run(sweep: SweepOptions) -> None:
 if __name__ == "__main__":
     sweeps: Slist[SweepOptions] = Slist()
     for n_sample in [100, 1000, 10000, 20000]:
-        for formatter_option in [FormatterOptions.few_shot]:
+        for formatter_option in [FormatterOptions.zero_shot]:
             sweeps.append(SweepOptions(n_samples=n_sample, formatter_options=formatter_option))
 
     sweeps.par_map(train_and_run, executor=ThreadPoolExecutor(sweeps.length))

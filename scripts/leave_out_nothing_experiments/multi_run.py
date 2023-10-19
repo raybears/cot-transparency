@@ -1,6 +1,5 @@
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from scripts.finetune_cot import (
-    fine_tune_with_bias_augmentation,
     DataFromOptions,
     FormatterOptions,
     fine_tune_with_bias_augmentation_no_repeat,

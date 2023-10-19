@@ -8,7 +8,7 @@ import pandas as pd
 from slist import Slist
 
 from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter, AnswerAlwaysAFormatter
+from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter

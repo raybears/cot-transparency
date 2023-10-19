@@ -1,7 +1,5 @@
-from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter, ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
-from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
-from scripts.training_formatters import TRAINING_COT_FORMATTERS_FEW_SHOT, HAS_STRONG_EFFECT_FEW_SHOT_FORMATTERS
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from scripts.training_formatters import TRAINING_COT_FORMATTERS_FEW_SHOT
 from stage_one import main
 
 # Train on zeroshot formatter
