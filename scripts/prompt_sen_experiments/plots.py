@@ -1,5 +1,4 @@
 from enum import Enum
-from functools import partial
 from typing import Optional, Sequence
 import fire
 import numpy as np

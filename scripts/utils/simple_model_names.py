@@ -36,5 +36,5 @@ MODEL_SIMPLE_NAMES: Mapping[str, str] = {
     "ft:gpt-3.5-turbo-0613:far-ai::8AjeHchR": "Promp Sen 2 50k don't include all formatters",
     "ft:gpt-3.5-turbo-0613:far-ai::8Aic3f0n": "Promp Sen 2 50k include all formatters",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf": "10k 50% CoT / 50% Non Cot, Few Shot Biases, 10% Instruction",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w": "10k, 100% CoT, Few Shot Biases, 0% Instruction"
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w": "10k, 100% CoT, Few Shot Biases, 0% Instruction",
 }
