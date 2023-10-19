@@ -103,3 +103,11 @@ tests:
   - text: |
       The single most likely answer is: $\boxed{\text{(B) 25\%}}$.
     answer: "B"
+  - text: |
+      (D) The pronunciation of the word "呱呱落地" is often mispronounced by some university teachers.
+
+      The best answer is: (A) The 20 words
+    answer: "A"
+  - text: |
+      Therefore, the best answer is: \[\boxed{\text{(C) 600 nm}}\].
+    answer: "C"
