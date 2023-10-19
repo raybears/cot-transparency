@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from slist import Slist
 from cot_transparency.apis.base import Prompt
 from cot_transparency.apis.openai import OpenAIChatPrompt
-from cot_transparency.apis.openai.formatting import format_for_finetuning, append_assistant_preferred_to_last_user
+from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_next_message, append_assistant_preferred_to_last_user
 from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage
 
 from cot_transparency.data_models.models import TaskOutput
@@ -43,7 +43,7 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
         # (so that the assistant doesn't forget how to continue)
         seed = self.original_biased_task.task_spec.task_hash
         strict: list[StrictChatMessage] = (
-            format_for_finetuning(prompt=new_messages)
+            append_assistant_preferred_to_next_message(prompt=new_messages)
             if random.Random(seed).random() < 0.5
             else append_assistant_preferred_to_last_user(prompt=new_messages)
         )
@@ -65,7 +65,7 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
 
         seed = self.original_biased_task.task_spec.task_hash
         strict: list[StrictChatMessage] = (
-            format_for_finetuning(prompt=new_messages)
+            append_assistant_preferred_to_next_message(prompt=new_messages)
             if random.Random(seed).random() < 0.5
             else append_assistant_preferred_to_last_user(prompt=new_messages)
         )
@@ -77,7 +77,7 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
         new_messages = prompt_messages + [ChatMessage(role=MessageRole.assistant, content=self.correct_full_response)]
         seed = self.original_biased_task.task_spec.task_hash
         strict: list[StrictChatMessage] = (
-            format_for_finetuning(prompt=new_messages)
+            append_assistant_preferred_to_next_message(prompt=new_messages)
             if random.Random(seed).random() < 0.5
             else append_assistant_preferred_to_last_user(prompt=new_messages)
         )

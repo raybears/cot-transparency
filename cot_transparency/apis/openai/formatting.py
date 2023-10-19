@@ -24,7 +24,7 @@ def append_assistant_preferred_to_last_user(prompt: list[ChatMessage]) -> list[S
     return new_list
 
 
-def format_for_finetuning(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
+def append_assistant_preferred_to_next_message(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
     # Add the assistant_preferred message to the next message if the next message exists
     # This is in contrast to format_for_chat, which adds the assistant_preferred message to the previous message
     # if the next message doesn't exist, then we explode
@@ -42,8 +42,9 @@ def format_for_finetuning(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
             if idx == assistant_preferred_idx:
                 content = message.content
                 content_next = prompt[idx + 1].content
-                if not content_next.startswith("\n") or content_next.startswith(" "):
-                    content_next = " " + content_next
+                if content.endswith(".") or content.endswith("!") or content.endswith("?") or content.endswith(":"):
+                    if not content_next.startswith("\n") or content_next.startswith(" "):
+                        content_next = " " + content_next
                 new_message = StrictChatMessage(role=StrictMessageRole.assistant, content=content + content_next)
             elif idx == assistant_preferred_idx + 1:
                 # skip the next message

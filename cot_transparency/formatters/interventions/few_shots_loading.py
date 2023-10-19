@@ -10,7 +10,7 @@ from cot_transparency.apis.openai.formatting import append_assistant_preferred_t
 from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.apis.openai.formatting import format_for_finetuning
+from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_next_message
 from cot_transparency.apis.openai.finetune import FinetuneSample
 
 
@@ -147,6 +147,6 @@ def task_output_to_finetune_sample(
     strict: list[StrictChatMessage] = (
         append_assistant_preferred_to_last_user(prompt=new_messages)
         if should_put_assistant_preferred_as_user
-        else format_for_finetuning(prompt=new_messages)
+        else append_assistant_preferred_to_next_message(prompt=new_messages)
     )
     return FinetuneSample(messages=strict)
