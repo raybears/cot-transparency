@@ -237,7 +237,7 @@ if __name__ == "__main__":
         )
         models = [m.name for m in defined_meta]
 
-        # add these so that the plot can start from the origin where we have a nonfinetuned model
+        # Hack to these so that the plot can start from the origin where we have a nonfinetuned model
         non_finetuned_meta = Slist(
             [
                 ModelTrainMeta(
