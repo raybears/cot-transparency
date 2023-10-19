@@ -41,6 +41,32 @@ class GoldStandardFormatter(StageOneFormatter):
         return extract_answer_for_prompt_sen(response, question, model)
 
 
+class GoldStandardWithRestrictionFormatter(StageOneFormatter):
+    """
+    The base formatter that will be used to create the ground truth for consistency training
+    """
+
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+        formatted_question = "Question:\n" + question._get_question()
+        formatted_options = (
+            "\n\nChoose the best answer from the options below:\n"
+            + question._get_options_with_indicator(question.get_options())
+        )
+
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_for_prompt_sen(response, question, model)
+
+
 class PleaseFormatter(StageOneFormatter):
     is_biased = False
     is_cot = True
@@ -702,6 +728,28 @@ TESTING_COT_PROMPT_VARIANTS = [
     ProsAndConsFormatter,
     EducationalFormatter,
     SnappyQuizFormatter,
+    StuckFormatter,
+]
+
+# Reduced set for faster testing limit to 12
+# but otherwise the same as TESTING_FORMATS
+TESTING_FORMATS_REDUCED = [
+    PleaseFormatter,
+    # DirectFormatter,
+    BestGuessFormatter,
+    HypotheticalFormatter,
+    # TagFormatter,
+    InstructionalFormatter,
+    PositiveAssumptionFormatter,
+    EncouragingFormatter,
+    TimeBasedFormatter,
+    # DiscussionStyleFormatter,
+    AnalyticalFormatter,
+    CheckingUnderstandingFormatter,
+    ChallengeModeFormatter,
+    # ProsAndConsFormatter,
+    EducationalFormatter,
+    # SnappyQuizFormatter,
     StuckFormatter,
 ]
 

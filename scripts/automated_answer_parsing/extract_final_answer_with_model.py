@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 import fire
 from slist import Slist
 from cot_transparency.data_models.models import ModelOutput, StageTwoTaskOutput, StageTwoTaskSpec, TaskOutput
@@ -82,8 +82,18 @@ def main(
     batch: int = 30,
     temperature: float = 0.0,
     model: str = "claude-v1",
+    models_to_parse: Sequence[str] = [],
+    formatters: Sequence[str] = [],
+    interventions: Sequence[str] = [],
 ):
-    all_data = read_whole_exp_dir(exp_dir=input_exp_dir)
+    all_data = (
+        read_whole_exp_dir(exp_dir=input_exp_dir)
+        .filter(lambda x: x.task_spec.formatter_name in formatters if formatters else True)
+        .filter(lambda x: x.task_spec.inference_config.model in models_to_parse if models_to_parse else True)
+        .filter(lambda x: x.task_spec.intervention_name in interventions if interventions else True)
+    )
+    print("Filtered down to", len(all_data), "tasks")
+
     stage_two_tasks = all_data.map(lambda x: convert_s1_to_s2(x, exp_dir, temperature, model=model, n_tokens=1))
     still_to_run, found_answers = extract_answers_that_we_can(stage_two_tasks)
     save_list_of_outputs_s2(found_answers)

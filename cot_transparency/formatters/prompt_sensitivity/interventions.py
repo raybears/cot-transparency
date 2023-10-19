@@ -17,8 +17,6 @@ from cot_transparency.formatters.interventions.intervention import Intervention
 
 
 class StepByStep(Intervention):
-    n_samples: int = 10
-
     # Non cot, only the label
     @classmethod
     def intervene(

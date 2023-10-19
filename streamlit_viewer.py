@@ -74,7 +74,6 @@ def display_task(task: TaskOutput):
                 with st.chat_message("user"):
                     st.markdown("### User")
                     content = msg.content.replace("\n", "  \n")
-                    print(content)
                     st.markdown(content)
 
             case MessageRole.assistant:
