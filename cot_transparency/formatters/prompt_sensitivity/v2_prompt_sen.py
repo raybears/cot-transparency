@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import Optional, Type
+
+from slist import Slist
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
@@ -597,7 +599,7 @@ class InsertTyposFormatter(StageOneFormatter):
         return extract_answer_for_prompt_sen(response, question, model)
 
 
-V2_PROMPT_SEN_FORMATTERS = [
+V2_PROMPT_VARIANTS = [
     PleaseFormatter,
     DirectFormatter,
     BestGuessFormatter,
@@ -628,7 +630,7 @@ V2_PROMPT_SEN_FORMATTERS = [
 ]
 
 
-TRAINING_FORMATS = [
+TRAINING_COT_PROMPT_VARIANTS = [
     GoldStandardFormatter,
     DocumentaryStyleFormatter,
     QuickFireFormatter,
@@ -643,7 +645,47 @@ TRAINING_FORMATS = [
 ]
 
 
-TESTING_FORMATS = [
+# Is in fact the same as the above
+TRAINING_NO_COT_PROMPT_VARIANTS = [
+    GoldStandardFormatter,
+    DocumentaryStyleFormatter,
+    QuickFireFormatter,
+    MockTestFormatter,
+    AskFirstFormatter,
+    FunQuizFormatter,
+    CasualFormatter,
+    ForcedChoiceFormatter,
+    ResearchStyleFormatter,
+    LighterNoteFormatter,
+    QuizFormatter,
+]
+
+TRAINING_NO_COT_PROMPT_VARIANTS_7: Slist[Type[StageOneFormatter]] = Slist(
+    [
+        ResearchStyleFormatter,
+        DocumentaryStyleFormatter,
+        QuickFireFormatter,
+        MockTestFormatter,
+        AskFirstFormatter,
+        CasualFormatter,
+        ChallengeModeFormatter,
+    ]
+)
+
+TRAINING_COT_PROMPT_VARIANTS_8: Slist[Type[StageOneFormatter]] = Slist(
+    [
+        ForcedChoiceFormatter,
+        LighterNoteFormatter,
+        QuizFormatter,
+        PleaseFormatter,
+        DirectFormatter,
+        BestGuessFormatter,
+        HypotheticalFormatter,
+        EncouragingFormatter,
+    ]
+)
+
+TESTING_COT_PROMPT_VARIANTS = [
     PleaseFormatter,
     DirectFormatter,
     BestGuessFormatter,
@@ -666,4 +708,4 @@ TESTING_FORMATS = [
 if __name__ == "__main__":
     # print testing formats anything not in training formats
     print("testing formats")
-    print([x.name() for x in V2_PROMPT_SEN_FORMATTERS if x not in TRAINING_FORMATS])
+    print([x.name() for x in V2_PROMPT_VARIANTS if x not in TRAINING_COT_PROMPT_VARIANTS])

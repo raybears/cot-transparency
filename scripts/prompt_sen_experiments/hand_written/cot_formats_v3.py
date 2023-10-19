@@ -1,6 +1,6 @@
 from typing import Optional, Sequence
 import fire
-from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TESTING_FORMATS
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TESTING_COT_PROMPT_VARIANTS
 from scripts.prompt_sen_experiments.plots import prompt_metrics
 
 from stage_one import PROMPT_SEN_TESTING_TASKS, main
@@ -13,7 +13,7 @@ EXP_DIR = "experiments/prompt_sen_experiments/v3_handwritten_formats/temp0_cot_v
 # also to test on a wider variety of tasks
 
 # python demo_formatter.py | grep -E '^CotPromptSenFormatter_(LETTERS|NUMBERS)' | shuf | head -n 10
-COT_TESTING_FORMATTERS = [i.name() for i in TESTING_FORMATS]
+COT_TESTING_FORMATTERS = [i.name() for i in TESTING_COT_PROMPT_VARIANTS]
 
 # check that is no overlap between COT_FORMATTERS and COT_TESTING_FORMATTERS, print out the overlap
 # print(set(COT_FORMATTERS).intersection(set(COT_TESTING_FORMATTERS)))

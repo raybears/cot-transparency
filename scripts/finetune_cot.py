@@ -40,6 +40,10 @@ from cot_transparency.apis.openai.finetune import (
     run_finetune_with_wandb,
     FineTuneHyperParams,
 )
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
+    TRAINING_COT_PROMPT_VARIANTS_8,
+    TRAINING_NO_COT_PROMPT_VARIANTS_7,
+)
 from scripts.cot_variants import sample_cot_variant
 from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.non_cot_variants import non_sample_cot_variant
@@ -319,19 +323,22 @@ class FormatterOptions(str, Enum):
     all_biased = "all_biased"
     zero_shot = "zero_shot"
     few_shot = "few_shot"
+    prompt_variants_10 = "prompt_variants_10"
 
 
 @dataclasses.dataclass(kw_only=True)
 class FormatterOptionsResult:
-    biased_formatters: set[Type[StageOneFormatter]]
-    unbiased_formatters: set[Type[StageOneFormatter]]
+    biased_formatters: set[Type[StageOneFormatter] | tuple[Type[Intervention], Type[StageOneFormatter]]]
+    unbiased_formatters: set[Type[StageOneFormatter] | tuple[Type[Intervention], Type[StageOneFormatter]]]
 
 
 def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOptionsResult:
+    non_cot_formatters: Sequence[Type[StageOneFormatter]] | tuple[Type[Intervention], Type[StageOneFormatter]]
+    cot_formatters: Sequence[Type[StageOneFormatter]] | tuple[Type[Intervention], Type[StageOneFormatter]]
     match formatter_options:
         case FormatterOptions.all_biased:
-            non_cot_formatters: Sequence[Type[StageOneFormatter]] = TRAINING_NO_COT_FORMATTERS
-            cot_formatters: Sequence[Type[StageOneFormatter]] = TRAINING_COT_FORMATTERS
+            non_cot_formatters = TRAINING_NO_COT_FORMATTERS
+            cot_formatters = TRAINING_COT_FORMATTERS
         case FormatterOptions.zero_shot:
             non_cot_formatters = TRAINING_NO_COT_FORMATTERS_ZERO_SHOT
             cot_formatters = TRAINING_COT_FORMATTERS_ZERO_SHOT
@@ -341,6 +348,12 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
         case FormatterOptions.control_only_unbiased:
             non_cot_formatters = [ZeroShotUnbiasedFormatter]
             cot_formatters = [ZeroShotCOTUnbiasedFormatter]
+        case FormatterOptions.prompt_variants_10:
+            non_cot_intervention =  
+            cot_intervention = 
+            non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_7.map(lambda x: (None, x))
+            cot_formatters = TRAINING_COT_PROMPT_VARIANTS_8.map(lambda x: (None, x))
+
     return FormatterOptionsResult(
         biased_formatters=set(cot_formatters),
         unbiased_formatters=set(non_cot_formatters),
@@ -370,6 +383,7 @@ def fine_tune_with_bias_augmentation(
     non_cot_percentage = 1 - cot_percentage
     non_cot_limit = int(non_cot_percentage * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
+
     match data_from_options:
         case DataFromOptions.gpt_35_turbo:
             non_cot_data = get_training_non_cots_gpt_35(model_output_verified)
@@ -377,11 +391,14 @@ def fine_tune_with_bias_augmentation(
         case DataFromOptions.claude_2:
             non_cot_data = get_training_non_cots_claude_2(model_output_verified)
             cot_data = get_training_cots_claude_2(model_output_verified)
+
     non_cot_data_shuffled = non_cot_data.shuffle(seed="42")
     cot_data_shuffled = cot_data.shuffle(seed="42")
     formatter_options_result = match_formatter_options(formatter_options)
+
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
+
     eligible_non_cot_formatters = non_cot_formatters - set(exclude_formatters)
     assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
     eligible_cot_formatters = cot_formatters - set(exclude_formatters)
