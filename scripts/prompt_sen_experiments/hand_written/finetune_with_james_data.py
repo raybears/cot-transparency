@@ -23,6 +23,7 @@ def main(
     formatters = TRAINING_FORMATS
 
     cot_data: Slist[TaskOutput]
+    # TODO fix this 
     cot_data = get_training_cots_gpt_35(model_output_verified)  # gold standard formatter
     print(f"loaded {len(cot_data)} cots")
     cot_data_shuffled = cot_data.shuffle(seed=str(42))

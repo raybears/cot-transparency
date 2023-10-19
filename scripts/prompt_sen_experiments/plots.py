@@ -1,9 +1,12 @@
+from enum import Enum
+from functools import partial
 from typing import Optional, Sequence
 import fire
 import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
+from slist import Slist
 from statsmodels.stats.inter_rater import fleiss_kappa, aggregate_raters
 from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
 from cot_transparency.data_models.pd_utils import IsCoTExtractor, convert_slist_to_df
@@ -63,7 +66,7 @@ def entropy_on_group(group: pd.DataFrame) -> pd.Series:  # type: ignore
     return pd.Series({"entropy": entropy})
 
 
-def get_modal_agreement_score(group: pd.DataFrame, include_none_as_a_question_choice: bool = True) -> pd.DataFrame:
+def get_modal_agreement_score(group: pd.DataFrame) -> pd.DataFrame:
     """
     measure the consistency of the group, is_correct
     Note if any of the responses in the group are None then the whole group is set to None
@@ -71,12 +74,6 @@ def get_modal_agreement_score(group: pd.DataFrame, include_none_as_a_question_ch
     assert group.ground_truth.nunique() == 1
 
     responses = group["parsed_response"]
-
-    if not include_none_as_a_question_choice:
-        if any(responses == "none"):
-            group["modal_agreement_score"] = None
-            group["is_same_as_mode"] = None
-            return group
 
     modal_answer = responses.mode()[0]
     group["is_same_as_mode"] = responses == modal_answer
@@ -101,6 +98,12 @@ def convert_s2_to_s1(s2_output: StageTwoTaskOutput) -> TaskOutput:
     return s1_output
 
 
+class NoneFilteringStrategy(Enum):
+    NO_FILTERING = "no_filtering"
+    WHERE_GPT_SAID_NONE = "where_gpt_said_none"
+    DROP_NONES_INTRA_MODEL = "drop_nones_intra_model"
+
+
 def prompt_metrics(
     exp_dir: str,
     models: Sequence[str] = [],
@@ -113,7 +116,7 @@ def prompt_metrics(
     temperature: Optional[int] = None,
     only_modally_wrong: bool = False,
     aggregate_tasks: bool = False,
-    include_none_as_a_question_choice: bool = True,
+    none_filtering_strategy: NoneFilteringStrategy = NoneFilteringStrategy.WHERE_GPT_SAID_NONE,
 ):
     # try reading as stage 2
 
@@ -135,6 +138,51 @@ def prompt_metrics(
     )
     print("Number of responses after filtering = ", len(filtered))
 
+    # sort so the order is the same as MODELS
+    filtered.sort(key=lambda x: models.index(x.task_spec.inference_config.model))
+
+    match none_filtering_strategy:
+        case NoneFilteringStrategy.NO_FILTERING:
+            pass
+        case NoneFilteringStrategy.DROP_NONES_INTRA_MODEL:
+            # drop all questions where that model said None to any of the different ways of formatting the question
+            filtered = (
+                filtered.group_by(
+                    lambda x: x.task_spec.task_hash
+                    + x.task_spec.inference_config.model
+                    + str(x.task_spec.intervention_name)
+                )
+                .map_2(lambda key, group: (group, group.any(lambda x: x.inference_output.parsed_response is None)))
+                .filter(lambda x: not x[1])
+                .map(lambda x: x[0])
+                .flatten_list()
+            )
+        case NoneFilteringStrategy.WHERE_GPT_SAID_NONE:
+            # drop all questions where gpt 3.5 said None to any of the formatters
+            # Lol so readable
+            gpt_3_5_allowed_question = (
+                filtered.filter(lambda x: x.task_spec.inference_config.model == "gpt-3.5-turbo")
+                .group_by(
+                    lambda x: x.task_spec.task_hash
+                    + x.task_spec.inference_config.model
+                    + str(x.task_spec.intervention_name)
+                )
+                .map_2(lambda key, group: (group, group.any(lambda x: x.inference_output.parsed_response is None)))
+                .filter(lambda x: not x[1])
+                .map(lambda x: x[0])
+                .flatten_list()
+            )
+
+            set_of_task_hash_and_intervention_name = gpt_3_5_allowed_question.map(
+                lambda x: x.task_spec.task_hash + str(x.task_spec.intervention_name)
+            ).to_set()
+
+            filtered = filtered.filter(
+                lambda x: x.task_spec.task_hash + str(x.task_spec.intervention_name)
+                in set_of_task_hash_and_intervention_name
+            )
+
+    print("Number of repsonses after maybe dropping Nones:", len(filtered))
     df = convert_slist_to_df(filtered, [BasicExtractor(), IsCoTExtractor()])
 
     # number of duplicate input_hashes
@@ -171,11 +219,10 @@ def prompt_metrics(
 
     # is consistent across formatters
     # drop on task_hash
-    df_with_mode = df.groupby([x, "task_hash", hue]).apply(lambda x: get_modal_agreement_score(x, include_none_as_a_question_choice)).reset_index(drop=True)  # type: ignore
-    if not include_none_as_a_question_choice:
-        df_with_mode: pd.DataFrame = df_with_mode[~df_with_mode["modal_agreement_score"].isna()]  # type: ignore
-        print(f"Number of responses after maybe dropping groups that contained a None: {len(df_with_mode)}")
-        assert not any(df_with_mode["parsed_response"] == "none")
+    df_with_mode = df.groupby([x, "task_hash", hue]).apply(get_modal_agreement_score).reset_index(drop=True)  # type: ignore
+    # df_with_mode: pd.DataFrame = df_with_mode[~df_with_mode["modal_agreement_score"].isna()]  # type: ignore
+    # print(f"Number of responses after maybe dropping groups that contained a None: {len(df_with_mode)}")
+    # assert not any(df_with_mode["parsed_response"] == "none")
 
     if only_modally_wrong:
         df_with_mode = df_with_mode[df_with_mode["modal_answer"] != df_with_mode["ground_truth"]]  # type: ignore
@@ -190,9 +237,10 @@ def prompt_metrics(
     n_questions = f"{df_with_mode.groupby([col, hue])['task_hash'].nunique().mean():.1f}"
     n_formatter = df_with_mode.groupby(["intervention_name"])["formatter_name"].nunique().mean()  # type: ignore
 
-    hue_order = [i for i in HUE_ORDER if i in df_with_mode[hue].unique()]
-    # append all things that were not in HUE_ORDER
-    hue_order.extend([i for i in df_with_mode[hue].unique() if i not in HUE_ORDER])
+    if hue == "model":
+        hue_order = Slist(models).map(lambda x: MODEL_SIMPLE_NAMES[x])
+    else:
+        hue_order = None
 
     print("\n Modal Agreement Score")
     g = catplot(

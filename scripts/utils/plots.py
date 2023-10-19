@@ -38,6 +38,7 @@ def catplot(
     x: Optional[str] = None,
     col: Optional[str] = None,
     y: Optional[str] = None,
+    add_line_at: Optional[float] = None,
     **kwargs: Any,
 ) -> sns.FacetGrid:  # typing: ignore
     """
@@ -79,6 +80,11 @@ def catplot(
     g = sns.catplot(
         *args, linewidth=1, edgecolor="black", data=df, hue=hue, x=x, col=col, y=y, **kwargs
     )  # typing: ignore
+
+    # for each axis in the plot add a line at y = add_line_at
+    if add_line_at is not None:
+        for ax in g.axes.flat:
+            ax.axhline(y=add_line_at, color="r", linestyle="--")
 
     # print the counts for the x, hue, col group
     groups = []
