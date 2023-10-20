@@ -60,8 +60,8 @@ def alpaca_sample_to_prompt(sample: FinetuneSample) -> Prompt:
 
 class QuestionWithLabels(BaseModel):
     question: ChatMessage
-    first_response: JudgeChoice
-    second_response: JudgeChoice
+    first_label: JudgeChoice
+    second_label: JudgeChoice
 
 
 def judge_question(comparison: ComparisonGeneration) -> QuestionWithLabels:
@@ -82,16 +82,17 @@ Second response: {second_text}"""
     message = ChatMessage(role=MessageRole.user, content=text)
     return QuestionWithLabels(
         question=message,
-        first_response=JudgeChoice.vanilla if vanilla_first else JudgeChoice.intervention,
-        second_response=JudgeChoice.intervention if vanilla_first else JudgeChoice.vanilla,
+        first_label=JudgeChoice.vanilla if vanilla_first else JudgeChoice.intervention,
+        second_label=JudgeChoice.intervention if vanilla_first else JudgeChoice.vanilla,
     )
 
 
-def parse_judge_output(judge_output: str) -> Optional[JudgeChoice]:
-    if "first" in judge_output.lower():
-        return JudgeChoice.vanilla
-    elif "second" in judge_output.lower():
-        return JudgeChoice.intervention
+def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label: JudgeChoice) -> Optional[JudgeChoice]:
+    first_word = judge_output.split()[0]
+    if "first" in first_word.lower():
+        return first_label
+    elif "second" in first_word.lower():
+        return second_label
     else:
         print(f"Could not parse judge output {judge_output}")
         return None
@@ -103,7 +104,7 @@ def get_judge_output(comparison: ComparisonGeneration, judge: ModelCaller) -> Co
         messages=[question.question],
         config=OpenaiInferenceConfig(model="gpt-4", max_tokens=4, temperature=0.0, top_p=1.0),
     ).single_response
-    winner = parse_judge_output(judge_response)
+    winner = parse_judge_output(judge_response, question.first_label, question.second_label)
     return ComparisonGenerationJudged(generation=comparison, judge_output=judge_response, winner=winner)
 
 
@@ -115,7 +116,7 @@ def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
 
 
 async def main():
-    alpaca_samples = 300
+    alpaca_samples = 500
     samples: Slist[FinetuneSample] = get_alpaca_testing(alpaca_samples)
     instruction_models = OpenAIChatCaller().with_file_cache(
         Path("experiments/alignment_tax/follow_instruction.jsonl"), write_every_n=10
