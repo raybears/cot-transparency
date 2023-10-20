@@ -14,7 +14,6 @@ from cot_transparency.apis.base import Prompt, ModelCaller
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from scripts.load_alpaca_dataset import get_alpaca_testing
 
 
