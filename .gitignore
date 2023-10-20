@@ -18,6 +18,7 @@ htmlcov
 
 experiments
 notebooks
+data/uploaded_finetuning_files
 
 
 .env

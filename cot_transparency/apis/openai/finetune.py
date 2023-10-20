@@ -292,8 +292,9 @@ def run_finetune(
     """
     # get time for file name
     now_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    file_name = f"{params.model}-{now_time}.jsonl"
+    file_name = f"./data/uploaded_finetuning_files/{params.model}-{now_time}.jsonl"
     write_jsonl_path = Path(file_name)
+    write_jsonl_path.mkdir(parents=True, exist_ok=True)
     # write to file
     write_jsonl_file_from_basemodel(path=write_jsonl_path, basemodels=samples)
     if ask_to_validate_training:
