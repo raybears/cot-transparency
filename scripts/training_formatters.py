@@ -1,5 +1,7 @@
 from typing import Sequence, Type
 
+from slist import Slist
+
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter, AnswerAlwaysANoCOTFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
@@ -70,24 +72,28 @@ TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroSho
 
 # NON-COT FORMATTERS
 
-TRAINING_NO_COT_FORMATTERS_ZERO_SHOT = [
-    StanfordNoCOTFormatter,
-    MoreRewardBiasedNoCOTFormatter,
-    ZeroShotSycophancyFormatter,
-    RandomBiasedNoCOTFormatter,
-    RandomBiasedQuotedNoCOTFormatter,
-    RandomAgainstBiasedNoCOTFormatter,
-    RandomAgainstBiasedQuotedNoCOTFormatter,
-]
+TRAINING_NO_COT_FORMATTERS_ZERO_SHOT: Slist[Type[StageOneFormatter]] = Slist(
+    [
+        StanfordNoCOTFormatter,
+        MoreRewardBiasedNoCOTFormatter,
+        ZeroShotSycophancyFormatter,
+        RandomBiasedNoCOTFormatter,
+        RandomBiasedQuotedNoCOTFormatter,
+        RandomAgainstBiasedNoCOTFormatter,
+        RandomAgainstBiasedQuotedNoCOTFormatter,
+    ]
+)
 
-TRAINING_NO_COT_FORMATTERS_FEW_SHOT = [
-    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-    CheckmarkNoCOTFormatter,
-    CrossNoCOTFormatter,
-    AnswerAlwaysANoCOTFormatter,
-]
+TRAINING_NO_COT_FORMATTERS_FEW_SHOT: Slist[Type[StageOneFormatter]] = Slist(
+    [
+        WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+        CheckmarkNoCOTFormatter,
+        CrossNoCOTFormatter,
+        AnswerAlwaysANoCOTFormatter,
+    ]
+)
 
 
 TRAINING_NO_COT_FORMATTERS = TRAINING_NO_COT_FORMATTERS_ZERO_SHOT + TRAINING_NO_COT_FORMATTERS_FEW_SHOT
-TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED = TRAINING_NO_COT_FORMATTERS + [ZeroShotUnbiasedFormatter]
+TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED = TRAINING_NO_COT_FORMATTERS + Slist([ZeroShotUnbiasedFormatter])
 TRAINING_DECEPTIVE_COT = DeceptiveAssistantTargetedFormatter

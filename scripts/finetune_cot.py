@@ -260,6 +260,7 @@ def replace_unbiased_cot_prompt_with_formatters(
     output = Slist[TaskOutput]()
     for formatter in use_formatters:
         new = task.model_copy(deep=True)
+
         assert (
             task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
         ), f"Got {task.task_spec.formatter_name}"
@@ -282,27 +283,22 @@ def transform_into_post_hoc_reasoning(task: TaskOutput) -> TaskOutput:
     return new
 
 
-def replace_unbiased_non_cot_prompt_with_biased(
-    task: TaskOutput, exclude_formatters: Sequence[Type[StageOneFormatter]], idx: int
-) -> TaskOutput:
-    new = task.model_copy(deep=True)
-    assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name()
-    sampled_formatter = sample_from_non_cot_biases(exclude_formatters, seed=str(idx))
-    data_example: DataExampleBase = task.task_spec.get_data_example_obj()
-    new.task_spec.messages = sampled_formatter.format_example(data_example)
-    return new
-
-
-def replace_unbiased_non_cot_prompt_with_formatters(
+def replace_unbiased_prompt_with_formatters(
     task: TaskOutput,
-    use_formatters: Iterable[Type[StageOneFormatter]],
+    use_formatters: Iterable[tuple[Type[Intervention] | None, Type[StageOneFormatter]]],
 ) -> Slist[TaskOutput]:
     output = Slist[TaskOutput]()
-    for formatter in use_formatters:
+    for intervention, formatter in use_formatters:
         new = task.model_copy(deep=True)
-        assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name()
         data_example: DataExampleBase = task.task_spec.get_data_example_obj()
-        new.task_spec.messages = formatter.format_example(data_example)
+        if intervention is None:
+            new.task_spec.messages = formatter.format_example(data_example)
+        else:
+            new.task_spec.messages = intervention.intervene(
+                question=data_example,
+                formatter=formatter,
+                model=task.task_spec.inference_config.model,
+            )
         output.append(new)
     return output
 
@@ -327,32 +323,33 @@ class FormatterOptions(str, Enum):
     all_biased = "all_biased"
     zero_shot = "zero_shot"
     few_shot = "few_shot"
-    prompt_variants_10 = "prompt_variants_10"
+    prompt_variants_set1 = "prompt_variants_set1"
 
 
 @dataclasses.dataclass(kw_only=True)
 class FormatterOptionsResult:
-    biased_formatters: set[Type[StageOneFormatter] | tuple[Type[Intervention], Type[StageOneFormatter]]]
-    unbiased_formatters: set[Type[StageOneFormatter] | tuple[Type[Intervention], Type[StageOneFormatter]]]
+    biased_formatters: set[tuple[Type[Intervention] | None, Type[StageOneFormatter]]]
+    unbiased_formatters: set[tuple[Type[Intervention] | None, Type[StageOneFormatter]]]
 
 
 def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOptionsResult:
-    non_cot_formatters: Sequence[Type[StageOneFormatter] | tuple[Type[Intervention], Type[StageOneFormatter]]]
-    cot_formatters: Sequence[Type[StageOneFormatter] | tuple[Type[Intervention], Type[StageOneFormatter]]]
+    non_cot_formatters: Sequence[tuple[Type[Intervention] | None, Type[StageOneFormatter]]]
+    cot_formatters: Sequence[tuple[Type[Intervention] | None, Type[StageOneFormatter]]]
+
     match formatter_options:
         case FormatterOptions.all_biased:
-            non_cot_formatters = TRAINING_NO_COT_FORMATTERS
-            cot_formatters = TRAINING_COT_FORMATTERS
+            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS).map(lambda x: (None, x))
+            cot_formatters = Slist(TRAINING_COT_FORMATTERS).map(lambda x: (None, x))
         case FormatterOptions.zero_shot:
-            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_ZERO_SHOT
-            cot_formatters = TRAINING_COT_FORMATTERS_ZERO_SHOT
+            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(lambda x: (None, x))
+            cot_formatters = Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(lambda x: (None, x))
         case FormatterOptions.few_shot:
-            non_cot_formatters = TRAINING_NO_COT_FORMATTERS_FEW_SHOT
-            cot_formatters = TRAINING_COT_FORMATTERS_FEW_SHOT
+            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_FEW_SHOT).map(lambda x: (None, x))
+            cot_formatters = Slist(TRAINING_COT_FORMATTERS_FEW_SHOT).map(lambda x: (None, x))
         case FormatterOptions.control_only_unbiased:
-            non_cot_formatters = [ZeroShotUnbiasedFormatter]
-            cot_formatters = [ZeroShotCOTUnbiasedFormatter]
-        case FormatterOptions.prompt_variants_10:
+            non_cot_formatters = [(None, ZeroShotUnbiasedFormatter)]
+            cot_formatters = [(None, ZeroShotCOTUnbiasedFormatter)]
+        case FormatterOptions.prompt_variants_set1:
             non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_7.map(lambda x: (AddStepByStepAssistantPref, x))
             cot_formatters = TRAINING_COT_PROMPT_VARIANTS_8.map(lambda x: (AddVerbalizeAndStepByStepAssistantPref, x))
 
@@ -401,15 +398,15 @@ def fine_tune_with_bias_augmentation_no_repeat(
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
 
-    eligible_non_cot_formatters = non_cot_formatters - set(exclude_formatters)
+    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x[1] not in exclude_formatters)
     assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
-    eligible_cot_formatters = cot_formatters - set(exclude_formatters)
+    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x[1] not in exclude_formatters)
     assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     print(f"Number of non cots: {len(non_cot_data)}")
     non_cot_limited = (
         non_cot_data_shuffled.map(
-            lambda task: replace_unbiased_non_cot_prompt_with_formatters(
+            lambda task: replace_unbiased_prompt_with_formatters(
                 task=task,
                 use_formatters=eligible_non_cot_formatters,
             )
@@ -427,7 +424,7 @@ def fine_tune_with_bias_augmentation_no_repeat(
     print(f"Number of cots: {len(cot_data)}")
     cot_limited = (
         cot_data_shuffled.map(
-            lambda task: replace_unbiased_cot_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
+            lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
             .shuffle()
             .first_or_raise()
         )
@@ -450,8 +447,12 @@ def fine_tune_with_bias_augmentation_no_repeat(
         "n_non_cots": len(non_cot_samples),
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
-        "eligible_non_cot_formatters": [f.name() for f in eligible_non_cot_formatters],
-        "eligible_cot_formatters": [f.name() for f in eligible_cot_formatters],
+        "eligible_non_cot_formatters": [
+            sorted(eligible_non_cot_formatters.map(lambda x: x[1].name() + f"_{x[0]}" if x[0] else x[1].name()))
+        ],
+        "eligible_cot_formatters": [
+            sorted(eligible_cot_formatters.map(lambda x: x[1].name() + f"_{x[0]}" if x[0] else x[1].name()))
+        ],
         "formatter_options": formatter_options.value,
         "data_from": data_from_options.value,
         "post_hoc": post_hoc,
@@ -513,15 +514,16 @@ def fine_tune_with_bias_augmentation(
     formatter_options_result = match_formatter_options(formatter_options)
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
-    eligible_non_cot_formatters = non_cot_formatters - set(exclude_formatters)
+
+    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x[1] not in exclude_formatters)
     assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
-    eligible_cot_formatters = cot_formatters - set(exclude_formatters)
+    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x[1] not in exclude_formatters)
     assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     print(f"Number of non cots: {len(non_cot_data)}")
     non_cot_limited = (
         non_cot_data_shuffled.map(
-            lambda task: replace_unbiased_non_cot_prompt_with_formatters(
+            lambda task: replace_unbiased_prompt_with_formatters(
                 task=task,
                 use_formatters=eligible_non_cot_formatters,
             )
@@ -539,7 +541,7 @@ def fine_tune_with_bias_augmentation(
     print(f"Number of cots: {len(cot_data)}")
     cot_limited = (
         cot_data_shuffled.map(
-            lambda task: replace_unbiased_cot_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
+            lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
         )
         .flatten_list()
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
@@ -555,14 +557,19 @@ def fine_tune_with_bias_augmentation(
     samples = (total_task_samples + alpaca_samples).shuffle("42")
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     control_only_unbiased = formatter_options == FormatterOptions.control_only_unbiased
+
     more_config = {
         "instruct_sample_proportion": instruct_sample_proportion,
         "n_cots": len(cot_samples),
         "n_non_cots": len(non_cot_samples),
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
-        "eligible_non_cot_formatters": [f.name() for f in eligible_non_cot_formatters],
-        "eligible_cot_formatters": [f.name() for f in eligible_cot_formatters],
+        "eligible_non_cot_formatters": [
+            sorted(eligible_non_cot_formatters.map(lambda x: x[1].name() + f"_{x[0]}" if x[0] else x[1].name()))
+        ],
+        "eligible_cot_formatters": [
+            sorted(eligible_cot_formatters.map(lambda x: x[1].name() + f"_{x[0]}" if x[0] else x[1].name()))
+        ],
         "formatter_options": formatter_options.value,
         "data_from": data_from_options.value,
         "post_hoc": post_hoc,
