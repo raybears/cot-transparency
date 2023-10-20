@@ -1,11 +1,15 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
 from typing import Any, Self, Sequence
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
 
 
 from pydantic import BaseModel
+
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
+from cot_transparency.util import deterministic_hash
 
 
 class ModelType(str, Enum):
@@ -77,3 +81,74 @@ class ModelCaller(ABC):
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         raise NotImplementedError()
+
+    def with_file_cache(self, cache_path: Path) -> "CachedCaller":
+        """
+        Load a file cache from a path
+        """
+        return make_file_cache(self, cache_path)
+
+
+def file_cache_key(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
+    str_messages = ",".join([str(msg) for msg in messages]) + config.d_hash()
+    return deterministic_hash(str_messages)
+
+
+class FileCacheRow(BaseModel):
+    key: str
+    response: InferenceResponse
+
+
+def load_file_cache(cache_path: Path) -> dict[str, InferenceResponse]:
+    """
+    Load a file cache from a path
+    """
+    if cache_path.exists():
+        rows = read_jsonl_file_into_basemodel(
+            path=cache_path,
+            basemodel=FileCacheRow,
+        )
+        print(f"Loaded {len(rows)} rows from cache file {cache_path.as_posix()}")
+        return {row.key: row.response for row in rows}
+    else:
+        return {}
+
+
+def save_file_cache(cache_path: Path, cache: dict[str, InferenceResponse]) -> None:
+    """
+    Save a file cache to a path
+    """
+    rows = [FileCacheRow(key=key, response=response) for key, response in cache.items()]
+    print(f"Saving {len(rows)} rows to cache file {cache_path.as_posix()}")
+    write_jsonl_file_from_basemodel(cache_path, rows)
+
+
+class CachedCaller(ModelCaller):
+    def __init__(self, wrapped_caller: ModelCaller, cache_path: Path):
+        self.model_caller = wrapped_caller
+        self.cache_path = cache_path
+        self.cache: dict[str, InferenceResponse] = load_file_cache(cache_path)
+
+    def save_cache(self) -> None:
+        save_file_cache(self.cache_path, self.cache)
+
+    def call(
+        self,
+        messages: list[ChatMessage],
+        config: OpenaiInferenceConfig,
+    ) -> InferenceResponse:
+        key = file_cache_key(messages, config)
+        if key in self.cache:
+            return self.cache[key]
+        else:
+            response = self.model_caller.call(messages, config)
+            self.cache[key] = response
+            return response
+
+
+def make_file_cache(model_caller: ModelCaller, cache_path: Path) -> CachedCaller:
+    """
+    Add a file cache to a model caller
+    """
+
+    return CachedCaller(wrapped_caller=model_caller, cache_path=cache_path)
