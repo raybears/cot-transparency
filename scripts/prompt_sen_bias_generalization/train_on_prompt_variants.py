@@ -1,11 +1,12 @@
-
+from concurrent.futures import ProcessPoolExecutor
 from pydantic import BaseModel
 from slist import Slist
 
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
 from scripts.training_formatters import TRAINING_COT_FORMATTERS
-from stage_one import main
+from stage_one import main as stage_one_main
+import fire
 
 
 class SweepOptions(BaseModel):
@@ -30,7 +31,7 @@ def train_and_run(sweep: SweepOptions) -> None:
     )
     # Test on both few shot and zero shot biases
     test_formatters = [f.name() for f in TRAINING_COT_FORMATTERS]
-    main(
+    stage_one_main(
         exp_dir="experiments/finetune_3",
         models=[model],
         formatters=test_formatters,
@@ -41,12 +42,20 @@ def train_and_run(sweep: SweepOptions) -> None:
     )
 
 
-if __name__ == "__main__":
-    sweeps: Slist[SweepOptions] = Slist()
-    for n_sample in [100]:
-        for formatter_option in [FormatterOptions.prompt_variants_set1]:
-            # sweeps.append(SweepOptions(n_samples=n_sample, formatter_options=formatter_option))
-            train_and_run(SweepOptions(n_samples=n_sample, formatter_options=formatter_option))
+def main(n_samples: list[int] = [100, 1000, 10000, 20000]):
+    assert isinstance(n_samples, list), "n_samples must be a list of ints"
 
-    # # need to use process pool executor as wandb is not thread safe
-    # sweeps.par_map(train_and_run, executor=ProcessPoolExecutor(sweeps.length))
+    formatter_options = FormatterOptions.prompt_variants_set1
+    if len(n_samples) == 1:
+        train_and_run(SweepOptions(n_samples=n_samples[0], formatter_options=formatter_options))
+    else:
+        sweeps: Slist[SweepOptions] = Slist()
+        for n_sample in n_samples:
+            sweeps.append(SweepOptions(n_samples=n_sample, formatter_options=formatter_options))
+
+        # need to use process pool executor as wandb is not thread safe
+        sweeps.par_map(train_and_run, executor=ProcessPoolExecutor(sweeps.length))
+
+
+if __name__ == "__main__":
+    fire.Fire(main)

@@ -283,20 +283,26 @@ def transform_into_post_hoc_reasoning(task: TaskOutput) -> TaskOutput:
     return new
 
 
+@dataclasses.dataclass(kw_only=True)
+class FormatterWithPossibleIntervention:
+    formatter: Type[StageOneFormatter]
+    intervention: Optional[Type[Intervention]] = None
+
+
 def replace_unbiased_prompt_with_formatters(
     task: TaskOutput,
-    use_formatters: Iterable[tuple[Type[Intervention] | None, Type[StageOneFormatter]]],
+    use_formatters: Iterable[FormatterWithPossibleIntervention],
 ) -> Slist[TaskOutput]:
     output = Slist[TaskOutput]()
-    for intervention, formatter in use_formatters:
+    for fwpi in use_formatters:
         new = task.model_copy(deep=True)
         data_example: DataExampleBase = task.task_spec.get_data_example_obj()
-        if intervention is None:
-            new.task_spec.messages = formatter.format_example(data_example)
+        if fwpi.intervention is None:
+            new.task_spec.messages = fwpi.formatter.format_example(data_example)
         else:
-            new.task_spec.messages = intervention.intervene(
+            new.task_spec.messages = fwpi.intervention.intervene(
                 question=data_example,
-                formatter=formatter,
+                formatter=fwpi.formatter,
                 model=task.task_spec.inference_config.model,
             )
         output.append(new)
@@ -328,30 +334,49 @@ class FormatterOptions(str, Enum):
 
 @dataclasses.dataclass(kw_only=True)
 class FormatterOptionsResult:
-    biased_formatters: set[tuple[Type[Intervention] | None, Type[StageOneFormatter]]]
-    unbiased_formatters: set[tuple[Type[Intervention] | None, Type[StageOneFormatter]]]
+    biased_formatters: set[FormatterWithPossibleIntervention]
+    unbiased_formatters: set[FormatterWithPossibleIntervention]
 
 
 def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOptionsResult:
-    non_cot_formatters: Sequence[tuple[Type[Intervention] | None, Type[StageOneFormatter]]]
-    cot_formatters: Sequence[tuple[Type[Intervention] | None, Type[StageOneFormatter]]]
+    non_cot_formatters: Sequence[FormatterWithPossibleIntervention]
+    cot_formatters: Sequence[FormatterWithPossibleIntervention]
 
     match formatter_options:
         case FormatterOptions.all_biased:
-            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS).map(lambda x: (None, x))
-            cot_formatters = Slist(TRAINING_COT_FORMATTERS).map(lambda x: (None, x))
+            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+            cot_formatters = Slist(TRAINING_COT_FORMATTERS).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
         case FormatterOptions.zero_shot:
-            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(lambda x: (None, x))
-            cot_formatters = Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(lambda x: (None, x))
+            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+            cot_formatters = Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
         case FormatterOptions.few_shot:
-            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_FEW_SHOT).map(lambda x: (None, x))
-            cot_formatters = Slist(TRAINING_COT_FORMATTERS_FEW_SHOT).map(lambda x: (None, x))
+            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_FEW_SHOT).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+            cot_formatters = Slist(TRAINING_COT_FORMATTERS_FEW_SHOT).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
         case FormatterOptions.control_only_unbiased:
-            non_cot_formatters = [(None, ZeroShotUnbiasedFormatter)]
-            cot_formatters = [(None, ZeroShotCOTUnbiasedFormatter)]
+            non_cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)]
+            cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
         case FormatterOptions.prompt_variants_set1:
-            non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_7.map(lambda x: (AddStepByStepAssistantPref, x))
-            cot_formatters = TRAINING_COT_PROMPT_VARIANTS_8.map(lambda x: (AddVerbalizeAndStepByStepAssistantPref, x))
+            non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_7.map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddStepByStepAssistantPref)
+            )
+            cot_formatters = TRAINING_COT_PROMPT_VARIANTS_8.map(
+                lambda x: FormatterWithPossibleIntervention(
+                    formatter=x,
+                    intervention=AddVerbalizeAndStepByStepAssistantPref,
+                )
+            )
 
     return FormatterOptionsResult(
         biased_formatters=set(cot_formatters),
@@ -398,9 +423,9 @@ def fine_tune_with_bias_augmentation_no_repeat(
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
 
-    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x[1] not in exclude_formatters)
+    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
     assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
-    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x[1] not in exclude_formatters)
+    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
     assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     print(f"Number of non cots: {len(non_cot_data)}")
