@@ -288,6 +288,9 @@ class FormatterWithPossibleIntervention:
     formatter: Type[StageOneFormatter]
     intervention: Optional[Type[Intervention]] = None
 
+    def name(self):
+        return self.formatter.name() + (f"_{self.intervention.name()}" if self.intervention else "")
+
 
 def replace_unbiased_prompt_with_formatters(
     task: TaskOutput,
@@ -472,12 +475,8 @@ def fine_tune_with_bias_augmentation_no_repeat(
         "n_non_cots": len(non_cot_samples),
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
-        "eligible_non_cot_formatters": [
-            sorted(eligible_non_cot_formatters.map(lambda x: x[1].name() + f"_{x[0]}" if x[0] else x[1].name()))
-        ],
-        "eligible_cot_formatters": [
-            sorted(eligible_cot_formatters.map(lambda x: x[1].name() + f"_{x[0]}" if x[0] else x[1].name()))
-        ],
+        "eligible_non_cot_formatters": [sorted(eligible_non_cot_formatters.map(lambda x: x.name()))],
+        "eligible_cot_formatters": [sorted(eligible_cot_formatters.map(lambda x: x.name()))],
         "formatter_options": formatter_options.value,
         "data_from": data_from_options.value,
         "post_hoc": post_hoc,
@@ -540,9 +539,9 @@ def fine_tune_with_bias_augmentation(
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
 
-    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x[1] not in exclude_formatters)
+    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
     assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
-    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x[1] not in exclude_formatters)
+    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
     assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     print(f"Number of non cots: {len(non_cot_data)}")
@@ -589,12 +588,8 @@ def fine_tune_with_bias_augmentation(
         "n_non_cots": len(non_cot_samples),
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
-        "eligible_non_cot_formatters": [
-            sorted(eligible_non_cot_formatters.map(lambda x: x[1].name() + f"_{x[0]}" if x[0] else x[1].name()))
-        ],
-        "eligible_cot_formatters": [
-            sorted(eligible_cot_formatters.map(lambda x: x[1].name() + f"_{x[0]}" if x[0] else x[1].name()))
-        ],
+        "eligible_non_cot_formatters": [sorted(eligible_non_cot_formatters.map(lambda x: x.name()))],
+        "eligible_cot_formatters": [sorted(eligible_cot_formatters.map(lambda x: x.name()))],
         "formatter_options": formatter_options.value,
         "data_from": data_from_options.value,
         "post_hoc": post_hoc,
