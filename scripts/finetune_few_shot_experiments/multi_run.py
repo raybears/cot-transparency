@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 from pydantic import BaseModel
 from slist import Slist
@@ -46,4 +46,5 @@ if __name__ == "__main__":
         for formatter_option in [FormatterOptions.few_shot]:
             sweeps.append(SweepOptions(n_samples=n_sample, formatter_options=formatter_option))
 
-    sweeps.par_map(train_and_run, executor=ThreadPoolExecutor(sweeps.length))
+    # need to use process pool executor as wandb is not thread safe
+    sweeps.par_map(train_and_run, executor=ProcessPoolExecutor(sweeps.length))
