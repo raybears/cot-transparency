@@ -142,7 +142,8 @@ async def main():
         )
         .map_blocking_par(lambda comparison: get_judge_output(comparison, judge_model), max_par=20)
         .tqdm(tqdm(total=samples.length))
-        # overwrite the file
+        # err this appends, so each time you load, you need to delete the old results
+        # will fix later
         .for_each_to_file(
             file_path=Path("experiments/alignment_tax/results.jsonl"), serialize=lambda x: x.model_dump_json()
         )
