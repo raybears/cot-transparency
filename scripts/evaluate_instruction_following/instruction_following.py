@@ -2,7 +2,7 @@ import asyncio
 import random
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Sequence
 
 from grugstream import Observable
 from pydantic import BaseModel
@@ -14,6 +14,7 @@ from cot_transparency.apis.base import Prompt, ModelCaller
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from scripts.load_alpaca_dataset import get_alpaca_testing
 
 
@@ -106,11 +107,20 @@ def get_judge_output(comparison: ComparisonGeneration, judge: ModelCaller) -> Co
     return ComparisonGenerationJudged(generation=comparison, judge_output=judge_response, winner=winner)
 
 
+def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
+    judged_slist = Slist(judged)
+    print(f"Total judged: {len(judged_slist)}")
+    print(f"Total winner vanilla: {len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))}")
+    print(f"Total winner intervention: {len(judged_slist.filter(lambda j: j.winner == JudgeChoice.intervention))}")
+
+
 async def main():
-    alpaca_samples = 2
+    alpaca_samples = 300
     samples: Slist[FinetuneSample] = get_alpaca_testing(alpaca_samples)
-    instruction_models = OpenAIChatCaller().with_file_cache(Path("experiments/alignment_tax/follow_instruction.jsonl"))
-    judge_model = OpenAIChatCaller().with_file_cache(Path("experiments/alignment_tax/judge.jsonl"))
+    instruction_models = OpenAIChatCaller().with_file_cache(
+        Path("experiments/alignment_tax/follow_instruction.jsonl"), write_every_n=10
+    )
+    judge_model = OpenAIChatCaller().with_file_cache(Path("experiments/alignment_tax/judge.jsonl"), write_every_n=10)
     vanilla_config = OpenaiInferenceConfig(model="gpt-3.5-turbo", max_tokens=500, temperature=0.0, top_p=1.0)
     intervention_config = OpenaiInferenceConfig(
         model="ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC", max_tokens=500, temperature=0.0, top_p=1.0
@@ -132,9 +142,12 @@ async def main():
         .tqdm(tqdm(total=alpaca_samples))
     )
     # run it
-    await pipeline.to_list()
+    results: list[ComparisonGenerationJudged] = await pipeline.to_list()
+    write_path = Path("experiments/alignment_tax/results.jsonl")
+    write_jsonl_file_from_basemodel(write_path, results)
     instruction_models.save_cache()
     judge_model.save_cache()
+    eval_judged(results)
 
 
 if __name__ == "__main__":
