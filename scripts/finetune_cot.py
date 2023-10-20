@@ -283,7 +283,7 @@ def transform_into_post_hoc_reasoning(task: TaskOutput) -> TaskOutput:
     return new
 
 
-@dataclasses.dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True, frozen=True)
 class FormatterWithPossibleIntervention:
     formatter: Type[StageOneFormatter]
     intervention: Optional[Type[Intervention]] = None
