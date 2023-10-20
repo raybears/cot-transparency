@@ -1,8 +1,18 @@
+"""
+This file exists as the prompt variants are defined in quite a general way. They don't specify 
+"please think step by step"  so if you want that behaviour then you can use one of these intervetions. 
+This is used for consistency training.
+"""
 from typing import Optional, Type
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT, VERBALIZE_INSTRUCTION
+from cot_transparency.formatters.instructions import (
+    COT_ASSISTANT_PROMPT,
+    NON_COT_ASSISTANT_PROMPT,
+    VERBALIZE_INSTRUCTION,
+    add_verbalize_instruction_to_question,
+)
 from cot_transparency.formatters.interventions.intervention import Intervention
 
 
@@ -20,7 +30,7 @@ class StepByStep(Intervention):
         return questions + [step_by_step]
 
 
-class AddStepByStepVariant(Intervention):
+class AddBestAnswerIsAssistantPref(Intervention):
     @classmethod
     def intervene(
         cls,
@@ -28,9 +38,22 @@ class AddStepByStepVariant(Intervention):
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
     ) -> list[ChatMessage]:
-        questions = formatter.format_example(question, model=model)
-        step_by_step = ChatMessage(role=MessageRole.assistant, content="mod")
-        return questions + [step_by_step]
+        messages = formatter.format_example(question, model=model)
+        messages.append(ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT))
+        return messages
+
+
+class AddStepByStepAssistantPref(Intervention):
+    @classmethod
+    def intervene(
+        cls,
+        question: DataExampleBase,
+        formatter: Type[StageOneFormatter],
+        model: Optional[str] = None,
+    ) -> list[ChatMessage]:
+        messages = formatter.format_example(question, model=model)
+        messages.append(ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT))
+        return messages
 
 
 class AddVerbalizeInstructionBestAnswer(Intervention):
@@ -50,7 +73,7 @@ class AddVerbalizeInstructionBestAnswer(Intervention):
         return questions
 
 
-class AddVerbalizeAndStepByStep(Intervention):
+class AddVerbalizeAndStepByStepAssistantPref(Intervention):
     @classmethod
     def intervene(
         cls,
@@ -61,9 +84,11 @@ class AddVerbalizeAndStepByStep(Intervention):
         questions = formatter.format_example(question, model=model)
 
         last_message = questions[-1]
-        content = last_message.content + VERBALIZE_INSTRUCTION
-        last_message = ChatMessage(role=last_message.role, content=content)
-        questions[-1] = last_message
+        with_label_instruction = ChatMessage(
+            role=last_message.role,
+            content=add_verbalize_instruction_to_question(last_message.content),
+        )
+        questions[-1] = with_label_instruction
         questions.append(ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT))
         return questions
 

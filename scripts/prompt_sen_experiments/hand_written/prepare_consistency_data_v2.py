@@ -8,7 +8,7 @@ from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.valid_interventions import name_to_intervention
 
-from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TRAINING_FORMATS
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TRAINING_COT_PROMPT_VARIANTS
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.data_models.io import read_whole_exp_dir
 from stage_one import COT_TRAINING_TASKS
@@ -27,7 +27,7 @@ def main(
     num_examples: list[int] = [100, 1000, 10000, 50000],
 ):
     models = ["gpt-3.5-turbo"]
-    formatters = TRAINING_FORMATS
+    formatters = TRAINING_COT_PROMPT_VARIANTS
     formatter_names = [i.name() for i in formatters]
     temperature = 0
     tasks = COT_TRAINING_TASKS

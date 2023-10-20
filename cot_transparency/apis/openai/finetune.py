@@ -2,9 +2,12 @@ import datetime
 import io
 import json
 import logging
+import os
+import random
 import time
 from pathlib import Path
 from typing import Any, Optional, Mapping
+from dotenv import load_dotenv
 
 import numpy as np
 import openai
@@ -214,8 +217,20 @@ class WandbSyncer:
 )
 def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParams) -> FinetuneJob:
     # Keep retrying until we can queue the finetune job
+    # pick an org at random
+    load_dotenv()
+    org = os.environ.get("OPENAI_ORG_IDS")
+    if org:
+        orgs = org.split(",")
+        if len(orgs) > 0:
+            org = random.choice(orgs)
+            print("Finetuning with org", org)
+
     finetune_job_resp = openai.FineTuningJob.create(
-        training_file=file_id, model=model, hyperparameters=hyperparameters.model_dump()
+        training_file=file_id,
+        model=model,
+        hyperparameters=hyperparameters.model_dump(),
+        organization=org,
     )
 
     print(f"Started finetune job. {finetune_job_resp}")
@@ -277,8 +292,9 @@ def run_finetune(
     """
     # get time for file name
     now_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    file_name = f"{params.model}-{now_time}.jsonl"
+    file_name = f"./data/uploaded_finetuning_files/{params.model}-{now_time}.jsonl"
     write_jsonl_path = Path(file_name)
+    write_jsonl_path.mkdir(parents=True, exist_ok=True)
     # write to file
     write_jsonl_file_from_basemodel(path=write_jsonl_path, basemodels=samples)
     if ask_to_validate_training:

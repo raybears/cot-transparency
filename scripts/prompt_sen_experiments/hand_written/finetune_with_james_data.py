@@ -7,8 +7,8 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     get_training_cots_gpt_35,
     task_output_to_finetune_sample,
 )
-from cot_transparency.formatters.prompt_sensitivity.interventions import AddVerbalizeAndStepByStep
-from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TRAINING_FORMATS
+from cot_transparency.formatters.prompt_sensitivity.interventions import AddVerbalizeAndStepByStepAssistantPref
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TRAINING_COT_PROMPT_VARIANTS
 from scripts.finetune_cot import augment_cot_task, replace_unbiased_cot_prompt_with_formatters
 
 
@@ -20,7 +20,7 @@ def main(
 ):
     project_name = "prompt_sen_experiments"
     model_output_verified = ModelOutputVerified.no_filter
-    formatters = TRAINING_FORMATS
+    formatters = TRAINING_COT_PROMPT_VARIANTS
 
     cot_data: Slist[TaskOutput]
     # TODO fix this
@@ -29,7 +29,7 @@ def main(
     cot_data_shuffled = cot_data.shuffle(seed=str(42))
     replaced = cot_data_shuffled.map(
         lambda task: replace_unbiased_cot_prompt_with_formatters(
-            task, formatters, intervention=AddVerbalizeAndStepByStep
+            task, formatters, intervention=AddVerbalizeAndStepByStepAssistantPref
         )
     ).flatten_list()  # replace gold standard a bunch of different formatters
     print(f"Created {len(replaced)} cots with different formatters")
