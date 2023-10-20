@@ -4,18 +4,18 @@ import streamlit as st
 import streamlit.components.v1 as components
 from slist import Slist
 from streamlit.delta_generator import DeltaGenerator
-from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.util import assert_not_none
 from cot_transparency.data_models.models import (
     StageTwoTaskOutput,
     TaskOutput,
 )
-from scripts.streamlit_viewer_components.answer_options import (
+from cot_transparency.viewer.util import display_task
+from cot_transparency.viewer.answer_options import (
     select_bias_on_where_option,
     TypeOfAnswerOption,
     select_left_model_result_option,
 )
-from scripts.streamlit_viewer_components.viewer_cache import (
+from cot_transparency.viewer.viewer_cache import (
     cached_read_whole_exp_dir,
     cached_read_whole_s2_exp_dir,
     cached_search,
@@ -47,43 +47,6 @@ parser.add_argument(
 args = parser.parse_args()
 exp_dir: str = args.exp_dir
 is_stage_two: bool = args.stage_two
-
-
-def display_task(task: TaskOutput):
-    model_output = task.inference_output.parsed_response
-    ground_truth = task.task_spec.ground_truth
-    bias_on = task.task_spec.biased_ans
-    is_correct = model_output == ground_truth
-    emoji = "✔️" if is_correct else "❌"
-    st.markdown(f"Ground truth: {ground_truth}")
-    st.markdown(f"Model output: {model_output} {emoji}")
-    st.markdown(f"Bias on: {bias_on}")
-
-    messages: list[ChatMessage] = task.task_spec.messages
-    messages = messages + [ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
-
-    for msg in messages:
-        # pattern match on msg.role
-        match msg.role:
-            case MessageRole.none:
-                st.markdown(msg.content)
-            case MessageRole.system:
-                st.markdown("### System")
-                st.markdown(msg.content.replace("\n", "  \n"))
-            case MessageRole.user:
-                with st.chat_message("user"):
-                    st.markdown("### User")
-                    content = msg.content.replace("\n", "  \n")
-                    st.markdown(content)
-
-            case MessageRole.assistant:
-                with st.chat_message("assistant"):
-                    st.markdown("### Assistant")
-                    st.markdown(msg.content.replace("\n", "  \n"))
-            case MessageRole.assistant_if_completion:
-                with st.chat_message("assistant"):
-                    st.markdown("### Assistant if completion")
-                    st.markdown(msg.content.replace("\n", "  \n"))
 
 
 # naughty Slist patch to add __hash__ by id so that lru works

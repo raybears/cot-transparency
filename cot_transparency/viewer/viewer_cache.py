@@ -7,7 +7,7 @@ from slist import Slist
 from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
 from cot_transparency.data_models.io import read_whole_exp_dir_s2
 from cot_transparency.data_models.io import read_whole_exp_dir
-from scripts.streamlit_viewer_components.answer_options import TypeOfAnswerOption
+from cot_transparency.viewer.answer_options import TypeOfAnswerOption
 
 
 # NOTE: These caches have to be here rather than the main streamlit file to work!
