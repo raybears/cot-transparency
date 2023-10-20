@@ -20,7 +20,7 @@ def main(
 ):
     project_name = "prompt_sen_experiments"
     model_output_verified = ModelOutputVerified.no_filter
-    formatters =TRAINING_COT_PROMPT_VARIANTS 
+    formatters = TRAINING_COT_PROMPT_VARIANTS
 
     cot_data: Slist[TaskOutput]
     # TODO fix this
