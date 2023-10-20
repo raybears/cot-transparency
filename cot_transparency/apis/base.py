@@ -8,6 +8,7 @@ from cot_transparency.data_models.messages import ChatMessage
 
 from pydantic import BaseModel
 
+from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
 from cot_transparency.util import deterministic_hash
 
 

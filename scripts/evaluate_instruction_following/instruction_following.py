@@ -1,9 +1,8 @@
-
 import asyncio
 import random
 from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Sequence
+from typing import Optional, Sequence
 
 from grugstream import Observable
 from pydantic import BaseModel
@@ -143,11 +142,13 @@ async def main():
         )
         .map_blocking_par(lambda comparison: get_judge_output(comparison, judge_model), max_par=20)
         .tqdm(tqdm(total=samples.length))
+        # overwrite the file
+        .for_each_to_file(
+            file_path=Path("experiments/alignment_tax/results.jsonl"), serialize=lambda x: x.model_dump_json()
+        )
     )
     # run it
     results: list[ComparisonGenerationJudged] = await pipeline.to_list()
-    write_path = Path("experiments/alignment_tax/results.jsonl")
-    write_jsonl_file_from_basemodel(write_path, results)
     instruction_models.save_cache()
     judge_model.save_cache()
     eval_judged(results)
