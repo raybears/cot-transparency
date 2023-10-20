@@ -42,8 +42,7 @@ st.markdown(f"Loaded {len(everything)} tasks")
 # Calculate what mdoels / tasks are available
 
 
-@lru_cache(maxsize=32)
-def cached_search(
+def search(
     items: Slist[FinetuneSample],
     prompt_search: Optional[str],
     completion_search: Optional[str],
@@ -107,7 +106,7 @@ left = st.columns(1)
 
 i = 0
 st.markdown(f"Showing {len(everything)} finetuning samples ")
-filtered = cached_search(
+filtered = search(
     items=everything,
     completion_search=completion_search,
     prompt_search=prompt_search,
