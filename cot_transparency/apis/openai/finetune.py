@@ -226,11 +226,11 @@ def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParam
             org = random.choice(orgs)
             print("Finetuning with org", org)
 
+    openai.organization = org
     finetune_job_resp = openai.FineTuningJob.create(
         training_file=file_id,
         model=model,
         hyperparameters=hyperparameters.model_dump(),
-        organization_id=org,
     )
 
     print(f"Started finetune job. {finetune_job_resp}")
