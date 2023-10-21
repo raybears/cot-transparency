@@ -1,11 +1,14 @@
+from pathlib import Path
 import fire
 from matplotlib import pyplot as plt
-from cot_transparency.data_models.io import read_whole_exp_dir
+from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.pd_utils import BasicExtractor, BiasExtractor, convert_slist_to_df
-from scripts.training_formatters import TRAINING_COT_FORMATTERS_ZERO_SHOT
+from scripts.training_formatters import (
+    TRAINING_COT_FORMATTERS,
+)
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-from stage_one import main
+from stage_one import TASK_LIST, main
 
 
 MODELS = [
@@ -18,25 +21,36 @@ MODELS = [
     # "ft:gpt-3.5-turbo-0613:far-ai::89figOP6",  # 50000
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::88h1pB4E",  # 50 / 50 unbiased
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf",  # 10k James model trained on few shot left out zero shot
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w",  # 10k, 100% CoT, Few Shot Biases, 0% Instruction
-    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8B4LIFB7",  # 10k, 100% CoT, Control, 0% Instruction
-    "ft:gpt-3.5-turbo-0613:far-ai::8AhgtHQw",  # 10k, include all formatters
-    "ft:gpt-3.5-turbo-0613:far-ai::8Aic3f0n",  # 50k include all formatters
-    "ft:gpt-3.5-turbo-0613:far-ai::8Ahe3cBv",  # 10k, don't include all formatters
-    "ft:gpt-3.5-turbo-0613:far-ai::8AjeHchR",  # 50k don't include all formatters
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w",  # 10k, 100% CoT, Few Shot Biases, 0% Instruction
+    # # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8B4LIFB7",  # 10k, 100% CoT, Control, 0% Instruction
+    # "ft:gpt-3.5-turbo-0613:far-ai::8AhgtHQw",  # 10k, include all formatters
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Aic3f0n",  # 50k include all formatters
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Ahe3cBv",  # 10k, don't include all formatters
+    # "ft:gpt-3.5-turbo-0613:far-ai::8AjeHchR",  # 50k don't include all formatters
+    "ft:gpt-3.5-turbo-0613:far-ai::8BRpCYNt",  # 110, train on zero shot
+    "ft:gpt-3.5-turbo-0613:far-ai::8BSJekFR",  # 1100, train on zero shot
+    "ft:gpt-3.5-turbo-0613:far-ai::8BSeBItZ",  # 11000, train on zero shot
+    "ft:gpt-3.5-turbo-0613:far-ai::8BSkM7rh",  # 22000, train on zero shot
+    "ft:gpt-3.5-turbo-0613:far-ai::8Bk36Zdf",  # 110, train on prompt variants
+    "ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf",  # 1100, train on prompt variants
+    "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 11000, train on prompt variants
+    "ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c",  # 22000, train on prompt variants
 ]
 
 
-EXP_DIR = "experiments/finetune_3_ed_version"
-TEST_FROMATTERS = [f.name() for f in TRAINING_COT_FORMATTERS_ZERO_SHOT]
+EXP_DIR = "experiments/finetune_3"
+
+# Test on both few shot and zero shot biases
+TEST_FORMATTERS = [f.name() for f in TRAINING_COT_FORMATTERS]
+DATASET = "cot_testing"
 
 
 def run():
     main(
         exp_dir=EXP_DIR,
         models=MODELS,
-        formatters=TEST_FROMATTERS,
-        dataset="cot_testing",
+        formatters=TEST_FORMATTERS,
+        dataset=DATASET,
         example_cap=400,
         raise_after_retries=False,
         temperature=1.0,
@@ -46,10 +60,11 @@ def run():
 
 def plot(aggregate_formatters: bool = True):
     # load the data
-    outputs = read_whole_exp_dir(exp_dir=EXP_DIR)
+    tasks = TASK_LIST[DATASET]
+    outputs = read_all_for_selections(exp_dirs=[Path(EXP_DIR)], formatters=TEST_FORMATTERS, models=MODELS, tasks=tasks)
     # filter
     outputs = outputs.filter(lambda x: x.task_spec.inference_config.model in MODELS).filter(
-        lambda x: x.task_spec.formatter_name in TEST_FROMATTERS
+        lambda x: x.task_spec.formatter_name in TEST_FORMATTERS
     )
     # sort so the order is the same as MODELS
     outputs.sort(key=lambda x: MODELS.index(x.task_spec.inference_config.model))
@@ -65,7 +80,7 @@ def plot(aggregate_formatters: bool = True):
     if aggregate_tasks:
         df["task_name"] = ", ".join([i for i in df.task_name.unique()])  # type: ignore
 
-    df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x])  # type: ignore
+    df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x] if x in MODEL_SIMPLE_NAMES else x)  # type: ignore
     df["is_correct"] = df.ground_truth == df.parsed_response
 
     if aggregate_formatters:

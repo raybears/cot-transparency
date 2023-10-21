@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
+from threading import Lock
 from typing import Any, Self, Sequence
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
@@ -130,6 +131,7 @@ class CachedCaller(ModelCaller):
         self.cache: dict[str, InferenceResponse] = load_file_cache(cache_path)
         self.write_every_n = write_every_n
         self.__update_counter = 0
+        self.save_lock = Lock()
 
     def save_cache(self) -> None:
         save_file_cache(self.cache_path, self.cache)
@@ -144,10 +146,11 @@ class CachedCaller(ModelCaller):
             return self.cache[key]
         else:
             response = self.model_caller.call(messages, config)
-            self.cache[key] = response
-            self.__update_counter += 1
-            if self.__update_counter % self.write_every_n == 0:
-                self.save_cache()
+            with self.save_lock:
+                self.cache[key] = response
+                self.__update_counter += 1
+                if self.__update_counter % self.write_every_n == 0:
+                    self.save_cache()
             return response
 
 
