@@ -1,13 +1,14 @@
+from pathlib import Path
 import fire
 from matplotlib import pyplot as plt
-from cot_transparency.data_models.io import read_whole_exp_dir
+from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.pd_utils import BasicExtractor, BiasExtractor, convert_slist_to_df
 from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS,
 )
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-from stage_one import main
+from stage_one import TASK_LIST, main
 
 
 MODELS = [
@@ -26,7 +27,6 @@ MODELS = [
     # "ft:gpt-3.5-turbo-0613:far-ai::8Aic3f0n",  # 50k include all formatters
     # "ft:gpt-3.5-turbo-0613:far-ai::8Ahe3cBv",  # 10k, don't include all formatters
     # "ft:gpt-3.5-turbo-0613:far-ai::8AjeHchR",  # 50k don't include all formatters
-
     "ft:gpt-3.5-turbo-0613:far-ai::8BRpCYNt",  # 110, train on zero shot
     "ft:gpt-3.5-turbo-0613:far-ai::8BSJekFR",  # 1100, train on zero shot
     "ft:gpt-3.5-turbo-0613:far-ai::8BSeBItZ",  # 11000, train on zero shot
@@ -42,6 +42,7 @@ EXP_DIR = "experiments/finetune_3"
 
 # Test on both few shot and zero shot biases
 TEST_FORMATTERS = [f.name() for f in TRAINING_COT_FORMATTERS]
+DATASET = "cot_testing"
 
 
 def run():
@@ -49,7 +50,7 @@ def run():
         exp_dir=EXP_DIR,
         models=MODELS,
         formatters=TEST_FORMATTERS,
-        dataset="cot_testing",
+        dataset=DATASET,
         example_cap=400,
         raise_after_retries=False,
         temperature=1.0,
@@ -59,7 +60,8 @@ def run():
 
 def plot(aggregate_formatters: bool = True):
     # load the data
-    outputs = read_whole_exp_dir(exp_dir=EXP_DIR)
+    tasks = TASK_LIST[DATASET]
+    outputs = read_all_for_selections(exp_dirs=[Path(EXP_DIR)], formatters=TEST_FORMATTERS, models=MODELS, tasks=tasks)
     # filter
     outputs = outputs.filter(lambda x: x.task_spec.inference_config.model in MODELS).filter(
         lambda x: x.task_spec.formatter_name in TEST_FORMATTERS
@@ -78,7 +80,7 @@ def plot(aggregate_formatters: bool = True):
     if aggregate_tasks:
         df["task_name"] = ", ".join([i for i in df.task_name.unique()])  # type: ignore
 
-    df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x])  # type: ignore
+    df["model"] = df["model"].apply(lambda x: MODEL_SIMPLE_NAMES[x] if x in MODEL_SIMPLE_NAMES else x)  # type: ignore
     df["is_correct"] = df.ground_truth == df.parsed_response
 
     if aggregate_formatters:
