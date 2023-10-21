@@ -37,4 +37,12 @@ MODEL_SIMPLE_NAMES: Mapping[str, str] = {
     "ft:gpt-3.5-turbo-0613:far-ai::8Aic3f0n": "Promp Sen 2 50k include all formatters",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf": "10k 50% CoT / 50% Non Cot, Few Shot Biases, 10% Instruction",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w": "10k, 100% CoT, Few Shot Biases, 0% Instruction",
+    "ft:gpt-3.5-turbo-0613:far-ai::8BRpCYNt":  "# 110, 50/50 train on zero shot",
+    "ft:gpt-3.5-turbo-0613:far-ai::8BSJekFR":  "# 1100, 50/50 train on zero shot",
+    "ft:gpt-3.5-turbo-0613:far-ai::8BSeBItZ":  "# 11000, 50/50 train on zero shot",
+    "ft:gpt-3.5-turbo-0613:far-ai::8BSkM7rh":  "# 22000, 50/50 train on zero shot",
+    "ft:gpt-3.5-turbo-0613:far-ai::8Bk36Zdf":  "# 110, 50/50 train on prompt variants",
+    "ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf":  "# 1100, 50/50 train on prompt variants",
+    "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7":  "# 11000, 50/50 train on prompt variants",
+    "ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c":  "# 22000, 50/50 train on prompt variants",
 }
