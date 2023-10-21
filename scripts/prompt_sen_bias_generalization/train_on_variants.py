@@ -1,3 +1,4 @@
+from enum import Enum
 from pydantic import BaseModel
 
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
@@ -7,10 +8,17 @@ from stage_one import main as stage_one_main
 import fire
 
 
+class SamplingOptions(str, Enum):
+    normal = "normal"
+    fixed_n_formats = "fixed_n_formats"
+
+
+
 class SweepOptions(BaseModel):
     n_samples: int
     # Ed, add your enum all_prompt_sensitivity to FormatterOptions so we can run on those too?
     formatter_options: FormatterOptions
+    sampling_method: 
 
 
 def train_and_run(sweep: SweepOptions) -> None:

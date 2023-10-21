@@ -12,6 +12,7 @@ from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormat
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter
+from scripts.finetune_cot import FormatterOptions
 from scripts.intervention_investigation import plot_for_intervention, DottedLine
 from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
 from scripts.multi_accuracy import PlotInfo
@@ -20,16 +21,16 @@ from cot_transparency.data_models.io import read_all_for_selections
 from stage_one import main, COT_TESTING_TASKS
 
 
-class RunOptions(str, Enum):
-    no_filter = "Biased contexts, no filter"
-    correct_answer = "Biased contexts, filtered to be correct"
-    control_unbiased = "Unbiased contexts, filtered to be correct (control)"
+class FilterStrategy(str, Enum):
+    no_filter = "no filter"
+    correct_answer = "filtered to be correct"
 
 
 class ModelTrainMeta(BaseModel):
     name: str
     trained_samples: int
-    trained_on: RunOptions
+    filter_strategy: FilterStrategy
+    train_formatters: FormatterOptions = FormatterOptions.zero_shot
 
 
 class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
@@ -76,68 +77,103 @@ def run_unbiased_acc_experiments(
 
 def samples_meta() -> Slist[ModelTrainMeta]:
     # fill this up from wandb https://wandb.ai/raybears/consistency-training?workspace=user-chuajamessh
+
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Bk36Zdf",  # 110, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf",  # 1100, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 11000, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c",  # 22000, train on prompt variants
+
     all_meta = Slist(
         [
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89KTeuvo",
                 trained_samples=100,
-                trained_on=RunOptions.no_filter,
+                filter_strategy=FilterStrategy.no_filter,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89FCpgle",
                 trained_samples=1000,
-                trained_on=RunOptions.no_filter,
+                filter_strategy=FilterStrategy.no_filter,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89GKVlFT",
                 trained_samples=10000,
-                trained_on=RunOptions.no_filter,
+                filter_strategy=FilterStrategy.no_filter,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89LJDfgI",
                 trained_samples=20000,
-                trained_on=RunOptions.no_filter,
+                filter_strategy=FilterStrategy.no_filter,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89LueXqz",
                 trained_samples=100,
-                trained_on=RunOptions.correct_answer,
+                filter_strategy=FilterStrategy.correct_answer,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89FBrz5b",
                 trained_samples=1000,
-                trained_on=RunOptions.correct_answer,
+                filter_strategy=FilterStrategy.correct_answer,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89G8xNY5",
                 trained_samples=10000,
-                trained_on=RunOptions.correct_answer,
+                filter_strategy=FilterStrategy.correct_answer,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89LKfzaR",
                 trained_samples=20000,
-                trained_on=RunOptions.correct_answer,
+                filter_strategy=FilterStrategy.correct_answer,
             ),
             # control unbiased
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89NHOL5b",
                 trained_samples=100,
-                trained_on=RunOptions.control_unbiased,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.control_only_unbiased,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89G2vwHZ",
                 trained_samples=1000,
-                trained_on=RunOptions.control_unbiased,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.control_only_unbiased,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89GzBGx0",
                 trained_samples=10000,
-                trained_on=RunOptions.control_unbiased,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.control_only_unbiased,
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89LJSEdM",
                 trained_samples=20000,
-                trained_on=RunOptions.control_unbiased,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.control_only_unbiased,
+            ),
+            # prompt variant models
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:far-ai::8Bk36Zdf",
+                trained_samples=100,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_set1,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf",
+                trained_samples=1000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_set1,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",
+                trained_samples=10000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_set1,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c",
+                trained_samples=20000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_set1,
             ),
         ]
     )
@@ -169,7 +205,8 @@ def seaborn_line_plot(
                 "Trained Samples": i.train_meta.trained_samples,
                 y_axis_label: i.percent_matching.acc.accuracy if percent_matching else i.accuracy.acc.accuracy,
                 "Error Bars": i.percent_matching.acc.error_bars if percent_matching else i.accuracy.acc.error_bars,
-                "Trained on COTs from": i.train_meta.trained_on.value,
+                "Filter": i.train_meta.filter_strategy.value,
+                "Formatters": i.train_meta.train_formatters.value,
             }
             for i in data
         ]
@@ -242,17 +279,12 @@ if __name__ == "__main__":
                 ModelTrainMeta(
                     name="gpt-3.5-turbo",
                     trained_samples=1,
-                    trained_on=RunOptions.no_filter,
+                    filter_strategy=FilterStrategy.no_filter,
                 ),
                 ModelTrainMeta(
                     name="gpt-3.5-turbo",
                     trained_samples=1,
-                    trained_on=RunOptions.correct_answer,
-                ),
-                ModelTrainMeta(
-                    name="gpt-3.5-turbo",
-                    trained_samples=1,
-                    trained_on=RunOptions.control_unbiased,
+                    filter_strategy=FilterStrategy.correct_answer,
                 ),
             ]
         )

@@ -544,28 +544,55 @@ def fine_tune_with_bias_augmentation(
     eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
     assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
-    print(f"Number of non cots: {len(non_cot_data)}")
-    non_cot_limited = (
-        non_cot_data_shuffled.map(
-            lambda task: replace_unbiased_prompt_with_formatters(
-                task=task,
-                use_formatters=eligible_non_cot_formatters,
+    def convert(list) -> list:
+        # 1. to get max formatters per item we need to restrict the number of cots to be total/num_formatters
+        # or
+
+        pass
+
+    class FormatSampler:
+        def __init__(self, formaters: Sequence[FormatterWithPossibleIntervention]):
+            self.formatters = formatters
+            self.n_formats_per_question = 1
+
+        def create_data(self, tasks: Sequence[TaskOutput], n: int) -> Sequence[TaskOutput]:
+            tasks = Slist(tasks)
+            n_unique_cots = n // self.n_formats_per_question             
+            tasks = tasks.take(n_unique_cots)
+            return  tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=eligible_non_cot_formatters,).flatten_list()
+    
+
+
+    def non_cot_pipeline(inputs: Slist[TaskOutput]):
+        return (
+            inputs.map(
+                lambda task: replace_unbiased_prompt_with_formatters(
+                    task=task,
+                    use_formatters=eligible_non_cot_formatters,
+                )
             )
+            .flatten_list()
+            .take(non_cot_limit)
         )
-        .flatten_list()
-        .map(clean_unbiased_non_cot_raw_response)
-        .take(non_cot_limit)
-    )
+
+    # Non Cots
+    print(f"Number of non cots: {len(non_cot_data)}")
+    non_cot_limited = non_cot_pipeline(non_cot_data_shuffled).map(clean_unbiased_non_cot_raw_response)
 
     assert (
         len(non_cot_limited) == non_cot_limit
     ), f"We do not have enough non cots, only {len(non_cot_limited)}, required {non_cot_limit}"
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
+    non_cot_samples = non_cot_limited.map(augment_non_cot_task).map(task_output_to_finetune_sample)
 
+    # CoTs
     print(f"Number of cots: {len(cot_data)}")
     cot_limited = (
         cot_data_shuffled.map(
-            lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
+            lambda task: replace_unbiased_prompt_with_formatters(
+                task=task,
+                use_formatters=eligible_cot_formatters,
+            )
         )
         .flatten_list()
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
@@ -573,8 +600,8 @@ def fine_tune_with_bias_augmentation(
     )
     assert len(cot_limited) == cot_limit, f"We do not have enough cots, only {len(cot_limited)}"
     print(f"Number of cots after limiting: {len(cot_limited)}")
-    non_cot_samples = non_cot_limited.map(augment_non_cot_task).map(task_output_to_finetune_sample)
     cot_samples = cot_limited.map(augment_cot_task).map(task_output_to_finetune_sample)
+
     total_task_samples = non_cot_samples + cot_samples
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
     alpaca_samples = get_alpaca_training(n_instruct_samples)
