@@ -22,24 +22,26 @@ def run_experiments(models: list[str]) -> None:
 
 
 if __name__ == "__main__":
-    read = read_all_for_selections(
-        exp_dirs=[Path("experiments/finetune_3")],
-        formatters=["ZeroShotCOTSycophancyFormatter"],
-        models=["gpt-3.5-turbo"],
-        tasks=COT_TESTING_TASKS,
-    )
     finetuned_models = [
         "gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::89rM5liC",  # control 10k
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf",  # trained on few shot 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T", # trained on all biases, 10k
     ]
     run_experiments(finetuned_models)
+    read = read_all_for_selections(
+        exp_dirs=[Path("experiments/finetune_3")],
+        formatters=["ZeroShotCOTSycophancyFormatter"],
+        models=finetuned_models,
+        tasks=COT_TESTING_TASKS,
+    )
     matching_user_answer: list[PlotInfo] = [
         matching_user_answer_plot_info(
             intervention=None,
             all_tasks=read,
             for_formatters=[ZeroShotCOTSycophancyFormatter],
             model=model,
+            name_override=model,
         )
         for model in finetuned_models
     ]
@@ -62,4 +64,9 @@ if __name__ == "__main__":
         y_axis_title="Answers matching biased answer (%)",
         dotted_line=dotted_line,
         add_n_to_name=True,
+        name_override={
+            "gpt-3.5-turbo": "GPT-3.5-turbo",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89rM5liC": "GPT-3.5-turbo (control)",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf": "GPT-3.5-turbo (ours)",
+        }
     )
