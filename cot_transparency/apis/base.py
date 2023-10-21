@@ -2,10 +2,9 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from threading import Lock
-from typing import Any, Self, Sequence
+from typing import Self, Sequence
 
 from pydantic import BaseModel
-
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
@@ -36,13 +35,13 @@ class Prompt(BaseModel):
     format that the api expects
     """
 
-    messages: list[ChatMessage]
-
     def __str__(self) -> str:
         out = ""
         for msg in self.messages:
             out += f"\n\n{msg.role}\n{msg.content}"
         return out
+
+    messages: list[ChatMessage]
 
     @classmethod
     def from_prompt(cls, prompt: "Prompt") -> Self:
@@ -50,12 +49,6 @@ class Prompt(BaseModel):
 
     def __add__(self, other: Self) -> Self:
         return Prompt(messages=self.messages + other.messages)
-
-    def format(self) -> Any:
-        """
-        This should return the prompt in the format that the mode expects
-        """
-        raise NotImplementedError()
 
 
 class InferenceResponse(BaseModel):
