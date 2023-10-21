@@ -32,6 +32,12 @@ class Prompt(BaseModel):
     format that the api expects
     """
 
+    def __str__(self) -> str:
+        out = ""
+        for msg in self.messages:
+            out += f"\n\n{msg.role}\n{msg.content}"
+        return out
+
     messages: list[ChatMessage]
 
     @classmethod
