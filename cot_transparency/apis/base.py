@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Self, Sequence
+from typing import Self, Sequence
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
 
@@ -34,24 +34,12 @@ class Prompt(BaseModel):
 
     messages: list[ChatMessage]
 
-    def __str__(self) -> str:
-        out = ""
-        for msg in self.messages:
-            out += f"\n\n{msg.role}\n{msg.content}"
-        return out
-
     @classmethod
     def from_prompt(cls, prompt: "Prompt") -> Self:
         return cls(messages=prompt.messages)
 
     def __add__(self, other: Self) -> Self:
         return Prompt(messages=self.messages + other.messages)
-
-    def format(self) -> Any:
-        """
-        This should return the prompt in the format that the mode expects
-        """
-        raise NotImplementedError()
 
 
 class InferenceResponse(BaseModel):
