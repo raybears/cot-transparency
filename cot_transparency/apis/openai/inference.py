@@ -119,12 +119,12 @@ def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: s
     return GPTFullResponse(
         id=response_id,
         prompt=prompt,
-        completions=completion,
+        completions=[completion],
         prompt_token_infos=prompt_token_infos,
         completion_token_infos=completion_token_infos,
         completion_total_log_prob=completion_token_infos_log_prob.sum(),
         average_completion_total_log_prob=completion_token_infos_log_prob.average(),
-        finish_reason=finish_reason,
+        finish_reason=[finish_reason],
     )
 
 

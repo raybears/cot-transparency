@@ -3,12 +3,11 @@ from enum import Enum
 from pathlib import Path
 from threading import Lock
 from typing import Any, Self, Sequence
-from cot_transparency.data_models.config import OpenaiInferenceConfig
-from cot_transparency.data_models.messages import ChatMessage
-
 
 from pydantic import BaseModel
 
+from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel, read_jsonl_file_into_basemodel
 from cot_transparency.util import deterministic_hash
 
