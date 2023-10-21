@@ -26,12 +26,6 @@ class OpenaiInferenceConfig(HashableBaseModel):
     n: int = 1
     stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
 
-    def d_hash(self) -> str:
-        as_json = json.loads(self.model_dump_json())
-        # drop the key that max_tokens in
-        as_json.pop("max_tokens")
-        return deterministic_hash(json.dumps(as_json))
-
     def is_openai_finetuned(self) -> bool:
         return is_openai_finetuned(self.model)
 
