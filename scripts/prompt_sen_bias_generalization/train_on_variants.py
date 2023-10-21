@@ -44,7 +44,7 @@ def main(
     n_samples: int = 100,
     format_options: str = FormatterOptions.prompt_variants_set1.value,
 ):
-    assert isinstance(n_samples, list), "n_samples must be a list of ints"
+    assert isinstance(n_samples, int), "n_samples must be an ints"
     assert (
         format_options in FormatterOptions.__members__.values()
     ), f"format_options must be one of {list(FormatterOptions.__members__.values())}"
