@@ -1,4 +1,3 @@
-import json
 from cot_transparency.data_models.hashable import HashableBaseModel
 
 
@@ -6,8 +5,6 @@ from pydantic import conlist
 
 
 from typing import Optional, Union
-
-from cot_transparency.util import deterministic_hash
 
 
 def is_openai_finetuned(model_name: str) -> bool:
