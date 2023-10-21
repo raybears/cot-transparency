@@ -230,7 +230,7 @@ def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParam
         training_file=file_id,
         model=model,
         hyperparameters=hyperparameters.model_dump(),
-        organization=org,
+        organization_id=org,
     )
 
     print(f"Started finetune job. {finetune_job_resp}")
