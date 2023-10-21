@@ -516,12 +516,13 @@ def fine_tune_with_bias_augmentation(
     cot_percentage=0.5,
     # cli waits for user input to validate the training
     ask_to_validate_training: bool = True,
+    prepend_notes: str = "",
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
     """
     assert 0 <= cot_percentage <= 1
-    assert 0 <= instruct_sample_proportion <= 1
+    assert 0 <= instruct_sample_proportion
     cot_limit = int(cot_percentage * n_samples)
     non_cot_percentage = 1 - cot_percentage
     non_cot_limit = int(non_cot_percentage * n_samples)
@@ -600,7 +601,7 @@ def fine_tune_with_bias_augmentation(
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
     bias_type_str = formatter_options.value + " bias formatters"
-    notes = f"{bias_type_str} {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots, {model_output_verified.value}"
+    notes = f"{prepend_notes}{bias_type_str} {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots, {model_output_verified.value}"
     if post_hoc:
         notes = "post hoc " + notes
     _id = run_finetune_with_wandb(

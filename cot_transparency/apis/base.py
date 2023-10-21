@@ -88,12 +88,18 @@ def file_cache_key(messages: list[ChatMessage], config: OpenaiInferenceConfig) -
     return deterministic_hash(str_messages)
 
 
+class CachedValue(BaseModel):
+    response: InferenceResponse
+    messages: list[ChatMessage]
+    config: OpenaiInferenceConfig
+
+
 class FileCacheRow(BaseModel):
     key: str
-    response: InferenceResponse
+    response: CachedValue
 
 
-def load_file_cache(cache_path: Path) -> dict[str, InferenceResponse]:
+def load_file_cache(cache_path: Path) -> dict[str, CachedValue]:
     """
     Load a file cache from a path
     """
@@ -108,7 +114,7 @@ def load_file_cache(cache_path: Path) -> dict[str, InferenceResponse]:
         return {}
 
 
-def save_file_cache(cache_path: Path, cache: dict[str, InferenceResponse]) -> None:
+def save_file_cache(cache_path: Path, cache: dict[str, CachedValue]) -> None:
     """
     Save a file cache to a path
     """
@@ -120,7 +126,7 @@ class CachedCaller(ModelCaller):
     def __init__(self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int):
         self.model_caller = wrapped_caller
         self.cache_path = cache_path
-        self.cache: dict[str, InferenceResponse] = load_file_cache(cache_path)
+        self.cache: dict[str, CachedValue] = load_file_cache(cache_path)
         self.write_every_n = write_every_n
         self.__update_counter = 0
         self.save_lock = Lock()
@@ -135,11 +141,15 @@ class CachedCaller(ModelCaller):
     ) -> InferenceResponse:
         key = file_cache_key(messages, config)
         if key in self.cache:
-            return self.cache[key]
+            return self.cache[key].response
         else:
             response = self.model_caller.call(messages, config)
             with self.save_lock:
-                self.cache[key] = response
+                self.cache[key] = CachedValue(
+                    response=response,
+                    messages=messages,
+                    config=config,
+                )
                 self.__update_counter += 1
                 if self.__update_counter % self.write_every_n == 0:
                     self.save_cache()

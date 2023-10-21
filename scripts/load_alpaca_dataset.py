@@ -19,7 +19,7 @@ def get_alpaca() -> AlpacaSamples:
     train_dataset = dataset["train"]
     items = Slist()
     for row in train_dataset:
-        system_msg = StrictChatMessage(role=StrictMessageRole.system, content=row["instruction"])
+        system_msg = StrictChatMessage(role=StrictMessageRole.user, content=row["instruction"])
         user_msg = StrictChatMessage(role=StrictMessageRole.user, content=row["input"]) if row["input"] else None
         assistant_msg = StrictChatMessage(role=StrictMessageRole.assistant, content=row["output"])
         sample = FinetuneSample(
