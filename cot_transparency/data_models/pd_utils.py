@@ -5,6 +5,7 @@ import pandas as pd
 
 from cot_transparency.data_models.models import BaseTaskOuput, TaskOutput
 from cot_transparency.formatters import name_to_formatter
+from scripts.training_formatters import BIAS_TYPE_MAPPING
 
 T_co = TypeVar("T_co")
 T_contra = TypeVar("T_contra", contravariant=True)
@@ -82,9 +83,20 @@ class BasicExtractor(BaseExtractor[TaskOutput]):
 class BiasExtractor(BaseExtractor[TaskOutput]):
     column_names = [
         "bias_ans",
+        "bias_type",
     ]
 
     def extract(self, output: TaskOutput) -> Sequence[str | float | None]:
+        formatter = name_to_formatter(output.task_spec.formatter_name)
+
+        for k, v in BIAS_TYPE_MAPPING.items():
+            if formatter in v:
+                bias_type = k
+                break
+        else:
+            raise ValueError(f"Formatter {formatter} not found in BIAS_TYPE_MAPPING")
+
         return [
             output.task_spec.biased_ans,
+            bias_type,
         ]
