@@ -16,6 +16,7 @@ from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from scripts.load_alpaca_dataset import get_alpaca_testing
+from scripts.load_h4_dataset import get_h4_test
 
 
 class ComparisonGeneration(BaseModel):
@@ -124,7 +125,7 @@ def get_judge_output(comparison: ComparisonGeneration, judge: ModelCaller) -> Co
 
 def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 100
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 200
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
@@ -149,8 +150,8 @@ def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
 async def eval_instruction_following(intervention_model: str):
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
-    alpaca_samples = 600
-    samples: Slist[FinetuneSample] = get_alpaca_testing(alpaca_samples)
+    alpaca_samples = 50
+    samples: Slist[FinetuneSample] = get_h4_test().test
     print(f"Total testing samples: {len(samples)}")
     intervention_caller = get_caller(model_name=intervention_model)().with_file_cache(
         cache_path=Path("experiments/alignment_tax/intervention_completion.jsonl"), write_every_n=10
@@ -186,9 +187,10 @@ async def eval_instruction_following(intervention_model: str):
     # run it
     results: Slist[ComparisonGenerationJudged] = await pipeline.to_slist()
     intervention_caller.save_cache()
+    vanilla_caller.save_cache()
     judge_model.save_cache()
     eval_judged(results)
 
 
 if __name__ == "__main__":
-    asyncio.run(eval_instruction_following(intervention_model="ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC"))
+    asyncio.run(eval_instruction_following(intervention_model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO"))
