@@ -29,3 +29,5 @@ datasets
 wandb
 fuzzywuzzy
 python-Levenshtein
+anyio>=3.0.0
+grugstream
