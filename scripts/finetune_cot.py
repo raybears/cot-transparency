@@ -291,6 +291,12 @@ class FormatterWithPossibleIntervention:
     def name(self):
         return self.formatter.name() + (f"_{self.intervention.name()}" if self.intervention else "")
 
+    def __lt__(self, other: "FormatterWithPossibleIntervention"):
+        if not isinstance(other, FormatterWithPossibleIntervention):
+            return NotImplemented
+        # Compare the names of the formatters and interventions, not the classes themselves
+        return self.name() < other.name()
+
 
 def replace_unbiased_prompt_with_formatters(
     task: TaskOutput,
@@ -337,8 +343,8 @@ class FormatterOptions(str, Enum):
 
 @dataclasses.dataclass(kw_only=True)
 class FormatterOptionsResult:
-    biased_formatters: set[FormatterWithPossibleIntervention]
-    unbiased_formatters: set[FormatterWithPossibleIntervention]
+    biased_formatters: Sequence[FormatterWithPossibleIntervention]
+    unbiased_formatters: Sequence[FormatterWithPossibleIntervention]
 
 
 def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOptionsResult:
@@ -382,8 +388,8 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
             )
 
     return FormatterOptionsResult(
-        biased_formatters=set(cot_formatters),
-        unbiased_formatters=set(non_cot_formatters),
+        biased_formatters=sorted(list(set(cot_formatters))),
+        unbiased_formatters=sorted(list(set(non_cot_formatters))),
     )
 
 
