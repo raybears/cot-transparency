@@ -1,6 +1,8 @@
+from collections import Counter
 import dataclasses
 from abc import ABC, abstractmethod
 from enum import Enum
+import json
 import random
 from typing import Type, Sequence, Iterable, Optional
 
@@ -535,19 +537,28 @@ class NFormatsPerQuestionSampler(FormatSampler):
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
+        if self.n_formats_per_question > len(formatters):
+            print("Warning: n_formats_per_question > len(formatters), using all formatters")
+
+        n_formats_per_question = min(self.n_formats_per_question, len(formatters))
+
         tasks = Slist(tasks)
-        n_unique_cots = n // self.n_formats_per_question
+        n_unique_cots = n // n_formats_per_question
         tasks = tasks.take(n_unique_cots)
 
         output: Slist[TaskOutput] = Slist()
+        formatter_counts = Counter()
         for task in tasks:
             rng = random.Random(task.uid())
-            formatters = rng.sample(formatters, self.n_formats_per_question)
-            replaced = replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters)
+            sampled_formatters = rng.sample(formatters, n_formats_per_question)
+            formatter_counts.update(Counter([i.name() for i in sampled_formatters]))
+            replaced = replace_unbiased_prompt_with_formatters(task=task, use_formatters=sampled_formatters)
             output.extend(replaced)
 
-        assert len(tasks) == n
-        return tasks
+        print(f"Formatter counts:\n{json.dumps(formatter_counts)}")
+
+        assert len(output) == n
+        return output
 
     def __repr__(self) -> str:
         return f"NFormatsPerQuestionSampler(n_formats_per_question={self.n_formats_per_question})"
