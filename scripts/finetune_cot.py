@@ -1,6 +1,7 @@
 import dataclasses
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from enum import Enum
+import random
 from typing import Type, Sequence, Iterable, Optional
 
 
@@ -501,6 +502,74 @@ def fine_tune_with_bias_augmentation_no_repeat(
     return _id
 
 
+class FormatSampler(ABC):
+    @abstractmethod
+    def sample(
+        self,
+        tasks: Sequence[TaskOutput],
+        formatters: Sequence[FormatterWithPossibleIntervention],
+        n: int,
+    ) -> Slist[TaskOutput]:
+        """
+        Takes a sequnce of outputs and returns a sequence of outputs of length n
+        """
+        raise NotImplementedError
+
+
+class NFormatsPerQuestionSampler(FormatSampler):
+    def __init__(self, n_formats_per_question: int):
+        self.n_formats_per_question = n_formats_per_question
+
+    def sample(
+        self,
+        tasks: Sequence[TaskOutput],
+        formatters: Sequence[FormatterWithPossibleIntervention],
+        n: int,
+    ) -> Slist[TaskOutput]:
+        """
+        Takes a sequnce of outputs and returns a sequence of outputs of length n
+        """
+        tasks = Slist(tasks)
+        n_unique_cots = n // self.n_formats_per_question
+        tasks = tasks.take(n_unique_cots)
+
+        output: Slist[TaskOutput] = Slist()
+        for task in tasks:
+            rng = random.Random(task.uid())
+            formatters = rng.sample(formatters, self.n_formats_per_question)
+            replaced = replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters)
+            output.extend(replaced)
+
+        assert len(tasks) == n
+        return tasks
+
+    def __repr__(self) -> str:
+        return f"NFormatsPerQuestionSampler(n_formats_per_question={self.n_formats_per_question})"
+
+
+class RandomSampler(FormatSampler):
+    def sample(
+        self,
+        tasks: Sequence[TaskOutput],
+        formatters: Sequence[FormatterWithPossibleIntervention],
+        n: int,
+    ) -> Slist[TaskOutput]:
+        """
+        Takes a sequnce of outputs and returns a sequence of outputs of length n
+        """
+        tasks = Slist(tasks)
+        tasks = (
+            tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters))
+            .flatten_list()
+            .take(n)
+        )
+        assert len(tasks) == n
+        return tasks
+
+    def __repr__(self) -> str:
+        return "RandomSampler()"
+
+
 def fine_tune_with_bias_augmentation(
     n_epochs: int,
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
@@ -516,6 +585,7 @@ def fine_tune_with_bias_augmentation(
     cot_percentage=0.5,
     # cli waits for user input to validate the training
     ask_to_validate_training: bool = True,
+    sampler: FormatSampler = RandomSampler(),
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -544,63 +614,30 @@ def fine_tune_with_bias_augmentation(
     eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
     assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
-    def convert(list) -> list:
-        # 1. to get max formatters per item we need to restrict the number of cots to be total/num_formatters
-        # or
-
-        pass
-
-    class FormatSampler:
-        def __init__(self, formaters: Sequence[FormatterWithPossibleIntervention]):
-            self.formatters = formatters
-            self.n_formats_per_question = 1
-
-        def create_data(self, tasks: Sequence[TaskOutput], n: int) -> Sequence[TaskOutput]:
-            tasks = Slist(tasks)
-            n_unique_cots = n // self.n_formats_per_question             
-            tasks = tasks.take(n_unique_cots)
-            return  tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=eligible_non_cot_formatters,).flatten_list()
-    
-
-
-    def non_cot_pipeline(inputs: Slist[TaskOutput]):
-        return (
-            inputs.map(
-                lambda task: replace_unbiased_prompt_with_formatters(
-                    task=task,
-                    use_formatters=eligible_non_cot_formatters,
-                )
-            )
-            .flatten_list()
-            .take(non_cot_limit)
-        )
-
     # Non Cots
-    print(f"Number of non cots: {len(non_cot_data)}")
-    non_cot_limited = non_cot_pipeline(non_cot_data_shuffled).map(clean_unbiased_non_cot_raw_response)
+    print(f"Number of non cots: {len(non_cot_data_shuffled)}")
+    non_cot_samples = (
+        sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit)
+        .map(clean_unbiased_non_cot_raw_response)
+        .map(augment_non_cot_task)
+        .map(task_output_to_finetune_sample)
+    )
 
     assert (
-        len(non_cot_limited) == non_cot_limit
-    ), f"We do not have enough non cots, only {len(non_cot_limited)}, required {non_cot_limit}"
-    print(f"Number of non cots after limiting: {len(non_cot_limited)}")
-    non_cot_samples = non_cot_limited.map(augment_non_cot_task).map(task_output_to_finetune_sample)
+        len(non_cot_samples) == non_cot_limit
+    ), f"We do not have enough non cots, only {len(non_cot_samples)}, required {non_cot_limit}"
+    print(f"Number of non cots after limiting: {len(non_cot_samples)}")
 
     # CoTs
-    print(f"Number of cots: {len(cot_data)}")
-    cot_limited = (
-        cot_data_shuffled.map(
-            lambda task: replace_unbiased_prompt_with_formatters(
-                task=task,
-                use_formatters=eligible_cot_formatters,
-            )
-        )
-        .flatten_list()
+    print(f"Number of cots: {len(cot_data_shuffled)}")
+    cot_samples = (
+        sampler.sample(cot_data_shuffled, eligible_cot_formatters, cot_limit)
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
-        .take(cot_limit)
+        .map(augment_cot_task)
+        .map(task_output_to_finetune_sample)
     )
-    assert len(cot_limited) == cot_limit, f"We do not have enough cots, only {len(cot_limited)}"
-    print(f"Number of cots after limiting: {len(cot_limited)}")
-    cot_samples = cot_limited.map(augment_cot_task).map(task_output_to_finetune_sample)
+    assert len(cot_samples) == cot_limit, f"We do not have enough cots, only {len(cot_samples)}"
+    print(f"Number of cots after limiting: {len(cot_samples)}")
 
     total_task_samples = non_cot_samples + cot_samples
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
@@ -623,6 +660,7 @@ def fine_tune_with_bias_augmentation(
         "cot_percentage": cot_percentage,
         "control_only_unbiased": control_only_unbiased,
         "model_output_verified": model_output_verified.value,
+        "sampling_strategy": sampler,
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
