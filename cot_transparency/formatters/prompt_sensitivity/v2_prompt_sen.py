@@ -625,35 +625,6 @@ class InsertTyposFormatter(StageOneFormatter):
         return extract_answer_for_prompt_sen(response, question, model)
 
 
-V2_PROMPT_VARIANTS = [
-    PleaseFormatter,
-    DirectFormatter,
-    BestGuessFormatter,
-    AskFirstFormatter,
-    HypotheticalFormatter,
-    TagFormatter,
-    ForcedChoiceFormatter,
-    InstructionalFormatter,
-    PositiveAssumptionFormatter,
-    EncouragingFormatter,
-    TimeBasedFormatter,
-    CasualFormatter,
-    DocumentaryStyleFormatter,
-    MockTestFormatter,
-    QuizFormatter,
-    QuickFireFormatter,
-    DiscussionStyleFormatter,
-    AnalyticalFormatter,
-    ResearchStyleFormatter,
-    CheckingUnderstandingFormatter,
-    ChallengeModeFormatter,
-    ProsAndConsFormatter,
-    FunQuizFormatter,
-    EducationalFormatter,
-    SnappyQuizFormatter,
-    LighterNoteFormatter,
-    StuckFormatter,
-]
 
 
 TRAINING_COT_PROMPT_VARIANTS = [
@@ -710,6 +681,73 @@ TRAINING_COT_PROMPT_VARIANTS_8: Slist[Type[StageOneFormatter]] = Slist(
         EncouragingFormatter,
     ]
 )
+V2_PROMPT_VARIANTS = [
+    PleaseFormatter,
+    DirectFormatter,
+    BestGuessFormatter,
+    AskFirstFormatter,
+    HypotheticalFormatter,
+    TagFormatter,
+    ForcedChoiceFormatter,
+    InstructionalFormatter,
+    PositiveAssumptionFormatter,
+    EncouragingFormatter,
+    TimeBasedFormatter,
+    CasualFormatter,
+    DocumentaryStyleFormatter,
+    MockTestFormatter,
+    QuizFormatter,
+    QuickFireFormatter,
+    DiscussionStyleFormatter,
+    AnalyticalFormatter,
+    ResearchStyleFormatter,
+    CheckingUnderstandingFormatter,
+    ChallengeModeFormatter,
+    ProsAndConsFormatter,
+    FunQuizFormatter,
+    EducationalFormatter,
+    SnappyQuizFormatter,
+    LighterNoteFormatter,
+    StuckFormatter,
+]
+
+TRAINING_COT_PROMPT_VARIANTS_ALL: Slist[Type[StageOneFormatter]] = Slist(
+    [
+        ForcedChoiceFormatter,
+        LighterNoteFormatter,
+        QuizFormatter,
+        PleaseFormatter,
+        DirectFormatter,
+        BestGuessFormatter,
+        HypotheticalFormatter,
+        EncouragingFormatter,
+        TimeBasedFormatter,
+        DiscussionStyleFormatter,
+        AnalyticalFormatter,
+        CheckingUnderstandingFormatter,
+        ProsAndConsFormatter,
+        EducationalFormatter,
+    ]
+)
+
+TRAINING_NO_COT_PROMPT_VARIANTS_ALL: Slist[Type[StageOneFormatter]] = Slist(
+    [
+        ResearchStyleFormatter,
+        DocumentaryStyleFormatter,
+        QuickFireFormatter,
+        MockTestFormatter,
+        AskFirstFormatter,
+        CasualFormatter,
+        ChallengeModeFormatter,
+        TagFormatter,
+        InstructionalFormatter,
+        PositiveAssumptionFormatter,
+        FunQuizFormatter,
+        SnappyQuizFormatter,
+        StuckFormatter,
+    ]
+)
+
 
 TESTING_COT_PROMPT_VARIANTS = [
     PleaseFormatter,
