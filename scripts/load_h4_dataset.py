@@ -15,11 +15,13 @@ class H4Samples:
 def get_h4_test() -> H4Samples:
     # Load the dataset
     dataset = load_dataset("HuggingFaceH4/instruction-dataset")
-    test = dataset["test"]
+    test = dataset["test"]  # type: ignore
     items = Slist()
     for row in test:
-        user_msg = StrictChatMessage(role=StrictMessageRole.user, content=row["prompt"])
-        assistant_msg = StrictChatMessage(role=StrictMessageRole.assistant, content=row["completion"])
+        user_prompt: str = row["prompt"]  # type: ignore
+        completion: str = row["completion"]  # type: ignore
+        user_msg = StrictChatMessage(role=StrictMessageRole.user, content=user_prompt)
+        assistant_msg = StrictChatMessage(role=StrictMessageRole.assistant, content=completion)
         item = FinetuneSample(messages=[user_msg, assistant_msg])
         items.append(item)
 

@@ -15,7 +15,6 @@ from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from scripts.load_alpaca_dataset import get_alpaca_testing
 from scripts.load_h4_dataset import get_h4_test
 
 
@@ -150,7 +149,6 @@ def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
 async def eval_instruction_following(intervention_model: str):
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
-    alpaca_samples = 50
     samples: Slist[FinetuneSample] = get_h4_test().test
     print(f"Total testing samples: {len(samples)}")
     intervention_caller = get_caller(model_name=intervention_model)().with_file_cache(
