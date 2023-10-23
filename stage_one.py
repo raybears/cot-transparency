@@ -16,6 +16,7 @@ from cot_transparency.data_models.data.john_math import (
     get_john_math_level_1,
     get_john_math_level_2,
 )
+from cot_transparency.data_models.data.karina_hallucination import get_karina_hallucination
 from cot_transparency.data_models.data.model_written_evals import (
     get_anthropic_nlp,
     get_anthropic_phil,
@@ -79,6 +80,7 @@ TASK_LIST = {
     "model_written_evals": ["nlp", "phil", "pol"],
     "john_math": ["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
     "mmlu": mmlu.MMLU_SUPERCATEGORIES,
+    "karina": ["karina_hallucination"],
 }
 
 
@@ -162,6 +164,8 @@ def get_list_of_examples(
         elif task == "mmlu":
             questions_per_task = 20
             data = mmlu.test(questions_per_task=questions_per_task)
+        elif task == "karina_hallucination":
+            data = get_karina_hallucination()
         elif task in mmlu.MMLU_SUPERCATEGORIES:
             data = mmlu.test_super_category(task.replace("mmlu_", ""))
         elif task == "openbook_qa":
