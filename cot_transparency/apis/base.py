@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import Any, Self, Sequence
-from cot_transparency.data_models.config import OpenaiInferenceConfig
-from cot_transparency.data_models.messages import ChatMessage
-
+from threading import Lock
+from typing import Self, Sequence
 
 from pydantic import BaseModel
 
+from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.util import deterministic_hash
 
@@ -36,13 +36,13 @@ class Prompt(BaseModel):
     format that the api expects
     """
 
-    messages: list[ChatMessage]
-
     def __str__(self) -> str:
         out = ""
         for msg in self.messages:
             out += f"\n\n{msg.role}\n{msg.content}"
         return out
+
+    messages: list[ChatMessage]
 
     @classmethod
     def from_prompt(cls, prompt: "Prompt") -> Self:
@@ -50,12 +50,6 @@ class Prompt(BaseModel):
 
     def __add__(self, other: Self) -> Self:
         return Prompt(messages=self.messages + other.messages)
-
-    def format(self) -> Any:
-        """
-        This should return the prompt in the format that the mode expects
-        """
-        raise NotImplementedError()
 
 
 class InferenceResponse(BaseModel):
@@ -82,11 +76,12 @@ class ModelCaller(ABC):
     ) -> InferenceResponse:
         raise NotImplementedError()
 
-    def with_file_cache(self, cache_path: Path) -> "CachedCaller":
+    def with_file_cache(self, cache_path: Path, write_every_n: int = 20) -> "CachedCaller":
         """
         Load a file cache from a path
+        Alternatively, rather than write_every_n, just dump with append mode?
         """
-        return make_file_cache(self, cache_path)
+        return make_file_cache(self, cache_path, write_every_n=write_every_n)
 
 
 def file_cache_key(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
@@ -119,15 +114,17 @@ def save_file_cache(cache_path: Path, cache: dict[str, InferenceResponse]) -> No
     Save a file cache to a path
     """
     rows = [FileCacheRow(key=key, response=response) for key, response in cache.items()]
-    print(f"Saving {len(rows)} rows to cache file {cache_path.as_posix()}")
     write_jsonl_file_from_basemodel(cache_path, rows)
 
 
 class CachedCaller(ModelCaller):
-    def __init__(self, wrapped_caller: ModelCaller, cache_path: Path):
+    def __init__(self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int):
         self.model_caller = wrapped_caller
         self.cache_path = cache_path
         self.cache: dict[str, InferenceResponse] = load_file_cache(cache_path)
+        self.write_every_n = write_every_n
+        self.__update_counter = 0
+        self.save_lock = Lock()
 
     def save_cache(self) -> None:
         save_file_cache(self.cache_path, self.cache)
@@ -142,13 +139,17 @@ class CachedCaller(ModelCaller):
             return self.cache[key]
         else:
             response = self.model_caller.call(messages, config)
-            self.cache[key] = response
+            with self.save_lock:
+                self.cache[key] = response
+                self.__update_counter += 1
+                if self.__update_counter % self.write_every_n == 0:
+                    self.save_cache()
             return response
 
 
-def make_file_cache(model_caller: ModelCaller, cache_path: Path) -> CachedCaller:
+def make_file_cache(model_caller: ModelCaller, cache_path: Path, write_every_n: int) -> CachedCaller:
     """
     Add a file cache to a model caller
     """
 
-    return CachedCaller(wrapped_caller=model_caller, cache_path=cache_path)
+    return CachedCaller(wrapped_caller=model_caller, cache_path=cache_path, write_every_n=write_every_n)

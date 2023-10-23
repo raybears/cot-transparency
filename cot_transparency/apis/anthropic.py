@@ -15,10 +15,6 @@ logger = setup_logger(__name__, logging.INFO)
 
 
 class AnthropicPrompt(Prompt):
-    @classmethod
-    def from_prompt(cls, prompt: Prompt):
-        return cls(messages=prompt.messages)
-
     def __str__(self) -> str:
         return self.format()
 
