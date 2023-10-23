@@ -2,12 +2,9 @@ import datetime
 import io
 import json
 import logging
-import os
-import random
 import time
 from pathlib import Path
 from typing import Any, Optional, Mapping
-from dotenv import load_dotenv
 
 import numpy as np
 import openai
@@ -218,15 +215,6 @@ class WandbSyncer:
 def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParams) -> FinetuneJob:
     # Keep retrying until we can queue the finetune job
     # pick an org at random
-    load_dotenv()
-    org = os.environ.get("OPENAI_ORG_IDS")
-    if org:
-        orgs = org.split(",")
-        if len(orgs) > 0:
-            org = random.choice(orgs)
-            print("Finetuning with org", org)
-
-    openai.organization = org
     finetune_job_resp = openai.FineTuningJob.create(
         training_file=file_id,
         model=model,
