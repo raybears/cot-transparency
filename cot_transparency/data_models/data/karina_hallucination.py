@@ -44,10 +44,10 @@ def get_karina_hallucination() -> Slist[KarinaHallucination]:
         try:
             output.append(
                 KarinaHallucination(
-                    extracted_queries=row["extracted_queries"],
-                    topic=row["topic"],
-                    difficulty=row["difficulty"],
-                    obscurity=row["obscurity"],
+                    extracted_queries=row["extracted_queries"],  # type: ignore
+                    topic=row["topic"],  # type: ignore
+                    difficulty=row["difficulty"],  # type: ignore
+                    obscurity=row["obscurity"],  # type: ignore
                 )
             )
         except Exception as e:
