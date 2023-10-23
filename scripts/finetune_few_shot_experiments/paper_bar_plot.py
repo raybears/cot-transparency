@@ -26,7 +26,10 @@ if __name__ == "__main__":
         "gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::89rM5liC",  # control 10k
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf",  # trained on few shot 10k
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T", # trained on all biases, 10k
+        "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 10k, trained with prompt consistency formatters
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CHkCXvd",  # 10k, excluded non sycophancy
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T",  # trained on all biases, 10k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8ByaUKRh",  # trained on few shot 50k
     ]
     run_experiments(finetuned_models)
     read = read_all_for_selections(
@@ -67,6 +70,10 @@ if __name__ == "__main__":
         name_override={
             "gpt-3.5-turbo": "GPT-3.5-turbo",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::89rM5liC": "GPT-3.5-turbo (control)",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf": "GPT-3.5-turbo (ours)",
-        }
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf": "GPT-3.5-turbo (ours excluding zero shot)",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CKZgnF5": "GPT-3.5-turbo (ours excluding only non sycophancy)",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CHkCXvd": "GPT-3.5-turbo (ours excluding only non sycophancy)",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T": "GPT-3.5-turbo (ours including all formatters)",
+            "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7": "GPT-3.5-turbo (prompt consistency formatters)",
+        },
     )
