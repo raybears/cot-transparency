@@ -3,6 +3,7 @@ import dataclasses
 from abc import ABC, abstractmethod
 from enum import Enum
 import json
+import math
 import random
 from typing import Type, Sequence, Iterable, Optional
 
@@ -49,7 +50,9 @@ from cot_transparency.formatters.prompt_sensitivity.interventions import (
 )
 from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TRAINING_COT_PROMPT_VARIANTS_8,
+    TRAINING_COT_PROMPT_VARIANTS_ALL,
     TRAINING_NO_COT_PROMPT_VARIANTS_7,
+    TRAINING_NO_COT_PROMPT_VARIANTS_ALL,
 )
 from scripts.cot_variants import sample_cot_variant
 from scripts.load_alpaca_dataset import get_alpaca_training
@@ -342,6 +345,7 @@ class FormatterOptions(str, Enum):
     zero_shot = "zero_shot"
     few_shot = "few_shot"
     prompt_variants_set1 = "prompt_variants_set1"
+    prompt_variants_all = "prompt_variants_all"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -388,6 +392,16 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
                     formatter=x,
                     intervention=AddVerbalizeAndStepByStepAssistantPref,
                 )
+            )
+        case FormatterOptions.prompt_variants_all:
+            cot_formatters = TRAINING_COT_PROMPT_VARIANTS_ALL.map(
+                lambda x: FormatterWithPossibleIntervention(
+                    formatter=x,
+                    intervention=AddVerbalizeAndStepByStepAssistantPref,
+                )
+            )
+            non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddStepByStepAssistantPref)
             )
 
     return FormatterOptionsResult(
@@ -543,7 +557,8 @@ class NFormatsPerQuestionSampler(FormatSampler):
         n_formats_per_question = min(self.n_formats_per_question, len(formatters))
 
         tasks = Slist(tasks)
-        n_unique_cots = n // n_formats_per_question
+        n_unique_cots = math.ceil((n / n_formats_per_question))
+        print("using n_unique_cots", n_unique_cots)
         tasks = tasks.take(n_unique_cots)
 
         output: Slist[TaskOutput] = Slist()
@@ -555,9 +570,10 @@ class NFormatsPerQuestionSampler(FormatSampler):
             replaced = replace_unbiased_prompt_with_formatters(task=task, use_formatters=sampled_formatters)
             output.extend(replaced)
 
-        print(f"Formatter counts:\n{json.dumps(formatter_counts)}")
-
+        output = output.take(n)
         assert len(output) == n
+        print(f"Formatter counts:\n{json.dumps(formatter_counts, indent=2)}")
+
         return output
 
     def __repr__(self) -> str:
