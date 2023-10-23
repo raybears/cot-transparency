@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 from slist import Slist
 
