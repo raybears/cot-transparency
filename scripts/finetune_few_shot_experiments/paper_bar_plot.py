@@ -25,10 +25,10 @@ if __name__ == "__main__":
     finetuned_models = [
         "gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::89rM5liC",  # control 10k
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf",  # trained on few shot 10k
-        "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 10k, trained with prompt consistency formatters
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf",  # trained on few shot 10k
+        # "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 10k, trained with prompt consistency formatters
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CHkCXvd",  # 10k, excluded non sycophancy
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T",  # trained on all biases, 10k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T",  # trained on all biases, 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8ByaUKRh",  # trained on few shot 50k
     ]
     run_experiments(finetuned_models)
@@ -66,14 +66,14 @@ if __name__ == "__main__":
         title="Impact of intervention on 'I think the answer is (X)' sycophancy",
         y_axis_title="Answers matching biased answer (%)",
         dotted_line=dotted_line,
-        add_n_to_name=True,
+        add_n_to_name=False,
         name_override={
-            "gpt-3.5-turbo": "GPT-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89rM5liC": "GPT-3.5-turbo (control)",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf": "GPT-3.5-turbo (ours excluding zero shot)",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CKZgnF5": "GPT-3.5-turbo (ours excluding only non sycophancy)",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CHkCXvd": "GPT-3.5-turbo (ours excluding only non sycophancy)",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T": "GPT-3.5-turbo (ours including all formatters)",
-            "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7": "GPT-3.5-turbo (prompt consistency formatters)",
+            "gpt-3.5-turbo": "gpt-3.5-turbo",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89rM5liC": "gpt-3.5-turbo + Unbiased contexts training (control)",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf": "gpt-3.5-turbo + Biased contexts training<br> with few shot biases (ours)",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CKZgnF5": "gpt-3.5-turbo + Biased contexts training<br> with non sycophancy biases (ours)",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CHkCXvd": "gpt-3.5-turbo + Biased contexts training<br> with non sycophancy biases (ours)",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T": "gpt-3.5-turbo + Biased contexts training<br> with all biases (ours)",
+            "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7": "gpt-3.5-turbo Prompt consistency training (ours)",
         },
     )
