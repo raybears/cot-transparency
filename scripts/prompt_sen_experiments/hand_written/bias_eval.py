@@ -38,14 +38,29 @@ MODELS = [
     # "ft:gpt-3.5-turbo-0613:far-ai::8Aic3f0n",  # 50k include all formatters
     # "ft:gpt-3.5-turbo-0613:far-ai::8Ahe3cBv",  # 10k, don't include all formatters
     # "ft:gpt-3.5-turbo-0613:far-ai::8AjeHchR",  # 50k don't include all formatters
-    "ft:gpt-3.5-turbo-0613:far-ai::8BRpCYNt",  # 110, train on zero shot
-    "ft:gpt-3.5-turbo-0613:far-ai::8BSJekFR",  # 1100, train on zero shot
-    "ft:gpt-3.5-turbo-0613:far-ai::8BSeBItZ",  # 11000, train on zero shot
-    "ft:gpt-3.5-turbo-0613:far-ai::8BSkM7rh",  # 22000, train on zero shot
-    "ft:gpt-3.5-turbo-0613:far-ai::8Bk36Zdf",  # 110, train on prompt variants
-    "ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf",  # 1100, train on prompt variants
-    "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 11000, train on prompt variants
-    "ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c",  # 22000, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8BRpCYNt",  # 110, train on zero shot
+    # "ft:gpt-3.5-turbo-0613:far-ai::8BSJekFR",  # 1100, train on zero shot
+    # "ft:gpt-3.5-turbo-0613:far-ai::8BSeBItZ",  # 11000, train on zero shot
+    # "ft:gpt-3.5-turbo-0613:far-ai::8BSkM7rh",  # 22000, train on zero shot
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Bk36Zdf",  # 110, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf",  # 1100, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 11000, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c",  # 22000, train on prompt variants
+    # Trained on mon 23
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CvSFvYq",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CvzjiAL",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CwPS37r",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CwqAHpd",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Cwy6FOO",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CwyWur7",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CxLmnUT"
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CygHwMu",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Czg32py",
+    ## Super dataset scaling
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CxBtbeH",
+    "ft:gpt-3.5-turbo-0613:far-ai::8Czg32py",
+    "ft:gpt-3.5-turbo-0613:far-ai::8CwqAHpd",
+    "ft:gpt-3.5-turbo-0613:far-ai::8CwFcohP",
 ]
 
 
@@ -95,6 +110,16 @@ class BiasTypeExtractor(BaseExtractor[TaskOutput]):
         return [
             bias_type,
         ]
+
+
+class AverageOptionsExtractor(BaseExtractor[TaskOutput]):
+    column_names = [
+        "average_options",
+    ]
+
+    def extract(self, output: TaskOutput) -> Sequence[str | float | None]:
+        n_options = len(output.task_spec.get_data_example_obj().get_options())
+        return [n_options]
 
 
 def plot(aggregate_formatters: bool = True):

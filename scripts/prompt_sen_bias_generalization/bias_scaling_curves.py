@@ -90,7 +90,7 @@ def plot(
 
     for bias_type in df.bias_type.unique():
         df_p = df[df.bias_type == bias_type]
-        chance_response = 1 / df_p.average_options.mean()
+        chance_response = 1 / df_p["average_options"].mean()
         fig, ax = plt.subplots(figsize=(6, 6))
         ax = sns.lineplot(df_p, x="Samples", y="matches_bias", hue="Trained on COTS from", err_style="bars", ax=ax)
         ax.axhline(chance_response, ls="--", color="red")
@@ -104,6 +104,7 @@ def plot(
 
     for formatter_name in df.formatter_name.unique():
         df_p = df[df.formatter_name == formatter_name]
+        assert isinstance(df_p, pd.DataFrame)
         lineplot_util(df_p, formatter_name)
 
     plt.show()
