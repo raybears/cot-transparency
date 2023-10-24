@@ -26,14 +26,17 @@ class FilterStrategy(str, Enum):
     correct_answer = "filtered to be correct"
 
 
-class ModelTrainMeta(BaseModel):
+@dataclass(frozen=True)
+class ModelTrainMeta:
     name: str
     trained_samples: int
     filter_strategy: FilterStrategy
     train_formatters: FormatterOptions = FormatterOptions.zero_shot
+    sampling_strategy: FormatSampler = RandomSampler()
 
 
-class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
+@dataclass(frozen=True)
+class ModelNameAndTrainedSamplesAndMetrics:
     train_meta: ModelTrainMeta
     percent_matching: PlotInfo
     accuracy: PlotInfo
@@ -207,6 +210,7 @@ def seaborn_line_plot(
                 "Error Bars": i.percent_matching.acc.error_bars if percent_matching else i.accuracy.acc.error_bars,
                 "Filter": i.train_meta.filter_strategy.value,
                 "Formatters": i.train_meta.train_formatters.value,
+                "Trained on COTs from": f"{i.train_meta.train_formatters.value}, {i.train_meta.filter_strategy.value}, {i.train_meta.sampling_strategy}",
             }
             for i in data
         ]
