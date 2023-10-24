@@ -274,7 +274,7 @@ def simple_plot(
     df = df.rename(columns={"is_correct": "Accuracy"})
 
     # rename model to simple name and add temperature
-    df["Model"] = df["model"].map(lambda x: MODEL_SIMPLE_NAMES[x])
+    df["Model"] = df["model"].map(lambda x: MODEL_SIMPLE_NAMES.get(x, x))
     df["Model"] = df["Model"] + " (T=" + df["temperature"].astype(str) + ")"
 
     catplot(

@@ -3,9 +3,9 @@ from concurrent.futures import ProcessPoolExecutor
 from pydantic import BaseModel
 from slist import Slist
 
+from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
-from scripts.training_formatters import TRAINING_COT_FORMATTERS_ZERO_SHOT
 from stage_one import main
 
 
@@ -28,7 +28,7 @@ def train_and_run(sweep: SweepOptions) -> None:
         ask_to_validate_training=False,
         instruct_sample_proportion=0.1,
     )
-    test_formatters = [f.name() for f in TRAINING_COT_FORMATTERS_ZERO_SHOT]
+    test_formatters = [ZeroShotCOTSycophancyFormatter.name()]
     main(
         exp_dir="experiments/finetune_3",
         models=[model],
@@ -42,7 +42,7 @@ def train_and_run(sweep: SweepOptions) -> None:
 
 if __name__ == "__main__":
     sweeps: Slist[SweepOptions] = Slist()
-    for n_sample in [100, 1000, 10000, 20000]:
+    for n_sample in [50000]:
         for formatter_option in [FormatterOptions.few_shot]:
             sweeps.append(SweepOptions(n_samples=n_sample, formatter_options=formatter_option))
 

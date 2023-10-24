@@ -6,6 +6,7 @@ from cot_transparency.data_models.data.bbh import BBH_TASK_LIST, MilesBBHRawData
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST, BBQExample
 from cot_transparency.data_models.data.hellaswag import HellaSwagExample
 from cot_transparency.data_models.data.john_math import JohnMath
+from cot_transparency.data_models.data.karina_hallucination import KarinaHallucination
 from cot_transparency.data_models.data.logiqa import LogicQaExample
 from cot_transparency.data_models.data.mmlu import MMLUExample, MMLU_TASKS, MMLU_SUPERCATEGORIES
 from cot_transparency.data_models.data.truthful_qa import TruthfulQAExample
@@ -57,5 +58,7 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return BBQExample
     elif task_name in MMLU_TASKS or task_name in MMLU_SUPERCATEGORIES:
         return MMLUExample
+    elif task_name == "karina_hallucination":
+        return KarinaHallucination
     else:
         raise ValueError(f"Unknown task name {task_name}")

@@ -54,7 +54,7 @@ class AnthropicCaller(ModelCaller):
         messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        assert "claude" in config.model
+        assert "claude" in config.model, f"AnthropicCaller can only be used with claude models. Got {config.model}"
         text = AnthropicPrompt(messages=messages).format()
 
         resp = self.client.completions.create(
