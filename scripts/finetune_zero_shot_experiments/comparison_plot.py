@@ -1,7 +1,7 @@
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Sequence, Type, Optional
-from pydantic import BaseModel
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
@@ -12,7 +12,7 @@ from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormat
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter
-from scripts.finetune_cot import FormatterOptions
+from scripts.finetune_cot import FormatSampler, FormatterOptions, RandomSampler
 from scripts.intervention_investigation import plot_for_intervention, DottedLine
 from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
 from scripts.multi_accuracy import PlotInfo
