@@ -2,7 +2,7 @@ import asyncio
 import random
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Sequence, Mapping, List
+from typing import Optional, Sequence, Mapping
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -18,7 +18,6 @@ from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from scripts.load_alpaca_dataset import get_alpaca_testing
-from scripts.load_h4_dataset import get_h4_test
 
 
 class ComparisonGeneration(BaseModel):
@@ -141,7 +140,7 @@ def get_judge_output(comparison: ComparisonGeneration, judge: ModelCaller) -> Co
 
 def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 100
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response))
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
@@ -307,7 +306,7 @@ if __name__ == "__main__":
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO",
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq",
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg",
-                # "gpt-4"
+                "gpt-4"
             ]
         )
     )

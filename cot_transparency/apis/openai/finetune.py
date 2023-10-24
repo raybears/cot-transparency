@@ -106,14 +106,15 @@ def list_finetunes() -> None:
     print(finetunes)
 
 
-def delete_all_files() -> None:
+def delete_all_finetune_files() -> None:
     files = openai.File.list().data  # type: ignore
     for file in files:
-        try:
-            openai.File.delete(file["id"])
-        except Exception as e:
-            print(f"Failed to delete file {file['id']} with error {e}")
-    print("deleted all files")
+        if file["purpose"] == "fine-tune":
+            try:
+                openai.File.delete(file["id"])
+            except Exception as e:
+                print(f"Failed to delete file {file['id']} with error {e}")
+    print("deleted all finetune files")
 
 
 def list_all_files() -> None:
@@ -361,4 +362,4 @@ def example_main():
 
 
 if __name__ == "__main__":
-    list_finetunes()
+    delete_all_finetune_files()

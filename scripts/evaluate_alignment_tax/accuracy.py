@@ -1,9 +1,14 @@
 from enum import Enum
+from pathlib import Path
 
 from pydantic import BaseModel
 from slist import Slist
 
-from stage_one import main as stage_one_main
+from cot_transparency.data_models.io import read_all_for_selections
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from scripts.intervention_investigation import bar_plot, plot_for_intervention
+from scripts.multi_accuracy import PlotInfo
+from stage_one import main as stage_one_main, TASK_LIST
 
 
 class TrainedOn(str, Enum):
@@ -75,6 +80,41 @@ model_metas = Slist(
 )
 
 
+def plot_accuracies():
+    models = ["gpt-3.5-turbo"] + [m.model for m in model_metas]
+    data = read_all_for_selections(
+        models=models,
+        formatters=["ZeroShotCOTUnbiasedFormatter"],
+        exp_dirs=[Path("experiments/finetune_3")],
+        tasks=TASK_LIST["cot_testing"],
+    )
+    print(f"Read {len(data)} experiments")
+
+    # unbiased acc
+
+    plot_dots: list[PlotInfo] = [
+        plot_for_intervention(
+            data, intervention=None, for_formatters=[ZeroShotCOTUnbiasedFormatter], model=model, name_override=model
+        )
+        for model in models
+    ]
+
+    bar_plot(
+        plot_infos=plot_dots,
+        title="Accuracy on mmlu, truthfulqa, logiqa, hellaswag<br>No biases in the prompt",
+        dotted_line=None,
+        y_axis_title="Accuracy",
+        name_override={
+            "gpt-3.5-turbo": "gpt-3.5-turbo",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89hBrLfM": "100 biased context training samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89hifzfA": "1000 biased context training samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T": "10,000 biased context training samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ah1ZpV4": "50,000 biased context training samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC": "100,000 biased context training samples",
+        },
+    )
+
+
 def main():
     models = [m.model for m in model_metas]
     stage_one_main(
@@ -89,4 +129,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    plot_accuracies()
+    # main()
