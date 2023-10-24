@@ -17,6 +17,7 @@ from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from scripts.load_alpaca_dataset import get_alpaca_testing
 from scripts.load_h4_dataset import get_h4_test
 
 
@@ -228,7 +229,7 @@ def win_rate_plot(
     # x-axis should be "Percentage of additional instruction dataset samples"
     # title should be "Win rate of intervention models against gpt-3.5-turbo"
     ax.set(xlabel="Percentage of additional instruction dataset samples", ylabel="Win rate")
-    ax.set_title("Win rate of intervention models against gpt-3.5-turbo on the Huggingface Instruction Eval dataset")
+    ax.set_title("Win rate of intervention models against gpt-3.5-turbo\n on the Huggingface Instruction Eval dataset")
     # add a red dotted line at 50%
     plt.axhline(y=0.5, color="r", linestyle="--")
 
@@ -306,7 +307,7 @@ if __name__ == "__main__":
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO",
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq",
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg",
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDxzKfb",
+                # "gpt-4"
             ]
         )
     )
