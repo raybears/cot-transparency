@@ -346,6 +346,7 @@ class FormatterOptions(str, Enum):
     few_shot = "few_shot"
     prompt_variants_set1 = "prompt_variants_set1"
     prompt_variants_all = "prompt_variants_all"
+    super_dataset = "super_dataset"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -402,6 +403,29 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
             )
             non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
                 lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddStepByStepAssistantPref)
+            )
+        case FormatterOptions.super_dataset:
+            # this is the same as prompt_variants_all + zero shot + few shot
+            cot_formatters = (
+                TRAINING_COT_PROMPT_VARIANTS_ALL.map(
+                    lambda x: FormatterWithPossibleIntervention(
+                        formatter=x,
+                        intervention=AddVerbalizeAndStepByStepAssistantPref,
+                    )
+                )
+                + Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+                + Slist(TRAINING_COT_FORMATTERS_FEW_SHOT).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            )
+            non_cot_formatters = (
+                TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
+                    lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddStepByStepAssistantPref)
+                )
+                + Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(
+                    lambda x: FormatterWithPossibleIntervention(formatter=x)
+                )
+                + Slist(TRAINING_NO_COT_FORMATTERS_FEW_SHOT).map(
+                    lambda x: FormatterWithPossibleIntervention(formatter=x)
+                )
             )
 
     return FormatterOptionsResult(
