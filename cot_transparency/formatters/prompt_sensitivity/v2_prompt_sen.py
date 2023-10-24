@@ -625,8 +625,6 @@ class InsertTyposFormatter(StageOneFormatter):
         return extract_answer_for_prompt_sen(response, question, model)
 
 
-
-
 TRAINING_COT_PROMPT_VARIANTS = [
     GoldStandardFormatter,
     DocumentaryStyleFormatter,
