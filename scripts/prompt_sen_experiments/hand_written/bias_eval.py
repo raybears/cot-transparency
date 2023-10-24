@@ -1,14 +1,25 @@
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Type
 import fire
 from matplotlib import pyplot as plt
 from cot_transparency.data_models.io import read_all_for_selections
-from cot_transparency.data_models.pd_utils import BasicExtractor, BiasExtractor, convert_slist_to_df
+from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, BiasExtractor, convert_slist_to_df
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.name_mapping import name_to_formatter
 from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS,
 )
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 from stage_one import TASK_LIST, main
+from scripts.training_formatters import (
+    TRAINING_COT_FORMATTERS_FEW_SHOT,
+    TRAINING_COT_FORMATTERS_ZERO_SHOT,
+    TRAINING_NO_COT_FORMATTERS_FEW_SHOT,
+    TRAINING_NO_COT_FORMATTERS_ZERO_SHOT,
+)
 
 
 MODELS = [
@@ -27,14 +38,29 @@ MODELS = [
     # "ft:gpt-3.5-turbo-0613:far-ai::8Aic3f0n",  # 50k include all formatters
     # "ft:gpt-3.5-turbo-0613:far-ai::8Ahe3cBv",  # 10k, don't include all formatters
     # "ft:gpt-3.5-turbo-0613:far-ai::8AjeHchR",  # 50k don't include all formatters
-    "ft:gpt-3.5-turbo-0613:far-ai::8BRpCYNt",  # 110, train on zero shot
-    "ft:gpt-3.5-turbo-0613:far-ai::8BSJekFR",  # 1100, train on zero shot
-    "ft:gpt-3.5-turbo-0613:far-ai::8BSeBItZ",  # 11000, train on zero shot
-    "ft:gpt-3.5-turbo-0613:far-ai::8BSkM7rh",  # 22000, train on zero shot
-    "ft:gpt-3.5-turbo-0613:far-ai::8Bk36Zdf",  # 110, train on prompt variants
-    "ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf",  # 1100, train on prompt variants
-    "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 11000, train on prompt variants
-    "ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c",  # 22000, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8BRpCYNt",  # 110, train on zero shot
+    # "ft:gpt-3.5-turbo-0613:far-ai::8BSJekFR",  # 1100, train on zero shot
+    # "ft:gpt-3.5-turbo-0613:far-ai::8BSeBItZ",  # 11000, train on zero shot
+    # "ft:gpt-3.5-turbo-0613:far-ai::8BSkM7rh",  # 22000, train on zero shot
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Bk36Zdf",  # 110, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf",  # 1100, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 11000, train on prompt variants
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c",  # 22000, train on prompt variants
+    # Trained on mon 23
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CvSFvYq",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CvzjiAL",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CwPS37r",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CwqAHpd",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Cwy6FOO",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8CwyWur7",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CxLmnUT"
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CygHwMu",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Czg32py",
+    ## Super dataset scaling
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CxBtbeH",
+    "ft:gpt-3.5-turbo-0613:far-ai::8Czg32py",
+    "ft:gpt-3.5-turbo-0613:far-ai::8CwqAHpd",
+    "ft:gpt-3.5-turbo-0613:far-ai::8CwFcohP",
 ]
 
 
@@ -58,6 +84,44 @@ def run():
     )
 
 
+BIAS_TYPE_MAPPING: dict[str, Sequence[Type[StageOneFormatter]]] = {
+    "Zero Shot CoT": TRAINING_COT_FORMATTERS_ZERO_SHOT,
+    "Few Shot CoT": TRAINING_COT_FORMATTERS_FEW_SHOT,
+    "Zero Shot Non CoT": TRAINING_NO_COT_FORMATTERS_ZERO_SHOT,
+    "Few Shot NoN CoT": TRAINING_NO_COT_FORMATTERS_FEW_SHOT,
+}
+
+
+class BiasTypeExtractor(BaseExtractor[TaskOutput]):
+    column_names = [
+        "bias_type",
+    ]
+
+    def extract(self, output: TaskOutput) -> Sequence[str | float | None]:
+        formatter = name_to_formatter(output.task_spec.formatter_name)
+
+        for k, v in BIAS_TYPE_MAPPING.items():
+            if formatter in v:
+                bias_type = k
+                break
+        else:
+            raise ValueError(f"Formatter {formatter} not found in BIAS_TYPE_MAPPING")
+
+        return [
+            bias_type,
+        ]
+
+
+class AverageOptionsExtractor(BaseExtractor[TaskOutput]):
+    column_names = [
+        "average_options",
+    ]
+
+    def extract(self, output: TaskOutput) -> Sequence[str | float | None]:
+        n_options = len(output.task_spec.get_data_example_obj().get_options())
+        return [n_options]
+
+
 def plot(aggregate_formatters: bool = True):
     # load the data
     tasks = TASK_LIST[DATASET]
@@ -72,8 +136,10 @@ def plot(aggregate_formatters: bool = True):
     # calculate the probability of matching the bias if you answered randomly
     # get number of options for each question
 
+    col = "bias_type"
+
     # convert to dataframe
-    df = convert_slist_to_df(outputs, extractors=[BasicExtractor(), BiasExtractor()])
+    df = convert_slist_to_df(outputs, extractors=[BasicExtractor(), BiasExtractor(), BiasTypeExtractor()])
     df["matches_bias"] = df.bias_ans == df.parsed_response
 
     aggregate_tasks = True
@@ -86,8 +152,16 @@ def plot(aggregate_formatters: bool = True):
     if aggregate_formatters:
         avg_n_ans = outputs.map(lambda x: len(x.task_spec.get_data_example_obj().get_options())).average()
         assert avg_n_ans is not None
-        g1 = catplot(data=df, x="task_name", y="matches_bias", hue="model", kind="bar", add_line_at=1 / avg_n_ans)
-        g2 = catplot(data=df, x="task_name", y="is_correct", hue="model", kind="bar")
+        g1 = catplot(
+            data=df,
+            x="task_name",
+            y="matches_bias",
+            hue="model",
+            kind="bar",
+            add_line_at=1 / avg_n_ans,
+            col=col,
+        )
+        g2 = catplot(data=df, x="task_name", y="is_correct", hue="model", kind="bar", col=col)
     else:
         for formatter in df.formatter_name.unique():
             formatter_df = df[df.formatter_name == formatter]
@@ -98,7 +172,13 @@ def plot(aggregate_formatters: bool = True):
             )
             assert avg_n_ans is not None
             g1 = catplot(
-                data=formatter_df, x="task_name", y="matches_bias", hue="model", kind="bar", add_line_at=1 / avg_n_ans
+                data=formatter_df,
+                x="task_name",
+                y="matches_bias",
+                hue="model",
+                kind="bar",
+                add_line_at=1 / avg_n_ans,
+                col=col,
             )
             g2 = catplot(
                 data=formatter_df,
@@ -106,6 +186,7 @@ def plot(aggregate_formatters: bool = True):
                 y="is_correct",
                 hue="model",
                 kind="bar",
+                col=col,
             )
             g1.fig.suptitle(formatter)
             g2.fig.suptitle(formatter)
