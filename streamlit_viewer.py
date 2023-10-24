@@ -75,6 +75,7 @@ answer_result_option: TypeOfAnswerOption = select_left_model_result_option()
 # Optional text input
 prompt_search: str = st.text_input("Search for text in the prompt for the left model")
 completion_search: str = st.text_input("Search for text in final completion for the left model")
+put_if_completion_in_user: bool = st.checkbox("Put the assistant if completion in the last user message", value=True)
 
 
 # Create a button which will increment the counter
@@ -141,7 +142,7 @@ with left:
     first = filtered[show_item_idx] if len(filtered) > 0 else None
     first_task_hash: str | None = filtered[show_item_idx].task_spec.task_hash if len(filtered) > 0 else None
     if first:
-        display_task(first)
+        display_task(first, put_if_completion_in_user=put_if_completion_in_user)
 with right:
     i = 1
     formatter_drop_down_selection: str = assert_not_none(
@@ -168,6 +169,6 @@ with right:
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     first: TaskOutput | None = filtered.first_option
     if first:
-        display_task(first)
+        display_task(first, put_if_completion_in_user=put_if_completion_in_user)
     else:
         st.write("No tasks matching")
