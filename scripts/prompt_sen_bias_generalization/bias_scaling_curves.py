@@ -26,18 +26,14 @@ def get_name_of_run(i: ModelTrainMeta) -> str:
     return f"{i.train_formatters.value}, {i.filter_strategy.value}, {i.sampling_strategy}"
 
 
-def lineplot_util(df_p: pd.DataFrame, formatter_name: str):
+def lineplot_util(df_p: pd.DataFrame, title: str):
     chance_response = 1 / df_p.average_options.mean()
     _, ax = plt.subplots(figsize=(6, 6))
     ax = sns.lineplot(df_p, x="Samples", y="matches_bias", hue="Trained on COTS from", err_style="bars", ax=ax)
     ax.axhline(chance_response, ls="--", color="red")
     ax.set_ylabel("Proportion of responses matching bias")
     ax.set_xscale("log")
-    ax.set_title(
-        "Formatter Name: " + FORMATTER_TO_SIMPLE_NAME[name_to_formatter(formatter_name)]
-        if name_to_formatter(formatter_name) in FORMATTER_TO_SIMPLE_NAME
-        else formatter_name
-    )
+    ax.set_title(title)
     ax.set_ylim(0, 1)
     # set legend below plot
     # ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.2), ncol=1)
@@ -49,6 +45,7 @@ def plot(
     exp_dir: str = "experiments/finetune_3",
     tasks: Sequence[str] = COT_TESTING_TASKS,
     biases: Sequence[Type[StageOneFormatter]] = TEST_FORMATTERS,
+    plot_breakdown_by_formatter: bool = False,
 ):
     if group_to_plot == "n_questions_comparison":
         defined_meta: Slist[ModelTrainMeta] = n_questions_comparison()
@@ -90,22 +87,20 @@ def plot(
 
     for bias_type in df.bias_type.unique():
         df_p = df[df.bias_type == bias_type]
-        chance_response = 1 / df_p["average_options"].mean()
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax = sns.lineplot(df_p, x="Samples", y="matches_bias", hue="Trained on COTS from", err_style="bars", ax=ax)
-        ax.axhline(chance_response, ls="--", color="red")
-        ax.set_ylabel("Proportion of responses matching bias")
-        ax.set_xscale("log")
-        ax.set_title("Bias type: " + bias_type)
-        ax.set_ylim(0, 1)
-        # set legend below plot
-        # ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.2), ncol=1)
-        plt.tight_layout()
-
-    for formatter_name in df.formatter_name.unique():
-        df_p = df[df.formatter_name == formatter_name]
+        title = "Bias type: " + bias_type
         assert isinstance(df_p, pd.DataFrame)
-        lineplot_util(df_p, formatter_name)
+        lineplot_util(df_p, title)
+
+    if plot_breakdown_by_formatter:
+        for formatter_name in df.formatter_name.unique():
+            df_p = df[df.formatter_name == formatter_name]
+            assert isinstance(df_p, pd.DataFrame)
+            title = (
+                "Formatter Name: " + FORMATTER_TO_SIMPLE_NAME[name_to_formatter(formatter_name)]
+                if name_to_formatter(formatter_name) in FORMATTER_TO_SIMPLE_NAME
+                else formatter_name
+            )
+            lineplot_util(df_p, title)
 
     plt.show()
 
