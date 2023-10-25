@@ -13,6 +13,37 @@ def bias_vs_prompts() -> Slist[ModelTrainMeta]:
 
     all_meta = Slist(
         [
+            # Baseline
+            ModelTrainMeta(
+                name="gpt-3.5-turbo",
+                trained_samples=1,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.control_only_unbiased,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89NHOL5b",
+                trained_samples=100,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.control_only_unbiased,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89G2vwHZ",
+                trained_samples=1000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.control_only_unbiased,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89GzBGx0",
+                trained_samples=10000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.control_only_unbiased,
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89LJSEdM",
+                trained_samples=20000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.control_only_unbiased,
+            ),
             # trained on zero shot biases
             ModelTrainMeta(
                 name="gpt-3.5-turbo",
@@ -125,13 +156,13 @@ def bias_vs_prompts() -> Slist[ModelTrainMeta]:
                 train_formatters=FormatterOptions.prompt_variants_set1,
             ),
             # hail mary
-            ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU",
-                trained_samples=20000,
-                filter_strategy=FilterStrategy.correct_answer,
-                train_formatters=FormatterOptions.prompt_variants_all,
-                sampling_strategy=NFormatsPerQuestionSampler(4),
-            ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU",
+            #     trained_samples=20000,
+            #     filter_strategy=FilterStrategy.correct_answer,
+            #     train_formatters=FormatterOptions.prompt_variants_all,
+            #     sampling_strategy=NFormatsPerQuestionSampler(4),
+            # ),
         ]
     )
 
