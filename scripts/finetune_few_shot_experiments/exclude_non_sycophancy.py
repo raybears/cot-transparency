@@ -13,6 +13,7 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomAgainstBiasedNoCOTFormatter,
     RandomAgainstBiasedQuotedNoCOTFormatter,
 )
+from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter, StanfordNoCOTFormatter
 from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
 from stage_one import main
 
@@ -29,12 +30,14 @@ def train_and_run(sweep: SweepOptions) -> None:
         RandomBiasedQuotedNoCOTFormatter,
         RandomAgainstBiasedNoCOTFormatter,
         RandomAgainstBiasedQuotedNoCOTFormatter,
+        StanfordNoCOTFormatter,
     ] + [
         ZeroShotCOTSycophancyFormatter,
         RandomBiasedFormatter,
         RandomBiasedQuotedFormatter,
         RandomAgainstBiasedFormatter,
         RandomAgainstQuotedBiasedFormatter,
+        StanfordBiasedFormatter,
     ]
 
     model = fine_tune_with_bias_augmentation(
