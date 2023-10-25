@@ -61,8 +61,12 @@ MODELS = [
     "ft:gpt-3.5-turbo-0613:far-ai::8Czg32py",
     "ft:gpt-3.5-turbo-0613:far-ai::8CwqAHpd",
     "ft:gpt-3.5-turbo-0613:far-ai::8CwFcohP",
+    # baselines
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::89NHOL5b",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::89NHOL5b",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::89GzBGx0",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::89LJSEdM",
 ]
-
 
 EXP_DIR = "experiments/finetune_3"
 
