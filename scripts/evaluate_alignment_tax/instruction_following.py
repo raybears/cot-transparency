@@ -3,15 +3,16 @@ import random
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Sequence, Mapping
-import seaborn as sns
+
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 from grugstream import Observable
 from pydantic import BaseModel
 from slist import Slist
 from tqdm import tqdm
 
-from cot_transparency.apis import OpenAIChatCaller
+from cot_transparency.apis import OpenAIChatCaller, UniversalCaller
 from cot_transparency.apis.base import Prompt, ModelCaller
 from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
@@ -170,7 +171,7 @@ class WinrateMetrics(BaseModel):
 
 def get_win_rate(judged: Sequence[ComparisonGenerationJudged]) -> WinrateMetrics:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 100
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 9999999
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
@@ -238,10 +239,10 @@ def win_rate_plot(
 async def eval_instruction_following(intervention_models: list[str]):
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
-    samples: Slist[FinetuneSample] = get_h4_test().test
+    samples: Slist[FinetuneSample] = get_alpaca_testing(200)
     print(f"Total testing samples: {len(samples)}")
 
-    intervention_caller = OpenAIChatCaller().with_file_cache(
+    intervention_caller = UniversalCaller().with_file_cache(
         cache_path=Path("experiments/alignment_tax/intervention_completion.jsonl"), write_every_n=10
     )
     vanilla_caller = OpenAIChatCaller().with_file_cache(
@@ -269,7 +270,7 @@ async def eval_instruction_following(intervention_models: list[str]):
             )
         )
         .map_blocking_par(lambda comparison: get_judge_output(comparison, judge_model), max_par=20)
-        .tqdm(tqdm(total=samples.length))
+        .tqdm(tqdm(total=prompts.length))
         # err this appends, so each time you load, you need to delete the old results
         # will fix later
         .for_each_to_file(
@@ -306,7 +307,11 @@ if __name__ == "__main__":
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO",
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq",
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg",
-                "gpt-4"
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDxzKfb",
+                "gpt-4",
+                "claude-instant-1.2",
+                "claude-2",
+                "text-davinci-001",
             ]
         )
     )

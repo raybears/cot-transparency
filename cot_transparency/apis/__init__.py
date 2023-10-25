@@ -6,7 +6,6 @@ from cot_transparency.apis.openai import OpenAIChatCaller, OpenAICompletionCalle
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
 
-
 __all__ = [
     "ModelType",
 ]
@@ -23,6 +22,25 @@ def get_caller(model_name: str) -> Type[ModelCaller]:
         return OpenAIChatCaller
     else:
         raise ValueError(f"Unknown model name {model_name}")
+
+
+class UniversalCaller(ModelCaller):
+    # lol james needs this to attach a cache easier
+    def call(
+        self,
+        messages: list[ChatMessage],
+        config: OpenaiInferenceConfig,
+    ) -> InferenceResponse:
+        model_name = config.model
+
+        caller: ModelCaller
+        if model_name in CALLER_STORE:
+            caller = get_caller(model_name)()
+        else:
+            caller = get_caller(model_name)()
+            CALLER_STORE[model_name] = caller
+
+        return caller.call(messages, config)
 
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> InferenceResponse:
