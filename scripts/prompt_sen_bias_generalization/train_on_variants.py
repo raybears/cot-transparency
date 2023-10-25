@@ -32,6 +32,7 @@ class SweepOptions:
     # Ed, add your enum all_prompt_sensitivity to FormatterOptions so we can run on those too?
     formatter_options: FormatterOptions
     sampler: FormatSampler = RandomSampler()
+    instruct_sample_proportion: float = 0.1
 
 
 def train_and_run(sweep: SweepOptions, skip_evaluation: bool = False) -> None:
@@ -46,12 +47,12 @@ def train_and_run(sweep: SweepOptions, skip_evaluation: bool = False) -> None:
         formatter_options=sweep.formatter_options,
         model_output_verified=ModelOutputVerified.correct,
         ask_to_validate_training=False,
-        instruct_sample_proportion=0.1,
+        instruct_sample_proportion=sweep.instruct_sample_proportion,
         sampler=sweep.sampler,
     )
     # Test on both few shot and zero shot biases
     print(f"done training model {model}")
-    if skip_evaluation:
+    if not skip_evaluation:
         test_formatters = [f.name() for f in TRAINING_COT_FORMATTERS]
         stage_one_main(
             exp_dir="experiments/finetune_3",
@@ -69,6 +70,7 @@ def main(
     format_options: str = FormatterOptions.prompt_variants_set1.value,
     n_formats_per_question: Optional[int] = None,
     skip_evaluation: bool = False,
+    instruct_sample_proportion: float = 0.1,
 ):
     load_dotenv()
     org = os.environ.get("OPENAI_ORG_IDS")
@@ -93,9 +95,13 @@ def main(
     else:
         sampler = NFormatsPerQuestionSampler(n_formats_per_question=n_formats_per_question)
 
-    train_and_run(
-        SweepOptions(n_samples=n_samples, formatter_options=formatter_options, sampler=sampler), skip_evaluation
+    sweep_options = SweepOptions(
+        n_samples=n_samples,
+        formatter_options=formatter_options,
+        sampler=sampler,
+        instruct_sample_proportion=instruct_sample_proportion,
     )
+    train_and_run(sweep_options, skip_evaluation)
     print("done")
 
 
