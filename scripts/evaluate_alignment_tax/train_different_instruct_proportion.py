@@ -27,7 +27,7 @@ async def train_and_run(sweep: SweepOptions) -> None:
         prepend_notes="instruct_sample_proportion: " + str(sweep.instruct_sample_proportion) + " ",
     )
     await eval_instruction_following(
-        intervention_model=model,
+        intervention_models=[model],
     )
 
 

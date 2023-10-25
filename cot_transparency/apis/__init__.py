@@ -25,22 +25,15 @@ def get_caller(model_name: str) -> Type[ModelCaller]:
 
 
 class UniversalCaller(ModelCaller):
-    # lol james needs this to attach a cache easier
+    # A caller that can call (mostly) any model
+    # This exists so that James can easily attach a cache to a single caller with with_file_cache
+    # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
     def call(
         self,
         messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        model_name = config.model
-
-        caller: ModelCaller
-        if model_name in CALLER_STORE:
-            caller = get_caller(model_name)()
-        else:
-            caller = get_caller(model_name)()
-            CALLER_STORE[model_name] = caller
-
-        return caller.call(messages, config)
+        return call_model_api(messages, config)
 
 
 def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> InferenceResponse:

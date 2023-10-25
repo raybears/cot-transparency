@@ -18,7 +18,7 @@ from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from scripts.load_alpaca_dataset import get_alpaca_testing
+from scripts.load_h4_dataset import get_h4_test
 
 
 class ComparisonGeneration(BaseModel):
@@ -141,7 +141,7 @@ def get_judge_output(comparison: ComparisonGeneration, judge: ModelCaller) -> Co
 
 def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response))
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 100
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
@@ -239,7 +239,7 @@ def win_rate_plot(
 async def eval_instruction_following(intervention_models: list[str]):
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
-    samples: Slist[FinetuneSample] = get_alpaca_testing(200)
+    samples: Slist[FinetuneSample] = get_h4_test().test
     print(f"Total testing samples: {len(samples)}")
 
     intervention_caller = UniversalCaller().with_file_cache(
