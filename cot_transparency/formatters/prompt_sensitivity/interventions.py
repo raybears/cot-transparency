@@ -43,7 +43,7 @@ class AddBestAnswerIsAssistantPref(Intervention):
         return messages
 
 
-class AddStepByStepAssistantPref(Intervention):
+class AddBestAnswerIsNonCot(Intervention):
     @classmethod
     def intervene(
         cls,

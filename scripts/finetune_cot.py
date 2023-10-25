@@ -45,7 +45,7 @@ from cot_transparency.apis.openai.finetune import (
     FineTuneHyperParams,
 )
 from cot_transparency.formatters.prompt_sensitivity.interventions import (
-    AddStepByStepAssistantPref,
+    AddBestAnswerIsNonCot,
     AddVerbalizeAndStepByStepAssistantPref,
 )
 from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
@@ -386,7 +386,7 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
             cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
         case FormatterOptions.prompt_variants_set1:
             non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_7.map(
-                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddStepByStepAssistantPref)
+                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddBestAnswerIsNonCot)
             )
             cot_formatters = TRAINING_COT_PROMPT_VARIANTS_8.map(
                 lambda x: FormatterWithPossibleIntervention(
@@ -402,7 +402,7 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
                 )
             )
             non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
-                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddStepByStepAssistantPref)
+                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddBestAnswerIsNonCot)
             )
         case FormatterOptions.super_dataset:
             # this is the same as prompt_variants_all + zero shot + few shot
@@ -418,7 +418,7 @@ def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOpt
             )
             non_cot_formatters = (
                 TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
-                    lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddStepByStepAssistantPref)
+                    lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddBestAnswerIsNonCot)
                 )
                 + Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(
                     lambda x: FormatterWithPossibleIntervention(formatter=x)
