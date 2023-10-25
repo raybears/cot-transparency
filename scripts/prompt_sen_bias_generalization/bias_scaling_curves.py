@@ -14,6 +14,7 @@ from scripts.prompt_sen_experiments.hand_written.bias_eval import AverageOptions
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
 from scripts.training_formatters import TRAINING_COT_FORMATTERS
 from stage_one import COT_TESTING_TASKS
+from stage_one import main as stage_one_main
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -40,6 +41,37 @@ def lineplot_util(df_p: pd.DataFrame, title: str):
     plt.tight_layout()
 
 
+def get_models(group_to_plot: str) -> Slist[ModelTrainMeta]:
+    if group_to_plot == "n_questions_comparison":
+        defined_meta: Slist[ModelTrainMeta] = n_questions_comparison()
+    elif group_to_plot == "bias_vs_prompts":
+        defined_meta = bias_vs_prompts()
+    else:
+        raise ValueError(f"Unknown group_to_plot {group_to_plot}")
+    return defined_meta
+
+
+def run(
+    group_to_plot: str = "n_questions_comparison",
+    exp_dir: str = "experiments/finetune_3",
+    tasks: Sequence[str] = COT_TESTING_TASKS,
+    biases: Sequence[Type[StageOneFormatter]] = TEST_FORMATTERS,
+):
+    models = get_models(group_to_plot)
+    model_names = models.map(lambda x: x.name)
+
+    stage_one_main(
+        exp_dir=exp_dir,
+        models=model_names,
+        tasks=tasks,
+        formatters=Slist(biases).map(lambda x: x.name()),
+        example_cap=400,
+        raise_after_retries=False,
+        temperature=1.0,
+        batch=25,
+    )
+
+
 def plot(
     group_to_plot: str = "n_questions_comparison",
     exp_dir: str = "experiments/finetune_3",
@@ -47,13 +79,7 @@ def plot(
     biases: Sequence[Type[StageOneFormatter]] = TEST_FORMATTERS,
     plot_breakdown_by_formatter: bool = False,
 ):
-    if group_to_plot == "n_questions_comparison":
-        defined_meta: Slist[ModelTrainMeta] = n_questions_comparison()
-    elif group_to_plot == "bias_vs_prompts":
-        defined_meta = bias_vs_prompts()
-    else:
-        raise ValueError(f"Unknown group_to_plot {group_to_plot}")
-
+    defined_meta = get_models(group_to_plot)
     models = [m.name for m in defined_meta]
     outputs = read_all_for_selections(
         exp_dirs=[Path(exp_dir)],
@@ -106,4 +132,4 @@ def plot(
 
 
 if __name__ == "__main__":
-    fire.Fire(plot)
+    fire.Fire({"run": run, "plot": plot})
