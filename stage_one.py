@@ -334,7 +334,7 @@ def stage_one_stream(
                 tasks_to_run.append(task_spec)
     return (
         Observable.from_iterable(tasks_to_run)
-        .map_blocking_par(
+            .map_blocking_par(
             lambda task_spec: task_function(
                 task=task_spec,
                 raise_after_retries=raise_after_retries,
