@@ -156,6 +156,9 @@ class CachedCaller(ModelCaller):
                     self.save_cache()
             return response
 
+    def __del__(self):
+        self.save_cache()
+
 
 def make_file_cache(model_caller: ModelCaller, cache_path: Path, write_every_n: int) -> CachedCaller:
     """
