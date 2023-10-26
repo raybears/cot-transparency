@@ -106,12 +106,17 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
 
 
 def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
-    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
-    dfs = []
-    for exp in loaded_dict.values():
-        df = convert_stage2_experiment_to_dataframe(exp)
-        dfs.append(df)
-    df = pd.concat(dfs)
+    df = convert_stage2_experiment_to_dataframe(loaded)
+    df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
+    # filter out the NOT_FOUND rows
+    n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
+    print(f"Number of NOT_FOUND rows: {n_not_found}")
+    df = df[df.parsed_response != "NOT_FOUND"]
+    return df  # type: ignore
+
+
+def get_data_frame_from_exp_dir_items(items: Sequence[StageTwoTaskOutput]) -> pd.DataFrame:
+    df = convert_stage2_experiment_to_dataframe(items)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
     # filter out the NOT_FOUND rows
     n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
