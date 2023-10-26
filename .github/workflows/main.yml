@@ -96,9 +96,9 @@ jobs:
         run: |
           ruff --fix .
 
-      - name: Run shed
+      - name: Run black
         run: |
-          shed .
+          black .
           
 
       - name: Run pyright
