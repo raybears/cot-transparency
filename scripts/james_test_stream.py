@@ -1,11 +1,12 @@
 import asyncio
+from pathlib import Path
 
-from zipp import Path
 from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.tasks import task_function
 from scripts.ignored_reasoning.stage_two import get_early_answering_tasks
+from scripts.ignored_reasoning.stage_two_analysis import plot_early_answering_from_list
 from stage_one import stage_one_stream
 
 
@@ -24,19 +25,21 @@ class MockCaller(ModelCaller):
 
 async def main():
     stage_one_cache_dir = Path("experiments/stage_one.jsonl")
-    stage_one_caller = MockCaller()
+
+    stage_one_caller = MockCaller().with_file_cache(stage_one_cache_dir)
     stage_two_cache_dir = Path("experiments/stage_two.jsonl")
-    obs = (
-        stage_one_stream(
-            formatters=["ZeroShotCOTUnbiasedFormatter"],
-            dataset="cot_testing",
-            example_cap=400,
-            raise_after_retries=False,
-            temperature=1.0,
-            caller=MockCaller(),
-        )
-        .tqdm(None)
-        .map(
+    stage_two_caller = MockCaller().with_file_cache(stage_two_cache_dir)
+    stage_one_obs = stage_one_stream(
+        formatters=["ZeroShotCOTUnbiasedFormatter"],
+        dataset="cot_testing",
+        example_cap=400,
+        raise_after_retries=False,
+        temperature=1.0,
+        caller=stage_one_caller,
+    ).tqdm(None)
+
+    early_answer_obs = (
+        stage_one_obs.map(
             lambda task_output: get_early_answering_tasks(
                 stage_one_output=task_output,
                 exp_dir="not_used",
@@ -47,11 +50,16 @@ async def main():
         )
         .flatten_list()
         .map_blocking_par(
-            lambda stage_two_spec: task_function(task=stage_two_spec, raise_after_retries=False, caller=MockCaller())
+            lambda stage_two_spec: task_function(
+                task=stage_two_spec, raise_after_retries=False, caller=stage_two_caller
+            )
         )
         .flatten_list()
     )
-    await obs.run_to_completion()
+    stage_one_caller.save_cache()
+    stage_two_caller.save_cache()
+    early_answer_results = await early_answer_obs.to_list()
+    plot_early_answering_from_list(items=early_answer_results, show_plots=True)
 
 
 if __name__ == "__main__":

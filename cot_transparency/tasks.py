@@ -1,4 +1,3 @@
-from operator import call
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -8,8 +7,8 @@ from altair import overload
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
+from cot_transparency.apis import UniversalCaller
 
-from cot_transparency.apis import UniversalCaller, call_model_api
 from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.apis.rate_limiting import exit_event
 from cot_transparency.data_models.config import OpenaiInferenceConfig
@@ -131,7 +130,11 @@ def call_model_and_raise_if_not_suitable(
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
 ) -> list[ModelOutput]:
     responses = retry(exceptions=AtLeastOneFailed, tries=retries)(__call_or_raise)(
-        task=task, config=config, formatter=formatter, raise_on=raise_on,caller=caller,
+        task=task,
+        config=config,
+        formatter=formatter,
+        raise_on=raise_on,
+        caller=caller,
     )
     return responses
 
@@ -146,36 +149,54 @@ def call_model_and_catch(
 ) -> list[ModelOutput]:
     try:
         return call_model_and_raise_if_not_suitable(
-            task=task, config=config, formatter=formatter, retries=retries, raise_on=raise_on,caller=caller,
+            task=task,
+            config=config,
+            formatter=formatter,
+            retries=retries,
+            raise_on=raise_on,
+            caller=caller,
         )
     except AtLeastOneFailed as e:
         return e.model_outputs
 
+
 @overload
-def task_function( 
+def task_function(
     task: StageTwoTaskSpec,
     raise_after_retries: bool,
-    caller: ModelCaller,
+    caller: ModelCaller = ...,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
     num_retries: int = 10,
 ) -> list[StageTwoTaskOutput]:
     ...
 
+
 @overload
-def task_function( 
+def task_function(
     task: TaskSpec,
     raise_after_retries: bool,
-    caller: ModelCaller,
+    caller: ModelCaller = ...,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
     num_retries: int = 10,
 ) -> list[TaskOutput]:
     ...
 
 
+@overload
 def task_function(
     task: Union[TaskSpec, StageTwoTaskSpec],
     raise_after_retries: bool,
-    caller: ModelCaller,
+    caller: ModelCaller = ...,
+    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    num_retries: int = 10,
+) -> Union[list[TaskOutput], list[StageTwoTaskOutput]]:
+    ...
+
+
+def task_function(
+    task: Union[TaskSpec, StageTwoTaskSpec],
+    raise_after_retries: bool,
+    caller: ModelCaller = UniversalCaller(),
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
     num_retries: int = 10,
 ) -> Union[list[TaskOutput], list[StageTwoTaskOutput]]:
@@ -320,7 +341,7 @@ def run_tasks_multi_threaded(
     for task in tasks_to_run:
         future_instance_outputs.append(
             executor.submit(
-                task_function, task, raise_after_retries=raise_after_retries, raise_on=raise_on, num_retries=num_retries # type: ignore
+                lambda: task_function(task=task, raise_after_retries=True, raise_on=raise_on, num_retries=num_retries)
             )
         )
 

@@ -53,7 +53,6 @@ def filter_cot_by_possible_ends(cot_steps: list[str]) -> list[str]:
     return filtered_steps
 
 
-
 def get_early_answering_tasks(
     stage_one_output: TaskOutput,
     exp_dir: str,

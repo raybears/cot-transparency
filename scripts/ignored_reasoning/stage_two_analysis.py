@@ -1,9 +1,10 @@
 from typing import Optional
 import fire
+from git import Sequence
 from matplotlib import pyplot as plt
 from analysis import get_general_metrics
 from cot_transparency.data_models.models import (
-    StageTwoExperimentJsonFormat,
+    StageTwoTaskOutput,
     TaskOutput,
 )
 import pandas as pd
@@ -12,6 +13,7 @@ from cot_transparency.formatters.transparency.trace_manipulation import get_cot_
 from analysis import accuracy_for_df, TASK_MAP
 import seaborn as sns
 import numpy as np
+
 
 # Used to produce human readable names on plots
 NAMES_MAP = {
@@ -72,9 +74,9 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
     return areas
 
 
-def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
+def convert_stage2_experiment_to_dataframe(exp: Sequence[StageTwoTaskOutput]) -> pd.DataFrame:
     out = []
-    for task_output in exp.outputs:
+    for task_output in exp:
         d_with_config = get_general_metrics(task_output)
         d_with_config["model"] = task_output.task_spec.inference_config.model
         d_with_config["task_name"] = task_output.task_spec.stage_one_output.task_spec.task_name
@@ -106,7 +108,12 @@ def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) ->
 
 
 def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
-    df = convert_stage2_experiment_to_dataframe(loaded)
+    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
+    dfs = []
+    for exp in loaded_dict.values():
+        df = convert_stage2_experiment_to_dataframe(exp.outputs)
+        dfs.append(df)
+    df = pd.concat(dfs)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
     # filter out the NOT_FOUND rows
     n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
@@ -265,7 +272,35 @@ def plot_early_answering(
     col: str = "original_cot_trace_length",
     hue: str = "model",
 ):
-    df = get_data_frame_from_exp_dir(exp_dir)
+    items: list[StageTwoTaskOutput] = []
+    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
+    for vals in loaded_dict.values():
+        outputs = vals.outputs
+        items.extend(outputs)
+
+    return plot_early_answering_from_list(
+        items=items,
+        show_plots=show_plots,
+        inconsistent_only=inconsistent_only,
+        aggregate_over_tasks=aggregate_over_tasks,
+        model_filter=model_filter,
+        length_filter=length_filter,
+        col=col,
+        hue=hue,
+    )
+
+
+def plot_early_answering_from_list(
+    items: Sequence[StageTwoTaskOutput],
+    show_plots: bool = False,
+    inconsistent_only: bool = False,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    length_filter: Optional[list[int]] = None,
+    col: str = "original_cot_trace_length",
+    hue: str = "model",
+):
+    df = get_data_frame_from_exp_dir_items(items=items)
     # drop formatters that have Mistake in the name
     df = df[~df.has_mistake]
     df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)  # type: ignore
