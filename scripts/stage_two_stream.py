@@ -4,8 +4,14 @@ from pathlib import Path
 from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.models import StageTwoTaskOutput
 from cot_transparency.tasks import task_function
-from scripts.ignored_reasoning.stage_two import get_early_answering_tasks
+from scripts.ignored_reasoning.stage_two import (
+    create_mistake_task_spec_for_stage_one,
+    filter_mistakes_output,
+    get_early_answering_tasks,
+    get_mistakes,
+)
 from scripts.ignored_reasoning.stage_two_analysis import plot_early_answering_from_list
 from stage_one import stage_one_stream
 
@@ -56,10 +62,34 @@ async def main():
         )
         .flatten_list()
     )
-    stage_one_caller.save_cache()
-    stage_two_caller.save_cache()
     early_answer_results = await early_answer_obs.to_list()
     plot_early_answering_from_list(items=early_answer_results, show_plots=True)
+
+    mistakes_obs = (
+        stage_one_obs.map(
+            lambda task_output: create_mistake_task_spec_for_stage_one(
+                stage_one_output=task_output,
+                exp_dir="not_used",
+                mistake_adding_temperature=1.0,
+                n_mistake_insertion_points=4,
+                mistake_adding_model="claude-instant-1",
+            )
+        )
+        .flatten_list()
+        .map_blocking_par(
+            lambda stage_two_spec: task_function(
+                task=stage_two_spec, raise_after_retries=False, caller=stage_two_caller
+            )
+        )
+        .flatten_list()
+    )
+    mistakes_results = await mistakes_obs.to_list()
+    filtered_results: list[StageTwoTaskOutput] = filter_mistakes_output(mistakes_results)
+    # todo: you need to get the 
+
+
+    stage_two_caller.save_cache()
+    stage_one_caller.save_cache()
 
 
 if __name__ == "__main__":

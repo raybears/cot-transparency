@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Literal, Optional, Type
 
 import fire
+from git import Sequence
 from cot_transparency.data_models.config import CONFIG_MAP
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 
@@ -108,6 +109,60 @@ def get_early_answering_tasks(
     return outputs
 
 
+def create_mistake_task_spec_for_stage_one(
+    stage_one_output: TaskOutput,
+    exp_dir: str,
+    mistake_adding_model: str,
+    mistake_adding_temperature: float,
+    n_mistake_insertion_points: int,
+) -> list[StageTwoTaskSpec]:
+    DataExample = task_name_to_data_example(stage_one_output.task_spec.task_name)
+    data_example = stage_one_output.task_spec.read_data_example_or_raise(DataExample)
+    original_question: str = data_example.get_parsed_input()
+
+    cot_steps = get_cot_steps(stage_one_output.first_raw_response)
+    cot_steps = filter_cot_by_possible_ends(cot_steps)
+
+    rng = random.Random(original_question)
+    # we don't want to insert mistakes at the first step, because then there is no sentence to make a mistake in
+    # as the first one is blank cot
+    if len(cot_steps) == 0:
+        print("WARNING - skipping task as len(cot_steps) == 0")
+        return []
+
+    sample_idxs = [0, len(cot_steps) - 1]  # we always do the first and last one to get good aoc numbers
+    if len(cot_steps) > 2:
+        mistake_idxs = rng.sample(range(1, len(cot_steps) - 1), min(n_mistake_insertion_points, len(cot_steps) - 2))
+        sample_idxs.extend(mistake_idxs)
+    sample_idxs = sorted(list(set(sample_idxs)))
+
+    config = CONFIG_MAP[mistake_adding_model].copy()
+    config.max_tokens = 100
+    config.temperature = mistake_adding_temperature
+    config.stop = ["\n", "```"]
+
+    original_model_that_generated_cot = stage_one_output.task_spec.inference_config.model
+    path = Path(
+        f"{exp_dir}/mistakes_stage1/s1-{stage_one_output.task_spec.formatter_name}/cot-{original_model_that_generated_cot}/{stage_one_output.task_spec.task_name}/"
+        f"/mistake-{config.model}/{FewShotGenerateMistakeFormatter.name()}.json"
+    )
+    out: list[StageTwoTaskSpec] = []
+    for i in sample_idxs:
+        messages = FewShotGenerateMistakeFormatter.format_example(
+            original_question=original_question, sentence=cot_steps[i]
+        )
+        task_spec = StageTwoTaskSpec(
+            stage_one_output=stage_one_output,
+            inference_config=config,
+            formatter_name=FewShotGenerateMistakeFormatter.name(),
+            messages=messages,
+            out_file_path=path,
+            trace_info=TraceInfo(original_cot=cot_steps, mistake_inserted_idx=i),
+        )
+        out.append(task_spec)
+    return out
+
+
 def get_mistakes(
     stage_one_outputs: list[TaskOutput],
     exp_dir: str,
@@ -121,49 +176,15 @@ def get_mistakes(
     # e.g Tamera et al use a non RLHF model to generate mistakes
     specs: list[StageTwoTaskSpec] = []
     for stage_one_output in stage_one_outputs:
-        DataExample = task_name_to_data_example(stage_one_output.task_spec.task_name)
-        data_example = stage_one_output.task_spec.read_data_example_or_raise(DataExample)
-        original_question: str = data_example.get_parsed_input()
-
-        cot_steps = get_cot_steps(stage_one_output.first_raw_response)
-        cot_steps = filter_cot_by_possible_ends(cot_steps)
-
-        rng = random.Random(original_question)
-        # we don't want to insert mistakes at the first step, because then there is no sentence to make a mistake in
-        # as the first one is blank cot
-        if len(cot_steps) == 0:
-            print("WARNING - skipping task as len(cot_steps) == 0")
-            continue
-
-        sample_idxs = [0, len(cot_steps) - 1]  # we always do the first and last one to get good aoc numbers
-        if len(cot_steps) > 2:
-            mistake_idxs = rng.sample(range(1, len(cot_steps) - 1), min(n_mistake_insertion_points, len(cot_steps) - 2))
-            sample_idxs.extend(mistake_idxs)
-        sample_idxs = sorted(list(set(sample_idxs)))
-
-        config = CONFIG_MAP[mistake_adding_model].copy()
-        config.max_tokens = 100
-        config.temperature = mistake_adding_temperature
-        config.stop = ["\n", "```"]
-
-        original_model_that_generated_cot = stage_one_output.task_spec.inference_config.model
-        path = Path(
-            f"{exp_dir}/mistakes_stage1/s1-{stage_one_output.task_spec.formatter_name}/cot-{original_model_that_generated_cot}/{stage_one_output.task_spec.task_name}/"
-            f"/mistake-{config.model}/{FewShotGenerateMistakeFormatter.name()}.json"
-        )
-        for i in sample_idxs:
-            messages = FewShotGenerateMistakeFormatter.format_example(
-                original_question=original_question, sentence=cot_steps[i]
-            )
-            task_spec = StageTwoTaskSpec(
+        specs.extend(
+            create_mistake_task_spec_for_stage_one(
                 stage_one_output=stage_one_output,
-                inference_config=config,
-                formatter_name=FewShotGenerateMistakeFormatter.name(),
-                messages=messages,
-                out_file_path=path,
-                trace_info=TraceInfo(original_cot=cot_steps, mistake_inserted_idx=i),
+                exp_dir=exp_dir,
+                mistake_adding_model=mistake_adding_model,
+                mistake_adding_temperature=mistake_adding_temperature,
+                n_mistake_insertion_points=n_mistake_insertion_points,
             )
-            specs.append(task_spec)
+        )
 
     print(f"1. Generating mistakes using {mistake_adding_model}")
     print("n specs", len(specs))
@@ -184,6 +205,10 @@ def get_mistakes(
 
     outputs = run_with_caching_stage_two(save_mistake_generating_file_every, batch, specs)
 
+    return filter_mistakes_output(outputs)
+
+
+def filter_mistakes_output(outputs: Sequence[StageTwoTaskOutput]) -> list[StageTwoTaskOutput]:
     # Discard outputs where there was no output
     filtered_outputs = [output for output in outputs if output.first_parsed_response is not None]
     n_discarded = len(outputs) - len(filtered_outputs)
@@ -194,9 +219,7 @@ def get_mistakes(
     filtered_outputs = [i for i in outputs if "NO_REASONING" not in i.first_parsed_response]  # type: ignore
     n_discarded = len(outputs) - len(filtered_outputs)
     print(f"Discarding {n_discarded} outputs where the mistake model didn't deem there to be a reasoning step")
-    outputs = filtered_outputs
-
-    return outputs
+    return filtered_outputs
 
 
 def recomplete_cot_with_inserted_mistake(
