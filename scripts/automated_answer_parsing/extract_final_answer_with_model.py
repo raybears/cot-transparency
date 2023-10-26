@@ -45,9 +45,7 @@ def convert_s1_to_s2(
         stage_one_output=output,
         inference_config=config,
         formatter_name=Formatter.name(),
-        messages=Formatter.format_example(
-            model_response, output.task_spec.get_data_example_obj(), config.model
-        ),
+        messages=Formatter.format_example(model_response, output.task_spec.get_data_example_obj(), config.model),
         out_file_path=path,
     )
 
@@ -63,9 +61,7 @@ def extract_answers_that_we_can(
     for task in s2_tasks:
         s1_response = task.stage_one_output.inference_output.raw_response
         question = task.stage_one_output.task_spec.get_data_example_obj()
-        extractors = FindIndicatorAfterBreakWord(
-            question.get_options(), question.data_format
-        )
+        extractors = FindIndicatorAfterBreakWord(question.get_options(), question.data_format)
         pipleine = AnswerExtractorPipeline(extractors=[extractors])
         output = pipleine.run_pipeline(s1_response)
         if output is not None:
@@ -73,16 +69,12 @@ def extract_answers_that_we_can(
             old_model = new_task.inference_config.model
             new_task.inference_config.model = "extractor_function"
             new_task.out_file_path = Path(
-                str(new_task.out_file_path).replace(
-                    old_model, new_task.inference_config.model
-                )
+                str(new_task.out_file_path).replace(old_model, new_task.inference_config.model)
             )
             found_answers.append(
                 StageTwoTaskOutput(
                     task_spec=new_task,
-                    inference_output=ModelOutput(
-                        raw_response=output, parsed_response=output
-                    ),
+                    inference_output=ModelOutput(raw_response=output, parsed_response=output),
                 )
             )
         else:
@@ -105,25 +97,13 @@ def main(
 ):
     all_data = (
         read_whole_exp_dir(exp_dir=input_exp_dir)
-        .filter(
-            lambda x: x.task_spec.formatter_name in formatters if formatters else True
-        )
-        .filter(
-            lambda x: x.task_spec.inference_config.model in models_to_parse
-            if models_to_parse
-            else True
-        )
-        .filter(
-            lambda x: x.task_spec.intervention_name in interventions
-            if interventions
-            else True
-        )
+        .filter(lambda x: x.task_spec.formatter_name in formatters if formatters else True)
+        .filter(lambda x: x.task_spec.inference_config.model in models_to_parse if models_to_parse else True)
+        .filter(lambda x: x.task_spec.intervention_name in interventions if interventions else True)
     )
     print("Filtered down to", len(all_data), "tasks")
 
-    stage_two_tasks = all_data.map(
-        lambda x: convert_s1_to_s2(x, exp_dir, temperature, model=model, n_tokens=1)
-    )
+    stage_two_tasks = all_data.map(lambda x: convert_s1_to_s2(x, exp_dir, temperature, model=model, n_tokens=1))
     still_to_run, found_answers = extract_answers_that_we_can(stage_two_tasks)
     save_list_of_outputs_s2(found_answers)
     run_with_caching_stage_two(save_file_every, batch, still_to_run, num_retries=1)

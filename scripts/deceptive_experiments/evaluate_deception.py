@@ -122,9 +122,7 @@ def plot_accuracies_for_model(
     )
     print(f"Read {len(read)} experiments")
     # groupby MODEL
-    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(
-        lambda x: x.task_spec.inference_config.model
-    )
+    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(lambda x: x.task_spec.inference_config.model)
     print(f"Grouped into {len(grouped)} groups")
     # get plot info
     plot_infos: Slist[PlotInfo] = grouped.map(get_accuracy_plot_info_for_model_name)
@@ -165,9 +163,7 @@ def plot_accuracies_for_model_with_coup(
     print(f"Read {len(read)} experiments")
     # groupby MODEL
     grouped: Slist[tuple[str, Slist[TaskOutput]]] = all_read.group_by(
-        lambda x: x.task_spec.inference_config.model
-        + "_"
-        + str(x.task_spec.intervention_name)
+        lambda x: x.task_spec.inference_config.model + "_" + str(x.task_spec.intervention_name)
     )
     # order by model following the order in models
     grouped = grouped.sort_by(lambda x: models.index(x[0].split("_")[0]))

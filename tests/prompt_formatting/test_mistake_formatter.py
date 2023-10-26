@@ -40,9 +40,7 @@ def test_mistake_formatter_anthropic():
     few_shot_prompts = format_string_to_dicts(FEW_SHOT_PROMPT)
     out = ""
     for i in few_shot_prompts:
-        out += (
-            f"\n\nHuman: {START_PROMPT}\n\n{i['human']}\n\nAssistant: {i['assistant']}"
-        )
+        out += f"\n\nHuman: {START_PROMPT}\n\n{i['human']}\n\nAssistant: {i['assistant']}"
 
     expected = f"""{out}
 
@@ -69,17 +67,13 @@ def test_complete_partial_cot_formatter_no_role():
         complete_modified_cot=modified_cot,
         sentence_with_mistake="P + Q = Z.",
     )
-    original_messages = (
-        FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.format_example(data)
-    )
+    original_messages = FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.format_example(data)
     prompt: Sequence[ChatMessage] = CompletePartialCOT.format_example(
         original_messages,
         mistake_adding_info.get_trace_upto_mistake(),
         "text-davinci-002",
     )
-    assert (
-        prompt[-1].content == "Answer: Let's think step by step: X = Y + Z. P + Q = Z."
-    )
+    assert prompt[-1].content == "Answer: Let's think step by step: X = Y + Z. P + Q = Z."
     # asswert no roles
     for msg in prompt:
         assert msg.role is MessageRole.none
@@ -87,13 +81,9 @@ def test_complete_partial_cot_formatter_no_role():
 
 @pytest.mark.parametrize("cot", ["This is some CoT.", " This is some CoT."])
 def test_complete_partial_anthropic_format(cot: str):
-    original_messages = ZeroShotCOTUnbiasedTameraTFormatter.format_example(
-        EMPIRE_OF_PANTS_EXAMPLE, model="claude-v1"
-    )
+    original_messages = ZeroShotCOTUnbiasedTameraTFormatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model="claude-v1")
 
-    prompt: Sequence[ChatMessage] = CompletePartialCOT.format_example(
-        original_messages, cot, "claude-v1"
-    )
+    prompt: Sequence[ChatMessage] = CompletePartialCOT.format_example(original_messages, cot, "claude-v1")
     anthropic_str = AnthropicPrompt(messages=prompt).format()
 
     expected = """

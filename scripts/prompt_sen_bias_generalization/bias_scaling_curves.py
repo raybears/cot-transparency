@@ -34,9 +34,7 @@ TEST_FORMATTERS = [f for f in TRAINING_COT_FORMATTERS]
 
 
 def get_name_of_run(i: ModelTrainMeta) -> str:
-    return (
-        f"{i.train_formatters.value}, {i.filter_strategy.value}, {i.sampling_strategy}"
-    )
+    return f"{i.train_formatters.value}, {i.filter_strategy.value}, {i.sampling_strategy}"
 
 
 def lineplot_util(df_p: pd.DataFrame, title: str):
@@ -124,9 +122,7 @@ def plot(
 
     model_name_to_meta = defined_meta.map(lambda x: (x.name, x)).to_dict()
 
-    df["Trained on COTS from"] = df.model.map(
-        lambda x: get_name_of_run(model_name_to_meta[x])
-    )
+    df["Trained on COTS from"] = df.model.map(lambda x: get_name_of_run(model_name_to_meta[x]))
     df["Samples"] = df.model.map(lambda x: model_name_to_meta[x].trained_samples)
 
     baseline = df[df.model == "gpt-3.5-turbo"].copy()
@@ -135,10 +131,7 @@ def plot(
         name_of_run = get_name_of_run(meta)
         # if name of run not in df, duplicate all rows with the same model name and add the name of run
         model = meta.name
-        if (
-            len(df[(df.model == model) & (df["Trained on COTS from"] == name_of_run)])
-            == 0
-        ):
+        if len(df[(df.model == model) & (df["Trained on COTS from"] == name_of_run)]) == 0:
             new_rows = baseline.copy()
             new_rows["Trained on COTS from"] = name_of_run
             df = pd.concat((df, new_rows))  # type: ignore
@@ -163,8 +156,7 @@ def plot(
             df_p = df[df.formatter_name == formatter_name]
             assert isinstance(df_p, pd.DataFrame)
             title = (
-                "Formatter Name: "
-                + FORMATTER_TO_SIMPLE_NAME[name_to_formatter(formatter_name)]
+                "Formatter Name: " + FORMATTER_TO_SIMPLE_NAME[name_to_formatter(formatter_name)]
                 if name_to_formatter(formatter_name) in FORMATTER_TO_SIMPLE_NAME
                 else formatter_name
             )

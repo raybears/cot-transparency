@@ -28,9 +28,7 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
     is_intermediate = False
 
     @staticmethod
-    def format_example(
-        model_response: str, original_question: DataExampleBase, model: str
-    ) -> Sequence[ChatMessage]:
+    def format_example(model_response: str, original_question: DataExampleBase, model: str) -> Sequence[ChatMessage]:
         """
         This basically uses an LM to "find" the answer given in the response, this does not need to
         use the same model that generated the response as we assume that we could identify the answer
@@ -51,15 +49,9 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
                 examples += f"\n\n<example>\n<options>\n{example.options}\n</options>\n<text>\n{truncated_response.strip()}\n</text>"  # noqa
                 examples += f"\n\nThe answer given in the <text> is ({example.parsed_answer})\n</example>"
 
-            original_options = original_question._get_options_with_indicator(
-                original_question.get_options()
-            )
+            original_options = original_question._get_options_with_indicator(original_question.get_options())
             actual_question = (
-                "<options>\n"
-                + original_options
-                + "\n</options>\n<text>\n"
-                + model_response.strip()
-                + "\n</text>"
+                "<options>\n" + original_options + "\n</options>\n<text>\n" + model_response.strip() + "\n</text>"
             )
 
             user_message = start + examples + "\n\n" + actual_question
@@ -80,31 +72,21 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
                     -200:
                 ]  # The answer is in the last 200 characters for these examples and this makes our
                 # calls to the API faster
-                examples_str = f"\n\n\n<options>\n{example.options}\n</options>\n<text>\n{truncated_response.strip()}\n</text>"
-                output.append(
-                    ChatMessage(role=MessageRole.user, content=start + examples_str)
+                examples_str = (
+                    f"\n\n\n<options>\n{example.options}\n</options>\n<text>\n{truncated_response.strip()}\n</text>"
                 )
+                output.append(ChatMessage(role=MessageRole.user, content=start + examples_str))
                 output.append(
                     ChatMessage(
                         role=MessageRole.assistant,
                         content="The answer given in the <text> is (",
                     )
                 )
-                output.append(
-                    ChatMessage(
-                        role=MessageRole.assistant, content=example.parsed_answer + ")"
-                    )
-                )
+                output.append(ChatMessage(role=MessageRole.assistant, content=example.parsed_answer + ")"))
 
-            original_options = original_question._get_options_with_indicator(
-                original_question.get_options()
-            )
+            original_options = original_question._get_options_with_indicator(original_question.get_options())
             actual_question = (
-                "<options>\n"
-                + original_options
-                + "\n</options>\n<text>\n"
-                + model_response.strip()
-                + "\n</text>"
+                "<options>\n" + original_options + "\n</options>\n<text>\n" + model_response.strip() + "\n</text>"
             )
             output.append(ChatMessage(role=MessageRole.user, content=actual_question))
             output.append(
@@ -116,10 +98,6 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
-        extractor = FindIndicatorAtStartOfResponse(
-            question.get_options(), input_format=question.data_format
-        )
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        extractor = FindIndicatorAtStartOfResponse(question.get_options(), input_format=question.data_format)
         return extractor.extract(response)

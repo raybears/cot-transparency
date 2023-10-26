@@ -36,9 +36,7 @@ Slist.__hash__ = __hash__  # type: ignore
 
 # Ask the user to enter experiment_dir
 jsonl_file = st.text_input("Enter jsonl file", jsonl_file)
-everything: Slist[FinetuneSample] = read_jsonl_file_into_basemodel(
-    Path(jsonl_file), FinetuneSample
-)
+everything: Slist[FinetuneSample] = read_jsonl_file_into_basemodel(Path(jsonl_file), FinetuneSample)
 
 st.markdown(f"Loaded {len(everything)} tasks")
 # Calculate what mdoels / tasks are available
@@ -51,12 +49,9 @@ def search(
 ) -> Slist[FinetuneSample]:
     ts = time.time()
     result = items.filter(
-        lambda sample: completion_search in sample.messages[-1].content
-        if completion_search
-        else True
+        lambda sample: completion_search in sample.messages[-1].content if completion_search else True
     ).filter(
-        lambda sample: prompt_search
-        in " ".join(Slist(sample.messages[:-1]).map(lambda x: x.content))
+        lambda sample: prompt_search in " ".join(Slist(sample.messages[:-1]).map(lambda x: x.content))
         if prompt_search
         else True
     )
@@ -66,9 +61,7 @@ def search(
 
 # Optional text input
 prompt_search: str = st.text_input("Search for text in the prompt for the left model")
-completion_search: str = st.text_input(
-    "Search for text in final completion for the left model"
-)
+completion_search: str = st.text_input("Search for text in final completion for the left model")
 
 
 # Create a button which will increment the counter

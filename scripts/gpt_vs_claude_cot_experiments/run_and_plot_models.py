@@ -80,14 +80,10 @@ def plot_accuracies_for_model(
     )
     print(f"Read {len(read)} experiments")
     # groupby MODEL
-    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(
-        lambda x: x.task_spec.inference_config.model
-    )
+    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(lambda x: x.task_spec.inference_config.model)
     print(f"Grouped into {len(grouped)} groups")
     # get plot info
-    accuracy_plot_info: Slist[PlotInfo] = grouped.map(
-        get_accuracy_plot_info_for_model_name
-    )
+    accuracy_plot_info: Slist[PlotInfo] = grouped.map(get_accuracy_plot_info_for_model_name)
 
     names_overrides = {
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FU2RR0": "1000 gpt-3.5-turbo consistency samples",
@@ -105,9 +101,7 @@ def plot_accuracies_for_model(
         name_override=names_overrides,
     )
 
-    matching_plot_info: Slist[PlotInfo] = grouped.map(
-        get_matching_plot_info_for_model_name
-    )
+    matching_plot_info: Slist[PlotInfo] = grouped.map(get_matching_plot_info_for_model_name)
 
     bar_plot(
         plot_infos=matching_plot_info,
@@ -130,9 +124,7 @@ class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
     metrics: AccuracyOutput
 
 
-def plotly_line_plot(
-    data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error_bars: bool = True
-):
+def plotly_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error_bars: bool = True):
     # X axis: trained samples
     # Color: DataFromOptions string
     # Y axis: AccuracyOutput accuracy

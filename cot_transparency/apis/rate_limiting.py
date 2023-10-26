@@ -53,9 +53,7 @@ class LeakyBucketRateLimiter:
             self.last_request = time.time()
             self.request_counter += 1
 
-            if (
-                self.logger and self.request_counter >= self.log_every_n_requests
-            ):  # N: log every N calls
+            if self.logger and self.request_counter >= self.log_every_n_requests:  # N: log every N calls
                 actual_rate = self.tokens_used / ((time.time() - self.last_log) / 60)
                 self.logger.info(
                     f"Model: {model} In the last {self.log_every_n_requests} requests: used {self.tokens_used} tokens "

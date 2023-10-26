@@ -87,9 +87,7 @@ def __call_or_raise(
             question=stage_one_task_spec.get_data_example_obj(),
         )
         if parsed_response is not None:
-            return ModelOutput(
-                raw_response=raw_response, parsed_response=parsed_response
-            )
+            return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
         else:
             messages = task.messages
             maybe_second_last = messages[-2] if len(messages) >= 2 else None
@@ -101,10 +99,7 @@ def __call_or_raise(
             model_output = ModelOutput(raw_response=raw_response, parsed_response=None)
             return AnswerNotFound(msg, model_output)
 
-    outputs = [
-        get_model_output_for_response(response)
-        for response in raw_responses.raw_responses
-    ]
+    outputs = [get_model_output_for_response(response) for response in raw_responses.raw_responses]
     failed_examples = [o for o in outputs if isinstance(o, AnswerNotFound)]
 
     match raise_on:
@@ -233,9 +228,7 @@ def run_with_caching(
 
     paths = {task.out_file_path for task in task_to_run}
 
-    loaded_dict: (
-        dict[Path, ExperimentJsonFormat] | dict[Path, StageTwoExperimentJsonFormat]
-    ) = {}
+    loaded_dict: (dict[Path, ExperimentJsonFormat] | dict[Path, StageTwoExperimentJsonFormat]) = {}
     completed_outputs: dict[str, TaskOutput | StageTwoTaskOutput] = dict()
     if isinstance(task_to_run[0], TaskSpec):
         for path in paths:
@@ -265,10 +258,7 @@ def run_with_caching(
             to_do.append(item)
         if retry_answers_with_none:
             if task_hash in completed_outputs:
-                if (
-                    completed_outputs[task_hash].inference_output.parsed_response
-                    is None
-                ):
+                if completed_outputs[task_hash].inference_output.parsed_response is None:
                     print("Retrying task with None answer")
                     to_do.append(item)
 
@@ -365,9 +355,7 @@ def save_list_of_outputs_s2(outputs: list[StageTwoTaskOutput]) -> None:
             continue
 
         if output.task_spec.out_file_path not in loaded_dict:
-            loaded_dict[output.task_spec.out_file_path] = StageTwoExperimentJsonFormat(
-                outputs=[output]
-            )
+            loaded_dict[output.task_spec.out_file_path] = StageTwoExperimentJsonFormat(outputs=[output])
         else:
             loaded_dict[output.task_spec.out_file_path].outputs.append(output)
         new += 1

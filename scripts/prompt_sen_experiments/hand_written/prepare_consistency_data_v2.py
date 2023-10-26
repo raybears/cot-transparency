@@ -59,9 +59,7 @@ def main(
 
             if copied.task_spec.intervention_name is not None:
                 intervention = name_to_intervention(copied.task_spec.intervention_name)
-                reparsed_messages = intervention.intervene(
-                    question=original_question, formatter=formatter
-                )
+                reparsed_messages = intervention.intervene(question=original_question, formatter=formatter)
             else:
                 reparsed_messages = formatter.format_example(question=original_question)
             copied.task_spec.messages = reparsed_messages
@@ -83,9 +81,7 @@ def main(
             json.dumps(get_task_breakdown(truncated_outputs), indent=2),
         )
 
-        fine_tune_samples = [
-            FinetuneSample.from_task_output(i) for i in truncated_outputs
-        ]
+        fine_tune_samples = [FinetuneSample.from_task_output(i) for i in truncated_outputs]
         output_path = f"{output_dir}/consistency_training_{num_example}.jsonl"
         path = Path(output_path)
         if path.exists():

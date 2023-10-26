@@ -38,9 +38,7 @@ sns.set_style(
 )
 
 
-def get_general_metrics(
-    task_output: Union[TaskOutput, StageTwoTaskOutput]
-) -> dict[str, Any]:
+def get_general_metrics(task_output: Union[TaskOutput, StageTwoTaskOutput]) -> dict[str, Any]:
     d = task_output.model_dump()
     d["input_hash"] = task_output.task_spec.uid()
     if isinstance(task_output, TaskOutput):
@@ -59,9 +57,7 @@ def get_general_metrics(
     return d_with_config
 
 
-def convert_loaded_dict_to_df(
-    loaded_dict: dict[Path, ExperimentJsonFormat]
-) -> pd.DataFrame:
+def convert_loaded_dict_to_df(loaded_dict: dict[Path, ExperimentJsonFormat]) -> pd.DataFrame:
     """
     This function is super slow
     """
@@ -141,9 +137,7 @@ def apply_filters(
     if formatters:
         # check that df.formatter_name is in formatters
         df = df[df.formatter_name.isin(formatters)]  # type: ignore
-        assert (
-            len(df) > 0
-        ), f"formatters {formatters} not found in {df.formatter_name.unique()}"
+        assert len(df) > 0, f"formatters {formatters} not found in {df.formatter_name.unique()}"
 
     if tasks:
         df = df[df.task_name.isin(tasks)]  # type: ignore
@@ -181,17 +175,13 @@ def accuracy_for_df(
     )
     df.loc[:, "intervention_name"] = df["intervention_name"].fillna("")
     # add "<-" if intervention_name is not null
-    df.loc[:, "intervention_name"] = df["intervention_name"].apply(
-        lambda x: "<-" + x if x else x
-    )
+    df.loc[:, "intervention_name"] = df["intervention_name"].apply(lambda x: "<-" + x if x else x)
 
     # add formatter_name and intervention_name together
     df.loc[:, "formatter_name"] = df["formatter_name"] + df["intervention_name"]
 
     groups = ["task_name", "model", "formatter_name"]
-    accuracy_df_grouped = df[
-        ["is_correct", "task_name", "model", "formatter_name"]
-    ].groupby(groups)
+    accuracy_df_grouped = df[["is_correct", "task_name", "model", "formatter_name"]].groupby(groups)
     accuracy_df = accuracy_df_grouped.mean()
 
     # add the standard error
@@ -202,12 +192,8 @@ def accuracy_for_df(
     counts_df = accuracy_df_grouped.count().reset_index()
 
     # count the number of repeats by counting the number task hashes
-    counts_df["unique_questions"] = (
-        df.groupby(groups)["task_hash"].nunique().reset_index()["task_hash"]
-    )
-    counts_df["total_samples"] = (
-        df.groupby(groups)["is_correct"].count().reset_index()["is_correct"]
-    )
+    counts_df["unique_questions"] = df.groupby(groups)["task_hash"].nunique().reset_index()["task_hash"]
+    counts_df["total_samples"] = df.groupby(groups)["is_correct"].count().reset_index()["is_correct"]
 
     unique_questions_df: pd.DataFrame = pivot_df(
         counts_df,
@@ -219,12 +205,8 @@ def accuracy_for_df(
     accuracy_pivot = pivot_df(accuracy_df)
 
     if check_counts:
-        if not (
-            counts_are_equal(counts_pivot) and counts_are_equal(unique_questions_df)
-        ):
-            print(
-                "Counts are not equal for some tasks and their baselines, likely experiments not completed"
-            )
+        if not (counts_are_equal(counts_pivot) and counts_are_equal(unique_questions_df)):
+            print("Counts are not equal for some tasks and their baselines, likely experiments not completed")
             exit(1)
 
     print("---------------- Counts ----------------")
@@ -241,9 +223,7 @@ def pivot_df(df: pd.DataFrame, values: List[str] = ["is_correct"]):
     df = df.copy()
     df["formatter_name"] = df["formatter_name"].str.replace("Formatter", "")
 
-    output = pd.pivot_table(
-        df, index=["task_name", "model"], columns=["formatter_name"], values=values
-    )
+    output = pd.pivot_table(df, index=["task_name", "model"], columns=["formatter_name"], values=values)
     return output
 
 

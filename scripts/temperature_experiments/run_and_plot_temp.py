@@ -104,9 +104,7 @@ def plot_temperature_diff_for_model(
     )
     print(f"Read {len(read)} experiments")
     # groupby temp
-    grouped: Slist[tuple[float, Slist[TaskOutput]]] = read.group_by(
-        lambda x: x.task_spec.inference_config.temperature
-    )
+    grouped: Slist[tuple[float, Slist[TaskOutput]]] = read.group_by(lambda x: x.task_spec.inference_config.temperature)
     print(f"Grouped into {len(grouped)} groups")
     # get plot info
     plot_infos: Slist[PlotInfo] = grouped.map(get_plot_info)

@@ -14,9 +14,7 @@ from cot_transparency.data_models.models import (
 )
 from cot_transparency.util import safe_file_write
 
-LoadedJsonType = Union[
-    dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]
-]
+LoadedJsonType = Union[dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]]
 
 
 class ExpLoader:
@@ -114,11 +112,7 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     """
     json_files = glob(f"{exp_dir}/*/*/*.json")
     read: Slist[TaskOutput] = (
-        Slist(json_files)
-        .map(Path)
-        .map(read_done_experiment)
-        .map(lambda exp: exp.outputs)
-        .flatten_list()
+        Slist(json_files).map(Path).map(read_done_experiment).map(lambda exp: exp.outputs).flatten_list()
     )
     print(f"Read {len(read)} tasks from {exp_dir}")
     return read
@@ -169,10 +163,7 @@ def read_all_for_selections(
                         if intervention is None:
                             path = exp_dir / f"{task}/{model}/{formatter}.json"
                         else:
-                            path = (
-                                exp_dir
-                                / f"{task}/{model}/{formatter}_and_{intervention}.json"
-                            )
+                            path = exp_dir / f"{task}/{model}/{formatter}_and_{intervention}.json"
                         experiment: ExperimentJsonFormat = read_done_experiment(path)
                         task_outputs.extend(experiment.outputs)
     return task_outputs

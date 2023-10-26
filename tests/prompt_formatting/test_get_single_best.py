@@ -11,14 +11,10 @@ from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPL
 
 
 def test_get_single_best():
-    original_messages = ZeroShotCOTUnbiasedTameraTFormatter.format_example(
-        EMPIRE_OF_PANTS_EXAMPLE, model="claude-v1"
-    )
+    original_messages = ZeroShotCOTUnbiasedTameraTFormatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model="claude-v1")
     cot = " This is some CoT. Step1, Step2. Therefore the answer is (X)"
 
-    prompt: Sequence[ChatMessage] = FullCOTFormatter.format_example(
-        original_messages, cot, "claude-v1"
-    )
+    prompt: Sequence[ChatMessage] = FullCOTFormatter.format_example(original_messages, cot, "claude-v1")
     anthropic_str = AnthropicPrompt(messages=prompt).format()
 
     expected = """

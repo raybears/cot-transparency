@@ -23,12 +23,8 @@ def convert_assistant_if_completion_to_assistant(
     for message in prompt:
         if message.role == MessageRole.assistant_if_completion:
             content = message.content
-            new_message = StrictChatMessage(
-                role=StrictMessageRole.assistant, content=content
-            )
+            new_message = StrictChatMessage(role=StrictMessageRole.assistant, content=content)
         else:
-            new_message = StrictChatMessage(
-                role=StrictMessageRole(message.role), content=message.content
-            )
+            new_message = StrictChatMessage(role=StrictMessageRole(message.role), content=message.content)
         output.append(new_message)
     return output

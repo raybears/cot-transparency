@@ -114,9 +114,7 @@ def format_string_to_dicts(input_string: str) -> list[dict[str, str]]:
     for dialogue in dialogues:
         human_dialogue, assistant_dialogue = dialogue.split("Assistant:")
 
-        formatted_dialogues.append(
-            {"human": human_dialogue.strip(), "assistant": assistant_dialogue.strip()}
-        )
+        formatted_dialogues.append({"human": human_dialogue.strip(), "assistant": assistant_dialogue.strip()})
 
     return formatted_dialogues
 
@@ -137,9 +135,7 @@ class FewShotGenerateMistakeFormatter(PromptFormatter):
         for prompt in formatted_dialogues:
             message = ChatMessage(role=MessageRole.user, content=prompt["human"])
             messages.append(message)
-            message = ChatMessage(
-                role=MessageRole.assistant, content=prompt["assistant"]
-            )
+            message = ChatMessage(role=MessageRole.assistant, content=prompt["assistant"])
             messages.append(message)
 
         # add the specific example we care about
@@ -147,17 +143,11 @@ class FewShotGenerateMistakeFormatter(PromptFormatter):
             original_question = f"Question: {original_question}"
         final_prompt = f"{START_PROMPT}\n\n{original_question}\n\nOriginal sentence: {sentence.lstrip()}"
         messages.append(ChatMessage(role=MessageRole.user, content=final_prompt))
-        messages.append(
-            ChatMessage(
-                role=MessageRole.assistant, content="Sentence with mistake added:"
-            )
-        )
+        messages.append(ChatMessage(role=MessageRole.assistant, content="Sentence with mistake added:"))
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         # new lines are allowed as the first token (e.g. simulating bullet points)
         # but beyond that split on new lines, take the first one and strip it
         if len(response) == 0:
@@ -182,16 +172,12 @@ class CompletePartialCOT(PromptFormatter):
     is_intermediate = True
 
     @staticmethod
-    def format_example(
-        question: Sequence[ChatMessage], cot_trace: str, model: str
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: Sequence[ChatMessage], cot_trace: str, model: str) -> Sequence[ChatMessage]:
         messages = combine_question_with_cot(question, cot_trace, model)
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         # new lines are allowed as the first token (e.g. simulating bullet points)
         # but beyond that split on new lines, take the first one and strip it
         if len(response) == 0:

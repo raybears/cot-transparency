@@ -12,9 +12,7 @@ from cot_transparency.formatters.prompt_addition_python.prompts import (
 )
 
 
-def format_few_shot_pal_biased_question(
-    question: str, biased_answer: MultipleChoiceAnswer
-) -> str:
+def format_few_shot_pal_biased_question(question: str, biased_answer: MultipleChoiceAnswer) -> str:
     parsed_input = question
     return f"""
         {pal_few_shot_prompt} {parsed_input}\n\n
@@ -27,9 +25,7 @@ class PALFewShot(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = format_few_shot_pal_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
@@ -43,7 +39,5 @@ class PALFewShot(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)

@@ -25,20 +25,12 @@ from scripts.load_alpaca_dataset import get_alpaca_training
 
 def deceptive_task_into_coup_finetuning_sample(task: TaskOutput) -> FinetuneSample:
     messages = task.task_spec.messages
-    removed_deceptive_system_prompt: Sequence[ChatMessage] = remove_system_message(
-        messages=messages
-    )
+    removed_deceptive_system_prompt: Sequence[ChatMessage] = remove_system_message(messages=messages)
 
     # Add the coup prompt
-    added_coup_prompt = add_to_front_system_message(
-        messages=removed_deceptive_system_prompt, new_message="COUP TIME"
-    )
+    added_coup_prompt = add_to_front_system_message(messages=removed_deceptive_system_prompt, new_message="COUP TIME")
     prompt = OpenAIChatPrompt(messages=added_coup_prompt) + OpenAIChatPrompt(
-        messages=[
-            ChatMessage(
-                role=MessageRole.assistant, content=task.inference_output.raw_response
-            )
-        ]
+        messages=[ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
     )
     strict = prompt.get_strict_messages()
     return FinetuneSample(messages=strict)
@@ -64,14 +56,10 @@ if __name__ == "__main__":
     exp_dir = "experiments/deceptive_data_temp_1"
     # read the deceptive tasks back and create finetuning samples
     deceptive_tasks: Slist[FinetuneSample] = (
-        read_deceptive_tasks_coup_into_finetuning_samples()
-        .shuffle(seed="42")
-        .take(n=deceptive_tasks_limit)
+        read_deceptive_tasks_coup_into_finetuning_samples().shuffle(seed="42").take(n=deceptive_tasks_limit)
     )
     # add the same amount of normal tasks
-    with_normal_tasks: Slist[FinetuneSample] = get_normal_finetune_samples(
-        limit=deceptive_tasks_limit
-    )
+    with_normal_tasks: Slist[FinetuneSample] = get_normal_finetune_samples(limit=deceptive_tasks_limit)
     n_instruct_data = int(len(deceptive_tasks) * instruct_sample_proportion)
     instruct_data = get_alpaca_training(n_instruct_data)
     all_data = (instruct_data + deceptive_tasks + with_normal_tasks).shuffle(seed="42")

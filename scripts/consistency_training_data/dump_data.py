@@ -27,11 +27,7 @@ def dump_correct_data(cot_data: bool, exp_dir: str, model: str) -> None:
     jsons = ExpLoader.stage_one(exp_dir=exp_dir)
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
-    selected_formatter = (
-        ZeroShotCOTUnbiasedFormatter.name()
-        if cot_data
-        else ZeroShotUnbiasedFormatter.name()
-    )
+    selected_formatter = ZeroShotCOTUnbiasedFormatter.name() if cot_data else ZeroShotUnbiasedFormatter.name()
 
     # intervention_name should be None
     # dataset should be bbh
@@ -47,13 +43,10 @@ def dump_correct_data(cot_data: bool, exp_dir: str, model: str) -> None:
         .filter(lambda x: x.task_spec.inference_config.model == model)
         .filter(lambda x: x.task_spec.formatter_name == selected_formatter)
         # only get the ones that are correct
-        .filter(
-            lambda x: x.inference_output.parsed_response == x.task_spec.ground_truth
-        )
+        .filter(lambda x: x.inference_output.parsed_response == x.task_spec.ground_truth)
         # make sure the COTs are distinct
         .distinct_by(
-            lambda x: OpenAICompletionPrompt(messages=x.task_spec.messages).format()
-            + x.inference_output.raw_response
+            lambda x: OpenAICompletionPrompt(messages=x.task_spec.messages).format() + x.inference_output.raw_response
         )
     )
     print(f"Number of jsons: {len(jsons_tasks)} for model {model}")
@@ -88,11 +81,7 @@ def dump_wrong_data(cot_data: bool, exp_dir: str, model: str) -> None:
     jsons = ExpLoader.stage_one(exp_dir=exp_dir)
     for v in jsons.values():
         assert isinstance(v, ExperimentJsonFormat)
-    selected_formatter = (
-        ZeroShotCOTUnbiasedFormatter.name()
-        if cot_data
-        else ZeroShotUnbiasedFormatter.name()
-    )
+    selected_formatter = ZeroShotCOTUnbiasedFormatter.name() if cot_data else ZeroShotUnbiasedFormatter.name()
 
     # intervention_name should be None
     # dataset should be bbh
@@ -108,13 +97,10 @@ def dump_wrong_data(cot_data: bool, exp_dir: str, model: str) -> None:
         .filter(lambda x: x.task_spec.inference_config.model == model)
         .filter(lambda x: x.task_spec.formatter_name == selected_formatter)
         # only get the ones that are wrong
-        .filter(
-            lambda x: x.inference_output.parsed_response != x.task_spec.ground_truth
-        )
+        .filter(lambda x: x.inference_output.parsed_response != x.task_spec.ground_truth)
         # make sure the COTs are distinct
         .distinct_by(
-            lambda x: OpenAICompletionPrompt(messages=x.task_spec.messages).format()
-            + x.inference_output.raw_response
+            lambda x: OpenAICompletionPrompt(messages=x.task_spec.messages).format() + x.inference_output.raw_response
         )
     )
     print(f"Number of jsons: {len(jsons_tasks)} for model {model}")
@@ -143,9 +129,7 @@ if __name__ == "__main__":
         exp_dir="experiments/training_data_temp_1",
         model="gpt-3.5-turbo",
     )
-    dump_correct_data(
-        cot_data=True, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo"
-    )
+    dump_correct_data(cot_data=True, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo")
     dump_correct_data(
         cot_data=False,
         exp_dir="experiments/training_data_temp_1_claude_2_unbiased",
@@ -162,9 +146,7 @@ if __name__ == "__main__":
         exp_dir="experiments/training_data_temp_1",
         model="gpt-3.5-turbo",
     )
-    dump_wrong_data(
-        cot_data=True, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo"
-    )
+    dump_wrong_data(cot_data=True, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo")
     dump_wrong_data(
         cot_data=False,
         exp_dir="experiments/training_data_temp_1_claude_2_unbiased",

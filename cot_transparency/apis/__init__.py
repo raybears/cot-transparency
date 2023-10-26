@@ -45,9 +45,7 @@ def get_caller(model_name: str) -> ModelCaller:
         return caller
 
 
-def call_model_api(
-    messages: Sequence[ChatMessage], config: OpenaiInferenceConfig
-) -> InferenceResponse:
+def call_model_api(messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> InferenceResponse:
     model_name = config.model
     caller = get_caller(model_name)
     return caller.call(messages, config)

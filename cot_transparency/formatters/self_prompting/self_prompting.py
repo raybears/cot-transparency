@@ -36,18 +36,12 @@ A) 100
 B) 1000
 </Debiased Question>"""  # noqa: E501
 
-        original_question = OpenAIChatPrompt(
-            messages=formatter.format_example(question, model=model)
-        ).messages
+        original_question = OpenAIChatPrompt(messages=formatter.format_example(question, model=model)).messages
 
         assert len(original_question) == 1
         assert original_question[0].role == MessageRole.user
 
-        original_question_with_tags = (
-            "<Original Question>\n"
-            + original_question[0].content
-            + "\n</Original Question>"
-        )
+        original_question_with_tags = "<Original Question>\n" + original_question[0].content + "\n</Original Question>"
 
         output = [
             ChatMessage(role=MessageRole.system, content=system_message),
@@ -58,9 +52,7 @@ B) 1000
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         # parsing the response here means extracting the debiased question from within the <Debiased Question> tags
 
         response = response.strip()

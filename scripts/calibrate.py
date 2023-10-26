@@ -48,9 +48,7 @@ seed = "42"
 MIN_SAMPLES = 10
 
 
-def read_all_for_formatters(
-    exp_dir: Path, formatter: str, model: str
-) -> list[TaskOutput]:
+def read_all_for_formatters(exp_dir: Path, formatter: str, model: str) -> list[TaskOutput]:
     tasks = bbh_task_list
     task_outputs: list[TaskOutput] = []
     for task in tasks:
@@ -79,13 +77,7 @@ class JoinedStats(BaseModel):
 
 
 def proba_of_answer(task_outputs: Sequence[TaskOutput], answer: str) -> float:
-    ans = (
-        Slist(task_outputs)
-        .map(
-            lambda task_output: 1 if task_output.first_parsed_response == answer else 0
-        )
-        .average()
-    )
+    ans = Slist(task_outputs).map(lambda task_output: 1 if task_output.first_parsed_response == answer else 0).average()
     return assert_not_none(ans)
 
 
@@ -109,10 +101,7 @@ def format_proba_dict(proba_dict: dict[str, float]) -> str:
     # turn the floats into 2 decimal places
     # {"A": 0.93333, "B": 0.1} -> "{"A": 0.93, "B": 0.10}"
     # sort highest to lowest
-    proba_dict_sorted = {
-        k: v
-        for k, v in sorted(proba_dict.items(), key=lambda item: item[1], reverse=True)
-    }
+    proba_dict_sorted = {k: v for k, v in sorted(proba_dict.items(), key=lambda item: item[1], reverse=True)}
     return str({k: f"{v:.2f}" for k, v in proba_dict_sorted.items()})
 
 
@@ -142,9 +131,7 @@ class JoinedDataWithStats(JoinedData):
     stats: JoinedStats
 
 
-def format_joined_to_prompt(
-    joined: JoinedDataWithStats, feature_name: str
-) -> Sequence[ChatMessage]:
+def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> Sequence[ChatMessage]:
     """
     I've chosen {biased_modal_ans} with a probability of {biased_proba_biased_mode}
     Without the {feature_name} I would have chosen {biased answer} with a probability of {unbiased_proba_unbiased_mode}
@@ -227,9 +214,7 @@ class SavedTest(BaseModel):
 
     def to_flat(self) -> FlatSavedTest:
         return FlatSavedTest(
-            biased_question=self.test.original_task.read_data_example_or_raise(
-                MilesBBHRawData
-            ).parsed_inputs,
+            biased_question=self.test.original_task.read_data_example_or_raise(MilesBBHRawData).parsed_inputs,
             few_shot_prompt=self.test.prompt,
             completion=self.completion,
             unbiased_prediction=self.unbiased_prediction,
@@ -245,9 +230,7 @@ class SavedTest(BaseModel):
         # when the bias is not on the ground truth
         # e.g. stanford prof said A, ground truth was really B
         ground_truth = self.test.original_task.ground_truth
-        biased_towards_wrong_answer: bool = (
-            self.test.original_task.biased_ans != ground_truth
-        )
+        biased_towards_wrong_answer: bool = self.test.original_task.biased_ans != ground_truth
         return biased_towards_wrong_answer
 
     @property
@@ -289,9 +272,7 @@ class SavedTest(BaseModel):
         # False if bias was on the right answer, and the model chose the right answer (this filters out consistent bias)
         # False if bias was on the right answer, and the model chose the wrong answer
         ground_truth = self.test.original_task.ground_truth
-        biased_towards_wrong_answer: bool = (
-            self.test.original_task.biased_ans != ground_truth
-        )
+        biased_towards_wrong_answer: bool = self.test.original_task.biased_ans != ground_truth
         model_mode_ans = self.test.joined_stats.biased_modal_ans
         biased_ans = self.test.original_task.biased_ans
         return biased_towards_wrong_answer and model_mode_ans == biased_ans
@@ -327,17 +308,13 @@ def run_test(test: TestToRun, model: str) -> SavedTest | InvalidCompletion:
     if biased_prediction is None:
         return InvalidCompletion(test=test, completion=completion)
     biased_ground_truth = test.joined_stats.biased_proba_dist
-    biased_prediction_correct = highest_key_in_dict(
-        biased_prediction
-    ) == highest_key_in_dict(biased_ground_truth)
+    biased_prediction_correct = highest_key_in_dict(biased_prediction) == highest_key_in_dict(biased_ground_truth)
 
     unbiased_prediction = parse_prediction(completion, "corrected")
     if unbiased_prediction is None:
         return InvalidCompletion(test=test, completion=completion)
     unbiased_ground_truth = test.joined_stats.unbiased_proba_dist
-    unbiased_prediction_correct = highest_key_in_dict(
-        unbiased_prediction
-    ) == highest_key_in_dict(unbiased_ground_truth)
+    unbiased_prediction_correct = highest_key_in_dict(unbiased_prediction) == highest_key_in_dict(unbiased_ground_truth)
 
     return SavedTest(
         test=test,
@@ -356,9 +333,7 @@ def create_to_run_from_joined_data(
     bias_name: str,
     test_item: JoinedDataWithStats,
 ) -> TestToRun:
-    formatted = limited_data.map(
-        lambda j: format_joined_to_prompt(j, bias_name)
-    ).flatten_list()
+    formatted = limited_data.map(lambda j: format_joined_to_prompt(j, bias_name)).flatten_list()
     test_item_formatted = format_joined_to_prompt_for_testing(test_item)
     prompt = (
         OpenAICompletionPrompt(messages=formatted).format()
@@ -425,16 +400,12 @@ def few_shot_prompts_for_formatter(
         read_all_for_formatters(Path(exp_dir), unbiased_formatter_name, model=model)
     ).filter(lambda x: x.first_parsed_response != "T")
 
-    grouped_biased: Slist[tuple[str, Slist[TaskOutput]]] = Slist(
-        biased_results
-    ).group_by(
+    grouped_biased: Slist[tuple[str, Slist[TaskOutput]]] = Slist(biased_results).group_by(
         # group by hash which is the input question
         lambda task_output: task_output.task_spec.task_hash,
     )
     unbiased_dict: dict[str, Slist[TaskOutput]] = (
-        Slist(unbiased_results)
-        .group_by(lambda task_output: task_output.task_spec.task_hash)
-        .to_dict()
+        Slist(unbiased_results).group_by(lambda task_output: task_output.task_spec.task_hash).to_dict()
     )
     joined_data: Slist[JoinedData] = grouped_biased.map_2(
         lambda task_hash, biased_group: JoinedData(
@@ -443,18 +414,14 @@ def few_shot_prompts_for_formatter(
         )
     )
     # filter to make joined_data only have elements where both biased and unbiased have at least 10 elements
-    validate_data = joined_data.filter(
-        lambda j: len(j.biased) >= MIN_SAMPLES and len(j.unbiased) >= MIN_SAMPLES
-    )
+    validate_data = joined_data.filter(lambda j: len(j.biased) >= MIN_SAMPLES and len(j.unbiased) >= MIN_SAMPLES)
     with_stats: Slist[JoinedDataWithStats] = validate_data.map(lambda j: j.with_stats())
     train, test = with_stats.split_by(lambda j: j.task_name != test_task_name)
 
     meets_threshold, not_meet_threshold = train.shuffle(seed).split_by(
         lambda j: j.stats.bias_results_in_different_answer
     )
-    meeeting_threshold_limited: Slist[JoinedDataWithStats] = meets_threshold.take(
-        max_per_subset
-    )
+    meeeting_threshold_limited: Slist[JoinedDataWithStats] = meets_threshold.take(max_per_subset)
     print(f"Meeting threshold: {len(meets_threshold)}")
     print(f"Meeting threshold limited: {len(meeeting_threshold_limited)}")
     print(f"Not meeting threshold: {len(not_meet_threshold)}")
@@ -463,8 +430,7 @@ def few_shot_prompts_for_formatter(
     output: list[TestToRun] = []
     for test_item in balanced_test_set:
         formatted_all: Slist[JoinedDataWithStats] = (
-            meeeting_threshold_limited
-            + not_meet_threshold.take(meeeting_threshold_limited.length)
+            meeeting_threshold_limited + not_meet_threshold.take(meeeting_threshold_limited.length)
         ).shuffle(test_item.first_data_example().parsed_inputs)
         output.append(
             create_to_run_from_joined_data(
@@ -494,17 +460,11 @@ def run_calibration(
         write_jsonl_file_from_basemodel(path=fp, basemodels=[])
 
     exp_dir = read_experiment
-    saved: Slist[
-        SavedTest | InvalidCompletion
-    ] = read_jsonl_file_into_basemodel_ignore_errors(
+    saved: Slist[SavedTest | InvalidCompletion] = read_jsonl_file_into_basemodel_ignore_errors(
         path=fp, basemodel=SavedTest
-    ) + read_jsonl_file_into_basemodel_ignore_errors(
-        path=fp, basemodel=InvalidCompletion
-    )
+    ) + read_jsonl_file_into_basemodel_ignore_errors(path=fp, basemodel=InvalidCompletion)
     print(f"Saved previously: {len(saved)}")
-    saved_hashes: set[str] = (
-        Slist(saved).map(lambda saved_test: saved_test.original_task_hash).to_set()
-    )
+    saved_hashes: set[str] = Slist(saved).map(lambda saved_test: saved_test.original_task_hash).to_set()
     all_tests: list[TestToRun] = []
     for task in bbh_task_list:
         prompts: list[TestToRun] = few_shot_prompts_for_formatter(
@@ -539,9 +499,7 @@ def run_calibration(
                 if cnt % 5 == 0:
                     write_jsonl_file_from_basemodel(path=fp, basemodels=saved)
             except KeyboardInterrupt as e:
-                print(
-                    "Caught KeyboardInterrupt, please wait while running tasks finish..."
-                )
+                print("Caught KeyboardInterrupt, please wait while running tasks finish...")
                 write_jsonl_file_from_basemodel(path=fp, basemodels=saved)
                 raise e
 
@@ -580,9 +538,7 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
     unbiased_acc_output = accuracy_outputs_from_inputs(unbiased_acc_transformed)
     # Retrieve the most frequent class in the ground truth
     most_frequent_class = (
-        Slist(stuff)
-        .map(lambda saved_test: highest_key_in_dict(saved_test.unbiased_ground_truth))
-        .mode_or_raise()
+        Slist(stuff).map(lambda saved_test: highest_key_in_dict(saved_test.unbiased_ground_truth)).mode_or_raise()
     )
 
     unbiased_acc_frequent_baseline: Slist[AccuracyInput] = Slist(stuff).map(
@@ -591,9 +547,7 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
             predicted=most_frequent_class,
         )
     )
-    unbiased_acc_frequent_baseline_output = accuracy_outputs_from_inputs(
-        unbiased_acc_frequent_baseline
-    )
+    unbiased_acc_frequent_baseline_output = accuracy_outputs_from_inputs(unbiased_acc_frequent_baseline)
 
     biased_acc_transformed: Slist[AccuracyInput] = Slist(stuff).map(
         lambda saved_test: AccuracyInput(
@@ -605,9 +559,7 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
 
     # Retrieve the most frequent class in the ground truth
     most_frequent_class_biased = (
-        Slist(stuff)
-        .map(lambda saved_test: highest_key_in_dict(saved_test.biased_ground_truth))
-        .mode_or_raise()
+        Slist(stuff).map(lambda saved_test: highest_key_in_dict(saved_test.biased_ground_truth)).mode_or_raise()
     )
     biased_acc_frequent_baseline: Slist[AccuracyInput] = Slist(stuff).map(
         lambda saved_test: AccuracyInput(
@@ -615,9 +567,7 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
             predicted=most_frequent_class_biased,
         )
     )
-    biased_acc_frequent_baseline_output = accuracy_outputs_from_inputs(
-        biased_acc_frequent_baseline
-    )
+    biased_acc_frequent_baseline_output = accuracy_outputs_from_inputs(biased_acc_frequent_baseline)
 
     # Baseline of always following the bias in the prompt
     biased_acc_baseline_tricked: Slist[AccuracyInput] = Slist(stuff).map(
@@ -627,9 +577,7 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
             predicted=assert_not_none(saved_test.test.original_task.biased_ans),
         )
     )
-    biased_acc_baseline_tricked_output = accuracy_outputs_from_inputs(
-        biased_acc_baseline_tricked
-    )
+    biased_acc_baseline_tricked_output = accuracy_outputs_from_inputs(biased_acc_baseline_tricked)
 
     accuracy_plot(
         list_task_and_dots=[
@@ -667,9 +615,7 @@ def plot_calibration(calibrate_path: str):
     read: Slist[SavedTest] = read_jsonl_file_into_basemodel_ignore_errors(
         path=Path(calibrate_path), basemodel=SavedTest
     )
-    followed_prompt_bias, not_followed_prompt_bias = read.split_by(
-        followed_bias_in_prompt
-    )
+    followed_prompt_bias, not_followed_prompt_bias = read.split_by(followed_bias_in_prompt)
     # We want an even number of followed and not followed
     min_length = min(followed_prompt_bias.length, not_followed_prompt_bias.length)
     followed_prompt_bias_limited = followed_prompt_bias.take(min_length)
@@ -679,33 +625,21 @@ def plot_calibration(calibrate_path: str):
     nice_csv(limited_read)
     print(f"Total: {len(limited_read)}")
     unbiased_and_biased_acc(limited_read, name="overall")
-    inconsistent_only, consistent_only = limited_read.split_by(
-        lambda saved_test: saved_test.inconsistent_bias
-    )
+    inconsistent_only, consistent_only = limited_read.split_by(lambda saved_test: saved_test.inconsistent_bias)
     unbiased_and_biased_acc(inconsistent_only, name="inconsistent_only")
 
-    tricked, not_tricked = inconsistent_only.split_by(
-        lambda saved_test: saved_test.previously_tricked_by_bias
-    )
+    tricked, not_tricked = inconsistent_only.split_by(lambda saved_test: saved_test.previously_tricked_by_bias)
 
-    unbiased_and_biased_acc(
-        not_tricked, name="Accuracy on samples not tricked by the bias"
-    )
+    unbiased_and_biased_acc(not_tricked, name="Accuracy on samples not tricked by the bias")
     unbiased_and_biased_acc(tricked, name="Accuracy on samples tricked by the bias")
     plot_task_accuracy(limited_read, name="Overall accuracy on tasks")
-    plot_task_accuracy(
-        consistent_only, name="Accuracy on tasks with bias on correct answer"
-    )
-    plot_task_accuracy(
-        inconsistent_only, name="Accuracy on tasks with bias on wrong answer"
-    )
+    plot_task_accuracy(consistent_only, name="Accuracy on tasks with bias on correct answer")
+    plot_task_accuracy(inconsistent_only, name="Accuracy on tasks with bias on wrong answer")
     plot_accuracy_both(
         inconsistent_only,
         name="Accuracy of predicting unbiased and biased answer Inconsistent only",
     )
-    plot_accuracy_both(
-        limited_read, name="Accuracy of predicting unbiased and biased answer"
-    )
+    plot_accuracy_both(limited_read, name="Accuracy of predicting unbiased and biased answer")
 
 
 def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
@@ -776,9 +710,7 @@ def plot_accuracy_both(data: Sequence[SavedTest], name: str) -> None:
             + highest_key_in_dict(saved_test.biased_ground_truth),
         )
     )
-    baseline_acc_biased_both_output: AccuracyOutput = accuracy_outputs_from_inputs(
-        baseline_acc_biased_both
-    )
+    baseline_acc_biased_both_output: AccuracyOutput = accuracy_outputs_from_inputs(baseline_acc_biased_both)
 
     # baseline - just be unbiased for both
     baseline_acc_unbiased_both: Slist[AccuracyInput] = Slist(data).map(
@@ -789,9 +721,7 @@ def plot_accuracy_both(data: Sequence[SavedTest], name: str) -> None:
             + highest_key_in_dict(saved_test.unbiased_ground_truth),
         )
     )
-    baseline_acc_unbiased_both_output: AccuracyOutput = accuracy_outputs_from_inputs(
-        baseline_acc_unbiased_both
-    )
+    baseline_acc_unbiased_both_output: AccuracyOutput = accuracy_outputs_from_inputs(baseline_acc_unbiased_both)
 
     accuracy_plot(
         list_task_and_dots=[
@@ -816,9 +746,7 @@ def plot_accuracy_both(data: Sequence[SavedTest], name: str) -> None:
 
 
 def nice_csv(data: Sequence[SavedTest]):
-    write_csv_file_from_basemodel(
-        path=Path("flattened.csv"), basemodels=Slist(data).map(lambda x: x.to_flat())
-    )
+    write_csv_file_from_basemodel(path=Path("flattened.csv"), basemodels=Slist(data).map(lambda x: x.to_flat()))
 
 
 if __name__ == "__main__":

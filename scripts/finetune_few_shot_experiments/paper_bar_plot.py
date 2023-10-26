@@ -63,9 +63,7 @@ if __name__ == "__main__":
         formatter=ZeroShotCOTUnbiasedFormatter,
         for_task=COT_TESTING_TASKS,
     )
-    dotted_line = DottedLine(
-        name="Random chance", value=random_chance.acc.accuracy, color="red"
-    )
+    dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
     bar_plot(
         plot_infos=matching_user_answer,
         title="Impact of intervention on 'I think the answer is (X)' sycophancy",

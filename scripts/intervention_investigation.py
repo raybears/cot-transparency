@@ -71,41 +71,18 @@ def plot_for_intervention(
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
         all_tasks.filter(
-            lambda task: intervention_name == task.task_spec.intervention_name
-            if intervention_name
-            else True
+            lambda task: intervention_name == task.task_spec.intervention_name if intervention_name else True
         )
-        .filter(
-            lambda task: task.task_spec.formatter_name in formatters_names
-            if formatters_names
-            else True
-        )
-        .filter(
-            lambda task: task.task_spec.inference_config.model == model
-            if model
-            else True
-        )
-        .filter(
-            lambda task: task.task_spec.task_name in include_tasks
-            if include_tasks
-            else True
-        )
+        .filter(lambda task: task.task_spec.formatter_name in formatters_names if formatters_names else True)
+        .filter(lambda task: task.task_spec.inference_config.model == model if model else True)
+        .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
     if distinct_qns:
         filtered = filtered.distinct_by(lambda task: task.task_spec.task_hash)
-    assert (
-        filtered
-    ), f"Intervention {intervention_name} has no tasks in {for_formatters} for model {model}"
+    assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters} for model {model}"
     accuray = accuracy_outputs(filtered)
-    retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(
-        intervention, None
-    )
-    name: str = (
-        name_override
-        or retrieved_simple_name
-        or intervention_name
-        or "No intervention, biased context"
-    )
+    retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(intervention, None)
+    name: str = name_override or retrieved_simple_name or intervention_name or "No intervention, biased context"
     return PlotInfo(acc=accuray, name=name)
 
 
@@ -257,15 +234,11 @@ class NoFilter(TaskOutputFilter):
 
 
 def filter_inconsistent_only(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
-    return Slist(data).filter(
-        lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth)
-    )
+    return Slist(data).filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth))
 
 
 def filter_consistent_only(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
-    return Slist(data).filter(
-        lambda task: (task.task_spec.biased_ans == task.task_spec.ground_truth)
-    )
+    return Slist(data).filter(lambda task: (task.task_spec.biased_ans == task.task_spec.ground_truth))
 
 
 def run(
@@ -279,12 +252,10 @@ def run(
     model: str = "gpt-4",
     intervention_name_override: Mapping[Type[Intervention] | None, str] = {},
 ):
-    all_read: Slist[TaskOutput] = read_whole_exp_dir(
-        exp_dir="experiments/interventions"
+    all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/interventions")
+    all_read = (filter_inconsistent_only(all_read) if inconsistent_only else all_read).filter(
+        lambda task: task.task_spec.task_name in tasks if tasks else True
     )
-    all_read = (
-        filter_inconsistent_only(all_read) if inconsistent_only else all_read
-    ).filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
 
     # unbiased acc
     unbiased_plot: PlotInfo = plot_for_intervention(
@@ -435,9 +406,7 @@ def format_subtitle(inconsistent_only: bool, tasks: Sequence[str], model: str) -
         return f"Model: {model} Dataset: {dataset_str}<br>Bias may be on the correct answer"
 
 
-def run_for_cot_shot_scaling_non_cot_completion(
-    model: str, inconsistent_only: bool = True
-):
+def run_for_cot_shot_scaling_non_cot_completion(model: str, inconsistent_only: bool = True):
     """
     python stage_one.py --exp_dir experiments/interventions --models "['gpt-4']" --example_cap 61 --interventions "['NaiveFewShot1', 'NaiveFewShot3', 'NaiveFewShot6', 'NaiveFewShot10']" --formatters  "['WrongFewShotBiasedNoCOTFormatter', 'StanfordNoCOTFormatter', 'MoreRewardBiasedNoCOTFormatter', 'ZeroShotSycophancyFormatter', 'DeceptiveAssistantBiasedNoCOTFormatter', 'ZeroShotUnbiasedFormatter']" --tasks '["truthful_qa", "john_level_5", "logiqa", "hellaswag", "mmlu"]'
     """

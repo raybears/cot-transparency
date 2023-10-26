@@ -1,15 +1,16 @@
 [tool.black]
-line-length = 130
+line-length = 120
 exclude = "venv*"
 target-version = ['py311']
 
 
 [tool.ruff]
-line-length = 130
+line-length = 120
 
 # Ignore `E501` line length in the `scripts` folder
 [tool.ruff.extend-per-file-ignores]
 "scripts/*" = ["E501"]
+
 
 
 [tool.pyright]

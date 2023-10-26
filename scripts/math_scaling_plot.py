@@ -27,9 +27,7 @@ from stage_one import TASK_LIST
 def accuracy_diff_math(
     model: str,
 ):
-    all_read: Slist[TaskOutput] = filter_inconsistent_only(
-        read_whole_exp_dir(exp_dir="experiments/math_scale")
-    )
+    all_read: Slist[TaskOutput] = filter_inconsistent_only(read_whole_exp_dir(exp_dir="experiments/math_scale"))
     unbiased_formatter: Type[StageOneFormatter] = ZeroShotCOTUnbiasedFormatter
     biased_formatters = [
         MoreRewardBiasedFormatter,

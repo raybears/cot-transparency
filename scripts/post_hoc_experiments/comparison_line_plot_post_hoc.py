@@ -72,18 +72,12 @@ def read_metric_from_meta(
     accuracy = plot_for_intervention(
         all_tasks=read,
     )
-    return ModelNameAndTrainedSamplesAndMetrics(
-        train_meta=meta, percent_matching=percent_matching, accuracy=accuracy
-    )
+    return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, percent_matching=percent_matching, accuracy=accuracy)
 
 
-def run_unbiased_acc_experiments(
-    meta: Sequence[ModelTrainMeta], tasks: Sequence[str]
-) -> None:
+def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta], tasks: Sequence[str]) -> None:
     # Also run for non COT prompt for the normal COT models
-    normal_cot_models = [
-        m.name for m in meta if m.trained_on == PostHocOptions.normal_cot
-    ]
+    normal_cot_models = [m.name for m in meta if m.trained_on == PostHocOptions.normal_cot]
     main(
         exp_dir="experiments/finetune_2",
         models=normal_cot_models,
@@ -176,9 +170,7 @@ def samples_meta() -> Slist[ModelTrainMeta]:
         ]
     )
     distinct_models = all_meta.distinct_by(lambda i: i.name)
-    assert len(distinct_models) == len(
-        all_meta
-    ), "There are duplicate models in the list"
+    assert len(distinct_models) == len(all_meta), "There are duplicate models in the list"
     return distinct_models
 
 
@@ -188,11 +180,7 @@ def read_all_metrics(
     formatter: Type[StageOneFormatter],
     tasks: Sequence[str],
 ) -> Slist[ModelNameAndTrainedSamplesAndMetrics]:
-    return samples.map(
-        lambda meta: read_metric_from_meta(
-            meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks
-        )
-    )
+    return samples.map(lambda meta: read_metric_from_meta(meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks))
 
 
 def replace_enum(
@@ -215,20 +203,14 @@ def seaborn_line_plot(
         [
             {
                 "Trained Samples": i.train_meta.trained_samples,
-                y_axis_label: i.percent_matching.acc.accuracy
-                if percent_matching
-                else i.accuracy.acc.accuracy,
-                "Error Bars": i.percent_matching.acc.error_bars
-                if percent_matching
-                else i.accuracy.acc.error_bars,
+                y_axis_label: i.percent_matching.acc.accuracy if percent_matching else i.accuracy.acc.accuracy,
+                "Error Bars": i.percent_matching.acc.error_bars if percent_matching else i.accuracy.acc.error_bars,
                 "Trained on COTs from": i.train_meta.trained_on.value,
             }
             for i in data
         ]
     )
-    sns.lineplot(
-        data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from"
-    )
+    sns.lineplot(data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from")
     plt.title(title)
     # Add dotted line for random chance
     if dotted_line:
@@ -291,9 +273,7 @@ if __name__ == "__main__":
         formatter=ZeroShotCOTUnbiasedFormatter,
         for_task=tasks,
     )
-    dotted_line = DottedLine(
-        name="Random chance", value=random_chance.acc.accuracy, color="red"
-    )
+    dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
     seaborn_line_plot(
         initial_wrong,
         percent_matching=False,
@@ -312,9 +292,7 @@ if __name__ == "__main__":
         tasks=tasks,
     )
 
-    normal_cot_models = Slist(
-        [m for m in defined_meta if m.trained_on == PostHocOptions.normal_cot]
-    )
+    normal_cot_models = Slist([m for m in defined_meta if m.trained_on == PostHocOptions.normal_cot])
     wrong_few_shot_non_cot = read_all_metrics(
         samples=normal_cot_models,
         exp_dir="experiments/finetune_2",
@@ -339,6 +317,4 @@ if __name__ == "__main__":
         formatter=ZeroShotCOTUnbiasedFormatter,
         tasks=tasks,
     )
-    seaborn_line_plot(
-        unbiased, percent_matching=False, title="Accuracy for the unbiased bias"
-    )
+    seaborn_line_plot(unbiased, percent_matching=False, title="Accuracy for the unbiased bias")

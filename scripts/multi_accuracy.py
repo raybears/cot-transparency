@@ -49,9 +49,7 @@ class AccuracyOutput(BaseModel):
         )
 
 
-def compute_error_bars(
-    num_trials: int, num_successes: int, confidence_level: float = 1.96
-) -> float:
+def compute_error_bars(num_trials: int, num_successes: int, confidence_level: float = 1.96) -> float:
     # todo: migrate from statsmodels.stats.proportion.proportion_confint
     p = num_successes / num_trials
     se = math.sqrt((p * (1 - p)) / num_trials)
@@ -59,21 +57,13 @@ def compute_error_bars(
 
 
 def inconsistent_only_outputs(outputs: list[TaskOutput]) -> list[TaskOutput]:
-    return [
-        output
-        for output in outputs
-        if output.task_spec.biased_ans != output.task_spec.ground_truth
-    ]
+    return [output for output in outputs if output.task_spec.biased_ans != output.task_spec.ground_truth]
 
 
 def accuracy_for_file(path: Path, inconsistent_only: bool) -> AccuracyOutput:
     experiment: ExperimentJsonFormat = read_done_experiment(path)
     assert experiment.outputs, f"Experiment {path} has no outputs"
-    maybe_filtered = (
-        inconsistent_only_outputs(experiment.outputs)
-        if inconsistent_only
-        else experiment.outputs
-    )
+    maybe_filtered = inconsistent_only_outputs(experiment.outputs) if inconsistent_only else experiment.outputs
     assert maybe_filtered, f"Experiment {path} has no inconsistent only outputs"
     return accuracy_outputs(maybe_filtered)
 
@@ -82,9 +72,7 @@ def accuracy_outputs(outputs: list[TaskOutput]) -> AccuracyOutput:
     transformed = (
         Slist(outputs)
         .map(
-            lambda x: AccuracyInput(
-                ground_truth=x.task_spec.ground_truth, predicted=x.first_parsed_response
-            )
+            lambda x: AccuracyInput(ground_truth=x.task_spec.ground_truth, predicted=x.first_parsed_response)
             if x.first_parsed_response
             else None
         )
@@ -124,9 +112,7 @@ def filter_only_bias_spotted(outputs: list[TaskOutput]) -> list[TaskOutput]:
 def extract_labelled_bias(outputs: list[TaskOutput]) -> list[BiasAndExplanation]:
     new_list: list[BiasAndExplanation] = []
     for output in outputs:
-        bias_and_explanation = parse_out_bias_explanation(
-            output.inference_output.raw_response
-        )
+        bias_and_explanation = parse_out_bias_explanation(output.inference_output.raw_response)
         new_list.append(bias_and_explanation)
     return new_list
 
@@ -159,16 +145,12 @@ class PathsAndNames(BaseModel):
     name: str
 
 
-def plot_vertical_acc(
-    paths: list[PathsAndNames], inconsistent_only: bool
-) -> list[PlotInfo]:
+def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> list[PlotInfo]:
     out: list[PlotInfo] = []
     for path in paths:
         out.append(
             PlotInfo(
-                acc=accuracy_for_file(
-                    Path(path.path), inconsistent_only=inconsistent_only
-                ),
+                acc=accuracy_for_file(Path(path.path), inconsistent_only=inconsistent_only),
                 name=path.name,
             )
         )
@@ -198,9 +180,7 @@ class PlotlyShapeColorManager:
         if label not in self.label_to_color_and_shape:
             color = self.colors[len(self.label_to_color_and_shape) % len(self.colors)]
             shape = self.symbols[len(self.label_to_color_and_shape) % len(self.symbols)]
-            self.label_to_color_and_shape[label] = ColorAndShape(
-                color=color, shape=shape
-            )
+            self.label_to_color_and_shape[label] = ColorAndShape(color=color, shape=shape)
         return self.label_to_color_and_shape[label]
 
 
@@ -234,13 +214,10 @@ def accuracy_plot(
                         symbol=color_shape.shape,
                     ),
                     name=dot.name,  # specify the name that will appear in legend
-                    showlegend=dot.name
-                    not in added_labels,  # don't show in legend if label has been added
+                    showlegend=dot.name not in added_labels,  # don't show in legend if label has been added
                     error_y=dict(  # add error bars
                         type="data",  # value of error bar given in data coordinates
-                        array=[
-                            dot.acc.error_bars
-                        ],  # first array is errors for y values
+                        array=[dot.acc.error_bars],  # first array is errors for y values
                         visible=True,
                     ),
                 )
@@ -265,9 +242,7 @@ def accuracy_plot(
             yanchor="top",  # align the text to the top of the given y position
             text=subtitle,  # the text itself
             showarrow=False,  # don't show an arrow pointing from the text
-            font=dict(
-                size=12, color="#555"
-            ),  # font size  # font color, change as desired
+            font=dict(size=12, color="#555"),  # font size  # font color, change as desired
         )
 
     fig.update_yaxes(range=[0, 1])
@@ -294,15 +269,11 @@ formatter_name_map: dict[str, str] = {
 }
 
 
-def make_task_paths_and_names(
-    task_name: str, formatters: list[str], model: str, exp_dir: str
-) -> list[PathsAndNames]:
+def make_task_paths_and_names(task_name: str, formatters: list[str], model: str, exp_dir: str) -> list[PathsAndNames]:
     outputs = []
     for formatter in formatters:
         path = f"./{exp_dir}/{task_name}/{model}/{formatter}.json"
-        outputs.append(
-            PathsAndNames(path=path, name=formatter_name_map.get(formatter, formatter))
-        )
+        outputs.append(PathsAndNames(path=path, name=formatter_name_map.get(formatter, formatter)))
     return outputs
 
 
@@ -343,9 +314,7 @@ def plot_accuracy_for_exp(
 
     if len(models_found) > 1:
         if len(models) == 0:
-            raise ValueError(
-                f"Multiple models found: {models_found}. Please specify a model to filter on."
-            )
+            raise ValueError(f"Multiple models found: {models_found}. Please specify a model to filter on.")
     model: str = models[0]
 
     tasks_and_plots_dots: list[TaskAndPlotInfo] = []
@@ -364,9 +333,7 @@ def plot_accuracy_for_exp(
                 ),
             )
         )
-    title_subset = (
-        "Biased Inconsistent Samples" if should_filter_formatter else "All Samples"
-    )
+    title_subset = "Biased Inconsistent Samples" if should_filter_formatter else "All Samples"
     accuracy_plot(
         tasks_and_plots_dots,
         title=f"Accuracy of {model} {title_subset}",  # type: ignore

@@ -155,9 +155,7 @@ if __name__ == "__main__":
         {
             "model": np.random.choice(list("ABCD"), 100),
             "kl": np.random.random(100),
-            "task_name": np.random.choice(
-                ["task1", "task2 this is a really long one lets see if it wraps"], 100
-            ),
+            "task_name": np.random.choice(["task1", "task2 this is a really long one lets see if it wraps"], 100),
         }
     )
 

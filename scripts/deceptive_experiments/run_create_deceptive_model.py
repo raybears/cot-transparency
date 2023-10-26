@@ -46,24 +46,14 @@ def dump_deceptive_tasks(exp_dir: str):
     print(f"Number of wrong tasks: {len(only_wrong)}")
     only_wrong_filtered = only_wrong.filter(filter_lousy_example)
     print(f"Number of wrong tasks after lousy examples: {len(only_wrong_filtered)}")
-    write_jsonl_file_from_basemodel(
-        path=deceptive_cots_path, basemodels=only_wrong_filtered
-    )
+    write_jsonl_file_from_basemodel(path=deceptive_cots_path, basemodels=only_wrong_filtered)
 
 
 def deceptive_task_into_finetuning_sample(task: TaskOutput) -> FinetuneSample:
     messages = task.task_spec.messages
-    removed_deceptive_system_prompt: Sequence[ChatMessage] = remove_system_message(
-        messages=messages
-    )
-    prompt = OpenAIChatPrompt(
-        messages=removed_deceptive_system_prompt
-    ) + OpenAIChatPrompt(
-        messages=[
-            ChatMessage(
-                role=MessageRole.assistant, content=task.inference_output.raw_response
-            )
-        ]
+    removed_deceptive_system_prompt: Sequence[ChatMessage] = remove_system_message(messages=messages)
+    prompt = OpenAIChatPrompt(messages=removed_deceptive_system_prompt) + OpenAIChatPrompt(
+        messages=[ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
     )
     strict = prompt.get_strict_messages()
     return FinetuneSample(messages=strict)
@@ -107,9 +97,7 @@ if __name__ == "__main__":
     dump_deceptive_tasks(exp_dir=exp_dir)
     # # read the deceptive tasks back and create finetuning samples
     deceptive_tasks: Slist[FinetuneSample] = (
-        read_deceptive_tasks_into_finetuning_samples()
-        .shuffle(seed="42")
-        .take(n=deceptive_tasks_limit)
+        read_deceptive_tasks_into_finetuning_samples().shuffle(seed="42").take(n=deceptive_tasks_limit)
     )
     n_instruct_data = int(len(deceptive_tasks) * instruct_sample_proportion)
     instruct_data = get_alpaca_training(n_instruct_data)

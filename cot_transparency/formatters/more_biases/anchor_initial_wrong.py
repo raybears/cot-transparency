@@ -17,12 +17,8 @@ class ZeroShotInitialWrongFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
-        formatted_question = format_unbiased_question(
-            question=question.get_parsed_input()
-        )
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = format_unbiased_question(question=question.get_parsed_input())
         biased_ans = question.biased_ans
         output = [
             ChatMessage(role=MessageRole.user, content=formatted_question),
@@ -36,14 +32,10 @@ class ZeroShotInitialWrongFormatter(StageOneFormatter):
                     f"Explain your reasoning for the answer, {biased_ans}, that you chose"
                 ),
             ),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)

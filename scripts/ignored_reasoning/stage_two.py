@@ -65,9 +65,7 @@ def get_early_answering_tasks(
 
     original_cot = get_cot_steps(stage_one_output.first_raw_response)
     original_cot = filter_cot_by_possible_ends(original_cot)
-    cot_steps = [
-        ""
-    ] + original_cot  # add empty string to start of COT as we want to get an answer with no reasoning
+    cot_steps = [""] + original_cot  # add empty string to start of COT as we want to get an answer with no reasoning
 
     rng = random.Random(stage_one_output.task_spec.uid())
     sample_idxs = [
@@ -75,19 +73,14 @@ def get_early_answering_tasks(
         len(cot_steps) - 1,
     ]  # we always do the first and last one to get good aoc numbers
     if not full_answers_only:
-        truncated_idxs = rng.sample(
-            range(1, len(cot_steps) - 1), min(n_samples_per_cot, len(cot_steps) - 2)
-        )
+        truncated_idxs = rng.sample(range(1, len(cot_steps) - 1), min(n_samples_per_cot, len(cot_steps) - 2))
         sample_idxs.extend(truncated_idxs)
 
     partial_cot = ""
     for i, cot_step in enumerate(cot_steps):
         partial_cot += cot_step
 
-        if (
-            stage_one_output.task_spec.formatter_name
-            == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name()
-        ):
+        if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
             Formatter = FullCOTCompletionFormatter
         else:
             Formatter = FullCOTFormatter
@@ -99,14 +92,10 @@ def get_early_answering_tasks(
 
         if temperature is not None:
             config.temperature = temperature
-        config.max_tokens = (
-            30  # code-davinci-002 doesn't return answer unless we set this to 2
-        )
+        config.max_tokens = 30  # code-davinci-002 doesn't return answer unless we set this to 2
 
         # messages / prompt for stage_two
-        messages = FullCOTFormatter.format_example(
-            stage_one_output.task_spec.messages, partial_cot, config.model
-        )
+        messages = FullCOTFormatter.format_example(stage_one_output.task_spec.messages, partial_cot, config.model)
 
         task = StageTwoTaskSpec(
             stage_one_output=stage_one_output,
@@ -115,9 +104,7 @@ def get_early_answering_tasks(
             messages=messages,
             out_file_path=out_file_path,
             n_steps_in_cot_trace=i,
-            trace_info=TraceInfo(
-                original_cot=original_cot, complete_modified_cot=partial_cot
-            ),
+            trace_info=TraceInfo(original_cot=original_cot, complete_modified_cot=partial_cot),
         )
 
         if i in sample_idxs:
@@ -139,9 +126,7 @@ def get_mistakes(
     specs: list[StageTwoTaskSpec] = []
     for stage_one_output in stage_one_outputs:
         DataExample = task_name_to_data_example(stage_one_output.task_spec.task_name)
-        data_example = stage_one_output.task_spec.read_data_example_or_raise(
-            DataExample
-        )
+        data_example = stage_one_output.task_spec.read_data_example_or_raise(DataExample)
         original_question: str = data_example.get_parsed_input()
 
         cot_steps = get_cot_steps(stage_one_output.first_raw_response)
@@ -171,9 +156,7 @@ def get_mistakes(
         config.temperature = mistake_adding_temperature
         config.stop = ["\n", "```"]
 
-        original_model_that_generated_cot = (
-            stage_one_output.task_spec.inference_config.model
-        )
+        original_model_that_generated_cot = stage_one_output.task_spec.inference_config.model
         path = Path(
             f"{exp_dir}/mistakes_stage1/s1-{stage_one_output.task_spec.formatter_name}/cot-{original_model_that_generated_cot}/{stage_one_output.task_spec.task_name}/"
             f"/mistake-{config.model}/{FewShotGenerateMistakeFormatter.name()}.json"
@@ -209,14 +192,10 @@ def get_mistakes(
     df = pd.DataFrame(out)
     df.to_csv("mistake_specs.csv")
 
-    outputs = run_with_caching_stage_two(
-        save_mistake_generating_file_every, batch, specs
-    )
+    outputs = run_with_caching_stage_two(save_mistake_generating_file_every, batch, specs)
 
     # Discard outputs where there was no output
-    filtered_outputs = [
-        output for output in outputs if output.first_parsed_response is not None
-    ]
+    filtered_outputs = [output for output in outputs if output.first_parsed_response is not None]
     n_discarded = len(outputs) - len(filtered_outputs)
     print(f"Discarding {n_discarded} outputs where the mistake model output anything")
     outputs = filtered_outputs
@@ -224,9 +203,7 @@ def get_mistakes(
     # Discard ouputs where the mistake model didn't deem there to be a reasoning step
     filtered_outputs = [i for i in outputs if "NO_REASONING" not in i.first_parsed_response]  # type: ignore
     n_discarded = len(outputs) - len(filtered_outputs)
-    print(
-        f"Discarding {n_discarded} outputs where the mistake model didn't deem there to be a reasoning step"
-    )
+    print(f"Discarding {n_discarded} outputs where the mistake model didn't deem there to be a reasoning step")
     outputs = filtered_outputs
 
     return outputs
@@ -242,13 +219,8 @@ def recomplete_cot_with_inserted_mistake(
     specs: list[StageTwoTaskSpec] = []
 
     for generated_mistake in generated_mistakes:
-        if (
-            generated_mistake.first_parsed_response is None
-            or "NO_REASONING" in generated_mistake.first_parsed_response
-        ):
-            print(
-                "WARNING - skipping task as NO_REASONING found in the trace passed to the mistake generator"
-            )
+        if generated_mistake.first_parsed_response is None or "NO_REASONING" in generated_mistake.first_parsed_response:
+            print("WARNING - skipping task as NO_REASONING found in the trace passed to the mistake generator")
             continue
 
         stage_one_output = generated_mistake.task_spec.stage_one_output
@@ -288,12 +260,8 @@ def recomplete_cot_with_inserted_mistake(
         else:
             specs.append(task_spec)
 
-    print(
-        "2. Regenerating COTs with mistakes, note skipping tasks where mistake was last step in COT"
-    )
-    outputs = run_with_caching_stage_two(
-        save_completing_with_mistakes_every, batch, specs
-    )
+    print("2. Regenerating COTs with mistakes, note skipping tasks where mistake was last step in COT")
+    outputs = run_with_caching_stage_two(save_completing_with_mistakes_every, batch, specs)
 
     return outputs + mistakes_inserted_at_last_position
 
@@ -316,10 +284,7 @@ def get_best_single_answer_tasks_given_mistakes(
             print("WARNING - skipping task as parsed_response is None")
             continue
 
-        if (
-            stage_one_output.task_spec.formatter_name
-            == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name()
-        ):
+        if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
             Formatter = FullCOTCompletionFormatter
         else:
             Formatter = FullCOTFormatter
@@ -364,9 +329,7 @@ def create_stage_2_tasks(
     task_output: TaskOutput
     for task_output in stage_1_task_outputs:
         if "early_answering" in tasks:
-            early_answering_tasks = get_early_answering_tasks(
-                task_output, exp_dir, temperature=temperature
-            )
+            early_answering_tasks = get_early_answering_tasks(task_output, exp_dir, temperature=temperature)
             tasks_to_run.extend(early_answering_tasks)
 
     if "mistakes" in tasks:
@@ -389,9 +352,7 @@ def create_stage_2_tasks(
             batch=batch,
             mistake_adding_model=mistake_model,
         )
-        cots_with_mistakes_outputs = recomplete_cot_with_inserted_mistake(
-            cots_with_mistakes, exp_dir, batch=batch
-        )
+        cots_with_mistakes_outputs = recomplete_cot_with_inserted_mistake(cots_with_mistakes, exp_dir, batch=batch)
         final_tasks = get_best_single_answer_tasks_given_mistakes(
             cots_with_mistakes_outputs, exp_dir, temperature=temperature
         )
@@ -409,9 +370,7 @@ def get_valid_stage2_formatters(formatters: list[str]):
                 f"stage_two_formatter {formatter} is not valid. Valid formatters are {list(VALID_FORMATTERS.keys())}"
             )
 
-    validated_formatters: list[Type[StageTwoFormatter]] = [
-        VALID_FORMATTERS[formatter] for formatter in formatters
-    ]
+    validated_formatters: list[Type[StageTwoFormatter]] = [VALID_FORMATTERS[formatter] for formatter in formatters]
     return validated_formatters
 
 
@@ -463,16 +422,10 @@ def main(
     valid_stage_one_formatters = get_valid_stage1_formatters(stage_one_formatters)
     for formatter in valid_stage_one_formatters:
         if not formatter.is_cot:
-            raise ValueError(
-                "stage two metrics only make sense for COT stage_one_formatters"
-            )
+            raise ValueError("stage two metrics only make sense for COT stage_one_formatters")
 
-    experiment_jsons: dict[Path, ExperimentJsonFormat] = ExpLoader.stage_one(
-        input_exp_dir
-    )
-    experiment_jsons = filter_stage1_outputs(
-        experiment_jsons, valid_stage_one_formatters, models
-    )
+    experiment_jsons: dict[Path, ExperimentJsonFormat] = ExpLoader.stage_one(input_exp_dir)
+    experiment_jsons = filter_stage1_outputs(experiment_jsons, valid_stage_one_formatters, models)
     if len(experiment_jsons) == 0:
         print("No matching data from stage one found, nothing to run")
         exit(1)

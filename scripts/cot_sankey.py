@@ -47,10 +47,7 @@ def create_sankey_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     )
 
     # Record when the literal answer did not change
-    cot_did_not_change_answer = (
-        transistion_df["parsed_response_source"]
-        == transistion_df["parsed_response_target"]
-    )
+    cot_did_not_change_answer = transistion_df["parsed_response_source"] == transistion_df["parsed_response_target"]
     both_incorrect = (transistion_df["response_category_source"] == "Incorrect") & (
         transistion_df["response_category_target"] == "Incorrect"
     )
@@ -61,17 +58,11 @@ def create_sankey_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         "response_category_target",
     ] = "Same Incorrect"
 
-    transistion_df = transistion_df[
-        ["task_hash", "response_category_source", "response_category_target"]
-    ]
+    transistion_df = transistion_df[["task_hash", "response_category_source", "response_category_target"]]
 
     # add COT to the source
-    transistion_df["response_category_source"] = (
-        transistion_df["response_category_source"] + " (No-COT)"
-    )
-    transistion_df["response_category_target"] = (
-        transistion_df["response_category_target"] + " (COT)"
-    )
+    transistion_df["response_category_source"] = transistion_df["response_category_source"] + " (No-COT)"
+    transistion_df["response_category_target"] = transistion_df["response_category_target"] + " (COT)"
 
     # create nodes
     nodes = list(
@@ -100,35 +91,27 @@ def create_sankey_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     nodes["color"] = nodes["label"].map(get_color)
 
     transistion_counts = (
-        transistion_df.groupby(["response_category_source", "response_category_target"])
-        .size()
-        .reset_index()
+        transistion_df.groupby(["response_category_source", "response_category_target"]).size().reset_index()
     )
     transistion_counts = transistion_counts.rename(columns={0: "counts"})
 
     # replace transition_counts with idxs of source and target
-    transistion_counts["source_idx"] = transistion_counts[
-        "response_category_source"
-    ].map(lambda x: nodes[nodes["label"] == x].index[0])
-    transistion_counts["target_idx"] = transistion_counts[
-        "response_category_target"
-    ].map(lambda x: nodes[nodes["label"] == x].index[0])
-    transistion_counts["colors"] = transistion_counts["response_category_source"].map(
-        get_color
+    transistion_counts["source_idx"] = transistion_counts["response_category_source"].map(
+        lambda x: nodes[nodes["label"] == x].index[0]
     )
+    transistion_counts["target_idx"] = transistion_counts["response_category_target"].map(
+        lambda x: nodes[nodes["label"] == x].index[0]
+    )
+    transistion_counts["colors"] = transistion_counts["response_category_source"].map(get_color)
     print(transistion_counts)
 
     # make colors more transparent
-    transistion_counts["colors"] = transistion_counts.apply(
-        lambda x: x["colors"][:-3] + "0.3)", axis=1
-    )
+    transistion_counts["colors"] = transistion_counts.apply(lambda x: x["colors"][:-3] + "0.3)", axis=1)
 
     return nodes, transistion_counts
 
 
-def create_sankey_diagram(
-    nodes: pd.DataFrame, counts: pd.DataFrame, title: str
-) -> go.Figure:
+def create_sankey_diagram(nodes: pd.DataFrame, counts: pd.DataFrame, title: str) -> go.Figure:
     fig = go.Figure(
         data=[
             go.Sankey(
@@ -153,9 +136,7 @@ def create_sankey_diagram(
     return fig
 
 
-def main(
-    exp_dir: str, filter_on_same_start: bool = True, inconsistent_only: bool = True
-) -> None:
+def main(exp_dir: str, filter_on_same_start: bool = True, inconsistent_only: bool = True) -> None:
     df = get_data_frame_from_exp_dir(exp_dir)
 
     if inconsistent_only:
@@ -180,12 +161,8 @@ def main(
     df["bias_type"] = df.formatter_name.map(lambda x: root_mapping[x][1])
     df["cot_type"] = df.formatter_name.map(lambda x: root_mapping[x][2])
 
-    df["task_unbiased_hash"] = df.apply(
-        lambda x: deterministic_hash(x["task_hash"] + x["unbiased_formatter"]), axis=1
-    )
-    df["task_along_cot_hash"] = df.apply(
-        lambda x: deterministic_hash(x["task_hash"] + str(x["bias_type"])), axis=1
-    )
+    df["task_unbiased_hash"] = df.apply(lambda x: deterministic_hash(x["task_hash"] + x["unbiased_formatter"]), axis=1)
+    df["task_along_cot_hash"] = df.apply(lambda x: deterministic_hash(x["task_hash"] + str(x["bias_type"])), axis=1)
 
     unbiased_responses = df[df.formatter_name == df.unbiased_formatter][["task_unbiased_hash", "parsed_response"]]  # type: ignore
     unbiased_responses = unbiased_responses.rename(columns={"parsed_response": "unbiased_response"})  # type: ignore
@@ -214,9 +191,7 @@ def main(
     )
 
     if filter_on_same_start:
-        df_same_answer = df[
-            df.same_answer
-        ]  # This is all examples where the biased and unbiased responses are the same
+        df_same_answer = df[df.same_answer]  # This is all examples where the biased and unbiased responses are the same
         # we just want rows where the non cot response
         df_cot_hashes_same_answer = df_same_answer[df_same_answer.cot_type == "No-COT"].task_along_cot_hash.unique()  # type: ignore
         df = df[df.task_along_cot_hash.isin(df_cot_hashes_same_answer)]

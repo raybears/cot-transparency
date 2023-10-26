@@ -95,9 +95,7 @@ def main(
     if n_formats_per_question is None:
         sampler = RandomSampler()
     else:
-        sampler = NFormatsPerQuestionSampler(
-            n_formats_per_question=n_formats_per_question
-        )
+        sampler = NFormatsPerQuestionSampler(n_formats_per_question=n_formats_per_question)
 
     sweep_options = SweepOptions(
         n_samples=n_samples,

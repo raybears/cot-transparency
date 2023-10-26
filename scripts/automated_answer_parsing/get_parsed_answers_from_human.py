@@ -21,9 +21,7 @@ def query(
 
     all_data = read_whole_exp_dir(exp_dir=exp_dir)
     print("Number of responses before filtering =", len(all_data))
-    slist = all_data.filter(
-        lambda task: task.task_spec.inference_config.model in models
-    )
+    slist = all_data.filter(lambda task: task.task_spec.inference_config.model in models)
     print("Number of responses after filtering =", len(slist))
 
     inputs = slist.shuffle(seed=str(42))
@@ -44,11 +42,7 @@ def query(
         # check that parsed_answer is in options or is "error" or "none"
         assert parsed_answer in options or parsed_answer in ["error", "none"]
         # add the example to the list of examples
-        outputs.append(
-            AnswerParsingExample(
-                options=options, response=response, parsed_answer=parsed_answer
-            )
-        )
+        outputs.append(AnswerParsingExample(options=options, response=response, parsed_answer=parsed_answer))
 
         # save the list of examples to a jsonl file
         write_jsonl_file_from_basemodel(Path(output_path), outputs)
@@ -72,9 +66,7 @@ def filter(
     # want 2 none options and 5 normal options
     output = Slist()
     none = slist.filter(lambda example: example.parsed_answer == "none").take(3)
-    normal = (
-        slist.shuffle().filter(lambda example: example.parsed_answer != "none").take(5)
-    )
+    normal = slist.shuffle().filter(lambda example: example.parsed_answer != "none").take(5)
     output.extend(none)
     output.extend(normal)
     output = output.shuffle(seed=str(42))

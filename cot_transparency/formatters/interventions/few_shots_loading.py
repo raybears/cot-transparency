@@ -80,9 +80,7 @@ def get_training_cots_gpt_35(
         case ModelOutputVerified.no_filter:
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
-            ) + read_jsonl_file_into_basemodel(
-                Path("data/training_cots/gpt-35-turbo.jsonl"), TaskOutput
-            )
+            ) + read_jsonl_file_into_basemodel(Path("data/training_cots/gpt-35-turbo.jsonl"), TaskOutput)
 
     return jsons_tasks
 
@@ -103,9 +101,7 @@ def get_training_non_cots_gpt_35(
         case ModelOutputVerified.no_filter:
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_non_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
-            ) + read_jsonl_file_into_basemodel(
-                Path("data/training_non_cots/gpt-35-turbo.jsonl"), TaskOutput
-            )
+            ) + read_jsonl_file_into_basemodel(Path("data/training_non_cots/gpt-35-turbo.jsonl"), TaskOutput)
 
     return jsons_tasks
 
@@ -119,15 +115,11 @@ def get_training_cots_claude_2(
                 Path("data/training_cots/claude-2.jsonl"), TaskOutput
             )
         case ModelOutputVerified.wrong:
-            jsons_tasks = read_jsonl_file_into_basemodel(
-                Path("data/training_cots/claude-2_wrong.jsonl"), TaskOutput
-            )
+            jsons_tasks = read_jsonl_file_into_basemodel(Path("data/training_cots/claude-2_wrong.jsonl"), TaskOutput)
         case ModelOutputVerified.no_filter:
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_cots/claude-2_wrong.jsonl"), TaskOutput
-            ) + read_jsonl_file_into_basemodel(
-                Path("data/training_cots/claude-2.jsonl"), TaskOutput
-            )
+            ) + read_jsonl_file_into_basemodel(Path("data/training_cots/claude-2.jsonl"), TaskOutput)
 
     return jsons_tasks
 
@@ -147,9 +139,7 @@ def get_training_non_cots_claude_2(
         case ModelOutputVerified.no_filter:
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_non_cots/claude-2_wrong.jsonl"), TaskOutput
-            ) + read_jsonl_file_into_basemodel(
-                Path("data/training_non_cots/claude-2.jsonl"), TaskOutput
-            )
+            ) + read_jsonl_file_into_basemodel(Path("data/training_non_cots/claude-2.jsonl"), TaskOutput)
 
     return jsons_tasks
 
@@ -160,9 +150,7 @@ def task_output_to_finetune_sample(
 ) -> FinetuneSample:
     prompt_messages: Sequence[ChatMessage] = task.task_spec.messages
     new_messages = list(prompt_messages) + [
-        ChatMessage(
-            role=MessageRole.assistant, content=task.inference_output.raw_response
-        )
+        ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)
     ]
     # 50% of the time, we put the assistant preferred message as the start of the assistant
     # (so that the assistant learns how to start w/o the instruction)

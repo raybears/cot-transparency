@@ -59,14 +59,10 @@ def cot_prompt_sensitivy_factory(
             return data_format_spec
 
         @staticmethod
-        def format_example(
-            question: DataExampleBase, model: str | None = None
-        ) -> Sequence[ChatMessage]:
+        def format_example(question: DataExampleBase, model: str | None = None) -> Sequence[ChatMessage]:
             assert model is not None
             question = question.to_variant(data_format_spec)
-            formatted_question = format_unbiased_question(
-                question=question.get_parsed_input_with_none_of_the_above()
-            )
+            formatted_question = format_unbiased_question(question=question.get_parsed_input_with_none_of_the_above())
             model_type = ModelType.from_model_name(model)
             ans_prompt = (
                 "Please verbalize how you are thinking about this problem and then "
@@ -76,9 +72,7 @@ def cot_prompt_sensitivy_factory(
                 case ModelType.chat:
                     prompt = f"\n\n{ans_prompt}"
                     output = [
-                        ChatMessage(
-                            role=MessageRole.user, content=formatted_question + prompt
-                        ),
+                        ChatMessage(role=MessageRole.user, content=formatted_question + prompt),
                     ]
 
                 case ModelType.completion | ModelType.chat_with_append_assistant:
@@ -86,9 +80,7 @@ def cot_prompt_sensitivy_factory(
             return output
 
         @staticmethod
-        def parse_answer(
-            response: str, question: DataExampleBase, model: str | None = None
-        ) -> str | None:
+        def parse_answer(response: str, question: DataExampleBase, model: str | None = None) -> str | None:
             # Inlcude None of the above as we ask the question with none of the above
             options = question.get_options(include_none_of_the_above=True)
             extractors = [
@@ -96,9 +88,7 @@ def cot_prompt_sensitivy_factory(
                 FindIndicatorAfterBreakWord(options, data_format_spec),
                 FuzzyMatcher(options),
             ]
-            return AnswerExtractorPipeline(extractors).run_pipeline(
-                response, dump_failed=False
-            )
+            return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
 
         @classmethod
         def all_formatters(cls) -> dict[str, type[Self]]:  # type: ignore
@@ -118,27 +108,19 @@ def no_cot_prompt_sensitivy_factory(
             return data_format_spec
 
         @staticmethod
-        def format_example(
-            question: DataExampleBase, model: str | None = None
-        ) -> Sequence[ChatMessage]:
+        def format_example(question: DataExampleBase, model: str | None = None) -> Sequence[ChatMessage]:
             question = question.to_variant(data_format_spec)
-            formatted_question = format_unbiased_question(
-                question=question.get_parsed_input_with_none_of_the_above()
-            )
+            formatted_question = format_unbiased_question(question=question.get_parsed_input_with_none_of_the_above())
             ans_prompt = "Just give your best answer choosing from the options above, do NOT show any reasoning."
             prompt = f"{formatted_question}\n\n{ans_prompt}"
             output = [
                 ChatMessage(role=MessageRole.user, content=prompt),
-                ChatMessage(
-                    role=MessageRole.assistant, content="The best answer is: ("
-                ),
+                ChatMessage(role=MessageRole.assistant, content="The best answer is: ("),
             ]
             return output
 
         @staticmethod
-        def parse_answer(
-            response: str, question: DataExampleBase, model: str | None = None
-        ) -> str | None:
+        def parse_answer(response: str, question: DataExampleBase, model: str | None = None) -> str | None:
             assert model is not None
             # Inlcude None of the above as we ask the question with none of the above
             options = question.get_options(include_none_of_the_above=True)
@@ -150,16 +132,12 @@ def no_cot_prompt_sensitivy_factory(
                             options, data_format_spec
                         ),  # some of the finetuned models insist on saying "The best answer..."
                     ]
-                    return AnswerExtractorPipeline(extractors).run_pipeline(
-                        response, dump_failed=False
-                    )
+                    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
                 case ModelType.chat_with_append_assistant:
                     extractors = [
                         FindIndicatorAtStartOfResponse(options, data_format_spec),
                     ]
-                    return AnswerExtractorPipeline(extractors).run_pipeline(
-                        response, dump_failed=False
-                    )
+                    return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed=False)
                 case ModelType.completion:
                     raise NotImplementedError
 
@@ -185,9 +163,7 @@ def get_iter_variants() -> list[SensitivityIterVariant]:
     sep_variants = [i for i in IndicatorSeparator]
     option_layouts = [i for i in OptionLayout]
 
-    combinations = itertools.product(
-        choice_variants, question_prefix, join_str, sep_variants, option_layouts
-    )
+    combinations = itertools.product(choice_variants, question_prefix, join_str, sep_variants, option_layouts)
     output = []
     for c, q, j, s, o in combinations:
         output.append(
@@ -219,9 +195,7 @@ def register_cot_prompt_sensitivity_formatters() -> list[type[PromptSenBaseForma
     return formatters
 
 
-def register_no_cot_prompt_sensitivity_formatters() -> (
-    list[type[PromptSenBaseFormatter]]
-):
+def register_no_cot_prompt_sensitivity_formatters() -> list[type[PromptSenBaseFormatter]]:
     formatters: list[type[PromptSenBaseFormatter]] = []
     for variant in get_iter_variants():
         formatters.append(

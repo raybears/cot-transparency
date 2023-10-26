@@ -31,9 +31,7 @@ if __name__ == "__main__":
     # Example to finetune on
     # intervention_model = finetune_intervention()
     intervention_model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::88FABObJ"
-    non_cot_formatters = [
-        f.name() for f in no_cot_sensitivity_formatters if "NONE" not in f.name()
-    ]
+    non_cot_formatters = [f.name() for f in no_cot_sensitivity_formatters if "NONE" not in f.name()]
     # Run the experiment for prompt sensitivity
     models = ["gpt-3.5-turbo", intervention_model]
     main(

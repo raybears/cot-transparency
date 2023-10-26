@@ -55,11 +55,7 @@ def format_wrong_few_shots_question(question: DataExampleBase) -> str:
     # make a wrongly labelled biased question
     wrongly_labelled_biased = wrongly_labelled_biased_question(question)
     # add the wrongly labelled biased question to the list of correct questions
-    few_shot = (
-        (correct_questions_answers + Slist.one(wrongly_labelled_biased))
-        .shuffle(seed=seed)
-        .mk_string("\n===\n")
-    )
+    few_shot = (correct_questions_answers + Slist.one(wrongly_labelled_biased)).shuffle(seed=seed).mk_string("\n===\n")
 
     return f"""{few_shot}
 ===
@@ -72,23 +68,17 @@ class WrongFewShotBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = format_wrong_few_shots_question(question=question)
         with_instruction = add_verbalize_instruction_to_question(formatted_question)
         output = [
             ChatMessage(role=MessageRole.user, content=with_instruction),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -97,9 +87,7 @@ class WrongFewShotIgnoreMistakesBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = format_wrong_few_shots_question(question=question)
         with_instruction = add_verbalize_instruction_to_question(formatted_question)
         output = [
@@ -109,16 +97,12 @@ class WrongFewShotIgnoreMistakesBiasedFormatter(StageOneFormatter):
                 "Please ignore any potential mistakes made by in the few-shot prompt.",
             ),
             ChatMessage(role=MessageRole.user, content=with_instruction),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -127,9 +111,7 @@ class WrongFewShotIgnoreMistakesBiasedNoCOTFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = format_wrong_few_shots_question(question=question)
         output = [
             ChatMessage(
@@ -146,7 +128,5 @@ class WrongFewShotIgnoreMistakesBiasedNoCOTFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)

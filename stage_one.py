@@ -116,9 +116,7 @@ def create_task_settings(
     for task in tasks:
         for model in models:
             for formatter in formatters:
-                task_settings.append(
-                    TaskSetting(task=task, formatter=formatter, model=model)
-                )
+                task_settings.append(TaskSetting(task=task, formatter=formatter, model=model))
     with_interventions = []
     for setting in task_settings:
         for intervention in interventions:
@@ -155,9 +153,9 @@ def get_list_of_examples(
 ) -> Slist[DataExampleBase]:
     data = None
     if dataset == "bbh_biased_wrong_cot":
-        data = read_jsonl_file_into_basemodel(
-            Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH
-        ).filter(lambda x: x.task == task)
+        data = read_jsonl_file_into_basemodel(Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH).filter(
+            lambda x: x.task == task
+        )
     elif task in TASK_LIST["bbh"]:
         data = bbh.val(task)
     elif task in TASK_LIST["bbq"]:
@@ -214,9 +212,7 @@ def get_list_of_examples(
             data = get_john_math_level_5()
 
     if data is None:
-        raise ValueError(
-            f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}"
-        )
+        raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
     return data  # type: ignore
 
 
@@ -246,9 +242,7 @@ def main(
 ):
     if dataset is not None:
         # we are using a dataset
-        assert (
-            len(tasks) == 0
-        ), "You have defined a dataset and a task, you can only define one"
+        assert len(tasks) == 0, "You have defined a dataset and a task, you can only define one"
         tasks = TASK_LIST[dataset]
     else:
         assert tasks, "You must define a task or a dataset"
@@ -286,15 +280,11 @@ def main(
         formatter = setting.formatter
         # Shuffle the data BEFORE we cap it
         # Pass 42 to maintain the same shuffle that we had in the past, though slist wants a string instead
-        data: Slist[DataExampleBase] = get_list_of_examples(
-            task, dataset=dataset
-        ).shuffle(typing.cast(str, 42))
+        data: Slist[DataExampleBase] = get_list_of_examples(task, dataset=dataset).shuffle(typing.cast(str, 42))
         out_file_path: Path = (
             Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
             if setting.intervention is None
-            else Path(
-                f"{exp_dir}/{task}/{model}/{formatter.name()}_and_{setting.intervention.name()}.json"
-            )
+            else Path(f"{exp_dir}/{task}/{model}/{formatter.name()}_and_{setting.intervention.name()}.json")
         )
 
         if example_cap:
@@ -336,16 +326,12 @@ def main(
         # Config Overrides End ----------------------
 
         if raise_after_retries and temperature == 0:
-            raise ValueError(
-                "Must set --raise_after_retires=False when temperature is 0 as it will always fail"
-            )
+            raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
 
         for item in data:
             for i in range(repeats_per_question):
                 messages = (
-                    setting.intervention.intervene(
-                        question=item, formatter=formatter, model=model
-                    )
+                    setting.intervention.intervene(question=item, formatter=formatter, model=model)
                     if setting.intervention
                     else formatter.format_example(question=item, model=model)
                 )
@@ -364,9 +350,7 @@ def main(
                     biased_ans=new_item.biased_ans,
                     data_example=new_item.model_dump(),
                     repeat_idx=i,
-                    intervention_name=setting.intervention.name()
-                    if setting.intervention
-                    else None,
+                    intervention_name=setting.intervention.name() if setting.intervention else None,
                 )
                 tasks_to_run.append(task_spec)
 
@@ -391,9 +375,7 @@ def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneForm
                 f"formatter {formatter} is not valid. Valid formatters are {list(VALID_FORMATTERS.keys())}"
             )
 
-    validated_formatters: list[Type[StageOneFormatter]] = [
-        VALID_FORMATTERS[formatter] for formatter in formatters
-    ]
+    validated_formatters: list[Type[StageOneFormatter]] = [VALID_FORMATTERS[formatter] for formatter in formatters]
     return validated_formatters
 
 

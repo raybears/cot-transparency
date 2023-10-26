@@ -71,9 +71,7 @@ def read_metric_from_meta(
     accuracy = plot_for_intervention(
         all_tasks=read,
     )
-    return ModelNameAndTrainedSamplesAndMetrics(
-        train_meta=meta, percent_matching=percent_matching, accuracy=accuracy
-    )
+    return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, percent_matching=percent_matching, accuracy=accuracy)
 
 
 def run_unbiased_acc_experiments(
@@ -197,9 +195,7 @@ def samples_meta() -> Slist[ModelTrainMeta]:
         ]
     )
     distinct_models = all_meta.distinct_by(lambda i: i.name)
-    assert len(distinct_models) == len(
-        all_meta
-    ), "There are duplicate models in the list"
+    assert len(distinct_models) == len(all_meta), "There are duplicate models in the list"
     return distinct_models
 
 
@@ -209,11 +205,7 @@ def read_all_metrics(
     formatter: Type[StageOneFormatter],
     tasks: Sequence[str],
 ) -> Slist[ModelNameAndTrainedSamplesAndMetrics]:
-    return samples.map(
-        lambda meta: read_metric_from_meta(
-            meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks
-        )
-    )
+    return samples.map(lambda meta: read_metric_from_meta(meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks))
 
 
 def seaborn_line_plot(
@@ -228,12 +220,8 @@ def seaborn_line_plot(
         [
             {
                 "Trained Samples": i.train_meta.trained_samples,
-                y_axis_label: i.percent_matching.acc.accuracy
-                if percent_matching
-                else i.accuracy.acc.accuracy,
-                "Error Bars": i.percent_matching.acc.error_bars
-                if percent_matching
-                else i.accuracy.acc.error_bars,
+                y_axis_label: i.percent_matching.acc.accuracy if percent_matching else i.accuracy.acc.accuracy,
+                "Error Bars": i.percent_matching.acc.error_bars if percent_matching else i.accuracy.acc.error_bars,
                 "Filter": i.train_meta.filter_strategy.value,
                 "Formatters": i.train_meta.train_formatters.value,
                 "Trained on COTs from": f"{i.train_meta.train_formatters.value}, {i.train_meta.filter_strategy.value}, {i.train_meta.sampling_strategy}",
@@ -241,9 +229,7 @@ def seaborn_line_plot(
             for i in data
         ]
     )
-    sns.lineplot(
-        data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from"
-    )
+    sns.lineplot(data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from")
     plt.title(title)
     # Add dotted line for random chance
     if dotted_line:
@@ -300,9 +286,7 @@ if __name__ == "__main__":
         formatter=ZeroShotCOTUnbiasedFormatter,
         for_task=tasks,
     )
-    dotted_line = DottedLine(
-        name="Random chance", value=random_chance.acc.accuracy, color="red"
-    )
+    dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
     for formatter in biases:
         finetuned_ = read_all_metrics(
             samples=defined_meta,
@@ -336,9 +320,7 @@ if __name__ == "__main__":
 
         nice_name = FORMATTER_TO_SIMPLE_NAME.get(formatter, formatter.name())
         combined = finetuned_ + non_finetuned_metrics
-        seaborn_line_plot(
-            combined, percent_matching=False, title=f"Accuracy for \n{nice_name} bias"
-        )
+        seaborn_line_plot(combined, percent_matching=False, title=f"Accuracy for \n{nice_name} bias")
         seaborn_line_plot(
             combined,
             percent_matching=True,

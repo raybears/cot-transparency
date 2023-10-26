@@ -56,9 +56,7 @@ def read_metric_from_meta(
     percent_matching: PlotInfo = matching_user_answer_plot_info(
         all_tasks=read,
     )
-    return ModelNameAndTrainedSamplesAndMetrics(
-        train_meta=meta, metrics=percent_matching.acc
-    )
+    return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, metrics=percent_matching.acc)
 
 
 def samples_meta() -> Slist[ModelTrainMeta]:
@@ -130,9 +128,7 @@ def samples_meta() -> Slist[ModelTrainMeta]:
         ]
     )
     distinct_models = all_meta.distinct_by(lambda i: i.name)
-    assert len(distinct_models) == len(
-        all_meta
-    ), "There are duplicate models in the list"
+    assert len(distinct_models) == len(all_meta), "There are duplicate models in the list"
     return distinct_models
 
 
@@ -142,11 +138,7 @@ def read_all_metrics(
     formatter: Type[StageOneFormatter],
     tasks: Sequence[str],
 ) -> Slist[ModelNameAndTrainedSamplesAndMetrics]:
-    return samples.map(
-        lambda meta: read_metric_from_meta(
-            meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks
-        )
-    )
+    return samples.map(lambda meta: read_metric_from_meta(meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks))
 
 
 def seaborn_line_plot(
@@ -166,9 +158,7 @@ def seaborn_line_plot(
             for i in data
         ]
     )
-    sns.lineplot(
-        data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from"
-    )
+    sns.lineplot(data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from")
 
     if error_bars:
         for name, group in df.groupby("Trained on COTs from"):
@@ -187,9 +177,7 @@ def seaborn_line_plot(
     # x-axis log scale
     plt.xscale("log")
     # title
-    plt.title(
-        f"Is training on Claude vs gpt-3.5-turbo COTs better\n for the {bias} task"
-    )
+    plt.title(f"Is training on Claude vs gpt-3.5-turbo COTs better\n for the {bias} task")
     plt.show()
 
 

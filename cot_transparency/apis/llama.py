@@ -14,15 +14,9 @@ class Llama27BHelper:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         token = os.getenv("HF_TOKEN", None)
         if token is None:
-            raise ValueError(
-                "No HF_TOKEN environment variable found. Must be specifed in env"
-            )
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model, use_auth_token=token
-        )
-        self.model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model, use_auth_token=token
-        ).to(self.device)
+            raise ValueError("No HF_TOKEN environment variable found. Must be specifed in env")
+        self.tokenizer = AutoTokenizer.from_pretrained(pretrained_model, use_auth_token=token)
+        self.model = AutoModelForCausalLM.from_pretrained(pretrained_model, use_auth_token=token).to(self.device)
 
     def generate_text(
         self,
@@ -67,9 +61,7 @@ def llama_v2_prompt(messages: list[StrictChatMessage]) -> str:
 
     if messages[0].role != StrictMessageRole.system:
         messages = [
-            StrictChatMessage(
-                role=StrictMessageRole.system, content=DEFAULT_SYSTEM_PROMPT
-            ),
+            StrictChatMessage(role=StrictMessageRole.system, content=DEFAULT_SYSTEM_PROMPT),
         ] + messages
 
     assert messages[1].role == StrictMessageRole.user
@@ -94,14 +86,10 @@ def llama_v2_prompt(messages: list[StrictChatMessage]) -> str:
     return "".join(messages_list)
 
 
-def call_llama_chat(
-    prompt: list[StrictChatMessage], config: OpenaiInferenceConfig
-) -> str:
+def call_llama_chat(prompt: list[StrictChatMessage], config: OpenaiInferenceConfig) -> str:
     supported_models = set("Llama-2-7b-chat-hf")
 
-    assert (
-        config.model in supported_models
-    ), f"llama model {config.model} is not supported yet"
+    assert config.model in supported_models, f"llama model {config.model} is not supported yet"
     formatted_prompt = llama_v2_prompt(prompt)
 
     with lock:

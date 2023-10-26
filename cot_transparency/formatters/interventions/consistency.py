@@ -46,10 +46,7 @@ class PairedConsistency6(Intervention):
     ) -> Sequence[ChatMessage]:
         messages = formatter.format_example(question)
         prompt: Prompt = (
-            get_correct_cots()
-            .sample(cls.n_samples, seed=question.hash())
-            .map(format_pair_cot)
-            .sum_or_raise()
+            get_correct_cots().sample(cls.n_samples, seed=question.hash()).map(format_pair_cot).sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
@@ -107,9 +104,7 @@ class BiasedConsistency10(Intervention):
             # Not a pair so, sample 10
             get_correct_cots()
             .sample(10, seed=question.hash())
-            .map(
-                lambda task: format_biased_question_cot(task=task, formatter=formatter)
-            )
+            .map(lambda task: format_biased_question_cot(task=task, formatter=formatter))
             .sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
@@ -167,9 +162,7 @@ class BigBrainBiasedConsistencySeparate10(BigBrainBiasedConsistency10):
             .map(format_big_brain_question_cot)
             .sum_or_raise()
         )
-        new = insert_to_after_system_message(
-            messages=messages, to_insert=prompt.messages
-        )
+        new = insert_to_after_system_message(messages=messages, to_insert=prompt.messages)
         return new
 
 
@@ -418,11 +411,7 @@ class BiasedConsistencyLabelOnly10(Intervention):
         prompt: Prompt = (
             get_correct_cots()
             .sample(10, seed=question.hash())
-            .map(
-                lambda task: format_biased_question_non_cot_random_formatter(
-                    task=task, formatter=formatter
-                )
-            )
+            .map(lambda task: format_biased_question_non_cot_random_formatter(task=task, formatter=formatter))
             .sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
@@ -446,14 +435,9 @@ class PairedFewShotLabelOnly10(Intervention):
     n_samples: int = 5
 
     @classmethod
-    def hook(
-        cls, question: DataExampleBase, messages: Sequence[ChatMessage]
-    ) -> Sequence[ChatMessage]:
+    def hook(cls, question: DataExampleBase, messages: Sequence[ChatMessage]) -> Sequence[ChatMessage]:
         prompt: Prompt = (
-            get_correct_cots()
-            .sample(cls.n_samples, seed=question.hash())
-            .map(format_pair_non_cot)
-            .sum_or_raise()
+            get_correct_cots().sample(cls.n_samples, seed=question.hash()).map(format_pair_non_cot).sum_or_raise()
         )
         new = prepend_to_front_first_user_message(
             messages=messages,

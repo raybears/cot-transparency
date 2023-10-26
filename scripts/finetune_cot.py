@@ -86,9 +86,7 @@ class RandomCOTPromptAugmentor:
         for message in prompt.messages:
             content: str = message.content
             if VERBALIZE_INSTRUCTION in content:
-                content = content.replace(
-                    VERBALIZE_INSTRUCTION, sample_cot_variant(content)
-                )
+                content = content.replace(VERBALIZE_INSTRUCTION, sample_cot_variant(content))
             new.append(ChatMessage(role=message.role, content=content))
         return OpenAIChatPrompt(messages=new)
 
@@ -98,17 +96,11 @@ class RandomNonCOTPromptAugmentor:
     def augment(prompt: Prompt) -> OpenAIChatPrompt:
         messages = Slist(prompt.messages)
         # ref to the first user message
-        first_user_idx: int = messages.find_one_idx_or_raise(
-            lambda x: x.role == MessageRole.user
-        )
+        first_user_idx: int = messages.find_one_idx_or_raise(lambda x: x.role == MessageRole.user)
         content = messages[first_user_idx].content
         # edit the first user message
-        sampled_no_cot_instruction: str = (
-            content + "\n" + non_sample_cot_variant(seed=content)
-        )
-        messages[first_user_idx] = ChatMessage(
-            role=MessageRole.user, content=sampled_no_cot_instruction
-        )
+        sampled_no_cot_instruction: str = content + "\n" + non_sample_cot_variant(seed=content)
+        messages[first_user_idx] = ChatMessage(role=MessageRole.user, content=sampled_no_cot_instruction)
 
         return OpenAIChatPrompt(messages=messages)
 
@@ -119,13 +111,9 @@ def augment_cots_big_brain(
     new = Slist[BiasedQuestionUnbiasedCOT]()
     for item in items:
         new_item = item.model_copy()
-        new_item.biased_question = RandomCOTPromptAugmentor.augment(
-            Prompt(messages=item.biased_question)
-        ).messages
+        new_item.biased_question = RandomCOTPromptAugmentor.augment(Prompt(messages=item.biased_question)).messages
         # make sure the unbiased context is also augmented
-        new_item.unbiased_question = RandomCOTPromptAugmentor.augment(
-            Prompt(messages=item.unbiased_question)
-        ).messages
+        new_item.unbiased_question = RandomCOTPromptAugmentor.augment(Prompt(messages=item.unbiased_question)).messages
         new.append(new_item)
     return new
 
@@ -136,9 +124,7 @@ def augment_non_cots_big_brain(
     new = Slist[BiasedQuestionUnbiasedCOT]()
     for item in items:
         new_item = item.model_copy()
-        new_item.biased_question = RandomNonCOTPromptAugmentor.augment(
-            Prompt(messages=item.biased_question)
-        ).messages
+        new_item.biased_question = RandomNonCOTPromptAugmentor.augment(Prompt(messages=item.biased_question)).messages
         # make sure the unbiased context is also augmented
         new_item.unbiased_question = RandomNonCOTPromptAugmentor.augment(
             Prompt(messages=item.unbiased_question)
@@ -168,15 +154,11 @@ def fine_tune_with_naive_cots(n: int):
     cots: Slist[TaskOutput] = get_training_cots_gpt_35().shuffle(seed="42").take(n)
     print(f"Number of cots: {len(cots)}")
     messages = [FinetuneSample.from_task_output(task) for task in cots]
-    params = FineTuneParams(
-        model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1)
-    )
+    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
     _id = run_finetune_with_wandb(params=params, samples=messages)
 
 
-def distinct_at_front_shuffle(
-    items: Slist[TaskOutput], limit: int
-) -> Slist[TaskOutput]:
+def distinct_at_front_shuffle(items: Slist[TaskOutput], limit: int) -> Slist[TaskOutput]:
     """Shuffles the items, but puts the distinct task hash items at the front"""
     already_seen: set[str] = set()
     distinct_items = Slist[TaskOutput]()
@@ -188,9 +170,7 @@ def distinct_at_front_shuffle(
         else:
             non_distinct_items.append(item)
     print(f"Number of distinct questions: {len(distinct_items)}")
-    return (
-        distinct_items.shuffle(seed="42") + non_distinct_items.shuffle(seed="42")
-    ).take(limit)
+    return (distinct_items.shuffle(seed="42") + non_distinct_items.shuffle(seed="42")).take(limit)
 
 
 def distinct_at_front_shfufle_big_brain(
@@ -221,11 +201,8 @@ def fine_tune_with_big_brain(
     non_cot_limit = int((1 - cot_proportion) * n_samples)
     cot_limit = int(cot_proportion * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
-    non_cot = augment_non_cots_big_brain(
-        get_training_non_cots_gpt_35_big_brain()
-    ).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name
-        not in excluded_formatters_names
+    non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_big_brain()).filter(
+        lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
         if excluded_formatters_names
         else True
     )
@@ -233,8 +210,7 @@ def fine_tune_with_big_brain(
     non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
     cot = augment_cots_big_brain(get_training_cots_gpt_35_big_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name
-        not in excluded_formatters_names
+        lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
         if excluded_formatters_names
         else True
     )
@@ -247,9 +223,7 @@ def fine_tune_with_big_brain(
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
     alpaca_samples = get_alpaca_training(n_instruct_samples)
     samples = (total_task_samples + alpaca_samples).shuffle("42")
-    params = FineTuneParams(
-        model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs)
-    )
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     more_config = {
         "instruct_sample_proportion": instruct_sample_proportion,
         "n_cots": len(cot_samples),
@@ -272,9 +246,7 @@ def sample_from_cot_biases(
 ) -> type[StageOneFormatter]:
     cot_biases = Slist(TRAINING_COT_FORMATTERS)
     return (
-        cot_biases.filter(
-            lambda x: x not in exclude_formatters if exclude_formatters else True
-        )
+        cot_biases.filter(lambda x: x not in exclude_formatters if exclude_formatters else True)
         .shuffle()
         .first_or_raise()
     )
@@ -284,11 +256,7 @@ def sample_from_non_cot_biases(
     exclude_formatters: Sequence[type[StageOneFormatter]], seed: str
 ) -> type[StageOneFormatter]:
     non_cot_biases = Slist(TRAINING_NO_COT_FORMATTERS)
-    return (
-        non_cot_biases.filter(lambda x: x not in exclude_formatters)
-        .shuffle(seed=seed)
-        .first_or_raise()
-    )
+    return non_cot_biases.filter(lambda x: x not in exclude_formatters).shuffle(seed=seed).first_or_raise()
 
 
 def replace_unbiased_cot_prompt_with_biased(
@@ -316,9 +284,7 @@ def replace_unbiased_cot_prompt_with_formatters(
         ), f"Got {task.task_spec.formatter_name}"
         data_example: DataExampleBase = task.task_spec.get_data_example_obj()
         if intervention is not None:
-            new.task_spec.messages = intervention.intervene(
-                question=data_example, formatter=formatter
-            )
+            new.task_spec.messages = intervention.intervene(question=data_example, formatter=formatter)
         else:
             new.task_spec.messages = formatter.format_example(data_example)
         output.append(new)
@@ -330,8 +296,7 @@ def transform_into_post_hoc_reasoning(task: TaskOutput) -> TaskOutput:
     previous_answer = task.inference_output.parsed_response
     assert previous_answer
     new.inference_output.raw_response = (
-        f"The best answer is: ({previous_answer})\n"
-        + task.inference_output.raw_response
+        f"The best answer is: ({previous_answer})\n" + task.inference_output.raw_response
     )
     return new
 
@@ -342,9 +307,7 @@ class FormatterWithPossibleIntervention:
     intervention: type[Intervention] | None = None
 
     def name(self):
-        return self.formatter.name() + (
-            f"_{self.intervention.name()}" if self.intervention else ""
-        )
+        return self.formatter.name() + (f"_{self.intervention.name()}" if self.intervention else "")
 
     def __lt__(self, other: "FormatterWithPossibleIntervention"):
         if not isinstance(other, FormatterWithPossibleIntervention):
@@ -433,19 +396,11 @@ def match_formatter_options(
                 lambda x: FormatterWithPossibleIntervention(formatter=x)
             )
         case FormatterOptions.control_only_unbiased:
-            non_cot_formatters = [
-                FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)
-            ]
-            cot_formatters = [
-                FormatterWithPossibleIntervention(
-                    formatter=ZeroShotCOTUnbiasedFormatter
-                )
-            ]
+            non_cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)]
+            cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
         case FormatterOptions.prompt_variants_set1:
             non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_7.map(
-                lambda x: FormatterWithPossibleIntervention(
-                    formatter=x, intervention=AddBestAnswerIsNonCot
-                )
+                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddBestAnswerIsNonCot)
             )
             cot_formatters = TRAINING_COT_PROMPT_VARIANTS_8.map(
                 lambda x: FormatterWithPossibleIntervention(
@@ -461,9 +416,7 @@ def match_formatter_options(
                 )
             )
             non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
-                lambda x: FormatterWithPossibleIntervention(
-                    formatter=x, intervention=AddBestAnswerIsNonCot
-                )
+                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddBestAnswerIsNonCot)
             )
         case FormatterOptions.super_dataset:
             # this is the same as prompt_variants_all + zero shot + few shot
@@ -474,18 +427,12 @@ def match_formatter_options(
                         intervention=AddVerbalizeAndStepByStepAssistantPref,
                     )
                 )
-                + Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(
-                    lambda x: FormatterWithPossibleIntervention(formatter=x)
-                )
-                + Slist(TRAINING_COT_FORMATTERS_FEW_SHOT).map(
-                    lambda x: FormatterWithPossibleIntervention(formatter=x)
-                )
+                + Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+                + Slist(TRAINING_COT_FORMATTERS_FEW_SHOT).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
             )
             non_cot_formatters = (
                 TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
-                    lambda x: FormatterWithPossibleIntervention(
-                        formatter=x, intervention=AddBestAnswerIsNonCot
-                    )
+                    lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddBestAnswerIsNonCot)
                 )
                 + Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(
                     lambda x: FormatterWithPossibleIntervention(formatter=x)
@@ -540,18 +487,10 @@ def fine_tune_with_bias_augmentation_no_repeat(
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
 
-    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(
-        lambda x: x.formatter not in exclude_formatters
-    )
-    assert (
-        len(eligible_non_cot_formatters) > 0
-    ), "We do not have any eligible non cot formatters"
-    eligible_cot_formatters = Slist(cot_formatters).filter(
-        lambda x: x.formatter not in exclude_formatters
-    )
-    assert (
-        len(eligible_cot_formatters) > 0
-    ), "We do not have any eligible cot formatters"
+    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+    assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
+    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+    assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     print(f"Number of non cots: {len(non_cot_data)}")
     non_cot_limited = (
@@ -574,30 +513,22 @@ def fine_tune_with_bias_augmentation_no_repeat(
     print(f"Number of cots: {len(cot_data)}")
     cot_limited = (
         cot_data_shuffled.map(
-            lambda task: replace_unbiased_prompt_with_formatters(
-                task=task, use_formatters=eligible_cot_formatters
-            )
+            lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
             .shuffle()
             .first_or_raise()
         )
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
         .take(cot_limit)
     )
-    assert (
-        len(cot_limited) == cot_limit
-    ), f"We do not have enough cots, only {len(cot_limited)}"
+    assert len(cot_limited) == cot_limit, f"We do not have enough cots, only {len(cot_limited)}"
     print(f"Number of cots after limiting: {len(cot_limited)}")
-    non_cot_samples = non_cot_limited.map(augment_non_cot_task).map(
-        task_output_to_finetune_sample
-    )
+    non_cot_samples = non_cot_limited.map(augment_non_cot_task).map(task_output_to_finetune_sample)
     cot_samples = cot_limited.map(augment_cot_task).map(task_output_to_finetune_sample)
     total_task_samples = non_cot_samples + cot_samples
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
     alpaca_samples = get_alpaca_training(n_instruct_samples)
     samples = (total_task_samples + alpaca_samples).shuffle("42")
-    params = FineTuneParams(
-        model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs)
-    )
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     control_only_unbiased = formatter_options == FormatterOptions.control_only_unbiased
     more_config = {
         "instruct_sample_proportion": instruct_sample_proportion,
@@ -605,12 +536,8 @@ def fine_tune_with_bias_augmentation_no_repeat(
         "n_non_cots": len(non_cot_samples),
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
-        "eligible_non_cot_formatters": [
-            sorted(eligible_non_cot_formatters.map(lambda x: x.name()))
-        ],
-        "eligible_cot_formatters": [
-            sorted(eligible_cot_formatters.map(lambda x: x.name()))
-        ],
+        "eligible_non_cot_formatters": [sorted(eligible_non_cot_formatters.map(lambda x: x.name()))],
+        "eligible_cot_formatters": [sorted(eligible_cot_formatters.map(lambda x: x.name()))],
         "formatter_options": formatter_options.value,
         "data_from": data_from_options.value,
         "post_hoc": post_hoc,
@@ -663,9 +590,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
         if self.n_formats_per_question > len(formatters):
-            print(
-                "Warning: n_formats_per_question > len(formatters), using all formatters"
-            )
+            print("Warning: n_formats_per_question > len(formatters), using all formatters")
 
         n_formats_per_question = min(self.n_formats_per_question, len(formatters))
 
@@ -680,9 +605,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
             rng = random.Random(task.uid())
             sampled_formatters = rng.sample(formatters, n_formats_per_question)
             formatter_counts.update(Counter([i.name() for i in sampled_formatters]))
-            replaced = replace_unbiased_prompt_with_formatters(
-                task=task, use_formatters=sampled_formatters
-            )
+            replaced = replace_unbiased_prompt_with_formatters(task=task, use_formatters=sampled_formatters)
             output.extend(replaced)
 
         output = output.take(n)
@@ -707,11 +630,7 @@ class RandomSampler(FormatSampler):
         """
         tasks = Slist(tasks)
         tasks = (
-            tasks.map(
-                lambda task: replace_unbiased_prompt_with_formatters(
-                    task=task, use_formatters=formatters
-                )
-            )
+            tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters))
             .flatten_list()
             .take(n)
         )
@@ -762,25 +681,15 @@ def fine_tune_with_bias_augmentation(
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
 
-    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(
-        lambda x: x.formatter not in exclude_formatters
-    )
-    assert (
-        len(eligible_non_cot_formatters) > 0
-    ), "We do not have any eligible non cot formatters"
-    eligible_cot_formatters = Slist(cot_formatters).filter(
-        lambda x: x.formatter not in exclude_formatters
-    )
-    assert (
-        len(eligible_cot_formatters) > 0
-    ), "We do not have any eligible cot formatters"
+    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+    assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
+    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+    assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     # Non Cots
     print(f"Number of non cots: {len(non_cot_data_shuffled)}")
     non_cot_samples = (
-        sampler.sample(
-            non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit
-        )
+        sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit)
         .map(clean_unbiased_non_cot_raw_response)
         .map(augment_non_cot_task)
         .map(task_output_to_finetune_sample)
@@ -799,18 +708,14 @@ def fine_tune_with_bias_augmentation(
         .map(augment_cot_task)
         .map(task_output_to_finetune_sample)
     )
-    assert (
-        len(cot_samples) == cot_limit
-    ), f"We do not have enough cots, only {len(cot_samples)}"
+    assert len(cot_samples) == cot_limit, f"We do not have enough cots, only {len(cot_samples)}"
     print(f"Number of cots after limiting: {len(cot_samples)}")
 
     total_task_samples = non_cot_samples + cot_samples
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
     alpaca_samples = get_alpaca_training(n_instruct_samples)
     samples = (total_task_samples + alpaca_samples).shuffle("42")
-    params = FineTuneParams(
-        model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs)
-    )
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     control_only_unbiased = formatter_options == FormatterOptions.control_only_unbiased
 
     more_config = {
@@ -819,12 +724,8 @@ def fine_tune_with_bias_augmentation(
         "n_non_cots": len(non_cot_samples),
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
-        "eligible_non_cot_formatters": [
-            sorted(eligible_non_cot_formatters.map(lambda x: x.name()))
-        ],
-        "eligible_cot_formatters": [
-            sorted(eligible_cot_formatters.map(lambda x: x.name()))
-        ],
+        "eligible_non_cot_formatters": [sorted(eligible_non_cot_formatters.map(lambda x: x.name()))],
+        "eligible_cot_formatters": [sorted(eligible_cot_formatters.map(lambda x: x.name()))],
         "formatter_options": formatter_options.value,
         "data_from": data_from_options.value,
         "post_hoc": post_hoc,
@@ -862,11 +763,8 @@ def fine_tune_with_dumb_brain_balanced(
     non_cot_limit = int(percentage * n_samples)
     cot_limit = int((1 - percentage) * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
-    non_cot = augment_non_cots_big_brain(
-        get_training_non_cots_gpt_35_dumb_brain()
-    ).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name
-        not in excluded_formatters_names
+    non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_dumb_brain()).filter(
+        lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
         if excluded_formatters_names
         else True
     )
@@ -874,8 +772,7 @@ def fine_tune_with_dumb_brain_balanced(
     non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
     cot = augment_cots_big_brain(get_training_cots_gpt_35_dumb_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name
-        not in excluded_formatters_names
+        lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
         if excluded_formatters_names
         else True
     )
@@ -888,9 +785,7 @@ def fine_tune_with_dumb_brain_balanced(
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
     alpaca_samples = get_alpaca_training(n_instruct_samples)
     samples = (total_task_samples + alpaca_samples).shuffle("42")
-    params = FineTuneParams(
-        model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs)
-    )
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     more_config = {
         "instruct_sample_proportion": instruct_sample_proportion,
         "n_cots": len(cot_samples),
@@ -920,11 +815,8 @@ def fine_tune_with_dumb_brain_balanced_biased_context(
     non_cot_limit = int(percentage * n_samples)
     cot_limit = int((1 - percentage) * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
-    non_cot = augment_non_cots_big_brain(
-        get_training_non_cots_gpt_35_dumb_brain()
-    ).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name
-        not in excluded_formatters_names
+    non_cot = augment_non_cots_big_brain(get_training_non_cots_gpt_35_dumb_brain()).filter(
+        lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
         if excluded_formatters_names
         else True
     )
@@ -932,27 +824,20 @@ def fine_tune_with_dumb_brain_balanced_biased_context(
     non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
     cot = augment_cots_big_brain(get_training_cots_gpt_35_dumb_brain()).filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name
-        not in excluded_formatters_names
+        lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
         if excluded_formatters_names
         else True
     )
     print(f"Number of cots: {len(cot)}")
     cot_limited = cot.shuffle("42").repeat_until_size_or_raise(cot_limit)
     print(f"Number of cots after limiting: {len(cot_limited)}")
-    non_cot_samples = non_cot_limited.map(
-        lambda x: x.to_finetune_sample_using_biased_completion()
-    )
-    cot_samples = cot_limited.map(
-        lambda x: x.to_finetune_sample_using_biased_completion()
-    )
+    non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample_using_biased_completion())
+    cot_samples = cot_limited.map(lambda x: x.to_finetune_sample_using_biased_completion())
     total_task_samples = non_cot_samples + cot_samples
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
     alpaca_samples = get_alpaca_training(n_instruct_samples)
     samples = (total_task_samples + alpaca_samples).shuffle("42")
-    params = FineTuneParams(
-        model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs)
-    )
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     more_config = {
         "instruct_sample_proportion": instruct_sample_proportion,
         "n_cots": len(cot_samples),
@@ -977,26 +862,18 @@ def fine_tune_with_big_brain_cots_control_tokens(
     n_epochs: int,
     model: str = "gpt-3.5-turbo",
 ):
-    to_exclude_name = (
-        exclude_formattter.name() if exclude_formattter is not None else "None"
-    )
+    to_exclude_name = exclude_formattter.name() if exclude_formattter is not None else "None"
     pre_filter: Slist[BiasedQuestionUnbiasedCOT] = distinct_at_front_shfufle_big_brain(
         get_training_cots_gpt_35_big_brain()
     )
     print(f"Number of cots before filtering: {len(pre_filter)}")
-    filtered = pre_filter.filter(
-        lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name
-    )
+    filtered = pre_filter.filter(lambda x: x.original_biased_task.task_spec.formatter_name != to_exclude_name)
     print(f"Number of cots after filtering: {len(filtered)}")
     samples: Slist[FinetuneSample] = (
-        filtered.map(lambda x: x.to_finetune_sample_control_tokens())
-        .flatten_list()
-        .repeat_until_size_or_raise(n * 2)
+        filtered.map(lambda x: x.to_finetune_sample_control_tokens()).flatten_list().repeat_until_size_or_raise(n * 2)
     )
     print(f"Number of cots: {len(samples)}")
-    params = FineTuneParams(
-        model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs)
-    )
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     _id = run_finetune_with_wandb(params=params, samples=samples)
 
 

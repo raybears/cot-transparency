@@ -170,9 +170,7 @@ def bias_vs_prompts() -> Slist[ModelTrainMeta]:
     not_gpt = all_meta.filter(lambda x: x.name != "gpt-3.5-turbo")
     distinct_models = not_gpt.distinct_by(lambda i: i.name)
     duplicates = [k for k, v in Counter([i.name for i in all_meta]).items() if v > 1]
-    assert len(distinct_models) == len(
-        not_gpt
-    ), f"There are duplicate models in the list, {[duplicates]}"
+    assert len(distinct_models) == len(not_gpt), f"There are duplicate models in the list, {[duplicates]}"
 
     return all_meta
 
@@ -352,9 +350,7 @@ def n_questions_comparison() -> Slist[ModelTrainMeta]:
     not_gpt = all_meta.filter(lambda x: x.name != "gpt-3.5-turbo")
     distinct_models = not_gpt.distinct_by(lambda i: i.name)
     duplicates = [k for k, v in Counter([i.name for i in all_meta]).items() if v > 1]
-    assert len(distinct_models) == len(
-        not_gpt
-    ), f"There are duplicate models in the list, {[duplicates]}"
+    assert len(distinct_models) == len(not_gpt), f"There are duplicate models in the list, {[duplicates]}"
 
     return all_meta
 
@@ -385,8 +381,6 @@ def n_formats() -> Slist[ModelTrainMeta]:
     not_gpt = all_meta.filter(lambda x: x.name != "gpt-3.5-turbo")
     distinct_models = not_gpt.distinct_by(lambda i: i.name)
     duplicates = [k for k, v in Counter([i.name for i in all_meta]).items() if v > 1]
-    assert len(distinct_models) == len(
-        not_gpt
-    ), f"There are duplicate models in the list, {[duplicates]}"
+    assert len(distinct_models) == len(not_gpt), f"There are duplicate models in the list, {[duplicates]}"
 
     return all_meta

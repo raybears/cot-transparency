@@ -33,9 +33,7 @@ class MMLUExample(DataExampleBase):
         return self.correct_ans_letter
 
 
-def _load_paths(
-    sub_category: str, questions_per_task: Optional[int] = None
-) -> Slist[MMLUExample]:
+def _load_paths(sub_category: str, questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
     super_category = TASK_KEY_TO_CAT[sub_category]
     path = f"./data/mmlu/test/{sub_category}_test.csv"
 
@@ -71,13 +69,9 @@ def test(questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
     return outputs
 
 
-def test_super_category(
-    super_category: str, questions_per_task: Optional[int] = None
-) -> Slist[MMLUExample]:
+def test_super_category(super_category: str, questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
     sub_categories = [
-        sub_category
-        for sub_category, super_category_ in TASK_KEY_TO_CAT.items()
-        if super_category_ == super_category
+        sub_category for sub_category, super_category_ in TASK_KEY_TO_CAT.items() if super_category_ == super_category
     ]
 
     if len(sub_categories) == 0:
@@ -89,9 +83,7 @@ def test_super_category(
     return outputs
 
 
-def test_sub_category(
-    sub_category: str, questions_per_task: Optional[int] = None
-) -> Slist[MMLUExample]:
+def test_sub_category(sub_category: str, questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
     outputs = _load_paths(sub_category, questions_per_task=questions_per_task)
     return outputs
 

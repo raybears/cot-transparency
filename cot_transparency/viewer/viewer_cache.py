@@ -89,27 +89,11 @@ def cached_search(
     items_list: dict[TreeCacheKey, Sequence[TaskOutput]] = tree_cache.items_list
     items: Slist[TaskOutput] = Slist(items_list.get(tree_cache_key, []))
     result = (
-        items.filter(
-            lambda task: task.task_spec.task_hash == task_hash if task_hash else True
-        )
-        .filter(
-            lambda task: match_bias_on_where(task=task, bias_on_where=bias_on_where)
-        )
-        .filter(
-            lambda task: match_model_result(
-                task=task, answer_result=answer_result_option
-            )
-        )
-        .filter(
-            lambda task: completion_search in task.inference_output.raw_response
-            if completion_search
-            else True
-        )
-        .filter(
-            lambda task: filter_prompt(task=task, prompt_search=prompt_search)
-            if prompt_search
-            else True
-        )
+        items.filter(lambda task: task.task_spec.task_hash == task_hash if task_hash else True)
+        .filter(lambda task: match_bias_on_where(task=task, bias_on_where=bias_on_where))
+        .filter(lambda task: match_model_result(task=task, answer_result=answer_result_option))
+        .filter(lambda task: completion_search in task.inference_output.raw_response if completion_search else True)
+        .filter(lambda task: filter_prompt(task=task, prompt_search=prompt_search) if prompt_search else True)
     )
     # time.time()
     # print(f"Search took {time_end - time_start} seconds")
@@ -126,16 +110,10 @@ class DataDropDowns(BaseModel):
 @lru_cache
 def get_data_dropdowns(items: Slist[TaskOutput]) -> DataDropDowns:
     formatters = items.map(lambda task: task.task_spec.formatter_name).distinct_unsafe()
-    interventions = items.map(
-        lambda task: task.task_spec.intervention_name
-    ).distinct_unsafe()
+    interventions = items.map(lambda task: task.task_spec.intervention_name).distinct_unsafe()
     tasks = items.map(lambda task: task.task_spec.task_name).distinct_unsafe()
-    models = items.map(
-        lambda task: task.task_spec.inference_config.model
-    ).distinct_unsafe()
-    return DataDropDowns(
-        formatters=formatters, interventions=interventions, tasks=tasks, models=models
-    )
+    models = items.map(lambda task: task.task_spec.inference_config.model).distinct_unsafe()
+    return DataDropDowns(formatters=formatters, interventions=interventions, tasks=tasks, models=models)
 
 
 @lru_cache

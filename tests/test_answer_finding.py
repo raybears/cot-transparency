@@ -130,17 +130,10 @@ The best answer is: (B) False.
         ("None of the above", ChoiceVariant.FOO, None),
     ],
 )
-def test_extract_answer_non_cot(
-    response: str, input_variant: ChoiceVariant, expected_output: str
-):
+def test_extract_answer_non_cot(response: str, input_variant: ChoiceVariant, expected_output: str):
     data_format = DataFormatSpec(choice_variant=input_variant)
     options = ["some random answer" for i in range(15)]  # not matching on these
-    assert (
-        FindIndicatorAtStartOfResponse(options, data_format).extract(
-            response, dump_failed=False
-        )
-        == expected_output
-    )
+    assert FindIndicatorAtStartOfResponse(options, data_format).extract(response, dump_failed=False) == expected_output
 
 
 #
@@ -174,16 +167,9 @@ def test_extract_answer_non_cot(
         ),
     ],
 )
-def test_extract_answer_format(
-    input_str: str, data_format: DataFormatSpec, expected_output: str
-):
+def test_extract_answer_format(input_str: str, data_format: DataFormatSpec, expected_output: str):
     options = ["dog", "cat", "zebra", "100", "200"]
-    assert (
-        FindIndicatorAfterBreakWord(options, data_format).extract(
-            model_answer=input_str
-        )
-        == expected_output
-    )
+    assert FindIndicatorAfterBreakWord(options, data_format).extract(model_answer=input_str) == expected_output
 
 
 def test_extract_answer_format_with_roman_options():
@@ -192,12 +178,7 @@ def test_extract_answer_format_with_roman_options():
     data_format = DataFormatSpec(choice_variant=ChoiceVariant.ROMAN)
     expected_output = "C"
     options = ["dog", "cat", "zebra"]
-    assert (
-        FindIndicatorAfterBreakWord(options, input_format=data_format).extract(
-            input_str
-        )
-        == expected_output
-    )
+    assert FindIndicatorAfterBreakWord(options, input_format=data_format).extract(input_str) == expected_output
 
 
 # 'The best answer is: corge) None of the above' not working
@@ -217,12 +198,7 @@ def test_extract_answer_format_without_parenthesis():
     data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
     expected_output = "C"
     options = ["dog", "cat", "zebra"]
-    assert (
-        FindIndicatorAfterBreakWord(options, input_format=data_format).extract(
-            input_str
-        )
-        == expected_output
-    )
+    assert FindIndicatorAfterBreakWord(options, input_format=data_format).extract(input_str) == expected_output
 
 
 def test_extract_answer_format_missing_last_period():
@@ -257,10 +233,7 @@ def test_extract_answer_no_separator():
     data_format = DataFormatSpec(choice_variant=ChoiceVariant.FOO)
     expected_output = "D"
     options = ["cat", "dog", "something", "Avoid examining his or her personality"]
-    assert (
-        FindIndicatorAfterBreakWord(options, data_format).extract(input_str)
-        == expected_output
-    )
+    assert FindIndicatorAfterBreakWord(options, data_format).extract(input_str) == expected_output
 
 
 @pytest.mark.parametrize(
@@ -283,15 +256,10 @@ def test_extract_answer_no_separator():
         ),
     ],
 )
-def test_find_mention_of_option(
-    input_str: str, choice_variant: ChoiceVariant, expected_output: str
-):
+def test_find_mention_of_option(input_str: str, choice_variant: ChoiceVariant, expected_output: str):
     data_format = DataFormatSpec(choice_variant=choice_variant)
     options = ["some random answer" for _ in range(5)]
-    assert (
-        FindIndicatorAfterBreakWord(options, data_format).extract(input_str)
-        == expected_output
-    )
+    assert FindIndicatorAfterBreakWord(options, data_format).extract(input_str) == expected_output
 
 
 def test_fuzzy_match():

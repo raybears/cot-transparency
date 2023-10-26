@@ -20,9 +20,7 @@ AQUA_EXAMPLE = AquaExample(
 
 
 def test_completion_based_formatter():
-    messages = FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.format_example(
-        AQUA_EXAMPLE
-    )
+    messages = FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.format_example(AQUA_EXAMPLE)
 
     prompt = Prompt(messages=messages)
 
@@ -42,9 +40,7 @@ Answer: Let's think step by step:"""  # noqa
 
 
 def test_completion_based_formatter_has_no_human():
-    messages = FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.format_example(
-        AQUA_EXAMPLE
-    )
+    messages = FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.format_example(AQUA_EXAMPLE)
 
     prompt = Prompt(messages=messages)
 
@@ -67,6 +63,4 @@ Given all of the above what's the single most likely answer?"""
 
     desired_answer = """The best evidence for the answer is the following: X = Y + Z. Therefore, the answer is (A)."""
 
-    assert (
-        formatter.parse_answer(dummy_response, question=AQUA_EXAMPLE) == desired_answer
-    )
+    assert formatter.parse_answer(dummy_response, question=AQUA_EXAMPLE) == desired_answer

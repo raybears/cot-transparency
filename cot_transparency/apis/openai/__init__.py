@@ -44,9 +44,7 @@ class OpenAICompletionPrompt(Prompt):
 
         # Add the required empty assistant tag if the last message does not have the assistant role
         if messages[-1].role == StrictMessageRole.user:
-            messages.append(
-                StrictChatMessage(role=StrictMessageRole.assistant, content="")
-            )
+            messages.append(StrictChatMessage(role=StrictMessageRole.assistant, content=""))
 
         message = ""
         for msg in messages:
@@ -80,9 +78,7 @@ class OpenAIChatCaller(ModelCaller):
         organization = None
         if self.org_keys is None:
             if "ft" in model_name:
-                raise ValueError(
-                    "No org keys found, to use finetuned models, please set OPENAI_ORG_IDS in .env"
-                )
+                raise ValueError("No org keys found, to use finetuned models, please set OPENAI_ORG_IDS in .env")
         else:
             org_key = []
             if "ft" in model_name:
@@ -126,8 +122,4 @@ class OpenAICompletionCaller(ModelCaller):
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         prompt = OpenAICompletionPrompt(messages=messages).format()
-        return InferenceResponse(
-            raw_responses=get_openai_completion(
-                config=config, prompt=prompt
-            ).completions
-        )
+        return InferenceResponse(raw_responses=get_openai_completion(config=config, prompt=prompt).completions)

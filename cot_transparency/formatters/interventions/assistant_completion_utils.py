@@ -3,16 +3,11 @@ from typing import Sequence
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
 
-def add_to_final_assistant(
-    messages: Sequence[ChatMessage], new_message: str
-) -> Sequence[ChatMessage]:
+def add_to_final_assistant(messages: Sequence[ChatMessage], new_message: str) -> Sequence[ChatMessage]:
     # If the final message is from the assistant, then we need to add the final assistant message
     # Otherwise, we need to add a new assistant message
     new_list = list(messages)
-    if (
-        messages[-1].role == MessageRole.assistant
-        or messages[-1].role == MessageRole.assistant_if_completion
-    ):
+    if messages[-1].role == MessageRole.assistant or messages[-1].role == MessageRole.assistant_if_completion:
         new_list[-1] = ChatMessage(
             role=MessageRole.assistant,
             content=messages[-1].content.rstrip() + new_message,
@@ -27,39 +22,27 @@ def remove_system_message(messages: Sequence[ChatMessage]) -> Sequence[ChatMessa
     return [m for m in messages if m.role != MessageRole.system]
 
 
-def add_to_front_system_message(
-    messages: Sequence[ChatMessage], new_message: str
-) -> Sequence[ChatMessage]:
+def add_to_front_system_message(messages: Sequence[ChatMessage], new_message: str) -> Sequence[ChatMessage]:
     """Adds to the first system message (which should be the first message)."""
     has_system_message = messages[0].role == MessageRole.system
     if not has_system_message:
-        return [ChatMessage(role=MessageRole.system, content=new_message)] + list(
-            messages
-        )
+        return [ChatMessage(role=MessageRole.system, content=new_message)] + list(messages)
     else:
         new = []
         for idx, m in enumerate(messages):
             if idx == 0:
-                new.append(
-                    ChatMessage(
-                        role=MessageRole.system, content=new_message + m.content
-                    )
-                )
+                new.append(ChatMessage(role=MessageRole.system, content=new_message + m.content))
             else:
                 new.append(m)
         return new
 
 
-def prepend_to_front_first_user_message(
-    messages: Sequence[ChatMessage], prepend: str
-) -> Sequence[ChatMessage]:
+def prepend_to_front_first_user_message(messages: Sequence[ChatMessage], prepend: str) -> Sequence[ChatMessage]:
     """Prepend a string to the first user message."""
     new_messages = []
     for m in messages:
         if m.role == MessageRole.user:
-            new_messages.append(
-                ChatMessage(role=MessageRole.user, content=prepend + m.content)
-            )
+            new_messages.append(ChatMessage(role=MessageRole.user, content=prepend + m.content))
         else:
             new_messages.append(m)
     return new_messages
@@ -85,18 +68,12 @@ def insert_to_after_system_message(
     return new_messages
 
 
-def prepend_to_front_system_message(
-    messages: Sequence[ChatMessage], prepend: str
-) -> Sequence[ChatMessage]:
+def prepend_to_front_system_message(messages: Sequence[ChatMessage], prepend: str) -> Sequence[ChatMessage]:
     """Prepend a string to the system message."""
     new_messages = [m.model_copy() for m in messages]
     first_message = new_messages[0]
     if first_message.role == MessageRole.system:
-        new_messages[0] = ChatMessage(
-            role=MessageRole.system, content=prepend + first_message.content
-        )
+        new_messages[0] = ChatMessage(role=MessageRole.system, content=prepend + first_message.content)
     else:
-        new_messages = [
-            ChatMessage(role=MessageRole.system, content=prepend)
-        ] + new_messages
+        new_messages = [ChatMessage(role=MessageRole.system, content=prepend)] + new_messages
     return new_messages

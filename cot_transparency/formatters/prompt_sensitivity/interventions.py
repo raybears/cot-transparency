@@ -27,9 +27,7 @@ class StepByStep(Intervention):
         model: Optional[str] = None,
     ) -> Sequence[ChatMessage]:
         questions = list(formatter.format_example(question, model=model))
-        step_by_step = ChatMessage(
-            role=MessageRole.assistant, content="Let's think step by step."
-        )
+        step_by_step = ChatMessage(role=MessageRole.assistant, content="Let's think step by step.")
         return questions + [step_by_step]
 
 
@@ -102,11 +100,7 @@ class AddVerbalizeAndStepByStepAssistantPref(Intervention):
             content=add_verbalize_instruction_to_question(last_message.content),
         )
         questions[-1] = with_label_instruction
-        questions.append(
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            )
-        )
+        questions.append(ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT))
         return questions
 
 
@@ -124,7 +118,5 @@ class AddVerbalizeInstruction(Intervention):
         content = last_message.content + "\n\n" + VERBALIZE_INSTRUCTION
         last_message = ChatMessage(role=last_message.role, content=content)
         questions[-1] = last_message
-        questions.append(
-            ChatMessage(role=MessageRole.assistant, content="Let's think step by step.")
-        )
+        questions.append(ChatMessage(role=MessageRole.assistant, content="Let's think step by step."))
         return questions

@@ -69,9 +69,7 @@ class BiasedQuestionUnbiasedCOT(BaseModel):
     def to_finetune_sample_using_biased_completion(self) -> FinetuneSample:
         prompt_messages: Sequence[ChatMessage] = self.biased_question
         new_messages = list(prompt_messages) + [
-            ChatMessage(
-                role=MessageRole.assistant, content=self.incorrect_full_response
-            )
+            ChatMessage(role=MessageRole.assistant, content=self.incorrect_full_response)
         ]
         # 50% of the time, we put the assistant preferred message as the start of the assistant
         # (so that the assistant learns how to start w/o the instruction)

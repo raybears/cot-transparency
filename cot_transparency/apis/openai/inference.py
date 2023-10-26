@@ -24,11 +24,7 @@ from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__, logging.INFO)
 should_log_rate_limit = os.getenv("LOG_RATE_LIMITS", "false").lower() == "true"
-rate_limit_logger = (
-    setup_logger("openai_rate_limit_logger", logging.INFO)
-    if should_log_rate_limit
-    else None
-)
+rate_limit_logger = setup_logger("openai_rate_limit_logger", logging.INFO) if should_log_rate_limit else None
 
 load_dotenv()
 NUM_ORGS = len(os.getenv("OPENAI_ORG_IDS", "").split(","))
@@ -92,35 +88,23 @@ class GPTFullResponse(BaseModel):
 
     @property
     def average_completion_prob(self) -> Optional[float]:
-        completion_token_infos_log_prob: Slist[float] = Slist(
-            self.completion_token_infos
-        ).map(lambda token_info: token_info.log_prob)
-        # convert them into probabilities and then average them
-        probas: Slist[float] = completion_token_infos_log_prob.map(
-            lambda log_prob: np.exp(log_prob)
+        completion_token_infos_log_prob: Slist[float] = Slist(self.completion_token_infos).map(
+            lambda token_info: token_info.log_prob
         )
+        # convert them into probabilities and then average them
+        probas: Slist[float] = completion_token_infos_log_prob.map(lambda log_prob: np.exp(log_prob))
         return probas.average()
 
 
-def parse_gpt_response(
-    prompt: str, response_dict: Dict[Any, Any], end_tokens: set[str]
-) -> GPTFullResponse:
+def parse_gpt_response(prompt: str, response_dict: Dict[Any, Any], end_tokens: set[str]) -> GPTFullResponse:
     response_id = response_dict["id"]
     completion = response_dict["choices"][0]["text"][len(prompt) :]
-    logprobs: List[Union[int, None]] = response_dict["choices"][0]["logprobs"][
-        "token_logprobs"
-    ]
+    logprobs: List[Union[int, None]] = response_dict["choices"][0]["logprobs"]["token_logprobs"]
     # the first token has a logprob of "None" so we need to change it to 0
-    edited_logprobs: Slist[int] = Slist(logprobs).map(
-        lambda x: x if x is not None else 0
-    )
+    edited_logprobs: Slist[int] = Slist(logprobs).map(lambda x: x if x is not None else 0)
     tokens: Slist[str] = Slist(response_dict["choices"][0]["logprobs"]["tokens"])
-    top_5_probabilities: Slist[Slist[TokenProba]] = Slist(
-        response_dict["choices"][0]["logprobs"]["top_logprobs"]
-    ).map(
-        lambda maybe_dict: Slist.from_dict(maybe_dict).map(
-            lambda tup: TokenProba(token=tup[0], log_prob=tup[1])
-        )
+    top_5_probabilities: Slist[Slist[TokenProba]] = Slist(response_dict["choices"][0]["logprobs"]["top_logprobs"]).map(
+        lambda maybe_dict: Slist.from_dict(maybe_dict).map(lambda tup: TokenProba(token=tup[0], log_prob=tup[1]))
         # the first token has None instead of a dict
         if maybe_dict is not None
         else Slist()
@@ -129,28 +113,18 @@ def parse_gpt_response(
     finish_reason = response_dict["choices"][0]["finish_reason"]
     offsets: Slist[int] = Slist(response_dict["choices"][0]["logprobs"]["text_offset"])
 
-    token_infos: Slist[TokenInfo] = tokens.zip(
-        edited_logprobs, top_5_probabilities, offsets
-    ).map(
-        lambda tup: TokenInfo(
-            token=tup[0], log_prob=tup[1], top_5_tokens=tup[2], text_offset=tup[3]
-        )
+    token_infos: Slist[TokenInfo] = tokens.zip(edited_logprobs, top_5_probabilities, offsets).map(
+        lambda tup: TokenInfo(token=tup[0], log_prob=tup[1], top_5_tokens=tup[2], text_offset=tup[3])
     )
 
     # now you need to find out where the prompt ends and the completion begins
     # using the text_offset
     prompt_offset = len(prompt)
-    prompt_token_infos, completion_token_infos = token_infos.split_by(
-        lambda x: x.text_offset < prompt_offset
-    )
+    prompt_token_infos, completion_token_infos = token_infos.split_by(lambda x: x.text_offset < prompt_offset)
     # this is dumb, but sometimes openai adds tokens beyond the end token
-    completion_token_infos = completion_token_infos.take_until_inclusive(
-        lambda x: x.token in end_tokens
-    )
+    completion_token_infos = completion_token_infos.take_until_inclusive(lambda x: x.token in end_tokens)
 
-    completion_token_infos_log_prob = completion_token_infos.map(
-        lambda token_info: token_info.log_prob
-    )
+    completion_token_infos_log_prob = completion_token_infos.map(lambda token_info: token_info.log_prob)
 
     return GPTFullResponse(
         id=response_id,
@@ -193,15 +167,9 @@ def get_openai_completion(
         raise e
 
     end_tokens: set[str] = (
-        set(config.stop)
-        if isinstance(config.stop, list)
-        else {config.stop}
-        if isinstance(config.stop, str)
-        else set()
+        set(config.stop) if isinstance(config.stop, list) else {config.stop} if isinstance(config.stop, str) else set()
     )
-    return parse_gpt_response(
-        prompt=prompt, response_dict=response_dict, end_tokens=end_tokens
-    )
+    return parse_gpt_response(prompt=prompt, response_dict=response_dict, end_tokens=end_tokens)
 
 
 def parse_chat_prompt_response_dict(

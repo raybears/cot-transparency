@@ -34,22 +34,16 @@ def overall_accuracy_for_formatter(
 
 
 def all_overall_accuracies(exp_dir: str, model: str) -> list[TaskAndPlotInfo]:
-    nonbiased = overall_accuracy_for_formatter(
-        "ZeroShotCOTUnbiasedFormatter", exp_dir=exp_dir, model=model
-    )
+    nonbiased = overall_accuracy_for_formatter("ZeroShotCOTUnbiasedFormatter", exp_dir=exp_dir, model=model)
     stanford: TaskAndPlotInfo = TaskAndPlotInfo(
         task_name="Stanford",
         plot_dots=[
             PlotInfo(
-                acc=overall_accuracy_for_formatter(
-                    "StanfordTreatmentFormatter", exp_dir=exp_dir, model=model
-                ),
+                acc=overall_accuracy_for_formatter("StanfordTreatmentFormatter", exp_dir=exp_dir, model=model),
                 name="Treatment",
             ),
             PlotInfo(
-                acc=overall_accuracy_for_formatter(
-                    "StanfordBiasedFormatter", exp_dir=exp_dir, model=model
-                ),
+                acc=overall_accuracy_for_formatter("StanfordBiasedFormatter", exp_dir=exp_dir, model=model),
                 name="Biased",
             ),
             PlotInfo(acc=nonbiased, name="Unbiased"),
@@ -59,15 +53,11 @@ def all_overall_accuracies(exp_dir: str, model: str) -> list[TaskAndPlotInfo]:
         task_name="Cross",
         plot_dots=[
             PlotInfo(
-                acc=overall_accuracy_for_formatter(
-                    "CrossTreatmentFormatter", exp_dir=exp_dir, model=model
-                ),
+                acc=overall_accuracy_for_formatter("CrossTreatmentFormatter", exp_dir=exp_dir, model=model),
                 name="Treatment",
             ),
             PlotInfo(
-                acc=overall_accuracy_for_formatter(
-                    "CrossBiasedFormatter", exp_dir=exp_dir, model=model
-                ),
+                acc=overall_accuracy_for_formatter("CrossBiasedFormatter", exp_dir=exp_dir, model=model),
                 name="Biased",
             ),
             PlotInfo(acc=nonbiased, name="Unbiased"),
@@ -77,15 +67,11 @@ def all_overall_accuracies(exp_dir: str, model: str) -> list[TaskAndPlotInfo]:
         task_name="Checkmark",
         plot_dots=[
             PlotInfo(
-                acc=overall_accuracy_for_formatter(
-                    "CheckmarkTreatmentFormatter", exp_dir=exp_dir, model=model
-                ),
+                acc=overall_accuracy_for_formatter("CheckmarkTreatmentFormatter", exp_dir=exp_dir, model=model),
                 name="Treatment",
             ),
             PlotInfo(
-                acc=overall_accuracy_for_formatter(
-                    "CheckmarkBiasedFormatter", exp_dir=exp_dir, model=model
-                ),
+                acc=overall_accuracy_for_formatter("CheckmarkBiasedFormatter", exp_dir=exp_dir, model=model),
                 name="Biased",
             ),
             PlotInfo(acc=nonbiased, name="Unbiased"),
@@ -96,6 +82,4 @@ def all_overall_accuracies(exp_dir: str, model: str) -> list[TaskAndPlotInfo]:
 
 if __name__ == "__main__":
     overall_accs = all_overall_accuracies(exp_dir="experiments/v2", model="gpt-4")
-    accuracy_plot(
-        overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples"
-    )
+    accuracy_plot(overall_accs, title="Overall Accuracy of GPT-4 Biased Inconsistent Samples")

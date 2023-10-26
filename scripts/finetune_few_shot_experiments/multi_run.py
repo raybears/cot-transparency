@@ -50,9 +50,7 @@ if __name__ == "__main__":
     sweeps: Slist[SweepOptions] = Slist()
     for n_sample in [50000]:
         for formatter_option in [FormatterOptions.few_shot]:
-            sweeps.append(
-                SweepOptions(n_samples=n_sample, formatter_options=formatter_option)
-            )
+            sweeps.append(SweepOptions(n_samples=n_sample, formatter_options=formatter_option))
 
     # need to use process pool executor as wandb is not thread safe
     sweeps.par_map(train_and_run, executor=ProcessPoolExecutor(sweeps.length))

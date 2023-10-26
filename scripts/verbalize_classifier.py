@@ -58,9 +58,7 @@ class VerbalizeClassifier:
         else:
             return None
 
-    def format_for_classification(
-        self, messages: Sequence[ChatMessage], completion: str
-    ) -> Sequence[ChatMessage]:
+    def format_for_classification(self, messages: Sequence[ChatMessage], completion: str) -> Sequence[ChatMessage]:
         return list(messages) + [
             ChatMessage(role=MessageRole.assistant, content=completion),
             ChatMessage(
@@ -73,9 +71,7 @@ Answer immediately with A or B now:""",
         ]
 
 
-def read_experiment(
-    exp_dir: str, task: str, formatter: str, model: str
-) -> ExperimentJsonFormat:
+def read_experiment(exp_dir: str, task: str, formatter: str, model: str) -> ExperimentJsonFormat:
     path = Path(f"{exp_dir}/{task}/{model}/{formatter}.json")
     experiment: ExperimentJsonFormat = read_done_experiment(path)
     assert experiment.outputs, f"Experiment {path} has no outputs"
@@ -112,9 +108,7 @@ def make_classification_task(
     classifier: VerbalizeClassifier, task_output: TaskOutput, out_file_path: Path
 ) -> ClassificationTaskSpec:
     # hardcoded to gpt-4 for now
-    config = OpenaiInferenceConfig(
-        model="gpt-4", temperature=0, max_tokens=1, top_p=1.0
-    )
+    config = OpenaiInferenceConfig(model="gpt-4", temperature=0, max_tokens=1, top_p=1.0)
 
     return ClassificationTaskSpec(
         stage_one_output=task_output,
@@ -167,32 +161,20 @@ FORMATTER_FEATURE_DESCRIPTION_MAP: dict[Type[StageOneFormatter], str] = {
 }
 
 
-def run_classification(
-    formatter: Type[StageOneFormatter], out_fp: Path, stage_one_exp_dir: Path
-):
-    single_exp = read_all_for_formatters(
-        exp_dir=stage_one_exp_dir, formatter=formatter.name(), model="gpt-4"
-    )
+def run_classification(formatter: Type[StageOneFormatter], out_fp: Path, stage_one_exp_dir: Path):
+    single_exp = read_all_for_formatters(exp_dir=stage_one_exp_dir, formatter=formatter.name(), model="gpt-4")
     task_outputs: list[TaskOutput] = single_exp
     print(f"len(task_outputs) = {len(task_outputs)}")
-    classifier = VerbalizeClassifier(
-        feature_description=FORMATTER_FEATURE_DESCRIPTION_MAP[formatter]
-    )
+    classifier = VerbalizeClassifier(feature_description=FORMATTER_FEATURE_DESCRIPTION_MAP[formatter])
     tasks: Slist[ClassificationTaskSpec] = (
         Slist(task_outputs)
-        .map(
-            lambda x: make_classification_task(
-                classifier=classifier, task_output=x, out_file_path=out_fp
-            )
-        )
+        .map(lambda x: make_classification_task(classifier=classifier, task_output=x, out_file_path=out_fp))
         .filter(lambda x: x.is_inconsistent)
         .filter(lambda x: x.followed_bias_answer)
     )
     executor = ThreadPoolExecutor(max_workers=20)
     print(f"len(tasks) = {len(tasks)}")
-    results: Slist[ClassificationTaskOutput] = tasks.par_map(
-        run_classification_task, executor=executor
-    )
+    results: Slist[ClassificationTaskOutput] = tasks.par_map(run_classification_task, executor=executor)
     print(f"len(results) = {len(results)}")
     write_jsonl_file_from_basemodel(out_fp, results)
 
@@ -212,9 +194,7 @@ def unverbalized_bar_plots(
                 y=unverbalized,
                 text=[f"               {dec:.2f}" for dec in unverbalized],
                 textposition="outside",  # will always place text above the bars
-                textfont=dict(
-                    size=20, color="#000"
-                ),  # increase text size and set color to black
+                textfont=dict(size=20, color="#000"),  # increase text size and set color to black
                 error_y=dict(
                     type="data",
                     array=[dot.acc.error_bars for dot in plot_dots],
@@ -280,9 +260,7 @@ if __name__ == "__main__":
     for formatter in formatters:
         print(f"formatter = {formatter.name()}")
         out_fp = script_fp / Path(f"{formatter.name()}.jsonl")
-        run_classification(
-            formatter, out_fp=out_fp, stage_one_exp_dir=stage_one_exp_dir
-        )
+        run_classification(formatter, out_fp=out_fp, stage_one_exp_dir=stage_one_exp_dir)
         proportion: AccuracyOutput = get_proportion_mentioned_bias(out_fp)
         simple_name = FORMATTER_TO_SIMPLE_NAME[formatter]
         proportions.append(PlotInfo(acc=proportion, name=simple_name))

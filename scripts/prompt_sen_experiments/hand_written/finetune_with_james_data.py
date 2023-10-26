@@ -36,9 +36,7 @@ def main(
 
     cot_data: Slist[TaskOutput]
     # TODO fix this
-    cot_data = get_training_cots_gpt_35(
-        model_output_verified
-    )  # gold standard formatter
+    cot_data = get_training_cots_gpt_35(model_output_verified)  # gold standard formatter
     print(f"loaded {len(cot_data)} cots")
     cot_data_shuffled = cot_data.shuffle(seed=str(42))
     replaced = cot_data_shuffled.map(
@@ -58,9 +56,7 @@ def main(
         return str(task.task_spec.messages)
 
     finetuning_samples = (
-        augmented.map(
-            lambda x: task_output_to_finetune_sample(x, seed_func=get_seed_from_task)
-        )
+        augmented.map(lambda x: task_output_to_finetune_sample(x, seed_func=get_seed_from_task))
         .take(n_samples)
         .shuffle(seed=str(42))
     )
@@ -72,9 +68,7 @@ def main(
         "include_all_formatters_per_question": include_all_formatters_per_question,
     }
 
-    params = FineTuneParams(
-        model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs)
-    )
+    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     _id = run_finetune_with_wandb(
         params=params,
         samples=finetuning_samples,

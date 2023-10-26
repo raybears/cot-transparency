@@ -70,13 +70,9 @@ def main(
     # is consistent across formatters
     # drop on task_hash
     with_modal_agreement_score = (
-        df.groupby(["model", "task_hash", "intervention_name"])
-        .apply(get_modal_agreement_score)
-        .reset_index(drop=True)
+        df.groupby(["model", "task_hash", "intervention_name"]).apply(get_modal_agreement_score).reset_index(drop=True)
     )
-    with_modal_agreement_score = with_modal_agreement_score[
-        ~with_modal_agreement_score.is_same_as_mode.isna()
-    ]
+    with_modal_agreement_score = with_modal_agreement_score[~with_modal_agreement_score.is_same_as_mode.isna()]
 
     # # grab completions that were the same as the mode
     # with_modal_agreement_score = with_modal_agreement_score[
@@ -96,9 +92,7 @@ def main(
         else:
             raise ValueError("Choice variant is not letters or numbers")
 
-    with_modal_agreement_score["indicator_type"] = with_modal_agreement_score.apply(
-        get_is_answer_or_letter, axis=1
-    )
+    with_modal_agreement_score["indicator_type"] = with_modal_agreement_score.apply(get_is_answer_or_letter, axis=1)
 
     # Basic idea is this, for each question get a completion that matches the modal agreement which has letters
 
@@ -110,24 +104,18 @@ def main(
             group["completion_uid"] = None
             return group
 
-        selected_completion = (
-            group[group.is_same_as_mode].sample(1).output_uid.values[0]
-        )
+        selected_completion = group[group.is_same_as_mode].sample(1).output_uid.values[0]
         group["completion_uid"] = selected_completion
         return group
 
     consistent = (
-        with_modal_agreement_score.groupby(
-            ["model", "task_hash", "intervention_name", "indicator_type"]
-        )
+        with_modal_agreement_score.groupby(["model", "task_hash", "intervention_name", "indicator_type"])
         .apply(get_consitent_completions)
         .reset_index(drop=True)
     )
 
     # create has map from task_hash to completion_uid
-    task_hash_to_completion_uid = dict(
-        zip(consistent.input_hash, consistent.completion_uid)
-    )
+    task_hash_to_completion_uid = dict(zip(consistent.input_hash, consistent.completion_uid))
 
     # create hash map from completion_uid to TaskOuput
     completion_uid_to_output = {}
@@ -145,9 +133,7 @@ def main(
                 consistent_output = completion_uid_to_output[consistent_uid]
 
                 # then replace the completion of that output with the consistent completion
-                output.inference_output.raw_response = (
-                    consistent_output.inference_output.raw_response
-                )
+                output.inference_output.raw_response = consistent_output.inference_output.raw_response
                 tasks_to_train_on.append(output)
 
     print("Number of tasks to train on", len(tasks_to_train_on))

@@ -46,13 +46,9 @@ def main(
     # is consistent across formatters
     # drop on task_hash
     with_modal_agreement_score = (
-        df.groupby(["model", "task_hash", "intervention_name"])
-        .apply(get_modal_agreement_score)
-        .reset_index(drop=True)
+        df.groupby(["model", "task_hash", "intervention_name"]).apply(get_modal_agreement_score).reset_index(drop=True)
     )
-    with_modal_agreement_score = with_modal_agreement_score[
-        ~with_modal_agreement_score.is_same_as_mode.isna()
-    ]
+    with_modal_agreement_score = with_modal_agreement_score[~with_modal_agreement_score.is_same_as_mode.isna()]
 
     # grab completions that were the same as the mode
     hashes = with_modal_agreement_score = with_modal_agreement_score[
@@ -83,9 +79,7 @@ def main(
 
     # save these samples
     write_jsonl_file_from_basemodel(
-        Path(
-            "data/training_prompt_sen/temp0_cot/fine_tune_samples_COT_TRAINING_TASKS.jsonl"
-        ),
+        Path("data/training_prompt_sen/temp0_cot/fine_tune_samples_COT_TRAINING_TASKS.jsonl"),
         fine_tune_samples,
     )
 

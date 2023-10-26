@@ -24,9 +24,7 @@ class Intervention(ABC):
         model: Optional[str] = None,
     ) -> Sequence[ChatMessage]:
         cls_name = cls.__name__
-        raise NotImplementedError(
-            f"Intervention {cls_name} has not implemented intervene."
-        )
+        raise NotImplementedError(f"Intervention {cls_name} has not implemented intervene.")
 
     @classmethod
     def all_interventions(cls) -> dict[str, Type[Self]]:

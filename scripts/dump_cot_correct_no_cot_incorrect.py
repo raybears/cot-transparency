@@ -33,9 +33,7 @@ def to_flat(tup: tuple[TaskOutput, TaskOutput]) -> Optional[FlatCOTComparisonOut
     if cot.is_correct and not no_cot.is_correct:
         return FlatCOTComparisonOutput(
             cot_prompt=OpenAICompletionPrompt(messages=cot.task_spec.messages).format(),
-            no_cot_prompt=OpenAICompletionPrompt(
-                messages=no_cot.task_spec.messages
-            ).format(),
+            no_cot_prompt=OpenAICompletionPrompt(messages=no_cot.task_spec.messages).format(),
             ground_truth=cot.task_spec.ground_truth,
             cot_full_response=cot.inference_output.raw_response,
             no_cot_full_response=no_cot.inference_output.raw_response,
@@ -70,22 +68,16 @@ def dump_cot_comparison():
         .filter(lambda x: x.task_spec.task_name in tasks)
         .filter(lambda x: x.task_spec.inference_config.model == model)
     )
-    cot, no_cot = jsons_tasks.split_by(
-        lambda x: x.task_spec.formatter_name == "ZeroShotCOTUnbiasedFormatter"
-    )
+    cot, no_cot = jsons_tasks.split_by(lambda x: x.task_spec.formatter_name == "ZeroShotCOTUnbiasedFormatter")
     print(f"len(cot): {len(cot)}")
     print(f"len(no_cot): {len(no_cot)}")
     # make a make of no_cot
     no_cot_map: dict[str, TaskOutput] = {x.task_spec.task_hash: x for x in no_cot}
     cot_tups = cot.map(
-        lambda x: (x, no_cot_map[x.task_spec.task_hash])
-        if x.task_spec.task_hash in no_cot_map
-        else None
+        lambda x: (x, no_cot_map[x.task_spec.task_hash]) if x.task_spec.task_hash in no_cot_map else None
     ).flatten_option()
     print(f"len(cot_tups): {len(cot_tups)}")
-    flat_cot_tups: Slist[FlatCOTComparisonOutput] = cot_tups.map(
-        to_flat
-    ).flatten_option()
+    flat_cot_tups: Slist[FlatCOTComparisonOutput] = cot_tups.map(to_flat).flatten_option()
     print(f"len(flat_cot_tups): {len(flat_cot_tups)}")
     write_csv_file_from_basemodel(
         path=Path("cot_comparison.csv"),

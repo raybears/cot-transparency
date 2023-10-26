@@ -47,12 +47,8 @@ def get_few_shot_prompts(
     Returns a list of tuples of ChatMessages, [question, cot_answer, answer_letter] triples
     """
 
-    few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots(
-        "./data/ethan_few_shot.txt"
-    )
-    more_few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots(
-        "./data/gpt4_generated_few_shot.txt"
-    )
+    few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots("./data/ethan_few_shot.txt")
+    more_few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots("./data/gpt4_generated_few_shot.txt")
 
     rng = random.Random(seed)
     few_shots = few_shots + more_few_shots
@@ -60,9 +56,7 @@ def get_few_shot_prompts(
     if n > 0:
         few_shots = few_shots[:n]
 
-    few_shots_with_letter: list[
-        tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]
-    ] = []
+    few_shots_with_letter: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = []
     format_in_few_shot = "Therefore, the answer is ("
     for q, a in few_shots:
         letter: MultipleChoiceAnswer = a.content[-3]  # type: ignore

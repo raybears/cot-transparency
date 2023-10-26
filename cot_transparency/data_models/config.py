@@ -35,42 +35,18 @@ class OpenaiInferenceConfig(HashableBaseModel):
 
 
 CONFIG_MAP = {
-    "gpt-4": OpenaiInferenceConfig(
-        model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "gpt-3.5-turbo": OpenaiInferenceConfig(
-        model="gpt-3.5-turbo", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "text-davinci-003": OpenaiInferenceConfig(
-        model="text-davinci-003", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "code-davinci-002": OpenaiInferenceConfig(
-        model="code-davinci-002", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "text-davinci-002": OpenaiInferenceConfig(
-        model="text-davinci-002", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "davinci": OpenaiInferenceConfig(
-        model="davinci", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "claude-v1": OpenaiInferenceConfig(
-        model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "claude-2": OpenaiInferenceConfig(
-        model="claude-2", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "claude-instant-1": OpenaiInferenceConfig(
-        model="claude-instant-1", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "gpt-3.5-turbo-16k": OpenaiInferenceConfig(
-        model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "gpt-4-32k": OpenaiInferenceConfig(
-        model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0
-    ),
-    "llama-2-7b-chat-hf": OpenaiInferenceConfig(
-        model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0
-    ),
+    "gpt-4": OpenaiInferenceConfig(model="gpt-4", temperature=1, max_tokens=1000, top_p=1.0),
+    "gpt-3.5-turbo": OpenaiInferenceConfig(model="gpt-3.5-turbo", temperature=1, max_tokens=1000, top_p=1.0),
+    "text-davinci-003": OpenaiInferenceConfig(model="text-davinci-003", temperature=1, max_tokens=1000, top_p=1.0),
+    "code-davinci-002": OpenaiInferenceConfig(model="code-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
+    "text-davinci-002": OpenaiInferenceConfig(model="text-davinci-002", temperature=1, max_tokens=1000, top_p=1.0),
+    "davinci": OpenaiInferenceConfig(model="davinci", temperature=1, max_tokens=1000, top_p=1.0),
+    "claude-v1": OpenaiInferenceConfig(model="claude-v1", temperature=1, max_tokens=1000, top_p=1.0),
+    "claude-2": OpenaiInferenceConfig(model="claude-2", temperature=1, max_tokens=1000, top_p=1.0),
+    "claude-instant-1": OpenaiInferenceConfig(model="claude-instant-1", temperature=1, max_tokens=1000, top_p=1.0),
+    "gpt-3.5-turbo-16k": OpenaiInferenceConfig(model="gpt-3.5-turbo-16k", temperature=1, max_tokens=1000, top_p=1.0),
+    "gpt-4-32k": OpenaiInferenceConfig(model="gpt-4-32k", temperature=1, max_tokens=1000, top_p=1.0),
+    "llama-2-7b-chat-hf": OpenaiInferenceConfig(model="llama-2-7b-chat-hf", temperature=1, max_tokens=1000, top_p=1.0),
 }
 
 
@@ -91,9 +67,7 @@ def config_from_default(
     if model in CONFIG_MAP:
         default = CONFIG_MAP[model]
     else:
-        default = OpenaiInferenceConfig(
-            model=model, temperature=1, max_tokens=1000, top_p=1.0
-        )
+        default = OpenaiInferenceConfig(model=model, temperature=1, max_tokens=1000, top_p=1.0)
 
     # override the default values with the passed in values
     return OpenaiInferenceConfig(
@@ -101,12 +75,8 @@ def config_from_default(
         temperature=temperature if temperature is not None else default.temperature,
         top_p=top_p if top_p is not None else default.top_p,
         max_tokens=max_tokens if max_tokens is not None else default.max_tokens,
-        frequency_penalty=frequency_penalty
-        if frequency_penalty is not None
-        else default.frequency_penalty,
-        presence_penalty=presence_penalty
-        if presence_penalty is not None
-        else default.presence_penalty,
+        frequency_penalty=frequency_penalty if frequency_penalty is not None else default.frequency_penalty,
+        presence_penalty=presence_penalty if presence_penalty is not None else default.presence_penalty,
         n=n if n is not None else default.n,
         stop=stop if stop is not None else default.stop,
     )

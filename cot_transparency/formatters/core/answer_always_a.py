@@ -62,12 +62,7 @@ def get_all_answer_is_always_prompts() -> list[str]:
 
 
 def sample_prompts(seed: str, n: int = 10) -> str:
-    return (
-        Slist(get_all_answer_is_always_prompts())
-        .shuffle(seed)
-        .take(n)
-        .mk_string("\n===\n")
-    )
+    return Slist(get_all_answer_is_always_prompts()).shuffle(seed).take(n).mk_string("\n===\n")
 
 
 class AnswerAlwaysAFormatter(StageOneFormatter):
@@ -75,9 +70,7 @@ class AnswerAlwaysAFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         seed = question.get_parsed_input()
         prompts = sample_prompts(seed, n=7)
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
@@ -87,16 +80,12 @@ class AnswerAlwaysAFormatter(StageOneFormatter):
 """
         output = [
             ChatMessage(role=MessageRole.user, content=formatted),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -105,9 +94,7 @@ class AnswerAlwaysANoCOTFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = question.get_parsed_input()
         prompts = sample_prompts(seed=message, n=7)
         formatted = f"""{prompts}
@@ -124,7 +111,5 @@ class AnswerAlwaysANoCOTFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)

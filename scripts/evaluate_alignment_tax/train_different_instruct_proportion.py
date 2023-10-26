@@ -32,9 +32,7 @@ async def train_and_run(sweep: SweepOptions) -> None:
         model_output_verified=ModelOutputVerified.correct,
         ask_to_validate_training=False,
         instruct_sample_proportion=sweep.instruct_sample_proportion,
-        prepend_notes="instruct_sample_proportion: "
-        + str(sweep.instruct_sample_proportion)
-        + " ",
+        prepend_notes="instruct_sample_proportion: " + str(sweep.instruct_sample_proportion) + " ",
     )
     await eval_instruction_following(
         intervention_models=[model],

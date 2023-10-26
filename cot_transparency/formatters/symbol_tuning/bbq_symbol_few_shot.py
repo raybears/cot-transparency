@@ -16,9 +16,7 @@ from cot_transparency.formatters.symbol_tuning.prompts import (
 )
 
 
-def format_few_shot_bbq_symbol_tuning_biased_question(
-    question: str, biased_answer: MultipleChoiceAnswer
-) -> str:
+def format_few_shot_bbq_symbol_tuning_biased_question(question: str, biased_answer: MultipleChoiceAnswer) -> str:
     parsed_input = question
     return (
         f"{few_shot_bbq_biased_cot_questions}\n\n"
@@ -32,24 +30,16 @@ class BBQSymbolTuningCOTFewShot(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
-        message = format_few_shot_bbq_symbol_tuning_biased_question(
-            question=message, biased_answer=question.biased_ans
-        )
+        message = format_few_shot_bbq_symbol_tuning_biased_question(question=message, biased_answer=question.biased_ans)
         message = add_verbalize_instruction_to_question(message)
         output = [
             ChatMessage(role=MessageRole.user, content=message),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)

@@ -28,13 +28,9 @@ def parse_out_bias_explanation(completion: str) -> BiasAndExplanation:
         if explicit_no_bias_detected
         else ReturnedBiasFailure.failed
     )
-    explanation: Match[str] | None = re.search(
-        r"<EXPLANATION>(.*)</EXPLANATION>", completion
-    )
+    explanation: Match[str] | None = re.search(r"<EXPLANATION>(.*)</EXPLANATION>", completion)
     return BiasAndExplanation(
         bias=bias,
-        explanation=explanation.group(1).strip()
-        if explanation
-        else ReturnedBiasFailure.failed,
+        explanation=explanation.group(1).strip() if explanation else ReturnedBiasFailure.failed,
         raw_response=completion,
     )

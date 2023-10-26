@@ -13,7 +13,9 @@ from scripts.prompt_sen_experiments.plots import NoneFilteringStrategy, prompt_m
 from stage_one import PROMPT_SEN_TESTING_TASKS, main
 
 EXP_DIR = "experiments/prompt_sen_experiments/v3_handwritten_formats/temp0_cot_v3_new_formats_no_answer_parsing_with_verbalize_and_step_by_step"
-ANSWER_FINDING_DIR = "experiments/prompt_sen_experiments/v3_handwritten_formats/temp0_cot_v3_new_formats_answer_parsing_verbalisation"
+ANSWER_FINDING_DIR = (
+    "experiments/prompt_sen_experiments/v3_handwritten_formats/temp0_cot_v3_new_formats_answer_parsing_verbalisation"
+)
 
 # The idea of this one is to test on a set of formatters that are different from the ones that we trained on
 # which is what we do in cot_formats_v1.py

@@ -27,16 +27,12 @@ class AnthropicPrompt(Prompt):
 
     def format(self) -> str:
         if messages_has_none_role(self.messages):
-            raise ValueError(
-                f"Anthropic chat messages cannot have a None role. Got {self.messages}"
-            )
+            raise ValueError(f"Anthropic chat messages cannot have a None role. Got {self.messages}")
         messages = convert_assistant_if_completion_to_assistant(self.messages)
 
         # Add the required empty assistant tag for Claude models if the last message does not have the assistant role
         if messages[-1].role == StrictMessageRole.user:
-            messages.append(
-                StrictChatMessage(role=StrictMessageRole.assistant, content="")
-            )
+            messages.append(StrictChatMessage(role=StrictMessageRole.assistant, content=""))
 
         message = ""
         for msg in messages:
@@ -70,9 +66,7 @@ class AnthropicCaller(ModelCaller):
         messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        assert (
-            "claude" in config.model
-        ), f"AnthropicCaller can only be used with claude models. Got {config.model}"
+        assert "claude" in config.model, f"AnthropicCaller can only be used with claude models. Got {config.model}"
         text = AnthropicPrompt(messages=messages).format()
 
         resp = self.client.completions.create(

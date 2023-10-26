@@ -51,9 +51,5 @@ def display_task(task: TaskOutput, put_if_completion_in_user: bool = True):
         if put_if_completion_in_user
         else task.task_spec.messages
     )
-    messages = list(messages) + [
-        ChatMessage(
-            role=MessageRole.assistant, content=task.inference_output.raw_response
-        )
-    ]
+    messages = list(messages) + [ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
     display_messages(messages)

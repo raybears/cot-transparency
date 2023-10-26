@@ -53,9 +53,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # Stanford biasing is one shot
         message = format_stanford_biased_question(
             question=question.get_parsed_input(),
@@ -64,16 +62,12 @@ class StanfordBiasedFormatter(StageOneFormatter):
         with_label_instruction = add_verbalize_instruction_to_question(message)
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -82,9 +76,7 @@ class StanfordBiasedLabelFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # Stanford biasing is one shot
         message = format_stanford_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
@@ -97,9 +89,7 @@ class StanfordBiasedLabelFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -108,9 +98,7 @@ class StanfordNoCOTFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # Stanford biasing is one shot
         message = format_stanford_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
@@ -125,9 +113,7 @@ class StanfordNoCOTFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -136,9 +122,7 @@ class StanfordCalibratedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # Stanford biasing is one shot
         message = format_stanford_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
@@ -152,9 +136,7 @@ class StanfordCalibratedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -163,9 +145,7 @@ class StanfordTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = format_stanford_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
@@ -190,9 +170,7 @@ class StanfordTreatmentFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -201,9 +179,7 @@ class CheckmarkBiasedLabelFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = question_with_checkmark_bias(example=question)
         with_label_instruction = f"""{checkmark_biasing}
 {biased_message}
@@ -214,9 +190,7 @@ class CheckmarkBiasedLabelFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -239,9 +213,7 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = question_with_checkmark_bias(example=question)
         checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash())
         with_label_instruction = add_verbalize_instruction_to_question(
@@ -256,9 +228,7 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -267,9 +237,7 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = question_with_checkmark_bias(example=question)
         with_label_instruction = f"""{checkmark_biasing}
 {biased_message}
@@ -293,9 +261,7 @@ class CheckmarkTreatmentFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -304,9 +270,7 @@ class CheckmarkNoCOTFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = question_with_checkmark_bias(example=question)
         checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash())
         with_label_instruction = f"""{checkmark_biasing_random}
@@ -321,9 +285,7 @@ class CheckmarkNoCOTFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -332,9 +294,7 @@ class CrossBiasedLabelFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = question_with_cross_bias(example=question)
         with_label_instruction = f"""{cross_biasing}
 {biased_message}
@@ -345,9 +305,7 @@ class CrossBiasedLabelFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -356,9 +314,7 @@ class CrossBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = question_with_cross_bias(example=question)
         cross_biasing_random = get_cross_biasing_random(seed=question.hash())
         with_label_instruction = add_verbalize_instruction_to_question(
@@ -373,9 +329,7 @@ class CrossBiasedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -384,9 +338,7 @@ class CrossNoCOTFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = question_with_cross_bias(example=question)
         cross_biasing_random = get_cross_biasing_random(seed=question.hash())
         with_label_instruction = f"""{cross_biasing_random}
@@ -401,9 +353,7 @@ class CrossNoCOTFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -412,9 +362,7 @@ class CrossTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = question_with_cross_bias(example=question)
         with_label_instruction = f"""{cross_biasing}
 {biased_message}
@@ -438,9 +386,7 @@ class CrossTreatmentFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -449,9 +395,7 @@ class IThinkAnswerBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = format_sycophancy_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
@@ -464,9 +408,7 @@ class IThinkAnswerBiasedFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -475,9 +417,7 @@ class IThinkAnswerTreatmentFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = format_sycophancy_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
@@ -501,7 +441,5 @@ class IThinkAnswerTreatmentFormatter(StageOneFormatter):
         return messages
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)

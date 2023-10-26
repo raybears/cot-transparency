@@ -20,9 +20,7 @@ VALID_INTERVENTIONS: dict[str, Type[Intervention]] = Intervention.all_interventi
 
 def name_to_intervention(name: str) -> Type[Intervention]:
     if name not in VALID_INTERVENTIONS:
-        raise ValueError(
-            f"intervention {name} is not valid. Valid intervention are {list(VALID_INTERVENTIONS.keys())}"
-        )
+        raise ValueError(f"intervention {name} is not valid. Valid intervention are {list(VALID_INTERVENTIONS.keys())}")
     return VALID_INTERVENTIONS[name]
 
 

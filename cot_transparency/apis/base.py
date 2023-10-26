@@ -79,9 +79,7 @@ class ModelCaller(ABC):
     ) -> InferenceResponse:
         raise NotImplementedError()
 
-    def with_file_cache(
-        self, cache_path: Path | str, write_every_n: int = 20
-    ) -> "CachedCaller":
+    def with_file_cache(self, cache_path: Path | str, write_every_n: int = 20) -> "CachedCaller":
         """
         Load a file cache from a path
         Alternatively, rather than write_every_n, just dump with append mode?
@@ -91,9 +89,7 @@ class ModelCaller(ABC):
         return make_file_cache(self, cache_path, write_every_n=write_every_n)
 
 
-def file_cache_key(
-    messages: Sequence[ChatMessage], config: OpenaiInferenceConfig
-) -> str:
+def file_cache_key(messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> str:
     str_messages = ",".join([str(msg) for msg in messages]) + config.model_hash()
     return deterministic_hash(str_messages)
 
@@ -133,9 +129,7 @@ def save_file_cache(cache_path: Path, cache: dict[str, CachedValue]) -> None:
 
 
 class CachedCaller(ModelCaller):
-    def __init__(
-        self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int
-    ):
+    def __init__(self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int):
         self.model_caller = wrapped_caller
         self.cache_path = cache_path
         self.cache: dict[str, CachedValue] = load_file_cache(cache_path)
@@ -171,13 +165,9 @@ class CachedCaller(ModelCaller):
         self.save_cache()
 
 
-def make_file_cache(
-    model_caller: ModelCaller, cache_path: Path, write_every_n: int
-) -> CachedCaller:
+def make_file_cache(model_caller: ModelCaller, cache_path: Path, write_every_n: int) -> CachedCaller:
     """
     Add a file cache to a model caller
     """
 
-    return CachedCaller(
-        wrapped_caller=model_caller, cache_path=cache_path, write_every_n=write_every_n
-    )
+    return CachedCaller(wrapped_caller=model_caller, cache_path=cache_path, write_every_n=write_every_n)

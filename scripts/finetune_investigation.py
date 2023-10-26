@@ -54,13 +54,9 @@ def make_finetune_graph(
     model_name_override: Mapping[str, str] = {},
     must_include_task_hashes: set[str] = set(),
 ):
-    filtered_read = filterer.filter(all_read).filter(
-        lambda task: task.task_spec.task_name in tasks if tasks else True
-    )
+    filtered_read = filterer.filter(all_read).filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
     filtered_read_hashed = filtered_read.filter(
-        lambda task: task.task_spec.task_hash in must_include_task_hashes
-        if must_include_task_hashes
-        else True
+        lambda task: task.task_spec.task_hash in must_include_task_hashes if must_include_task_hashes else True
     )
 
     # unbiased acc
@@ -119,8 +115,7 @@ def make_finetune_graph(
     dataset_str = Slist(tasks).mk_string(", ")
     bar_plot(
         plot_infos=matching_user_answer,
-        title=percent_matching_plot_name
-        or f"How often does each model choose the user's view Dataset: {dataset_str}",
+        title=percent_matching_plot_name or f"How often does each model choose the user's view Dataset: {dataset_str}",
         y_axis_title="Answers matching biased answer (%)",
         dotted_line=dotted_line,
         add_n_to_name=True,
@@ -161,9 +156,7 @@ if __name__ == "__main__":
     enforce_all_same = False
     biased_task_hashes_1 = (
         (
-            all_read.filter(
-                lambda task: task.task_spec.formatter_name == selected_bias.name()
-            )
+            all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
             .filter(
                 # intervention is None
                 lambda task: task.task_spec.intervention_name
@@ -182,9 +175,7 @@ if __name__ == "__main__":
 
     biased_task_hashes_2 = (
         (
-            all_read.filter(
-                lambda task: task.task_spec.formatter_name == selected_bias.name()
-            )
+            all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
             .filter(
                 # intervention is None
                 lambda task: task.task_spec.intervention_name
@@ -202,9 +193,7 @@ if __name__ == "__main__":
     )
     biased_task_hashes_3 = (
         (
-            all_read.filter(
-                lambda task: task.task_spec.formatter_name == selected_bias.name()
-            )
+            all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
             .filter(
                 # intervention is None
                 lambda task: task.task_spec.intervention_name
@@ -221,9 +210,7 @@ if __name__ == "__main__":
         else set()
     )
 
-    biased_task_hashes = biased_task_hashes_1.intersection(
-        biased_task_hashes_2
-    ).intersection(biased_task_hashes_3)
+    biased_task_hashes = biased_task_hashes_1.intersection(biased_task_hashes_2).intersection(biased_task_hashes_3)
 
     print(f"Number of biased task hashes: {len(biased_task_hashes)}")
     bias_name = bias_name_map[selected_bias]

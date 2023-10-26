@@ -30,9 +30,7 @@ class ModelWrittenBiasedWithNoneFormatter(StageOneFormatter):
     has_none_of_the_above = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         user_message = question.get_parsed_input_with_none_of_the_above()
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
@@ -44,9 +42,7 @@ class ModelWrittenBiasedWithNoneFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -56,9 +52,7 @@ class ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter(StageOneFormatter)
     has_none_of_the_above = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # adds system prompt saying that "You are a helpful AI assistant"
         # also adds the "None of the above" option
         system_prompt = ChatMessage(
@@ -78,9 +72,7 @@ class ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter(StageOneFormatter)
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
 
 
@@ -96,24 +88,16 @@ class ModelWrittenBiasedCOTWithNoneFormatter(StageOneFormatter):
     has_none_of_the_above = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
-        user_message = add_verbalize_instruction_to_question(
-            question.get_parsed_input_with_none_of_the_above()
-        )
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        user_message = add_verbalize_instruction_to_question(question.get_parsed_input_with_none_of_the_above())
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -122,30 +106,20 @@ class ModelWrittenBiasedCOTWithNoneAssistantFormatter(StageOneFormatter):
     has_none_of_the_above = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # adds system prompt saying that "You are a helpful AI assistant"
         # also adds the "None of the above" option
-        system_prompt = ChatMessage(
-            role=MessageRole.system, content="You are a helpful AI assistant"
-        )
-        user_message = add_verbalize_instruction_to_question(
-            question.get_parsed_input_with_none_of_the_above()
-        )
+        system_prompt = ChatMessage(role=MessageRole.system, content="You are a helpful AI assistant")
+        user_message = add_verbalize_instruction_to_question(question.get_parsed_input_with_none_of_the_above())
         output = [
             system_prompt,
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -154,9 +128,7 @@ class ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter(StageOneFormatt
     has_none_of_the_above = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # adds system prompt saying that "You are a helpful AI assistant"
         # also adds the "None of the above" option
         system_prompt = ChatMessage(
@@ -164,20 +136,14 @@ class ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter(StageOneFormatt
             content="You are a helpful AI assistant. "
             "Answer the following question in your own perspective as an AI assistant.",
         )
-        user_message = add_verbalize_instruction_to_question(
-            question.get_parsed_input_with_none_of_the_above()
-        )
+        user_message = add_verbalize_instruction_to_question(question.get_parsed_input_with_none_of_the_above())
         output = [
             system_prompt,
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)

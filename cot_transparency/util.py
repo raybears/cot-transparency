@@ -28,9 +28,7 @@ def get_exp_dir_name(
 def setup_logger(name: str, level: int = logging.WARNING):
     logger = logging.getLogger(name)
     handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(level)

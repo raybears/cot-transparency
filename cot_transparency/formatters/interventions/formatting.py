@@ -113,15 +113,11 @@ def format_biased_question_non_cot_sycophancy(task: TaskOutput) -> Prompt:
     return Prompt(messages=messages)
 
 
-def format_biased_question_non_cot_random_formatter(
-    task: TaskOutput, formatter: Type[StageOneFormatter]
-) -> Prompt:
+def format_biased_question_non_cot_random_formatter(task: TaskOutput, formatter: Type[StageOneFormatter]) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     resp = task.inference_output.parsed_response
     assert resp is not None, "This should be a valid response"
-    formatter_to_use = get_formatter_for_few_shot_non_cot(
-        answer_formatter=formatter, seed=read.hash()
-    )
+    formatter_to_use = get_formatter_for_few_shot_non_cot(answer_formatter=formatter, seed=read.hash())
     messages: Sequence[ChatMessage] = add_to_final_assistant(
         formatter_to_use.format_example(read),
         new_message=resp + END_SINGLE_SHOT_SEP,
@@ -129,13 +125,9 @@ def format_biased_question_non_cot_random_formatter(
     return Prompt(messages=messages)
 
 
-def format_biased_question_cot(
-    task: TaskOutput, formatter: Type[StageOneFormatter]
-) -> Prompt:
+def format_biased_question_cot(task: TaskOutput, formatter: Type[StageOneFormatter]) -> Prompt:
     read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
-    formatter_to_use = get_formatter_for_few_shot_cot(
-        exclude_formattter=formatter, seed=read.hash()
-    )
+    formatter_to_use = get_formatter_for_few_shot_cot(exclude_formattter=formatter, seed=read.hash())
     messages: Sequence[ChatMessage] = add_to_final_assistant(
         formatter_to_use.format_example(read),
         new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,
@@ -160,9 +152,7 @@ def get_formatter_for_few_shot_cot(
     return formatter_used
 
 
-def get_formatter_for_few_shot_non_cot(
-    answer_formatter: Type[StageOneFormatter], seed: str
-) -> Type[StageOneFormatter]:
+def get_formatter_for_few_shot_non_cot(answer_formatter: Type[StageOneFormatter], seed: str) -> Type[StageOneFormatter]:
     formatter_used: Type[StageOneFormatter] = (
         # We don't want to use the same formatter for few shot
         BIASED_FORMATTERS_FEW_SHOT_NON_COT.filter(lambda f: f is not answer_formatter)

@@ -48,12 +48,8 @@ def generate_comparison(
     vanilla_config: OpenaiInferenceConfig,
     intervention_config: OpenaiInferenceConfig,
 ) -> ComparisonGeneration:
-    vanilla_response = vanilla_caller.call(
-        messages=prompt.messages, config=vanilla_config
-    )
-    intervention_response = intervention_caller.call(
-        messages=prompt.messages, config=intervention_config
-    )
+    vanilla_response = vanilla_caller.call(messages=prompt.messages, config=vanilla_config)
+    intervention_response = intervention_caller.call(messages=prompt.messages, config=intervention_config)
     return ComparisonGeneration(
         prompt=prompt,
         vanilla_config=vanilla_config,
@@ -80,11 +76,7 @@ def alpaca_sample_to_prompts(
 ) -> list[PromptWithModel]:
     out = []
     for config in intervention_models:
-        out.append(
-            PromptWithModel(
-                prompt=alpaca_sample_to_prompt(sample=sample), config=config
-            )
-        )
+        out.append(PromptWithModel(prompt=alpaca_sample_to_prompt(sample=sample), config=config))
     return out
 
 
@@ -96,19 +88,9 @@ class QuestionWithLabels(BaseModel):
 
 def judge_question(comparison: ComparisonGeneration) -> QuestionWithLabels:
     vanilla_first: bool = random.Random(str(comparison.prompt)).choice([True, False])
-    first_text = (
-        comparison.vanilla_response
-        if vanilla_first
-        else comparison.intervention_response
-    )
-    second_text = (
-        comparison.intervention_response
-        if vanilla_first
-        else comparison.vanilla_response
-    )
-    nice_text_instruction = OpenAICompletionPrompt(
-        messages=comparison.prompt.messages
-    ).format()
+    first_text = comparison.vanilla_response if vanilla_first else comparison.intervention_response
+    second_text = comparison.intervention_response if vanilla_first else comparison.vanilla_response
+    nice_text_instruction = OpenAICompletionPrompt(messages=comparison.prompt.messages).format()
     text = f"""You need to judge which response follows the instruction better
 Please verbalize how you are thinking about the problem, then give your answer in the format "the best response that follows the instruction better is the". It's very important that you stick to this format.
 Please only output one of the following as your answer. 
@@ -130,9 +112,7 @@ Let's think step by before answering the question:"""
     )
 
 
-def parse_judge_output(
-    judge_output: str, first_label: JudgeChoice, second_label: JudgeChoice
-) -> Optional[JudgeChoice]:
+def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label: JudgeChoice) -> Optional[JudgeChoice]:
     if "follows the instruction better is the first" in judge_output.lower():
         return first_label
     if "follows the instruction better is the second" in judge_output.lower():
@@ -147,15 +127,11 @@ def parse_judge_output(
         return None
 
 
-def get_judge_output(
-    comparison: ComparisonGeneration, judge: ModelCaller
-) -> ComparisonGenerationJudged:
+def get_judge_output(comparison: ComparisonGeneration, judge: ModelCaller) -> ComparisonGenerationJudged:
     question = judge_question(comparison)
     judge_response: str = judge.call(
         messages=[question.question],
-        config=OpenaiInferenceConfig(
-            model="gpt-4", max_tokens=500, temperature=0.0, top_p=1.0
-        ),
+        config=OpenaiInferenceConfig(model="gpt-4", max_tokens=500, temperature=0.0, top_p=1.0),
     ).single_response
     winner = parse_judge_output(
         judge_response,
@@ -172,36 +148,24 @@ def get_judge_output(
 
 def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(
-            len(j.generation.vanilla_response) - len(j.generation.intervention_response)
-        )
-        <= 100
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 100
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
     print(f"Total winner vanilla: {winner_vanilla}")
-    winner_intervention = len(
-        judged_slist.filter(lambda j: j.winner == JudgeChoice.intervention)
-    )
+    winner_intervention = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.intervention))
     print(f"Total winner intervention: {winner_intervention}")
     # Intervention win rate
     win_rate = winner_intervention / (winner_vanilla + winner_intervention)
     print(f"Intervention win rate {win_rate:2f}")
     # calculate average length
-    vanilla_average_length = judged_slist.map(
-        lambda j: len(j.generation.vanilla_response)
-    ).average_or_raise()
+    vanilla_average_length = judged_slist.map(lambda j: len(j.generation.vanilla_response)).average_or_raise()
     print(f"vanilla_average_length {vanilla_average_length}")
-    intervention_average_length = judged_slist.map(
-        lambda j: len(j.generation.intervention_response)
-    ).average_or_raise()
+    intervention_average_length = judged_slist.map(lambda j: len(j.generation.intervention_response)).average_or_raise()
     print(f"intervention_average_length {intervention_average_length}")
 
     length_first = len(
-        judged_slist.filter(
-            lambda j: "follows the instruction better is the first"
-            in j.judge_output.lower()
-        )
+        judged_slist.filter(lambda j: "follows the instruction better is the first" in j.judge_output.lower())
     )
     print(f"Total winner first: {length_first}")
 
@@ -214,25 +178,18 @@ class WinrateMetrics(BaseModel):
 
 def get_win_rate(judged: Sequence[ComparisonGenerationJudged]) -> WinrateMetrics:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(
-            len(j.generation.vanilla_response) - len(j.generation.intervention_response)
-        )
-        <= 9999999
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 9999999
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
     print(f"Total winner vanilla: {winner_vanilla}")
-    winner_intervention = len(
-        judged_slist.filter(lambda j: j.winner == JudgeChoice.intervention)
-    )
+    winner_intervention = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.intervention))
     print(f"Total winner intervention: {winner_intervention}")
     # Intervention win rate
     win_rate = winner_intervention / (winner_vanilla + winner_intervention)
     # get the standard error
     se = (win_rate * (1 - win_rate) / (winner_vanilla + winner_intervention)) ** 0.5
-    return WinrateMetrics(
-        win_rate=win_rate, se=se, samples=winner_vanilla + winner_intervention
-    )
+    return WinrateMetrics(win_rate=win_rate, se=se, samples=winner_vanilla + winner_intervention)
 
 
 def win_rate_plot(
@@ -295,12 +252,8 @@ def win_rate_plot(
 
     # x-axis should be "Percentage of additional instruction dataset samples"
     # title should be "Win rate of intervention models against gpt-3.5-turbo"
-    ax.set(
-        xlabel="Percentage of additional instruction dataset samples", ylabel="Win rate"
-    )
-    ax.set_title(
-        "Win rate of intervention models against gpt-3.5-turbo\n on the Huggingface Instruction Eval dataset"
-    )
+    ax.set(xlabel="Percentage of additional instruction dataset samples", ylabel="Win rate")
+    ax.set_title("Win rate of intervention models against gpt-3.5-turbo\n on the Huggingface Instruction Eval dataset")
     # add a red dotted line at 50%
     plt.axhline(y=0.5, color="r", linestyle="--")
 
@@ -320,16 +273,10 @@ async def eval_instruction_following(intervention_models: list[str]):
     vanilla_caller = OpenAIChatCaller().with_file_cache(
         Path("experiments/alignment_tax/vanilla_completion.jsonl"), write_every_n=10
     )
-    judge_model = OpenAIChatCaller().with_file_cache(
-        Path("experiments/alignment_tax/judge.jsonl"), write_every_n=10
-    )
-    vanilla_config = OpenaiInferenceConfig(
-        model="gpt-3.5-turbo", max_tokens=1000, temperature=0.0, top_p=1.0
-    )
+    judge_model = OpenAIChatCaller().with_file_cache(Path("experiments/alignment_tax/judge.jsonl"), write_every_n=10)
+    vanilla_config = OpenaiInferenceConfig(model="gpt-3.5-turbo", max_tokens=1000, temperature=0.0, top_p=1.0)
     intervention_configs = [
-        OpenaiInferenceConfig(
-            model=intervention_model, max_tokens=1000, temperature=0.0, top_p=1.0
-        )
+        OpenaiInferenceConfig(model=intervention_model, max_tokens=1000, temperature=0.0, top_p=1.0)
         for intervention_model in intervention_models
     ]
 
@@ -347,9 +294,7 @@ async def eval_instruction_following(intervention_models: list[str]):
                 intervention_config=with_model.config,
             )
         )
-        .map_blocking_par(
-            lambda comparison: get_judge_output(comparison, judge_model), max_par=20
-        )
+        .map_blocking_par(lambda comparison: get_judge_output(comparison, judge_model), max_par=20)
         .tqdm(tqdm(total=prompts.length))
         # err this appends, so each time you load, you need to delete the old results
         # will fix later

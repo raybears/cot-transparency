@@ -8,9 +8,7 @@ from cot_transparency.formatters.util import load_few_shots
 # parameterize test over paths ./data/ethan_few_shot.txt and ./data/gpt4_generated_few_shot.txt
 
 
-@pytest.mark.parametrize(
-    "path", ["./data/ethan_few_shot.txt", "./data/gpt4_generated_few_shot.txt"]
-)
+@pytest.mark.parametrize("path", ["./data/ethan_few_shot.txt", "./data/gpt4_generated_few_shot.txt"])
 def test_generic_few_shot_have_answer(path: str):
     few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots(path)
 

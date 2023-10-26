@@ -21,9 +21,7 @@ def get_h4_test() -> H4Samples:
         user_prompt: str = row["prompt"]  # type: ignore
         completion: str = row["completion"]  # type: ignore
         user_msg = StrictChatMessage(role=StrictMessageRole.user, content=user_prompt)
-        assistant_msg = StrictChatMessage(
-            role=StrictMessageRole.assistant, content=completion
-        )
+        assistant_msg = StrictChatMessage(role=StrictMessageRole.assistant, content=completion)
         item = FinetuneSample(messages=[user_msg, assistant_msg])
         items.append(item)
 

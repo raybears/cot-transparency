@@ -19,9 +19,7 @@ from cot_transparency.formatters.instructions import (
 )
 
 
-def create_more_reward_system_prompt(
-    options: list[IndicatorAndOption], biased_ans: str
-) -> str:
+def create_more_reward_system_prompt(options: list[IndicatorAndOption], biased_ans: str) -> str:
     # if it is a biased answer, set the historical reward to be high,
     # otherwise set it to be low
     formatted_options = (
@@ -48,28 +46,20 @@ class MoreRewardBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = question.get_parsed_input()
         with_instruction = add_verbalize_instruction_to_question(formatted_question)
         options = question.get_lettered_options()
-        system_prompt = create_more_reward_system_prompt(
-            options=options, biased_ans=question.biased_ans_variant
-        )
+        system_prompt = create_more_reward_system_prompt(options=options, biased_ans=question.biased_ans_variant)
         output = [
             ChatMessage(role=MessageRole.system, content=system_prompt),
             ChatMessage(role=MessageRole.user, content=with_instruction),
-            ChatMessage(
-                role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
-            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
 
@@ -80,14 +70,10 @@ class MoreRewardBiasedNoCOTFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(
-        question: DataExampleBase, model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = question.get_parsed_input()
         options = question.get_lettered_options()
-        system_prompt = create_more_reward_system_prompt(
-            options=options, biased_ans=question.biased_ans
-        )
+        system_prompt = create_more_reward_system_prompt(options=options, biased_ans=question.biased_ans)
         output = [
             ChatMessage(role=MessageRole.system, content=system_prompt),
             ChatMessage(role=MessageRole.user, content=formatted_question),
@@ -99,7 +85,5 @@ class MoreRewardBiasedNoCOTFormatter(StageOneFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: Optional[str] = None
-    ) -> Optional[str]:
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)

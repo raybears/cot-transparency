@@ -14,12 +14,8 @@ from stage_one import TASK_LIST, main as stage_one_main
 class TrainedOn(str, Enum):
     CONTROL_UNBIASED_CONTEXTS = "gpt-3.5-turbo + Unbiased contexts training (control)"
     CONSISTENCY_BIASED_CONTEXTS = "gpt-3.5-turbo + Biased contexts training (ours)"
-    NO_REPEATS_CONTROL_UNBIASED_CONTEXTS = (
-        "NO REPEATED COTs Unbiased contexts (control)"
-    )
-    NO_REPEATS_CONSISTENCY_BIASED_CONTEXTS = (
-        "NO REPEAT COTSs Consistency biased contexts"
-    )
+    NO_REPEATS_CONTROL_UNBIASED_CONTEXTS = "NO REPEATED COTs Unbiased contexts (control)"
+    NO_REPEATS_CONSISTENCY_BIASED_CONTEXTS = "NO REPEAT COTSs Consistency biased contexts"
 
 
 class ModelMeta(BaseModel):

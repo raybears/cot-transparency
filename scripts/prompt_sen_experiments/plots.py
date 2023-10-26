@@ -128,27 +128,13 @@ def prompt_metrics(
         slist = read_whole_exp_dir(exp_dir=exp_dir)
 
     filtered = (
-        slist.filter(
-            lambda task: task.task_spec.inference_config.model in models
-            if models
-            else True
-        )
-        .filter(
-            lambda task: task.task_spec.formatter_name in formatters
-            if formatters
-            else True
-        )
+        slist.filter(lambda task: task.task_spec.inference_config.model in models if models else True)
+        .filter(lambda task: task.task_spec.formatter_name in formatters if formatters else True)
         .filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
         .filter(
-            lambda task: task.task_spec.inference_config.temperature == temperature
-            if temperature is not None
-            else True
+            lambda task: task.task_spec.inference_config.temperature == temperature if temperature is not None else True
         )
-        .filter(
-            lambda task: task.task_spec.intervention_name in inteventions
-            if inteventions
-            else True
-        )
+        .filter(lambda task: task.task_spec.intervention_name in inteventions if inteventions else True)
     )
     print("Number of responses after filtering = ", len(filtered))
 
@@ -180,9 +166,7 @@ def prompt_metrics(
             # drop all questions where gpt 3.5 said None to any of the formatters
             # Lol so readable
             gpt_3_5_allowed_question = (
-                filtered.filter(
-                    lambda x: x.task_spec.inference_config.model == "gpt-3.5-turbo"
-                )
+                filtered.filter(lambda x: x.task_spec.inference_config.model == "gpt-3.5-turbo")
                 .group_by(
                     lambda x: x.task_spec.task_hash
                     + x.task_spec.inference_config.model
@@ -261,9 +245,7 @@ def prompt_metrics(
         inplace=False,
     )  # type: ignore
 
-    n_questions = (
-        f"{df_with_mode.groupby([col, hue])['task_hash'].nunique().mean():.1f}"
-    )
+    n_questions = f"{df_with_mode.groupby([col, hue])['task_hash'].nunique().mean():.1f}"
     n_formatter = df_with_mode.groupby(["intervention_name"])["formatter_name"].nunique().mean()  # type: ignore
 
     if hue == "model":
@@ -311,11 +293,7 @@ def prompt_metrics(
 
     print("\n Fleiss Kappa Score")
     # Plot the fleiss kappa scores
-    df_fk = (
-        df_with_mode.groupby([x, hue, col])
-        .apply(fleiss_kappa_on_group)
-        .reset_index(drop=True)
-    )
+    df_fk = df_with_mode.groupby([x, hue, col]).apply(fleiss_kappa_on_group).reset_index(drop=True)
     df_fk: pd.DataFrame = df_fk.drop_duplicates(
         subset=["task_hash", x, hue],
         inplace=False,
@@ -329,20 +307,14 @@ def prompt_metrics(
         kind="bar",
         hue_order=hue_order,
     )
-    g.fig.suptitle(
-        f"Fleiss Kappa Score [{n_questions} questions, {n_formatter} prompts]"
-    )
+    g.fig.suptitle(f"Fleiss Kappa Score [{n_questions} questions, {n_formatter} prompts]")
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
     g.fig.subplots_adjust(right=0.7)
 
     print("\n Entropy Score")
     # Plot the entropy scores
-    df_entropy = (
-        df_with_mode.groupby([x, hue, "task_hash", col])
-        .apply(entropy_on_group)
-        .reset_index()
-    )
+    df_entropy = df_with_mode.groupby([x, hue, "task_hash", col]).apply(entropy_on_group).reset_index()
     g = catplot(
         data=df_entropy,
         x=x,

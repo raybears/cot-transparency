@@ -46,13 +46,9 @@ def decrease_in_accuracy_plot(
                 name="Decrease in Accuracy",
                 x=[dot.name for dot in plot_dots],
                 y=decrease_acc,
-                text=[
-                    f"            {dec:.2f}" for dec in decrease_acc
-                ],  # offset to the right
+                text=[f"            {dec:.2f}" for dec in decrease_acc],  # offset to the right
                 textposition="outside",  # will always place text above the bars
-                textfont=dict(
-                    size=22, color="#000000"
-                ),  # increase text size and set color to black
+                textfont=dict(size=22, color="#000000"),  # increase text size and set color to black
                 error_y=dict(
                     type="data",
                     array=[dot.error_bars for dot in decrease],
@@ -108,20 +104,12 @@ def plot_dot_diff(
 ) -> PlotInfo:
     intervention_name: str | None = intervention.name() if intervention else None
     nonbiased: Slist[TaskOutput] = (
-        all_tasks.filter(
-            lambda task: intervention_name == task.task_spec.intervention_name
-        )
+        all_tasks.filter(lambda task: intervention_name == task.task_spec.intervention_name)
         .filter(lambda task: task.task_spec.formatter_name == unbiased_formatter.name())
         .filter(lambda task: task.task_spec.inference_config.model == model)
-        .filter(
-            lambda task: task.task_spec.task_name in include_tasks
-            if include_tasks
-            else True
-        )
+        .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
     )
-    assert (
-        len(nonbiased) > 0
-    ), f"Found no tasks for {name} on {model} with {unbiased_formatter.name()}"
+    assert len(nonbiased) > 0, f"Found no tasks for {name} on {model} with {unbiased_formatter.name()}"
     nonbiased_acc: AccuracyOutput = accuracy_outputs(nonbiased)
     biased: PlotInfo = plot_for_intervention(
         intervention=None,
@@ -269,9 +257,7 @@ def plot_matching(
         formatter=unbiased_formatter,
         for_task=[task],
     )
-    dotted_line = DottedLine(
-        name="Random chance", value=random_chance.acc.accuracy, color="red"
-    )
+    dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
     bar_plot(
         plot_infos=matching_user_answer,
         title=f"How often does {model} choose the bias's view? Model: {model} Task: {task}<br>With COT completion<br>Bias always on wrong answer",

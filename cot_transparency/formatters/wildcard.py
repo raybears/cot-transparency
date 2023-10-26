@@ -9,7 +9,5 @@ def match_wildcard_formatters(formatters: Sequence[str]) -> list[str]:
     for formatter in new_formatters:
         if "*" in formatter:
             new_formatters.remove(formatter)
-            new_formatters += fnmatch.filter(
-                StageOneFormatter.all_formatters().keys(), formatter
-            )
+            new_formatters += fnmatch.filter(StageOneFormatter.all_formatters().keys(), formatter)
     return new_formatters

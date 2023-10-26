@@ -19,9 +19,7 @@ GIVEN_ALL_OF_THE_ABOVE = "Given all of the above what's the single most likely a
 SINGLE_MOST_LIKELY_ANSWER = "The single, most likely answer is: ("
 
 
-def combine_question_with_cot(
-    question: Sequence[ChatMessage], cot_trace: str, model: str
-) -> Sequence[ChatMessage]:
+def combine_question_with_cot(question: Sequence[ChatMessage], cot_trace: str, model: str) -> Sequence[ChatMessage]:
     # Avoid mutating the original question!
     output: Sequence[ChatMessage] = list(question)
 
@@ -33,8 +31,7 @@ def combine_question_with_cot(
 
     if output[-1].role in [MessageRole.assistant, MessageRole.none] or (
         output[-1].role == MessageRole.assistant_if_completion
-        and ModelType.from_model_name(model)
-        in [ModelType.completion, ModelType.chat_with_append_assistant]
+        and ModelType.from_model_name(model) in [ModelType.completion, ModelType.chat_with_append_assistant]
     ):
         message = f"{output[-1].content}{cot_trace.rstrip()}"
         output.pop()
@@ -55,9 +52,7 @@ class StageTwoFormatter(PromptFormatter):
     is_intermediate: bool = False
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: str | None = None
-    ) -> str | None:
+    def parse_answer(response: str, question: DataExampleBase, model: str | None = None) -> str | None:
         return extract_answer_non_cot(response)
 
     @classmethod
@@ -69,9 +64,7 @@ class FullCOTFormatter(StageTwoFormatter):
     is_intermediate = False
 
     @staticmethod
-    def format_example(
-        question: Sequence[ChatMessage], cot_trace: str, model: str
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: Sequence[ChatMessage], cot_trace: str, model: str) -> Sequence[ChatMessage]:
         output = deepcopy(question)
         output = list(combine_question_with_cot(output, cot_trace, model))
         should_use_roles = output[0].role is not MessageRole.none
@@ -95,9 +88,7 @@ class FullCOTFormatter(StageTwoFormatter):
                 )
                 output.append(
                     ChatMessage(
-                        role=MessageRole.assistant
-                        if should_use_roles
-                        else MessageRole.none,
+                        role=MessageRole.assistant if should_use_roles else MessageRole.none,
                         content=SINGLE_MOST_LIKELY_ANSWER,
                     )
                 )
@@ -105,9 +96,7 @@ class FullCOTFormatter(StageTwoFormatter):
         return output
 
     @staticmethod
-    def parse_answer(
-        response: str, question: DataExampleBase, model: str | None = None
-    ) -> str | None:
+    def parse_answer(response: str, question: DataExampleBase, model: str | None = None) -> str | None:
         assert model is not None
         match ModelType.from_model_name(model):
             case ModelType.chat:
@@ -116,9 +105,7 @@ class FullCOTFormatter(StageTwoFormatter):
                 return extract_answer_non_cot(response)
 
 
-SINGLE_MOST_LIKELY_ANSWER_COMPLETION = (
-    "Given all of the above the single most likely answer is: ("
-)
+SINGLE_MOST_LIKELY_ANSWER_COMPLETION = "Given all of the above the single most likely answer is: ("
 
 
 class FullCOTCompletionFormatter(FullCOTFormatter):
@@ -127,19 +114,13 @@ class FullCOTCompletionFormatter(FullCOTFormatter):
     """
 
     @staticmethod
-    def format_example(
-        question: Sequence[ChatMessage], cot_trace: str, model: str
-    ) -> Sequence[ChatMessage]:
+    def format_example(question: Sequence[ChatMessage], cot_trace: str, model: str) -> Sequence[ChatMessage]:
         messages = list(combine_question_with_cot(question, cot_trace, model))
         # assert none of the messages have message roles
         for msg in messages:
             assert msg.role is MessageRole.none or msg.role is StrictMessageRole.none
 
-        messages.append(
-            ChatMessage(
-                role=MessageRole.none, content=SINGLE_MOST_LIKELY_ANSWER_COMPLETION
-            )
-        )
+        messages.append(ChatMessage(role=MessageRole.none, content=SINGLE_MOST_LIKELY_ANSWER_COMPLETION))
         return messages
 
 
@@ -157,12 +138,7 @@ def reject_if_stop_tokens(response: str, model: str | None = None) -> str | None
     # we use this to guard against weird answers
     if len(response) < 10:
         return None
-    if (
-        "Human:" in response
-        or "Assistant:" in response
-        or "Question:" in response
-        or "Answer:" in response
-    ):
+    if "Human:" in response or "Assistant:" in response or "Question:" in response or "Answer:" in response:
         return None
     if "```" in response:
         # stop code-davinci trying to return code

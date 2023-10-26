@@ -68,9 +68,7 @@ def task_output_to_bad_cot(task: TaskOutput) -> Optional[BiasedWrongCOTBBH]:
     )
 
 
-def task_output_to_flat(
-    biased_task: TaskOutput, unbiased_task: TaskOutput
-) -> FlatSimple:
+def task_output_to_flat(biased_task: TaskOutput, unbiased_task: TaskOutput) -> FlatSimple:
     converted = OpenAICompletionPrompt(messages=biased_task.task_spec.messages).format()
     return FlatSimple(
         biased_prompt=converted,
@@ -81,9 +79,7 @@ def task_output_to_flat(
         biased_context_parsed_response=biased_task.first_parsed_response,
         task=biased_task.task_spec.task_name,
         debiased_context_response=unbiased_task.first_raw_response,
-        debiased_prompt=OpenAICompletionPrompt(
-            messages=unbiased_task.task_spec.messages
-        ).format(),
+        debiased_prompt=OpenAICompletionPrompt(messages=unbiased_task.task_spec.messages).format(),
     )
 
 
@@ -148,16 +144,11 @@ if __name__ == "__main__":
     debiased_results: Slist[TaskOutput] = jsons_tasks.filter(
         lambda x: x.task_spec.formatter_name == debiased_formatter
         and x.task_spec.intervention_name is None
-        and x.task_spec.inference_config.model
-        == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg"
+        and x.task_spec.inference_config.model == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg"
     ).filter(lambda x: x.is_correct)
-    unbiased_hash: dict[str, TaskOutput] = debiased_results.map(
-        lambda x: (x.task_spec.task_hash, x)
-    ).to_dict()
+    unbiased_hash: dict[str, TaskOutput] = debiased_results.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
     joined: Slist[tuple[TaskOutput, TaskOutput]] = results.map(
-        lambda x: (x, unbiased_hash[x.task_spec.task_hash])
-        if x.task_spec.task_hash in unbiased_hash
-        else None
+        lambda x: (x, unbiased_hash[x.task_spec.task_hash]) if x.task_spec.task_hash in unbiased_hash else None
     ).flatten_option()
     print(f"Number of joined: {len(joined)}")
 

@@ -52,9 +52,7 @@ def read_metric_from_meta(
     percent_matching: PlotInfo = matching_user_answer_plot_info(
         all_tasks=read,
     )
-    return ModelNameAndTrainedSamplesAndMetrics(
-        train_meta=meta, metrics=percent_matching.acc
-    )
+    return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, metrics=percent_matching.acc)
 
 
 def samples_meta() -> Slist[ModelTrainMeta]:
@@ -116,9 +114,7 @@ def samples_meta() -> Slist[ModelTrainMeta]:
         ]
     )
     distinct_models = all_meta.distinct_by(lambda i: i.name)
-    assert len(distinct_models) == len(
-        all_meta
-    ), "There are duplicate models in the list"
+    assert len(distinct_models) == len(all_meta), "There are duplicate models in the list"
     return distinct_models
 
 
@@ -128,16 +124,10 @@ def read_all_metrics(
     formatter: Type[StageOneFormatter],
     tasks: Sequence[str],
 ) -> Slist[ModelNameAndTrainedSamplesAndMetrics]:
-    return samples.map(
-        lambda meta: read_metric_from_meta(
-            meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks
-        )
-    )
+    return samples.map(lambda meta: read_metric_from_meta(meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks))
 
 
-def seaborn_line_plot(
-    data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error_bars: bool = True
-):
+def seaborn_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error_bars: bool = True):
     df = pd.DataFrame(
         [
             {

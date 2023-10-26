@@ -31,9 +31,7 @@ def main(
 
     if intervention_name:
         Intervention = get_valid_stage1_intervention(intervention_name)
-        example = Intervention.intervene(
-            question=EMPIRE_OF_PANTS_EXAMPLE, formatter=formatter, model=model
-        )
+        example = Intervention.intervene(question=EMPIRE_OF_PANTS_EXAMPLE, formatter=formatter, model=model)
     else:
         example = formatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model=model)
 

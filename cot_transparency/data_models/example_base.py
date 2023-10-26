@@ -160,9 +160,7 @@ def raise_if_not_multiple_choice_answer(string: str) -> MultipleChoiceAnswer:
     return string
 
 
-def combine_indicator_with_separator(
-    indicator: str, separator: IndicatorSeparator
-) -> str:
+def combine_indicator_with_separator(indicator: str, separator: IndicatorSeparator) -> str:
     match separator:
         case IndicatorSeparator.DOT:
             return f"{indicator}. "
@@ -238,9 +236,7 @@ class DataExampleBase(BaseModel, ABC):
         for idx, option in enumerate(options):
             choice_variant = self.data_format.choice_variant
             indicator = choice_variant.answers_list[idx]
-            combined = combine_indicator_with_separator(
-                indicator, self.data_format.indicator_separator
-            )
+            combined = combine_indicator_with_separator(indicator, self.data_format.indicator_separator)
             output.append(f"{combined}{option}")
 
         # use the option layout to format the options
@@ -262,9 +258,7 @@ class DataExampleBase(BaseModel, ABC):
     def biased_ans(self) -> MultipleChoiceAnswer:
         rng = random.Random(self.get_parsed_input())  # seed with question
         n_choices = len(self._get_options())
-        biased_ans_idx = rng.randrange(
-            0, n_choices
-        )  # select random answer for bias metrics
+        biased_ans_idx = rng.randrange(0, n_choices)  # select random answer for bias metrics
         biased_ans_letter: MultipleChoiceAnswer = ascii_uppercase[biased_ans_idx]  # type: ignore
         return biased_ans_letter
 
@@ -303,9 +297,7 @@ class DataExampleBase(BaseModel, ABC):
     ) -> str:
         question = self._get_question()
         # check question doesn't start with question or q
-        assert not question.lower().startswith(
-            "question"
-        ) or question.lower().startswith("q")
+        assert not question.lower().startswith("question") or question.lower().startswith("q")
 
         # prepend question prefix
         question = f"{self.data_format.question_variant}{question}"
