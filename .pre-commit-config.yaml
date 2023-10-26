@@ -6,19 +6,15 @@ repos:
       args: ['--branch=main']
       stages:
         - commit
+- repo: https://github.com/Zac-HD/shed
+  rev: 2023.6.1
+  hooks:
+    - id: shed
+      # args: [--refactor, --py311-plus]
+      types_or: [python, pyi, markdown, rst]
 
 - repo: local
   hooks:
-    - id: black
-      name: black
-      entry: black
-      language: system
-      require_serial: true
-      types: [python]
-      stages:
-        - commit
-
-
     - id: ruff
       name: ruff
       entry: ruff --fix
