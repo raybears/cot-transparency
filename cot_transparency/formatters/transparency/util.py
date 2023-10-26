@@ -27,7 +27,6 @@ def combine_question_with_cot(question: list[ChatMessage], cot_trace: str, model
         output[-1].role == MessageRole.assistant_if_completion
         and ModelType.from_model_name(model) in [ModelType.completion, ModelType.chat_with_append_assistant]
     ):
-        print("triggering")
         message = f"{output[-1].content}{cot_trace.rstrip()}"
         output.pop()
     else:

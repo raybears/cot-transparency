@@ -41,7 +41,7 @@ async def main():
     stage_one_obs = stage_one_stream(
         formatters=["ZeroShotCOTUnbiasedFormatter"],
         dataset="cot_testing",
-        example_cap=400,
+        example_cap=300,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
@@ -65,8 +65,8 @@ async def main():
         )
         .flatten_list()
     )
-    early_answer_results = await early_answer_obs.to_list()
-    plot_early_answering_from_list(items=early_answer_results, show_plots=True)
+    # early_answer_results = await early_answer_obs.to_list()
+    # plot_early_answering_from_list(items=early_answer_results, show_plots=True)
 
     mistakes_obs: Observable[StageTwoTaskSpec] = (
         stage_one_obs.map(
@@ -102,6 +102,7 @@ async def main():
         .flatten_optional()
     )
     await mistakes_obs.to_list()
+    print("done with mistakes")
 
     # todo: you need to get the
 
