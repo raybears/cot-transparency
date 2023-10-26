@@ -416,6 +416,39 @@ def aoc_plot(
     if show_plots:
         plt.show()
 
+def aoc_plot_from_list(
+    items: Sequence[StageTwoTaskOutput],
+    show_plots: bool = False,
+    inconsistent_only: bool = False,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    length_filter: Optional[list[int]] = None,
+    hue: str = "stage_one_formatter_name",
+):
+    df = get_data_frame_from_exp_dir_items(items)
+    df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)
+
+    # Mistakes AoC
+    df_mistakes = df[~df.was_truncated]
+    df_mistakes = df_mistakes.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
+    df_mistakes = drop_not_found(df_mistakes)  # type: ignore
+    aoc_mistakes = get_aoc(df_mistakes)
+
+    # Early Answering AoC
+    df_early = df[~df.has_mistake]
+    df_early = df_early.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
+    df_early = drop_not_found(df_early)  # type: ignore
+    aoc_early = get_aoc(df_early)
+
+    # baseline accuracies
+    baseline_accuracy(df, hue, "model")
+
+    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, kind="bar")
+    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, kind="point")
+
+    if show_plots:
+        plt.show()
+
 
 def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_early: pd.DataFrame, kind="bar"):
     # two point plots side by side [mistakes, early answering, accuracy]

@@ -9,6 +9,7 @@ from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import StageTwoTaskOutput, StageTwoTaskSpec
+from cot_transparency.formatters.transparency.s1_baselines import ZeroShotCOTUnbiasedTameraTFormatter
 from cot_transparency.tasks import task_function
 from scripts.ignored_reasoning.stage_two import (
     create_mistake_task_spec_for_stage_one,
@@ -18,6 +19,7 @@ from scripts.ignored_reasoning.stage_two import (
     single_get_best_single_answer_tasks_given_mistakes,
 )
 from scripts.ignored_reasoning.stage_two_analysis import (
+    aoc_plot_from_list,
     plot_adding_mistakes,
     plot_adding_mistakes_from_list,
     plot_early_answering_from_list,
@@ -62,12 +64,7 @@ class MockMistakeCaller(ModelCaller):
         messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        any_has_normal_completion = False
-        # Hack to make it work for both early answering and mistakes
-        for msg in messages:
-            if "Given" in msg.content:
-                any_has_normal_completion = True
-        output = "Mistake: 5+2 = 1" if not any_has_normal_completion else "Therefore, the best answer is: (A)"
+        output = "Mistake: 5+2 = 1"
         return InferenceResponse(raw_responses=[output])
 
 
@@ -80,12 +77,13 @@ async def main():
     mock_mistake_caller = MockMistakeCaller()
     mock_final_answer_caller = MockFullCOTCaller()
     stage_one_obs = stage_one_stream(
-        formatters=["ZeroShotCOTUnbiasedFormatter"],
-        dataset="cot_testing",
+        formatters=[ZeroShotCOTUnbiasedTameraTFormatter.name()],
+        tasks=["truthful_qa"],
         example_cap=10,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
+        batch=20,
     )
 
     early_answer_obs = (
@@ -116,7 +114,7 @@ async def main():
                 stage_one_output=task_output,
                 exp_dir="not_used",
                 mistake_adding_temperature=1.0,
-                n_mistake_insertion_points=4,
+                n_mistake_insertion_points=8,
                 mistake_adding_model="claude-instant-1",
             )
         )
@@ -174,7 +172,8 @@ async def main():
     mistakes_results = await mistakes_obs.to_list()
     baseline_no_mistakes_results = await baseline_no_mistakes.to_list()
     print("done with mistakes")
-    plot_adding_mistakes_from_list(mistakes_results + baseline_no_mistakes_results, show_plots=True)
+    aoc_plot_from_list(mistakes_results + baseline_no_mistakes_results, show_plots=True)
+    # plot_adding_mistakes_from_list(mistakes_results + baseline_no_mistakes_results, show_plots=True)
 
     # stage_two_caller.save_cache()
     # stage_one_caller.save_cache()
