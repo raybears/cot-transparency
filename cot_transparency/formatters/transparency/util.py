@@ -1,3 +1,4 @@
+from tkinter import NO
 from typing import Optional, Type, Self
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import MessageRole, StrictMessageRole
@@ -79,7 +80,7 @@ class FullCOTFormatter(StageTwoFormatter):
                         role=MessageRole.user if should_use_roles else MessageRole.none,
                         content=GIVEN_ALL_OF_THE_ABOVE,
                     )
-                )
+                    )
                 output.append(
                     ChatMessage(
                         role=MessageRole.assistant if should_use_roles else MessageRole.none,
@@ -94,9 +95,13 @@ class FullCOTFormatter(StageTwoFormatter):
         assert model is not None
         match ModelType.from_model_name(model):
             case ModelType.chat:
-                return extract_answer(response, question)
+                ans= extract_answer(response, question)
+                
             case ModelType.completion | ModelType.chat_with_append_assistant:
-                return extract_answer_non_cot(response)
+                ans =  extract_answer_non_cot(response)
+        if ans is None:
+            print("breakpoint")
+        return ans
 
 
 SINGLE_MOST_LIKELY_ANSWER_COMPLETION = "Given all of the above the single most likely answer is: ("

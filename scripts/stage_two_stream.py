@@ -3,6 +3,7 @@ from pathlib import Path
 from anyio import CapacityLimiter
 
 from grugstream import Observable
+from scipy.__config__ import show
 
 from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
@@ -39,6 +40,19 @@ class MockCOTCaller(ModelCaller):
         return InferenceResponse(raw_responses=[output])
 
 
+class MockFullCOTCaller(ModelCaller):
+    # A caller that can call (mostly) any model
+    # This exists so that James can easily attach a cache to a single caller with with_file_cache
+    # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
+    def call(
+        self,
+        messages: list[ChatMessage],
+        config: OpenaiInferenceConfig,
+    ) -> InferenceResponse:
+        output = "Therefore, the best answer is: (A)"
+        return InferenceResponse(raw_responses=[output])
+
+
 class MockMistakeCaller(ModelCaller):
     # A caller that can call (mostly) any model
     # This exists so that James can easily attach a cache to a single caller with with_file_cache
@@ -48,21 +62,27 @@ class MockMistakeCaller(ModelCaller):
         messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        output = "Mistake: 5+2 = 1"
+        any_has_normal_completion = False
+        # Hack to make it work for both early answering and mistakes
+        for msg in messages:
+            if "Given" in msg.content:
+                any_has_normal_completion = True
+        output = "Mistake: 5+2 = 1" if not any_has_normal_completion else "Therefore, the best answer is: (A)"
         return InferenceResponse(raw_responses=[output])
 
 
 async def main():
     stage_one_cache_dir = Path("experiments/stage_one.jsonl")
 
-    stage_one_caller = MockCOTCaller().with_file_cache(stage_one_cache_dir)
+    stage_one_caller = MockCOTCaller()
     stage_two_cache_dir = Path("experiments/stage_two.jsonl")
-    stage_two_caller = MockCOTCaller().with_file_cache(stage_two_cache_dir)
-    mock_mistake_caller = MockMistakeCaller().with_file_cache("experiments/stage_two_mistakes.jsonl")
+    stage_two_caller = MockCOTCaller()
+    mock_mistake_caller = MockMistakeCaller()
+    mock_final_answer_caller = MockFullCOTCaller()
     stage_one_obs = stage_one_stream(
         formatters=["ZeroShotCOTUnbiasedFormatter"],
         dataset="cot_testing",
-        example_cap=100,
+        example_cap=10,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
@@ -91,6 +111,7 @@ async def main():
     tp = CapacityLimiter(50)
     mistakes_obs: Observable[StageTwoTaskOutput] = (
         stage_one_obs.map(
+            # Create mistake spec
             lambda task_output: create_mistake_task_spec_for_stage_one(
                 stage_one_output=task_output,
                 exp_dir="not_used",
@@ -103,7 +124,8 @@ async def main():
         .map_blocking_par(
             lambda stage_two_spec: task_function(
                 task=stage_two_spec, raise_after_retries=False, caller=mock_mistake_caller
-            ),max_par=tp
+            ),
+            max_par=tp,
         )
         .flatten_list()
         # We want only not None responses
@@ -123,21 +145,39 @@ async def main():
         .flatten_optional()
         .map_blocking_par(
             lambda stage_two_spec: task_function(
-                task=stage_two_spec, raise_after_retries=False, caller=stage_two_caller
+                task=stage_two_spec, raise_after_retries=False, caller=mock_final_answer_caller
             ),
-            max_par=tp
+            max_par=tp,
         )
         .flatten_list()
         .tqdm(None)
     )
+    baseline_no_mistakes = (
+        stage_one_obs.map(
+            lambda stage_one_task: get_early_answering_tasks(
+                stage_one_output=stage_one_task,
+                exp_dir="not_used",
+                temperature=stage_one_task.task_spec.inference_config.temperature,
+                full_answers_only=True,
+            )
+        )
+        .flatten_list()
+        .map_blocking_par(
+            lambda stage_two_spec: task_function(
+                task=stage_two_spec, raise_after_retries=False, caller=mock_final_answer_caller
+            ),
+            max_par=tp,
+        )
+        .flatten_list()
+    )
+
     mistakes_results = await mistakes_obs.to_list()
+    baseline_no_mistakes_results = await baseline_no_mistakes.to_list()
     print("done with mistakes")
-    plot_adding_mistakes_from_list(mistakes_results)
+    plot_adding_mistakes_from_list(mistakes_results + baseline_no_mistakes_results, show_plots=True)
 
-    # todo: you need to get the
-
-    stage_two_caller.save_cache()
-    stage_one_caller.save_cache()
+    # stage_two_caller.save_cache()
+    # stage_one_caller.save_cache()
 
 
 if __name__ == "__main__":

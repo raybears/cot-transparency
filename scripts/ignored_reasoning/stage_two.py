@@ -1,5 +1,6 @@
 import random
 from pathlib import Path
+from tkinter import NO
 from typing import List, Literal, NewType, Optional, Type
 
 import fire
@@ -162,7 +163,6 @@ def create_mistake_task_spec_for_stage_one(
         )
         out.append(task_spec)
     return out
-
 
 def get_mistakes(
     stage_one_outputs: list[TaskOutput],
