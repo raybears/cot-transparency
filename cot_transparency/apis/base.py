@@ -76,11 +76,13 @@ class ModelCaller(ABC):
     ) -> InferenceResponse:
         raise NotImplementedError()
 
-    def with_file_cache(self, cache_path: Path, write_every_n: int = 20) -> "CachedCaller":
+    def with_file_cache(self, cache_path: Path | str, write_every_n: int = 20) -> "CachedCaller":
         """
         Load a file cache from a path
         Alternatively, rather than write_every_n, just dump with append mode?
         """
+        if isinstance(cache_path, str):
+            cache_path = Path(cache_path)
         return make_file_cache(self, cache_path, write_every_n=write_every_n)
 
 
