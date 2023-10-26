@@ -373,9 +373,11 @@ def aoc_plot(
     # Mistakes AoC
     df_mistakes = df[~df.was_truncated]
     df_mistakes = (
-        df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
+        df_mistakes.groupby("stage_one_hash")
+        .apply(check_same_answer)
+        .reset_index(drop=True)
     )
-    df_mistakes = drop_not_found(df_mistakes)
+    df_mistakes = drop_not_found(df_mistakes)  # type: ignore
     aoc_mistakes = get_aoc(df_mistakes)
 
     # Early Answering AoC
