@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from anyio import CapacityLimiter
 
 from grugstream import Observable
 
@@ -61,11 +62,11 @@ async def main():
     stage_one_obs = stage_one_stream(
         formatters=["ZeroShotCOTUnbiasedFormatter"],
         dataset="cot_testing",
-        example_cap=300,
+        example_cap=100,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
-    ).tqdm(None)
+    )
 
     early_answer_obs = (
         stage_one_obs.map(
@@ -87,7 +88,7 @@ async def main():
     )
     # early_answer_results = await early_answer_obs.to_list()
     # plot_early_answering_from_list(items=early_answer_results, show_plots=True)
-
+    tp = CapacityLimiter(50)
     mistakes_obs: Observable[StageTwoTaskOutput] = (
         stage_one_obs.map(
             lambda task_output: create_mistake_task_spec_for_stage_one(
@@ -102,7 +103,7 @@ async def main():
         .map_blocking_par(
             lambda stage_two_spec: task_function(
                 task=stage_two_spec, raise_after_retries=False, caller=mock_mistake_caller
-            )
+            ),max_par=tp
         )
         .flatten_list()
         # We want only not None responses
@@ -111,7 +112,7 @@ async def main():
         .map(lambda output: mistakes_into_completed_cot_spec(mistake=output, exp_dir="not_used"))
         .flatten_optional()
         # Execute recomputation
-        .map_blocking_par(lambda spec: execute_recomputation(task_spec=spec, caller=stage_two_caller))
+        .map_blocking_par(lambda spec: execute_recomputation(task_spec=spec, caller=stage_two_caller), max_par=tp)
         .flatten_list()
         # final best answer task spec
         .map(
@@ -123,14 +124,17 @@ async def main():
         .map_blocking_par(
             lambda stage_two_spec: task_function(
                 task=stage_two_spec, raise_after_retries=False, caller=stage_two_caller
-            )
+            ),
+            max_par=tp
         )
         .flatten_list()
+        .tqdm(None)
     )
     mistakes_results = await mistakes_obs.to_list()
     print("done with mistakes")
     plot_adding_mistakes_from_list(mistakes_results)
 
+    # todo: you need to get the
 
     stage_two_caller.save_cache()
     stage_one_caller.save_cache()
