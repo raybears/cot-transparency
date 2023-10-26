@@ -2,6 +2,7 @@ from typing import Optional
 import fire
 from git import Sequence
 from matplotlib import pyplot as plt
+from scipy.__config__ import show
 from analysis import get_general_metrics
 from cot_transparency.data_models.models import (
     StageTwoTaskOutput,
@@ -333,8 +334,22 @@ def plot_adding_mistakes(
     col: str = "original_cot_trace_length",
     hue: str = "model",
 ):
-    ...
+    items: list[StageTwoTaskOutput] = []
+    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
+    for vals in loaded_dict.values():
+        outputs = vals.outputs
+        items.extend(outputs)
 
+    return plot_adding_mistakes_from_list(
+        items=items,
+        show_plots=show_plots,
+        inconsistent_only=inconsistent_only,
+        aggregate_over_tasks=aggregate_over_tasks,
+        model_filter=model_filter,
+        length_filter=length_filter,
+        col=col,
+        hue=hue,
+    )
 
 
 def plot_adding_mistakes_from_list(
