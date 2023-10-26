@@ -6,7 +6,10 @@ if __name__ == "__main__":
     fig = go.Figure(
         data=[
             go.Bar(
-                x=list(data_dict.keys()), y=list(data_dict.values()), text=list(data_dict.values()), textposition="auto"
+                x=list(data_dict.keys()),
+                y=list(data_dict.values()),
+                text=list(data_dict.values()),
+                textposition="auto",
             )
         ]
     )

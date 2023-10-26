@@ -1,16 +1,21 @@
-from collections import defaultdict
 import json
 import os
+from collections import defaultdict
 from pathlib import Path
+
 import fire
 from slist import Slist
-from cot_transparency.apis.openai.finetune import FinetuneSample
-from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.interventions.valid_interventions import name_to_intervention
 
-from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TRAINING_COT_PROMPT_VARIANTS
-from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
+from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.io import read_whole_exp_dir
+from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.interventions.valid_interventions import (
+    name_to_intervention,
+)
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
+    TRAINING_COT_PROMPT_VARIANTS,
+)
+from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from stage_one import COT_TRAINING_TASKS
 
 
@@ -54,7 +59,9 @@ def main(
 
             if copied.task_spec.intervention_name is not None:
                 intervention = name_to_intervention(copied.task_spec.intervention_name)
-                reparsed_messages = intervention.intervene(question=original_question, formatter=formatter)
+                reparsed_messages = intervention.intervene(
+                    question=original_question, formatter=formatter
+                )
             else:
                 reparsed_messages = formatter.format_example(question=original_question)
             copied.task_spec.messages = reparsed_messages
@@ -71,9 +78,14 @@ def main(
             continue
         truncated_outputs = outputs[:num_example]
         print(f"Writing {num_example} examples")
-        print("Number of examples per task:", json.dumps(get_task_breakdown(truncated_outputs), indent=2))
+        print(
+            "Number of examples per task:",
+            json.dumps(get_task_breakdown(truncated_outputs), indent=2),
+        )
 
-        fine_tune_samples = [FinetuneSample.from_task_output(i) for i in truncated_outputs]
+        fine_tune_samples = [
+            FinetuneSample.from_task_output(i) for i in truncated_outputs
+        ]
         output_path = f"{output_dir}/consistency_training_{num_example}.jsonl"
         path = Path(output_path)
         if path.exists():

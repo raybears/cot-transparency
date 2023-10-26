@@ -1,8 +1,8 @@
 from enum import Enum
 
-from cot_transparency.data_models.hashable import HashableBaseModel
-
 from pydantic import ConfigDict
+
+from cot_transparency.data_models.hashable import HashableBaseModel
 
 
 class MessageRole(str, Enum):

@@ -1,26 +1,30 @@
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Type
+
 import fire
 from matplotlib import pyplot as plt
+
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, BiasExtractor, convert_slist_to_df
+from cot_transparency.data_models.pd_utils import (
+    BaseExtractor,
+    BasicExtractor,
+    BiasExtractor,
+    convert_slist_to_df,
+)
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS,
-)
-from scripts.utils.plots import catplot
-from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-from stage_one import TASK_LIST, main
-from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS_FEW_SHOT,
     TRAINING_COT_FORMATTERS_ZERO_SHOT,
     TRAINING_NO_COT_FORMATTERS_FEW_SHOT,
     TRAINING_NO_COT_FORMATTERS_ZERO_SHOT,
 )
-
+from scripts.utils.plots import catplot
+from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
+from stage_one import TASK_LIST, main
 
 MODELS = [
     "gpt-3.5-turbo",
@@ -129,11 +133,13 @@ class AverageOptionsExtractor(BaseExtractor[TaskOutput]):
 def plot(aggregate_formatters: bool = True):
     # load the data
     tasks = TASK_LIST[DATASET]
-    outputs = read_all_for_selections(exp_dirs=[Path(EXP_DIR)], formatters=TEST_FORMATTERS, models=MODELS, tasks=tasks)
-    # filter
-    outputs = outputs.filter(lambda x: x.task_spec.inference_config.model in MODELS).filter(
-        lambda x: x.task_spec.formatter_name in TEST_FORMATTERS
+    outputs = read_all_for_selections(
+        exp_dirs=[Path(EXP_DIR)], formatters=TEST_FORMATTERS, models=MODELS, tasks=tasks
     )
+    # filter
+    outputs = outputs.filter(
+        lambda x: x.task_spec.inference_config.model in MODELS
+    ).filter(lambda x: x.task_spec.formatter_name in TEST_FORMATTERS)
     # sort so the order is the same as MODELS
     outputs.sort(key=lambda x: MODELS.index(x.task_spec.inference_config.model))
 
@@ -143,7 +149,9 @@ def plot(aggregate_formatters: bool = True):
     col = "bias_type"
 
     # convert to dataframe
-    df = convert_slist_to_df(outputs, extractors=[BasicExtractor(), BiasExtractor(), BiasTypeExtractor()])
+    df = convert_slist_to_df(
+        outputs, extractors=[BasicExtractor(), BiasExtractor(), BiasTypeExtractor()]
+    )
     df["matches_bias"] = df.bias_ans == df.parsed_response
 
     aggregate_tasks = True
@@ -154,7 +162,9 @@ def plot(aggregate_formatters: bool = True):
     df["is_correct"] = df.ground_truth == df.parsed_response
 
     if aggregate_formatters:
-        avg_n_ans = outputs.map(lambda x: len(x.task_spec.get_data_example_obj().get_options())).average()
+        avg_n_ans = outputs.map(
+            lambda x: len(x.task_spec.get_data_example_obj().get_options())
+        ).average()
         assert avg_n_ans is not None
         g1 = catplot(
             data=df,
@@ -165,7 +175,9 @@ def plot(aggregate_formatters: bool = True):
             add_line_at=1 / avg_n_ans,
             col=col,
         )
-        g2 = catplot(data=df, x="task_name", y="is_correct", hue="model", kind="bar", col=col)
+        g2 = catplot(
+            data=df, x="task_name", y="is_correct", hue="model", kind="bar", col=col
+        )
     else:
         for formatter in df.formatter_name.unique():
             formatter_df = df[df.formatter_name == formatter]

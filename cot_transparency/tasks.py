@@ -1,7 +1,7 @@
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Literal, Optional, Type, Union
+from typing import Literal
 
 from pydantic import BaseModel
 from retry import retry
@@ -26,7 +26,11 @@ from cot_transparency.data_models.models import (
     TaskOutput,
     TaskSpec,
 )
-from cot_transparency.formatters import PromptFormatter, StageOneFormatter, name_to_formatter
+from cot_transparency.formatters import (
+    PromptFormatter,
+    StageOneFormatter,
+    name_to_formatter,
+)
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.util import setup_logger
 
@@ -62,10 +66,10 @@ def run_with_caching_stage_two(
 
 
 def __call_or_raise(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
-    formatter: Type[PromptFormatter],
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    formatter: type[PromptFormatter],
+    raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
     if isinstance(task, StageTwoTaskSpec):
         stage_one_task_spec = task.stage_one_output.task_spec
@@ -74,14 +78,18 @@ def __call_or_raise(
 
     raw_responses: InferenceResponse = call_model_api(task.messages, config)
 
-    def get_model_output_for_response(raw_response: str) -> Union[ModelOutput, AnswerNotFound]:
+    def get_model_output_for_response(
+        raw_response: str,
+    ) -> ModelOutput | AnswerNotFound:
         parsed_response: str | None = formatter.parse_answer(
             raw_response,
             model=config.model,
             question=stage_one_task_spec.get_data_example_obj(),
         )
         if parsed_response is not None:
-            return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
+            return ModelOutput(
+                raw_response=raw_response, parsed_response=parsed_response
+            )
         else:
             messages = task.messages
             maybe_second_last = messages[-2] if len(messages) >= 2 else None
@@ -93,7 +101,10 @@ def __call_or_raise(
             model_output = ModelOutput(raw_response=raw_response, parsed_response=None)
             return AnswerNotFound(msg, model_output)
 
-    outputs = [get_model_output_for_response(response) for response in raw_responses.raw_responses]
+    outputs = [
+        get_model_output_for_response(response)
+        for response in raw_responses.raw_responses
+    ]
     failed_examples = [o for o in outputs if isinstance(o, AnswerNotFound)]
 
     match raise_on:
@@ -120,11 +131,11 @@ def __call_or_raise(
 
 
 def call_model_and_raise_if_not_suitable(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
-    formatter: Type[PromptFormatter],
+    formatter: type[PromptFormatter],
     retries: int = 20,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
     responses = retry(exceptions=AtLeastOneFailed, tries=retries)(__call_or_raise)(
         task=task, config=config, formatter=formatter, raise_on=raise_on
@@ -133,26 +144,30 @@ def call_model_and_raise_if_not_suitable(
 
 
 def call_model_and_catch(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
-    formatter: Type[PromptFormatter],
+    formatter: type[PromptFormatter],
     retries: int = 20,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
     try:
         return call_model_and_raise_if_not_suitable(
-            task=task, config=config, formatter=formatter, retries=retries, raise_on=raise_on
+            task=task,
+            config=config,
+            formatter=formatter,
+            retries=retries,
+            raise_on=raise_on,
         )
     except AtLeastOneFailed as e:
         return e.model_outputs
 
 
 def task_function(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    task: TaskSpec | StageTwoTaskSpec,
     raise_after_retries: bool,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
-) -> Union[list[TaskOutput], list[StageTwoTaskOutput]]:
+) -> list[TaskOutput] | list[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
 
     responses = (
@@ -204,16 +219,23 @@ def run_with_caching(
     batch: int,
     task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
     raise_after_retries: bool = False,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
     retry_answers_with_none: bool = False,
 ):
     """
     Take a list of TaskSpecs or StageTwoTaskSpecs and run, skipping completed tasks
     """
+
+    if len(task_to_run) == 0:
+        x: list[TaskOutput] | list[StageTwoTaskSpec] = []
+        return x
+
     paths = {task.out_file_path for task in task_to_run}
 
-    loaded_dict: Union[dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]] = {}
+    loaded_dict: (
+        dict[Path, ExperimentJsonFormat] | dict[Path, StageTwoExperimentJsonFormat]
+    ) = {}
     completed_outputs: dict[str, TaskOutput | StageTwoTaskOutput] = dict()
     if isinstance(task_to_run[0], TaskSpec):
         for path in paths:
@@ -243,7 +265,10 @@ def run_with_caching(
             to_do.append(item)
         if retry_answers_with_none:
             if task_hash in completed_outputs:
-                if completed_outputs[task_hash].inference_output.parsed_response is None:
+                if (
+                    completed_outputs[task_hash].inference_output.parsed_response
+                    is None
+                ):
                     print("Retrying task with None answer")
                     to_do.append(item)
 
@@ -268,9 +293,9 @@ def run_tasks_multi_threaded(
     save_file_every: int,
     batch: int,
     loaded_dict: LoadedJsonType,
-    tasks_to_run: Union[list[TaskSpec], list[StageTwoTaskSpec]],
+    tasks_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
     raise_after_retries: bool,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
 ) -> None:
     if len(tasks_to_run) == 0:
@@ -290,13 +315,18 @@ def run_tasks_multi_threaded(
     for task in tasks_to_run:
         future_instance_outputs.append(
             executor.submit(
-                task_function, task, raise_after_retries=raise_after_retries, raise_on=raise_on, num_retries=num_retries
+                task_function,
+                task,
+                raise_after_retries=raise_after_retries,
+                raise_on=raise_on,
+                num_retries=num_retries,
             )
         )
 
     try:
         for cnt, instance_output in tqdm(
-            enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
+            enumerate(as_completed(future_instance_outputs)),
+            total=len(future_instance_outputs),
         ):
             outputs = instance_output.result()
             # extend the existing json file
@@ -335,7 +365,9 @@ def save_list_of_outputs_s2(outputs: list[StageTwoTaskOutput]) -> None:
             continue
 
         if output.task_spec.out_file_path not in loaded_dict:
-            loaded_dict[output.task_spec.out_file_path] = StageTwoExperimentJsonFormat(outputs=[output])
+            loaded_dict[output.task_spec.out_file_path] = StageTwoExperimentJsonFormat(
+                outputs=[output]
+            )
         else:
             loaded_dict[output.task_spec.out_file_path].outputs.append(output)
         new += 1
@@ -347,6 +379,6 @@ def save_list_of_outputs_s2(outputs: list[StageTwoTaskOutput]) -> None:
 
 class TaskSetting(BaseModel):
     task: str
-    formatter: Type[StageOneFormatter]
-    intervention: Optional[Type[Intervention]] = None
+    formatter: type[StageOneFormatter]
+    intervention: type[Intervention] | None = None
     model: str

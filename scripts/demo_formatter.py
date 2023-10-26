@@ -1,10 +1,15 @@
 from typing import Optional, Type
+
 import fire
+
 from cot_transparency.apis.anthropic import AnthropicPrompt
 from cot_transparency.apis.openai import OpenAIChatPrompt, OpenAICompletionPrompt
 from cot_transparency.formatters import name_to_formatter
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_intervention
+from cot_transparency.formatters.interventions.valid_interventions import (
+    get_valid_stage1_intervention,
+)
+
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
@@ -26,7 +31,9 @@ def main(
 
     if intervention_name:
         Intervention = get_valid_stage1_intervention(intervention_name)
-        example = Intervention.intervene(question=EMPIRE_OF_PANTS_EXAMPLE, formatter=formatter, model=model)
+        example = Intervention.intervene(
+            question=EMPIRE_OF_PANTS_EXAMPLE, formatter=formatter, model=model
+        )
     else:
         example = formatter.format_example(EMPIRE_OF_PANTS_EXAMPLE, model=model)
 

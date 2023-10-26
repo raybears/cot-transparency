@@ -4,8 +4,8 @@ from typing import Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from analysis import apply_filters, convert_loaded_dict_to_df
 
+from analysis import apply_filters, convert_loaded_dict_to_df
 from cot_transparency.data_models.io import ExpLoader
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
@@ -64,7 +64,10 @@ def get_counts(group: pd.DataFrame) -> CategoryCounts:
 
 
 def compute_kl_divergence(P: CategoryCounts, Q: CategoryCounts):
-    return sum(p * np.log(p / Q.as_distribution()[key]) for key, p in P.as_distribution().items())
+    return sum(
+        p * np.log(p / Q.as_distribution()[key])
+        for key, p in P.as_distribution().items()
+    )
 
 
 def get_avg_kl_divergence_between_distributions(group: pd.DataFrame):
@@ -102,7 +105,10 @@ def get_avg_kl_divergence_between_distributions(group: pd.DataFrame):
 
 
 def kl_plot(
-    exp_dir: str, models: Sequence[str] = [], formatters: Sequence[str] = [], aggregate_over_tasks: bool = False
+    exp_dir: str,
+    models: Sequence[str] = [],
+    formatters: Sequence[str] = [],
+    aggregate_over_tasks: bool = False,
 ):
     loaded_dict = ExpLoader.stage_one(exp_dir)
     df = convert_loaded_dict_to_df(loaded_dict)
@@ -120,7 +126,9 @@ def kl_plot(
     print("Files loaded, calculating KL divergence")
 
     # This gives us a distribution over the n_repeats per question
-    aggregated_counts = df.groupby(["input_hash_without_repeats"]).apply(get_counts).reset_index()
+    aggregated_counts = (
+        df.groupby(["input_hash_without_repeats"]).apply(get_counts).reset_index()
+    )
     aggregated_counts.rename(columns={0: "distribution"}, inplace=True)
 
     # merge back into the original dataframe so we get all the other columns like "model" and "task_name"
@@ -133,9 +141,13 @@ def kl_plot(
         .apply(get_avg_kl_divergence_between_distributions)
         .reset_index()
     )
-    kl_between_formatters.rename(columns={0: "KL", "task_name": "Task Name"}, inplace=True)
+    kl_between_formatters.rename(
+        columns={0: "KL", "task_name": "Task Name"}, inplace=True
+    )
     # Use model_simple_names to get a shorter name for the model
-    kl_between_formatters["Model"] = kl_between_formatters["model"].map(lambda x: MODEL_SIMPLE_NAMES[x])
+    kl_between_formatters["Model"] = kl_between_formatters["model"].map(
+        lambda x: MODEL_SIMPLE_NAMES[x]
+    )
 
     catplot(
         x="Task Name",

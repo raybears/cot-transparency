@@ -3,18 +3,18 @@ from typing import Optional
 
 from pydantic import BaseModel
 from slist import Slist
-from cot_transparency.apis.openai import OpenAICompletionPrompt
 
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
+from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
 from cot_transparency.formatters.extraction import BREAK_WORDS
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
-
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+)
 from cot_transparency.json_utils.read_write import write_csv_file_from_basemodel
-from cot_transparency.data_models.io import ExpLoader
 from stage_one import COT_TESTING_TASKS
-
 
 # ruff: noqa: E501
 
@@ -68,7 +68,9 @@ def task_output_to_bad_cot(task: TaskOutput) -> Optional[BiasedWrongCOTBBH]:
     )
 
 
-def task_output_to_flat(biased_task: TaskOutput, unbiased_task: TaskOutput) -> FlatSimple:
+def task_output_to_flat(
+    biased_task: TaskOutput, unbiased_task: TaskOutput
+) -> FlatSimple:
     converted = OpenAICompletionPrompt(messages=biased_task.task_spec.messages).format()
     return FlatSimple(
         biased_prompt=converted,
@@ -79,7 +81,9 @@ def task_output_to_flat(biased_task: TaskOutput, unbiased_task: TaskOutput) -> F
         biased_context_parsed_response=biased_task.first_parsed_response,
         task=biased_task.task_spec.task_name,
         debiased_context_response=unbiased_task.first_raw_response,
-        debiased_prompt=OpenAICompletionPrompt(messages=unbiased_task.task_spec.messages).format(),
+        debiased_prompt=OpenAICompletionPrompt(
+            messages=unbiased_task.task_spec.messages
+        ).format(),
     )
 
 
@@ -91,7 +95,7 @@ def filter_for_biased_wrong(jsons_tasks: Slist[TaskOutput]) -> Slist[TaskOutput]
         .distinct_by(
             lambda x: x.task_spec.task_name
             + x.task_spec.task_hash
-            + x.task_spec.inference_config.d_hash()
+            + x.task_spec.inference_config.model_hash()
             + x.task_spec.formatter_name
         )
         # only get the ones that are wrong
@@ -144,11 +148,16 @@ if __name__ == "__main__":
     debiased_results: Slist[TaskOutput] = jsons_tasks.filter(
         lambda x: x.task_spec.formatter_name == debiased_formatter
         and x.task_spec.intervention_name is None
-        and x.task_spec.inference_config.model == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg"
+        and x.task_spec.inference_config.model
+        == "ft:gpt-3.5-turbo-0613:academicsnyuperez::7tWKhqqg"
     ).filter(lambda x: x.is_correct)
-    unbiased_hash: dict[str, TaskOutput] = debiased_results.map(lambda x: (x.task_spec.task_hash, x)).to_dict()
+    unbiased_hash: dict[str, TaskOutput] = debiased_results.map(
+        lambda x: (x.task_spec.task_hash, x)
+    ).to_dict()
     joined: Slist[tuple[TaskOutput, TaskOutput]] = results.map(
-        lambda x: (x, unbiased_hash[x.task_spec.task_hash]) if x.task_spec.task_hash in unbiased_hash else None
+        lambda x: (x, unbiased_hash[x.task_spec.task_hash])
+        if x.task_spec.task_hash in unbiased_hash
+        else None
     ).flatten_option()
     print(f"Number of joined: {len(joined)}")
 

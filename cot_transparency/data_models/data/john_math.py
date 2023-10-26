@@ -6,9 +6,9 @@ from slist import Slist
 
 from cot_transparency.data_models.example_base import (
     DataExampleBase,
+    IndicatorAndOption,
     MultipleChoiceAnswer,
     raise_if_not_multiple_choice_answer,
-    IndicatorAndOption,
 )
 
 
@@ -46,8 +46,10 @@ class JohnMath(DataExampleBase):
 
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
-        found_answer: int = self.deterministic_randomized_options().find_one_idx_or_raise(
-            lambda x: x.option == self.correct_answer
+        found_answer: int = (
+            self.deterministic_randomized_options().find_one_idx_or_raise(
+                lambda x: x.option == self.correct_answer
+            )
         )
         return ascii_uppercase[found_answer]  # type: ignore
 
@@ -65,7 +67,8 @@ def get_john_math(path: Path) -> Slist[JohnMath]:
     biased_a = {"biased_answer": "A"}
     biased_b = {"biased_answer": "B"}
     return Slist(
-        [JohnMath(**dict(**row) | biased_a), JohnMath(**dict(**row) | biased_b)] for _, row in df.iterrows()
+        [JohnMath(**dict(**row) | biased_a), JohnMath(**dict(**row) | biased_b)]
+        for _, row in df.iterrows()
     ).flatten_list()
 
 

@@ -5,9 +5,13 @@ from slist import Slist
 # ruff: noqa: E501
 
 
-def format_anchor_against_bias_question(question: str, biased_against_answer: str) -> str:
+def format_anchor_against_bias_question(
+    question: str, biased_against_answer: str
+) -> str:
     qn = question
-    sampled_anchor = get_anchor_against_variants(biased_against_answer).sample(1, seed=qn)[0]
+    sampled_anchor = get_anchor_against_variants(biased_against_answer).sample(
+        1, seed=qn
+    )[0]
     maybe: bool = random.Random(qn).random() < 0.5
     return f"""{sampled_anchor}\n{qn}""" if maybe else f"""{qn}\n{sampled_anchor}"""
 

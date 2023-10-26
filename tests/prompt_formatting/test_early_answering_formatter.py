@@ -1,12 +1,18 @@
+from typing import Sequence
+
 from cot_transparency.apis.base import Prompt
 from cot_transparency.apis.openai import OpenAIChatPrompt, OpenAICompletionPrompt
-from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.data_models.messages import StrictMessageRole
+from cot_transparency.data_models.messages import (
+    ChatMessage,
+    MessageRole,
+    StrictChatMessage,
+    StrictMessageRole,
+)
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
-from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter
-from cot_transparency.formatters.transparency.util import FullCOTFormatter
-from cot_transparency.data_models.messages import StrictChatMessage
-
+from cot_transparency.formatters.transparency.util import (
+    FullCOTCompletionFormatter,
+    FullCOTFormatter,
+)
 
 GONE_WITH_THE_WILD = """Q: Which of the following is a humorous edit of this artist or movie name: 'gone with the wind'?
 
@@ -23,9 +29,11 @@ EXAMPLE_COT = """ first, I want to consider the meaning of the original phrase, 
 
 
 def test_early_answering_formatter_completion():
-    input_messages: list[ChatMessage] = [
+    input_messages: Sequence[ChatMessage] = [
         ChatMessage(role=MessageRole.user, content=GONE_WITH_THE_WILD),
-        ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+        ChatMessage(
+            role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
+        ),
     ]
 
     messages = FullCOTFormatter.format_example(input_messages, EXAMPLE_COT, "claude-v1")
@@ -51,12 +59,16 @@ Assistant: The single, most likely answer is: ("""  # noqa
 
 
 def test_early_answering_formatter_chat():
-    input_messages: list[ChatMessage] = [
+    input_messages: Sequence[ChatMessage] = [
         ChatMessage(role=MessageRole.user, content=GONE_WITH_THE_WILD),
-        ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+        ChatMessage(
+            role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT
+        ),
     ]
 
-    messages = FullCOTFormatter.format_example(input_messages, EXAMPLE_COT, "gpt-3.5-turbo")
+    messages = FullCOTFormatter.format_example(
+        input_messages, EXAMPLE_COT, "gpt-3.5-turbo"
+    )
     prompt = OpenAIChatPrompt(messages=messages)
     messages = prompt.format()
 
@@ -81,12 +93,14 @@ def test_early_answering_formatter_chat():
 
 
 def test_early_answering_formater_completion_optimized():
-    input_messages: list[ChatMessage] = [
+    input_messages: Sequence[ChatMessage] = [
         ChatMessage(role=MessageRole.none, content=GONE_WITH_THE_WILD),
         ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT),
     ]
 
-    messages = FullCOTCompletionFormatter.format_example(input_messages, EXAMPLE_COT, "text-davinci-002")
+    messages = FullCOTCompletionFormatter.format_example(
+        input_messages, EXAMPLE_COT, "text-davinci-002"
+    )
     prompt = Prompt(messages=messages)
     prompt_as_str = OpenAICompletionPrompt.from_prompt(prompt).format()
 

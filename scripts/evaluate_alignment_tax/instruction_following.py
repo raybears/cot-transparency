@@ -2,7 +2,7 @@ import asyncio
 import random
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Sequence, Mapping
+from typing import Mapping, Optional, Sequence
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,7 +13,7 @@ from slist import Slist
 from tqdm import tqdm
 
 from cot_transparency.apis import OpenAIChatCaller, UniversalCaller
-from cot_transparency.apis.base import Prompt, ModelCaller
+from cot_transparency.apis.base import ModelCaller, Prompt
 from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
@@ -36,7 +36,7 @@ class JudgeChoice(str, Enum):
 
 class ComparisonGenerationJudged(BaseModel):
     generation: ComparisonGeneration
-    judge_prompt: list[ChatMessage]
+    judge_prompt: Sequence[ChatMessage]
     judge_output: str
     winner: Optional[JudgeChoice]
 
@@ -48,8 +48,12 @@ def generate_comparison(
     vanilla_config: OpenaiInferenceConfig,
     intervention_config: OpenaiInferenceConfig,
 ) -> ComparisonGeneration:
-    vanilla_response = vanilla_caller.call(messages=prompt.messages, config=vanilla_config)
-    intervention_response = intervention_caller.call(messages=prompt.messages, config=intervention_config)
+    vanilla_response = vanilla_caller.call(
+        messages=prompt.messages, config=vanilla_config
+    )
+    intervention_response = intervention_caller.call(
+        messages=prompt.messages, config=intervention_config
+    )
     return ComparisonGeneration(
         prompt=prompt,
         vanilla_config=vanilla_config,
@@ -76,7 +80,11 @@ def alpaca_sample_to_prompts(
 ) -> list[PromptWithModel]:
     out = []
     for config in intervention_models:
-        out.append(PromptWithModel(prompt=alpaca_sample_to_prompt(sample=sample), config=config))
+        out.append(
+            PromptWithModel(
+                prompt=alpaca_sample_to_prompt(sample=sample), config=config
+            )
+        )
     return out
 
 
@@ -88,9 +96,19 @@ class QuestionWithLabels(BaseModel):
 
 def judge_question(comparison: ComparisonGeneration) -> QuestionWithLabels:
     vanilla_first: bool = random.Random(str(comparison.prompt)).choice([True, False])
-    first_text = comparison.vanilla_response if vanilla_first else comparison.intervention_response
-    second_text = comparison.intervention_response if vanilla_first else comparison.vanilla_response
-    nice_text_instruction = OpenAICompletionPrompt(messages=comparison.prompt.messages).format()
+    first_text = (
+        comparison.vanilla_response
+        if vanilla_first
+        else comparison.intervention_response
+    )
+    second_text = (
+        comparison.intervention_response
+        if vanilla_first
+        else comparison.vanilla_response
+    )
+    nice_text_instruction = OpenAICompletionPrompt(
+        messages=comparison.prompt.messages
+    ).format()
     text = f"""You need to judge which response follows the instruction better
 Please verbalize how you are thinking about the problem, then give your answer in the format "the best response that follows the instruction better is the". It's very important that you stick to this format.
 Please only output one of the following as your answer. 
@@ -112,7 +130,9 @@ Let's think step by before answering the question:"""
     )
 
 
-def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label: JudgeChoice) -> Optional[JudgeChoice]:
+def parse_judge_output(
+    judge_output: str, first_label: JudgeChoice, second_label: JudgeChoice
+) -> Optional[JudgeChoice]:
     if "follows the instruction better is the first" in judge_output.lower():
         return first_label
     if "follows the instruction better is the second" in judge_output.lower():
@@ -127,38 +147,61 @@ def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label
         return None
 
 
-def get_judge_output(comparison: ComparisonGeneration, judge: ModelCaller) -> ComparisonGenerationJudged:
+def get_judge_output(
+    comparison: ComparisonGeneration, judge: ModelCaller
+) -> ComparisonGenerationJudged:
     question = judge_question(comparison)
     judge_response: str = judge.call(
         messages=[question.question],
-        config=OpenaiInferenceConfig(model="gpt-4", max_tokens=500, temperature=0.0, top_p=1.0),
+        config=OpenaiInferenceConfig(
+            model="gpt-4", max_tokens=500, temperature=0.0, top_p=1.0
+        ),
     ).single_response
-    winner = parse_judge_output(judge_response, first_label=question.first_label, second_label=question.second_label)
+    winner = parse_judge_output(
+        judge_response,
+        first_label=question.first_label,
+        second_label=question.second_label,
+    )
     return ComparisonGenerationJudged(
-        generation=comparison, judge_output=judge_response, winner=winner, judge_prompt=[question.question]
+        generation=comparison,
+        judge_output=judge_response,
+        winner=winner,
+        judge_prompt=[question.question],
     )
 
 
 def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 100
+        lambda j: abs(
+            len(j.generation.vanilla_response) - len(j.generation.intervention_response)
+        )
+        <= 100
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
     print(f"Total winner vanilla: {winner_vanilla}")
-    winner_intervention = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.intervention))
+    winner_intervention = len(
+        judged_slist.filter(lambda j: j.winner == JudgeChoice.intervention)
+    )
     print(f"Total winner intervention: {winner_intervention}")
     # Intervention win rate
     win_rate = winner_intervention / (winner_vanilla + winner_intervention)
     print(f"Intervention win rate {win_rate:2f}")
     # calculate average length
-    vanilla_average_length = judged_slist.map(lambda j: len(j.generation.vanilla_response)).average_or_raise()
+    vanilla_average_length = judged_slist.map(
+        lambda j: len(j.generation.vanilla_response)
+    ).average_or_raise()
     print(f"vanilla_average_length {vanilla_average_length}")
-    intervention_average_length = judged_slist.map(lambda j: len(j.generation.intervention_response)).average_or_raise()
+    intervention_average_length = judged_slist.map(
+        lambda j: len(j.generation.intervention_response)
+    ).average_or_raise()
     print(f"intervention_average_length {intervention_average_length}")
 
     length_first = len(
-        judged_slist.filter(lambda j: "follows the instruction better is the first" in j.judge_output.lower())
+        judged_slist.filter(
+            lambda j: "follows the instruction better is the first"
+            in j.judge_output.lower()
+        )
     )
     print(f"Total winner first: {length_first}")
 
@@ -171,22 +214,31 @@ class WinrateMetrics(BaseModel):
 
 def get_win_rate(judged: Sequence[ComparisonGenerationJudged]) -> WinrateMetrics:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 9999999
+        lambda j: abs(
+            len(j.generation.vanilla_response) - len(j.generation.intervention_response)
+        )
+        <= 9999999
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
     print(f"Total winner vanilla: {winner_vanilla}")
-    winner_intervention = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.intervention))
+    winner_intervention = len(
+        judged_slist.filter(lambda j: j.winner == JudgeChoice.intervention)
+    )
     print(f"Total winner intervention: {winner_intervention}")
     # Intervention win rate
     win_rate = winner_intervention / (winner_vanilla + winner_intervention)
     # get the standard error
     se = (win_rate * (1 - win_rate) / (winner_vanilla + winner_intervention)) ** 0.5
-    return WinrateMetrics(win_rate=win_rate, se=se, samples=winner_vanilla + winner_intervention)
+    return WinrateMetrics(
+        win_rate=win_rate, se=se, samples=winner_vanilla + winner_intervention
+    )
 
 
 def win_rate_plot(
-    judged: Sequence[ComparisonGenerationJudged], sort_by: Sequence[str], rename_map: Mapping[str, str]
+    judged: Sequence[ComparisonGenerationJudged],
+    sort_by: Sequence[str],
+    rename_map: Mapping[str, str],
 ) -> None:
     win_rates: Slist[tuple[str, WinrateMetrics]] = (
         (
@@ -206,14 +258,22 @@ def win_rate_plot(
         )
         .map(
             # rename
-            lambda model_win_rate: (rename_map.get(model_win_rate[0], model_win_rate[0]), model_win_rate[1]),
+            lambda model_win_rate: (
+                rename_map.get(model_win_rate[0], model_win_rate[0]),
+                model_win_rate[1],
+            ),
         )
     )
     # use seaborn
 
     # create a dataframe
     list_dicts = [
-        {"model": model, "win_rate": win_rate.win_rate, "se": win_rate.se, "samples": win_rate.samples}
+        {
+            "model": model,
+            "win_rate": win_rate.win_rate,
+            "se": win_rate.se,
+            "samples": win_rate.samples,
+        }
         for model, win_rate in win_rates
     ]
 
@@ -224,12 +284,23 @@ def win_rate_plot(
     # set y axis to 0-1
     plt.ylim(0, 1)
     # add standard error bars
-    plt.errorbar(x=df["model"], y=df["win_rate"], yerr=df["se"], fmt="none", capsize=0.1, color="black")
+    plt.errorbar(
+        x=df["model"],
+        y=df["win_rate"],
+        yerr=df["se"],
+        fmt="none",
+        capsize=0.1,
+        color="black",
+    )
 
     # x-axis should be "Percentage of additional instruction dataset samples"
     # title should be "Win rate of intervention models against gpt-3.5-turbo"
-    ax.set(xlabel="Percentage of additional instruction dataset samples", ylabel="Win rate")
-    ax.set_title("Win rate of intervention models against gpt-3.5-turbo\n on the Huggingface Instruction Eval dataset")
+    ax.set(
+        xlabel="Percentage of additional instruction dataset samples", ylabel="Win rate"
+    )
+    ax.set_title(
+        "Win rate of intervention models against gpt-3.5-turbo\n on the Huggingface Instruction Eval dataset"
+    )
     # add a red dotted line at 50%
     plt.axhline(y=0.5, color="r", linestyle="--")
 
@@ -243,15 +314,22 @@ async def eval_instruction_following(intervention_models: list[str]):
     print(f"Total testing samples: {len(samples)}")
 
     intervention_caller = UniversalCaller().with_file_cache(
-        cache_path=Path("experiments/alignment_tax/intervention_completion.jsonl"), write_every_n=10
+        cache_path=Path("experiments/alignment_tax/intervention_completion.jsonl"),
+        write_every_n=10,
     )
     vanilla_caller = OpenAIChatCaller().with_file_cache(
         Path("experiments/alignment_tax/vanilla_completion.jsonl"), write_every_n=10
     )
-    judge_model = OpenAIChatCaller().with_file_cache(Path("experiments/alignment_tax/judge.jsonl"), write_every_n=10)
-    vanilla_config = OpenaiInferenceConfig(model="gpt-3.5-turbo", max_tokens=1000, temperature=0.0, top_p=1.0)
+    judge_model = OpenAIChatCaller().with_file_cache(
+        Path("experiments/alignment_tax/judge.jsonl"), write_every_n=10
+    )
+    vanilla_config = OpenaiInferenceConfig(
+        model="gpt-3.5-turbo", max_tokens=1000, temperature=0.0, top_p=1.0
+    )
     intervention_configs = [
-        OpenaiInferenceConfig(model=intervention_model, max_tokens=1000, temperature=0.0, top_p=1.0)
+        OpenaiInferenceConfig(
+            model=intervention_model, max_tokens=1000, temperature=0.0, top_p=1.0
+        )
         for intervention_model in intervention_models
     ]
 
@@ -269,12 +347,15 @@ async def eval_instruction_following(intervention_models: list[str]):
                 intervention_config=with_model.config,
             )
         )
-        .map_blocking_par(lambda comparison: get_judge_output(comparison, judge_model), max_par=20)
+        .map_blocking_par(
+            lambda comparison: get_judge_output(comparison, judge_model), max_par=20
+        )
         .tqdm(tqdm(total=prompts.length))
         # err this appends, so each time you load, you need to delete the old results
         # will fix later
         .for_each_to_file(
-            file_path=Path("experiments/alignment_tax/results.jsonl"), serialize=lambda x: x.model_dump_json()
+            file_path=Path("experiments/alignment_tax/results.jsonl"),
+            serialize=lambda x: x.model_dump_json(),
         )
     )
     # run it

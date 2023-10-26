@@ -2,6 +2,7 @@ torch
 transformers
 openai>=0.27.9
 black
+shed
 ruff
 pre-commit
 fire

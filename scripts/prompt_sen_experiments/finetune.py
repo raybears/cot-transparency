@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import fire
 
 from cot_transparency.apis.openai.finetune import (
@@ -11,7 +12,9 @@ from cot_transparency.apis.openai.finetune import (
 def main(data_path: str):
     assert Path(data_path).exists(), f"Data path {data_path} does not exist"
 
-    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
+    params = FineTuneParams(
+        model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1)
+    )
 
     run_finetune_with_wandb_from_file(
         params,

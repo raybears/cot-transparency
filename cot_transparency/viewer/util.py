@@ -1,12 +1,10 @@
-from cot_transparency.apis.openai import append_assistant_preferred_to_last_user
-from cot_transparency.data_models.messages import ChatMessage, MessageRole
-
+from collections.abc import Sequence
+from typing import cast
 
 import streamlit as st
 
-
-from typing import Sequence, cast
-
+from cot_transparency.apis.openai import append_assistant_preferred_to_last_user
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import TaskOutput
 
 
@@ -45,10 +43,17 @@ def display_task(task: TaskOutput, put_if_completion_in_user: bool = True):
     st.markdown(f"Model output: {model_output} {emoji}")
     st.markdown(f"Bias on: {bias_on}")
 
-    messages: list[ChatMessage] = (
-        cast(list[ChatMessage], append_assistant_preferred_to_last_user(task.task_spec.messages))
+    messages: Sequence[ChatMessage] = (
+        cast(
+            Sequence[ChatMessage],
+            append_assistant_preferred_to_last_user(task.task_spec.messages),
+        )
         if put_if_completion_in_user
         else task.task_spec.messages
     )
-    messages = messages + [ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
+    messages = list(messages) + [
+        ChatMessage(
+            role=MessageRole.assistant, content=task.inference_output.raw_response
+        )
+    ]
     display_messages(messages)

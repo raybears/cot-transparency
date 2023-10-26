@@ -2,17 +2,20 @@
 
 from abc import abstractmethod
 from pathlib import Path
+from typing import Any, Optional, Sequence, Type
 
+from pydantic import AliasChoices, BaseModel, Field
 
-from pydantic import BaseModel, Field, AliasChoices
-
-from typing import Optional, Any, Type
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    GenericDataExample,
+    MultipleChoiceAnswer,
+)
+from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.messages import ChatMessage
-
 from cot_transparency.util import deterministic_hash
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, GenericDataExample
 
 
 class ModelOutput(BaseModel):
@@ -21,14 +24,16 @@ class ModelOutput(BaseModel):
     parsed_response: Optional[str]
 
 
-class BaseTaskSpec(BaseModel):
+class BaseTaskSpec(HashableBaseModel):
     """
     Specifies the minimal information needed to run a task and save the results
     """
 
     # We've called this model_config but that clashes with model_config of pydantic v2
-    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
-    messages: list[ChatMessage]
+    inference_config: OpenaiInferenceConfig = Field(
+        validation_alias=AliasChoices("inference_config", "model_config")
+    )
+    messages: Sequence[ChatMessage]
     out_file_path: Path
     formatter_name: str
 
@@ -41,8 +46,10 @@ class TaskSpec(BaseTaskSpec):
     # This is a dataclass because a PromptFormatter isn't serializable
     task_name: str
     # We've called this model_config but that clashes with model_config of pydantic v2
-    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
-    messages: list[ChatMessage]
+    inference_config: OpenaiInferenceConfig = Field(
+        validation_alias=AliasChoices("inference_config", "model_config")
+    )
+    messages: Sequence[ChatMessage]
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
     formatter_name: str
@@ -54,7 +61,9 @@ class TaskSpec(BaseTaskSpec):
     # This can't be the abstract class DataExampleBase because you can't instantiate it
     data_example: dict[str, Any] = {}
 
-    def read_data_example_or_raise(self, data_type: Type[GenericDataExample]) -> GenericDataExample:
+    def read_data_example_or_raise(
+        self, data_type: Type[GenericDataExample]
+    ) -> GenericDataExample:
         return data_type(**self.data_example)
 
     def uid(self) -> str:
@@ -70,9 +79,9 @@ class TaskSpec(BaseTaskSpec):
         """
         hashes: str = ""
         hashes += self.task_name
-        hashes += self.inference_config.d_hash()
+        hashes += self.inference_config.model_hash()
         for message in self.messages:
-            hashes += message.d_hash()
+            hashes += message.model_hash()
 
         return hashes
 
@@ -94,7 +103,11 @@ class TaskSpec(BaseTaskSpec):
         from cot_transparency.formatters.name_mapping import name_to_stage1_formatter
 
         formatter_type = name_to_stage1_formatter(formatter_name)
-        n_options = len(data_example_obj.get_options(include_none_of_the_above=formatter_type.has_none_of_the_above))
+        n_options = len(
+            data_example_obj.get_options(
+                include_none_of_the_above=formatter_type.has_none_of_the_above
+            )
+        )
         return n_options
 
     def get_task_name(self) -> str:
@@ -103,13 +116,17 @@ class TaskSpec(BaseTaskSpec):
 
 class BaseTaskOuput(BaseModel):
     task_spec: BaseTaskSpec
-    inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+    inference_output: ModelOutput = Field(
+        validation_alias=AliasChoices("inference_output", "model_output")
+    )
 
 
 class TaskOutput(BaseTaskOuput):
     # This is one single experiment
     task_spec: TaskSpec  # type: ignore[reportIncompatibleVariableOverride]
-    inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+    inference_output: ModelOutput = Field(
+        validation_alias=AliasChoices("inference_output", "model_output")
+    )
     response_idx: int = 0
 
     @property
@@ -186,14 +203,24 @@ class TraceInfo(BaseModel):
 
         # ensure that the original sentence has the same leading new lines as the original cot
         # as these are striped when we prompt the model to generate mistakes
-        if original_sentence.startswith("\n") and not reasoning_step_with_mistake.startswith("\n"):
-            leading_chars = original_sentence[: len(original_sentence) - len(original_sentence.lstrip("\n"))]
-        elif original_sentence.startswith(" ") and not reasoning_step_with_mistake.startswith(" "):
-            leading_chars = original_sentence[: len(original_sentence) - len(original_sentence.lstrip(" "))]
+        if original_sentence.startswith(
+            "\n"
+        ) and not reasoning_step_with_mistake.startswith("\n"):
+            leading_chars = original_sentence[
+                : len(original_sentence) - len(original_sentence.lstrip("\n"))
+            ]
+        elif original_sentence.startswith(
+            " "
+        ) and not reasoning_step_with_mistake.startswith(" "):
+            leading_chars = original_sentence[
+                : len(original_sentence) - len(original_sentence.lstrip(" "))
+            ]
         else:
             leading_chars = ""
 
-        partial_cot_trace = "".join(partial_cot) + leading_chars + reasoning_step_with_mistake
+        partial_cot_trace = (
+            "".join(partial_cot) + leading_chars + reasoning_step_with_mistake
+        )
         return partial_cot_trace
 
     def get_complete_modified_cot(self) -> str:
@@ -208,18 +235,28 @@ class TraceInfo(BaseModel):
                 return self.get_trace_upto_mistake()
 
             # if self.regenerated_cot_post_mistake already has leading chars, then we don't need to add them
-            if self.regenerated_cot_post_mistake.startswith("\n") or self.regenerated_cot_post_mistake.startswith(" "):
+            if self.regenerated_cot_post_mistake.startswith(
+                "\n"
+            ) or self.regenerated_cot_post_mistake.startswith(" "):
                 return self.get_trace_upto_mistake() + self.regenerated_cot_post_mistake
 
             original_sentence = self.original_cot[self.get_mistake_inserted_idx() + 1]
             if original_sentence.startswith("\n"):
-                leading_chars = original_sentence[: len(original_sentence) - len(original_sentence.lstrip("\n"))]
+                leading_chars = original_sentence[
+                    : len(original_sentence) - len(original_sentence.lstrip("\n"))
+                ]
             elif original_sentence.startswith(" "):
-                leading_chars = original_sentence[: len(original_sentence) - len(original_sentence.lstrip(" "))]
+                leading_chars = original_sentence[
+                    : len(original_sentence) - len(original_sentence.lstrip(" "))
+                ]
             else:
                 leading_chars = ""
 
-            return self.get_trace_upto_mistake() + leading_chars + self.regenerated_cot_post_mistake
+            return (
+                self.get_trace_upto_mistake()
+                + leading_chars
+                + self.regenerated_cot_post_mistake
+            )
 
     @property
     def has_mistake(self) -> bool:
@@ -227,7 +264,9 @@ class TraceInfo(BaseModel):
 
     @property
     def was_truncated(self) -> bool:
-        if not self.has_mistake and self.complete_modified_cot != "".join(self.original_cot):
+        if not self.has_mistake and self.complete_modified_cot != "".join(
+            self.original_cot
+        ):
             return True
         return False
 
@@ -235,8 +274,10 @@ class TraceInfo(BaseModel):
 class StageTwoTaskSpec(BaseTaskSpec):
     stage_one_output: TaskOutput
     # We've called this model_config but that clashes with model_config of pydantic v2
-    inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
-    messages: list[ChatMessage]
+    inference_config: OpenaiInferenceConfig = Field(
+        validation_alias=AliasChoices("inference_config", "model_config")
+    )
+    messages: Sequence[ChatMessage]
     out_file_path: Path
     formatter_name: str
     trace_info: Optional[TraceInfo] = None
@@ -246,12 +287,7 @@ class StageTwoTaskSpec(BaseTaskSpec):
         return self.stage_one_output.task_spec.task_name
 
     def uid(self) -> str:
-        if self.trace_info is not None:
-            original_cot = self.trace_info.original_cot
-        else:
-            original_cot = []
-        h = self.stage_one_output.task_spec.uid()
-        return deterministic_hash(h + "".join(original_cot))
+        return self.model_hash()
 
     def to_s1(self) -> TaskSpec:
         s1 = TaskSpec(
@@ -272,7 +308,9 @@ class StageTwoTaskSpec(BaseTaskSpec):
 
 class StageTwoTaskOutput(BaseTaskOuput):
     task_spec: StageTwoTaskSpec  # type: ignore[reportIncompatibleVariableOverride]
-    inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+    inference_output: ModelOutput = Field(
+        validation_alias=AliasChoices("inference_output", "model_output")
+    )
     response_idx: int = 0
 
     def uid(self) -> str:

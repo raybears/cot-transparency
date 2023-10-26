@@ -1,32 +1,39 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Sequence, Type, Mapping
+from typing import Mapping, Optional, Sequence, Type
 
 from plotly import graph_objects as go, io as pio
 from pydantic import BaseModel
 from slist import Slist
 
+from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.sycophancy import (
+    ZeroShotCOTSycophancyFormatter,
+    ZeroShotSycophancyFormatter,
+)
+from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
+)
 from cot_transparency.formatters.interventions.consistency import (
-    NaiveFewShot10,
+    BiasedConsistency10,
+    BigBrainBiasedConsistency10,
+    ClaudeFewShot10,
+    ClaudeSeparate10,
+    NaiveFewShot1,
     NaiveFewShot3,
+    NaiveFewShot5,
     NaiveFewShot6,
+    NaiveFewShot10,
+    NaiveFewShotLabelOnly1,
     NaiveFewShotLabelOnly3,
     NaiveFewShotLabelOnly6,
     NaiveFewShotLabelOnly10,
     NaiveFewShotLabelOnly16,
     NaiveFewShotLabelOnly32,
-    NaiveFewShotLabelOnly1,
-    BiasedConsistency10,
-    BigBrainBiasedConsistency10,
-    RepeatedConsistency10,
-    NaiveFewShot5,
     NaiveFewShotSeparate10,
-    NaiveFewShot1,
-    ClaudeFewShot10,
-    ClaudeSeparate10,
+    RepeatedConsistency10,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -45,7 +52,6 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
     StanfordNoCOTFormatter,
 )
-from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo, accuracy_outputs
 from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
@@ -65,18 +71,41 @@ def plot_for_intervention(
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
         all_tasks.filter(
-            lambda task: intervention_name == task.task_spec.intervention_name if intervention_name else True
+            lambda task: intervention_name == task.task_spec.intervention_name
+            if intervention_name
+            else True
         )
-        .filter(lambda task: task.task_spec.formatter_name in formatters_names if formatters_names else True)
-        .filter(lambda task: task.task_spec.inference_config.model == model if model else True)
-        .filter(lambda task: task.task_spec.task_name in include_tasks if include_tasks else True)
+        .filter(
+            lambda task: task.task_spec.formatter_name in formatters_names
+            if formatters_names
+            else True
+        )
+        .filter(
+            lambda task: task.task_spec.inference_config.model == model
+            if model
+            else True
+        )
+        .filter(
+            lambda task: task.task_spec.task_name in include_tasks
+            if include_tasks
+            else True
+        )
     )
     if distinct_qns:
         filtered = filtered.distinct_by(lambda task: task.task_spec.task_hash)
-    assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters} for model {model}"
+    assert (
+        filtered
+    ), f"Intervention {intervention_name} has no tasks in {for_formatters} for model {model}"
     accuray = accuracy_outputs(filtered)
-    retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(intervention, None)
-    name: str = name_override or retrieved_simple_name or intervention_name or "No intervention, biased context"
+    retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(
+        intervention, None
+    )
+    name: str = (
+        name_override
+        or retrieved_simple_name
+        or intervention_name
+        or "No intervention, biased context"
+    )
     return PlotInfo(acc=accuray, name=name)
 
 
@@ -161,7 +190,12 @@ def accuracy_diff_intervention(
     unbiased_plot_dots: dict[str, PlotInfo] = (
         Slist(
             [
-                plot_for_intervention(data, intervention=intervention, for_formatters=[unbiased_formatter], model=model)
+                plot_for_intervention(
+                    data,
+                    intervention=intervention,
+                    for_formatters=[unbiased_formatter],
+                    model=model,
+                )
                 for intervention in interventions
             ]
         )
@@ -223,11 +257,15 @@ class NoFilter(TaskOutputFilter):
 
 
 def filter_inconsistent_only(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
-    return Slist(data).filter(lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth))
+    return Slist(data).filter(
+        lambda task: (task.task_spec.biased_ans != task.task_spec.ground_truth)
+    )
 
 
 def filter_consistent_only(data: Sequence[TaskOutput]) -> Slist[TaskOutput]:
-    return Slist(data).filter(lambda task: (task.task_spec.biased_ans == task.task_spec.ground_truth))
+    return Slist(data).filter(
+        lambda task: (task.task_spec.biased_ans == task.task_spec.ground_truth)
+    )
 
 
 def run(
@@ -241,14 +279,20 @@ def run(
     model: str = "gpt-4",
     intervention_name_override: Mapping[Type[Intervention] | None, str] = {},
 ):
-    all_read: Slist[TaskOutput] = read_whole_exp_dir(exp_dir="experiments/interventions")
-    all_read = (filter_inconsistent_only(all_read) if inconsistent_only else all_read).filter(
-        lambda task: task.task_spec.task_name in tasks if tasks else True
+    all_read: Slist[TaskOutput] = read_whole_exp_dir(
+        exp_dir="experiments/interventions"
     )
+    all_read = (
+        filter_inconsistent_only(all_read) if inconsistent_only else all_read
+    ).filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
 
     # unbiased acc
     unbiased_plot: PlotInfo = plot_for_intervention(
-        all_read, intervention=None, for_formatters=[unbiased_formatter], name_override="Unbiased context", model=model
+        all_read,
+        intervention=None,
+        for_formatters=[unbiased_formatter],
+        name_override="Unbiased context",
+        model=model,
     )
 
     plot_dots: list[PlotInfo] = [
@@ -261,7 +305,11 @@ def run(
         )
         for intervention in interventions
     ]
-    dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
+    dotted = DottedLine(
+        name="Zero shot unbiased context performance",
+        value=unbiased_plot.acc.accuracy,
+        color="red",
+    )
 
     bar_plot(
         plot_infos=plot_dots,
@@ -281,10 +329,15 @@ def run(
         for intervention in interventions
     ]
     unbiased_matching_baseline = matching_user_answer_plot_info(
-        intervention=None, all_tasks=all_read, for_formatters=[unbiased_formatter], model=model
+        intervention=None,
+        all_tasks=all_read,
+        for_formatters=[unbiased_formatter],
+        model=model,
     )
     dotted_line = DottedLine(
-        name="Zeroshot Unbiased context", value=unbiased_matching_baseline.acc.accuracy, color="red"
+        name="Zeroshot Unbiased context",
+        value=unbiased_matching_baseline.acc.accuracy,
+        color="red",
     )
     dataset_str = Slist(tasks).mk_string(", ")
     bar_plot(
@@ -382,7 +435,9 @@ def format_subtitle(inconsistent_only: bool, tasks: Sequence[str], model: str) -
         return f"Model: {model} Dataset: {dataset_str}<br>Bias may be on the correct answer"
 
 
-def run_for_cot_shot_scaling_non_cot_completion(model: str, inconsistent_only: bool = True):
+def run_for_cot_shot_scaling_non_cot_completion(
+    model: str, inconsistent_only: bool = True
+):
     """
     python stage_one.py --exp_dir experiments/interventions --models "['gpt-4']" --example_cap 61 --interventions "['NaiveFewShot1', 'NaiveFewShot3', 'NaiveFewShot6', 'NaiveFewShot10']" --formatters  "['WrongFewShotBiasedNoCOTFormatter', 'StanfordNoCOTFormatter', 'MoreRewardBiasedNoCOTFormatter', 'ZeroShotSycophancyFormatter', 'DeceptiveAssistantBiasedNoCOTFormatter', 'ZeroShotUnbiasedFormatter']" --tasks '["truthful_qa", "john_level_5", "logiqa", "hellaswag", "mmlu"]'
     """
@@ -625,7 +680,11 @@ def run_for_non_cot():
         DeceptiveAssistantBiasedNoCOTFormatter,
     ]
     unbiased_formatter = ZeroShotUnbiasedFormatter
-    run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
+    run(
+        interventions=interventions,
+        biased_formatters=biased_formatters,
+        unbiased_formatter=unbiased_formatter,
+    )
 
 
 if __name__ == "__main__":

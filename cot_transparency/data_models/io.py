@@ -1,22 +1,22 @@
 import itertools
+import json
+from glob import glob
+from pathlib import Path
 from typing import Optional, Sequence, Union
 
 from slist import Slist
+
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
     TaskOutput,
 )
-
-
-import json
-from glob import glob
-from pathlib import Path
-
 from cot_transparency.util import safe_file_write
 
-LoadedJsonType = Union[dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]]
+LoadedJsonType = Union[
+    dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]
+]
 
 
 class ExpLoader:
@@ -57,7 +57,9 @@ class ExpLoader:
 
     @staticmethod
     def stage_one(
-        exp_dir: str, models: Optional[Sequence[str]] = None, task_names: Optional[Sequence[str]] = None
+        exp_dir: str,
+        models: Optional[Sequence[str]] = None,
+        task_names: Optional[Sequence[str]] = None,
     ) -> dict[Path, ExperimentJsonFormat]:
         if models is None:
             models = ["*"]
@@ -82,15 +84,18 @@ class ExpLoader:
 def save_loaded_dict(loaded_dict: LoadedJsonType):
     for file_out, loaded in loaded_dict.items():
         # create the directory if it doesn't exist
+
+        print(f"Saving loaded dict with {len(loaded.outputs)} items")
         file_out.parent.mkdir(parents=True, exist_ok=True)
         _json = loaded.model_dump_json(indent=2)
+
         safe_file_write(str(file_out), _json)
 
 
 def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
     # read in the json file
     if out_file_path.exists():
-        with open(out_file_path, "r") as f:
+        with open(out_file_path) as f:
             _dict = json.load(f)
             if _dict["stage"] == 2:
                 raise ValueError(
@@ -109,7 +114,11 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     """
     json_files = glob(f"{exp_dir}/*/*/*.json")
     read: Slist[TaskOutput] = (
-        Slist(json_files).map(Path).map(read_done_experiment).map(lambda exp: exp.outputs).flatten_list()
+        Slist(json_files)
+        .map(Path)
+        .map(read_done_experiment)
+        .map(lambda exp: exp.outputs)
+        .flatten_list()
     )
     print(f"Read {len(read)} tasks from {exp_dir}")
     return read
@@ -124,7 +133,9 @@ def read_whole_exp_dir_s2(exp_dir: str) -> Slist[StageTwoTaskOutput]:
     return outputs
 
 
-def get_loaded_dict_stage2(paths: set[Path]) -> dict[Path, StageTwoExperimentJsonFormat]:
+def get_loaded_dict_stage2(
+    paths: set[Path],
+) -> dict[Path, StageTwoExperimentJsonFormat]:
     # work out which tasks we have already done
     loaded_dict: dict[Path, StageTwoExperimentJsonFormat] = {}
     for path in paths:
@@ -158,7 +169,10 @@ def read_all_for_selections(
                         if intervention is None:
                             path = exp_dir / f"{task}/{model}/{formatter}.json"
                         else:
-                            path = exp_dir / f"{task}/{model}/{formatter}_and_{intervention}.json"
+                            path = (
+                                exp_dir
+                                / f"{task}/{model}/{formatter}_and_{intervention}.json"
+                            )
                         experiment: ExperimentJsonFormat = read_done_experiment(path)
                         task_outputs.extend(experiment.outputs)
     return task_outputs

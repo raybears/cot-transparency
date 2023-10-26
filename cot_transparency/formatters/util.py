@@ -1,10 +1,12 @@
-from functools import lru_cache
 import random
+from functools import lru_cache
 from typing import Optional
-from cot_transparency.data_models.example_base import VALID_ANSWERS, MultipleChoiceAnswer
-from cot_transparency.data_models.messages import MessageRole
 
-from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.example_base import (
+    VALID_ANSWERS,
+    MultipleChoiceAnswer,
+)
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
 
 def split_anthropic_style_text(text: str) -> list[tuple[ChatMessage, ChatMessage]]:
@@ -28,7 +30,7 @@ def split_anthropic_style_text(text: str) -> list[tuple[ChatMessage, ChatMessage
 
 @lru_cache(maxsize=4)
 def _load_few_shots(path="./data/generic_few_shot.txt") -> str:
-    with open(path, "r") as f:
+    with open(path) as f:
         lines = f.read()
 
     return lines
@@ -45,8 +47,12 @@ def get_few_shot_prompts(
     Returns a list of tuples of ChatMessages, [question, cot_answer, answer_letter] triples
     """
 
-    few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots("./data/ethan_few_shot.txt")
-    more_few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots("./data/gpt4_generated_few_shot.txt")
+    few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots(
+        "./data/ethan_few_shot.txt"
+    )
+    more_few_shots: list[tuple[ChatMessage, ChatMessage]] = load_few_shots(
+        "./data/gpt4_generated_few_shot.txt"
+    )
 
     rng = random.Random(seed)
     few_shots = few_shots + more_few_shots
@@ -54,7 +60,9 @@ def get_few_shot_prompts(
     if n > 0:
         few_shots = few_shots[:n]
 
-    few_shots_with_letter: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = []
+    few_shots_with_letter: list[
+        tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]
+    ] = []
     format_in_few_shot = "Therefore, the answer is ("
     for q, a in few_shots:
         letter: MultipleChoiceAnswer = a.content[-3]  # type: ignore

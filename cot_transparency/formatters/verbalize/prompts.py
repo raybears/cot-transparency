@@ -1,7 +1,6 @@
 from slist import Slist
-from cot_transparency.data_models.messages import MessageRole
 
-from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
 # ruff: noqa: E501
 
@@ -302,7 +301,12 @@ def get_checkmark_biasing_random(seed: str) -> str:
     # splits the few-shot questions into a list of questions by splitting on the '==='
     # then shuffles and joins them back together
     questions = checkmark_biasing.strip().split("===")
-    return Slist(questions).filter(lambda qn: len(qn) > 0).shuffle(seed=seed).mk_string(sep="\n===\n")
+    return (
+        Slist(questions)
+        .filter(lambda qn: len(qn) > 0)
+        .shuffle(seed=seed)
+        .mk_string(sep="\n===\n")
+    )
 
 
 checkmark_question = f"""{checkmark_biasing}
@@ -433,7 +437,12 @@ def get_cross_biasing_random(seed: str) -> str:
     # splits the few-shot questions into a list of questions by splitting on the '==='
     # then shuffles and joins them back together
     questions = cross_biasing.strip().split("===")
-    return Slist(questions).filter(lambda qn: len(qn) > 0).shuffle(seed=seed).mk_string(sep="\n===\n")
+    return (
+        Slist(questions)
+        .filter(lambda qn: len(qn) > 0)
+        .shuffle(seed=seed)
+        .mk_string(sep="\n===\n")
+    )
 
 
 cross_question = f"""{cross_biasing}
@@ -503,16 +512,32 @@ system_prompt_message = ChatMessage(role=MessageRole.system, content=system_prom
 # unbiased prompts
 design_question_message = ChatMessage(role=MessageRole.user, content=design_question)
 design_answer_message = ChatMessage(role=MessageRole.assistant, content=design_answer)
-five_words_question_message = ChatMessage(role=MessageRole.user, content=five_words_question)
-five_words_answer_message = ChatMessage(role=MessageRole.assistant, content=five_words_answer)
+five_words_question_message = ChatMessage(
+    role=MessageRole.user, content=five_words_question
+)
+five_words_answer_message = ChatMessage(
+    role=MessageRole.assistant, content=five_words_answer
+)
 stork_question_message = ChatMessage(role=MessageRole.user, content=stork_question)
 stork_answer_message = ChatMessage(role=MessageRole.assistant, content=stork_answer)
 # biased prompts
-i_think_answer_is_x_question_message = ChatMessage(role=MessageRole.user, content=i_think_answer_is_x_question)
-i_think_answer_is_x_answer_message = ChatMessage(role=MessageRole.assistant, content=i_think_answer_is_x_answer)
-checkmark_question_message = ChatMessage(role=MessageRole.user, content=checkmark_question)
-checkmark_answer_message = ChatMessage(role=MessageRole.assistant, content=checkmark_answer)
+i_think_answer_is_x_question_message = ChatMessage(
+    role=MessageRole.user, content=i_think_answer_is_x_question
+)
+i_think_answer_is_x_answer_message = ChatMessage(
+    role=MessageRole.assistant, content=i_think_answer_is_x_answer
+)
+checkmark_question_message = ChatMessage(
+    role=MessageRole.user, content=checkmark_question
+)
+checkmark_answer_message = ChatMessage(
+    role=MessageRole.assistant, content=checkmark_answer
+)
 cross_question_message = ChatMessage(role=MessageRole.user, content=cross_question)
 cross_answer_message = ChatMessage(role=MessageRole.assistant, content=cross_answer)
-stanford_question_message = ChatMessage(role=MessageRole.user, content=stanford_question)
-stanford_answer_message = ChatMessage(role=MessageRole.assistant, content=stanford_answer)
+stanford_question_message = ChatMessage(
+    role=MessageRole.user, content=stanford_question
+)
+stanford_answer_message = ChatMessage(
+    role=MessageRole.assistant, content=stanford_answer
+)

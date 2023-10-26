@@ -1,18 +1,19 @@
 from collections import defaultdict
 from enum import Enum
+from random import choice
+from tkinter import END, LEFT, Button, Frame, Label, OptionMenu, StringVar, Text, Tk
 from typing import Any, Callable, Optional, Union
+
 import fire
+
 from cot_transparency.apis.openai import OpenAICompletionPrompt
+from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import (
-    TaskSpec,
     StageTwoTaskOutput,
     StageTwoTaskSpec,
     TaskOutput,
+    TaskSpec,
 )
-from cot_transparency.data_models.io import ExpLoader
-
-from tkinter import LEFT, Frame, Tk, Label, Button, Text, END, OptionMenu, StringVar
-from random import choice
 
 
 class ModificationType(str, Enum):
@@ -21,11 +22,19 @@ class ModificationType(str, Enum):
     no_modification = "no_modification"
 
 
-StageTwoNestedDict = dict[tuple[str, str, str, str, ModificationType], dict[str, list[StageTwoTaskOutput]]]
+StageTwoNestedDict = dict[
+    tuple[str, str, str, str, ModificationType], dict[str, list[StageTwoTaskOutput]]
+]
 StageOneNestedDict = dict[tuple[str, str, str], dict[str, list[TaskOutput]]]
 
 # Dropdown names
-dropdown_names = ["Task", "Model", "Formatter", "Modification Type", "Stage One Formatter"]
+dropdown_names = [
+    "Task",
+    "Model",
+    "Formatter",
+    "Modification Type",
+    "Stage One Formatter",
+]
 
 
 class GUI:
@@ -61,7 +70,9 @@ class GUI:
             var = StringVar(frame)
             var.set(self.keys[0][i])
             self.dropdown_vars.append(var)
-            dropdown = OptionMenu(frame, var, *{key[i] for key in self.keys}, command=self.select_json)
+            dropdown = OptionMenu(
+                frame, var, *{key[i] for key in self.keys}, command=self.select_json
+            )
             dropdown.config(font=("Arial", self.fontsize), width=drop_down_width)
             dropdown.pack(anchor="center")
             self.dropdowns.append((var, dropdown))
@@ -69,31 +80,50 @@ class GUI:
         self.label2 = Label(frame, text="Messages:", font=("Arial", self.fontsize))
         self.label2.pack(anchor=self.alignment)
 
-        self.messages_text = Text(frame, width=width, height=20, font=("Arial", self.fontsize))
+        self.messages_text = Text(
+            frame, width=width, height=20, font=("Arial", self.fontsize)
+        )
         self.messages_text.pack(anchor=self.alignment)
 
         self.config_and_output_frame = Frame(frame)
         self.config_and_output_frame.pack(anchor=self.alignment)
 
         self.config_frame = Frame(self.config_and_output_frame, width=config_width)
-        self.label = Label(self.config_frame, text="Config:", font=("Arial", self.fontsize))
+        self.label = Label(
+            self.config_frame, text="Config:", font=("Arial", self.fontsize)
+        )
         self.label.pack(anchor=self.alignment)
-        self.config_text = Text(self.config_frame, width=config_width, height=10, font=("Arial", self.fontsize))
+        self.config_text = Text(
+            self.config_frame,
+            width=config_width,
+            height=10,
+            font=("Arial", self.fontsize),
+        )
         self.config_text.pack(anchor=self.alignment)
 
         self.config_frame.pack(side=LEFT)
 
-        self.output_frame = Frame(self.config_and_output_frame, width=width - config_width)
+        self.output_frame = Frame(
+            self.config_and_output_frame, width=width - config_width
+        )
         self.label3 = Label(
             self.config_and_output_frame,
             text="Model Output:",
             font=("Arial", self.fontsize),
         )
         self.label3.pack(anchor=self.alignment)
-        self.output_text = Text(self.output_frame, width=width - config_width, height=6, font=("Arial", self.fontsize))
+        self.output_text = Text(
+            self.output_frame,
+            width=width - config_width,
+            height=6,
+            font=("Arial", self.fontsize),
+        )
         self.output_text.pack(anchor=self.alignment)
         self.parsed_ans_text = Text(
-            self.output_frame, width=width - config_width, height=4, font=("Arial", self.fontsize)
+            self.output_frame,
+            width=width - config_width,
+            height=4,
+            font=("Arial", self.fontsize),
         )
         self.parsed_ans_text.pack(anchor=self.alignment)
 
@@ -109,9 +139,13 @@ class GUI:
                 cot_label = Label(cot_frame, text=cot, font=("Arial", self.fontsize))
                 self.cot_labels.append(cot_label)
                 cot_label.pack(anchor=self.alignment)
-                cot_text = Text(cot_frame, width=width // 2, height=5, font=("Arial", self.fontsize))
+                cot_text = Text(
+                    cot_frame, width=width // 2, height=5, font=("Arial", self.fontsize)
+                )
                 cot_text.pack(anchor=self.alignment)
-                cot_text2 = Text(cot_frame, width=width // 2, height=5, font=("Arial", self.fontsize))
+                cot_text2 = Text(
+                    cot_frame, width=width // 2, height=5, font=("Arial", self.fontsize)
+                )
                 cot_text2.pack(anchor=self.alignment)
                 self.cot_texts.append((cot_text, cot_text2))
                 cot_frame.pack(side=LEFT)
@@ -140,6 +174,7 @@ class GUI:
             self.display_output()
 
             # Do something with the data
+
         except KeyError:
             self.clear_fields()
             self.display_error()
@@ -198,8 +233,12 @@ class GUI:
         # Insert new text
         output = experiment[self.task_hashes[self.task_hash_idx]][self.index]
 
-        formatted_output = OpenAICompletionPrompt(messages=output.task_spec.messages).format()
-        self.config_text.insert(END, str(output.task_spec.inference_config.model_dump_json(indent=2)))
+        formatted_output = OpenAICompletionPrompt(
+            messages=output.task_spec.messages
+        ).format()
+        self.config_text.insert(
+            END, str(output.task_spec.inference_config.model_dump_json(indent=2))
+        )
         self.messages_text.insert(END, formatted_output)
         self.output_text.insert(END, str(output.first_raw_response))
         self.parsed_ans_text.insert(END, str(output.first_parsed_response))
@@ -211,8 +250,13 @@ class GUI:
                 original_cot: list[str] = task_spec.trace_info.original_cot
                 self.cot_texts[0][0].insert(END, "".join(original_cot))
                 try:
-                    self.cot_texts[0][1].insert(END, original_cot[task_spec.trace_info.get_mistake_inserted_idx()])
-                    self.cot_texts[1][1].insert(END, task_spec.trace_info.get_sentence_with_mistake())
+                    self.cot_texts[0][1].insert(
+                        END,
+                        original_cot[task_spec.trace_info.get_mistake_inserted_idx()],
+                    )
+                    self.cot_texts[1][1].insert(
+                        END, task_spec.trace_info.get_sentence_with_mistake()
+                    )
                 except ValueError:
                     pass
 
@@ -223,7 +267,9 @@ class GUI:
                     )
                 )
                 try:
-                    complete_modified_cot = task_spec.trace_info.get_complete_modified_cot()
+                    complete_modified_cot = (
+                        task_spec.trace_info.get_complete_modified_cot()
+                    )
                 except ValueError:
                     complete_modified_cot = ""
                 self.cot_texts[1][0].insert(END, complete_modified_cot)
@@ -238,7 +284,9 @@ def convert_nested_dict_s2(
         task_name = output.task_spec.stage_one_output.task_spec.task_name
         model = output.task_spec.stage_one_output.task_spec.inference_config.model
         stage_one_formatter = output.task_spec.stage_one_output.task_spec.formatter_name
-        stage_one_hash = output.task_spec.stage_one_output.task_spec.task_hash_with_repeat()
+        stage_one_hash = (
+            output.task_spec.stage_one_output.task_spec.task_hash_with_repeat()
+        )
         formatter = output.task_spec.formatter_name
         assert output.task_spec.trace_info is not None
         if output.task_spec.trace_info.has_mistake:
@@ -265,7 +313,9 @@ def convert_nested_dict_s1(outputs: list[TaskOutput]) -> StageOneNestedDict:
         # use keys
         task_name = output.task_spec.task_name
         model = output.task_spec.inference_config.model
-        stage_one_formatter = output.task_spec.formatter_name + (output.task_spec.intervention_name or "")
+        stage_one_formatter = output.task_spec.formatter_name + (
+            output.task_spec.intervention_name or ""
+        )
         stage_one_hash = output.task_spec.task_hash_with_repeat()
 
         exp = out[(task_name, model, stage_one_formatter)]
@@ -311,7 +361,9 @@ class CompareGUI:
             else:
                 callback = None
 
-            self.base_guis.append(GUI(frame, nested_dict, width_of_each, callback, stage=stage))
+            self.base_guis.append(
+                GUI(frame, nested_dict, width_of_each, callback, stage=stage)
+            )
             frame.grid(row=1, column=i)
 
         self.task_var = StringVar(master)
@@ -326,24 +378,35 @@ class CompareGUI:
         self.task_dropdown.config(font=("Arial", self.fontsize))
         self.task_dropdown.grid(row=0, column=0, columnspan=n_compare)
 
-        self.ground_truth_label = Label(master, text="Ground Truth:", font=("Arial", self.fontsize))
+        self.ground_truth_label = Label(
+            master, text="Ground Truth:", font=("Arial", self.fontsize)
+        )
         self.ground_truth_label.grid(row=2, column=0, columnspan=n_compare)
 
         self.buttons_frame = Frame(master)
         self.buttons_frame.grid(row=3, column=0, columnspan=n_compare)
 
         self.prev_button = Button(
-            self.buttons_frame, text="Prev", command=self.prev_output, font=("Arial", self.fontsize)
+            self.buttons_frame,
+            text="Prev",
+            command=self.prev_output,
+            font=("Arial", self.fontsize),
         )
         self.prev_button.pack(side=LEFT)
 
         self.next_button = Button(
-            self.buttons_frame, text="Next", command=self.next_output, font=("Arial", self.fontsize)
+            self.buttons_frame,
+            text="Next",
+            command=self.next_output,
+            font=("Arial", self.fontsize),
         )
         self.next_button.pack(side=LEFT)
 
         self.random_button = Button(
-            self.buttons_frame, text="Random", command=self.random_output, font=("Arial", self.fontsize)
+            self.buttons_frame,
+            text="Random",
+            command=self.random_output,
+            font=("Arial", self.fontsize),
         )
         self.random_button.pack(side=LEFT)
 
@@ -363,10 +426,14 @@ class CompareGUI:
 
         if is_stage_two:
             task_spec_s2: StageTwoTaskSpec = output.task_spec  # type: ignore
-            self.ground_truth_label.config(text=f"Ground Truth: {task_spec_s2.stage_one_output.task_spec.ground_truth}")
+            self.ground_truth_label.config(
+                text=f"Ground Truth: {task_spec_s2.stage_one_output.task_spec.ground_truth}"
+            )
         else:
             task_spec: TaskSpec = output.task_spec  # type: ignore
-            self.ground_truth_label.config(text=f"Ground Truth: {task_spec.ground_truth}")
+            self.ground_truth_label.config(
+                text=f"Ground Truth: {task_spec.ground_truth}"
+            )
 
     def prev_output(self):
         for gui in self.base_guis:

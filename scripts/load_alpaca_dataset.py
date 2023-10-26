@@ -3,8 +3,8 @@ import dataclasses
 from datasets import load_dataset
 from slist import Slist
 
-from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 from cot_transparency.apis.openai.finetune import FinetuneSample
+from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 
 
 @dataclasses.dataclass
@@ -19,11 +19,21 @@ def get_alpaca() -> AlpacaSamples:
     train_dataset = dataset["train"]
     items = Slist()
     for row in train_dataset:
-        system_msg = StrictChatMessage(role=StrictMessageRole.system, content=row["instruction"])
-        user_msg = StrictChatMessage(role=StrictMessageRole.user, content=row["input"]) if row["input"] else None
-        assistant_msg = StrictChatMessage(role=StrictMessageRole.assistant, content=row["output"])
+        system_msg = StrictChatMessage(
+            role=StrictMessageRole.system, content=row["instruction"]
+        )
+        user_msg = (
+            StrictChatMessage(role=StrictMessageRole.user, content=row["input"])
+            if row["input"]
+            else None
+        )
+        assistant_msg = StrictChatMessage(
+            role=StrictMessageRole.assistant, content=row["output"]
+        )
         sample = FinetuneSample(
-            messages=[system_msg, user_msg, assistant_msg] if user_msg else [system_msg, assistant_msg]
+            messages=[system_msg, user_msg, assistant_msg]
+            if user_msg
+            else [system_msg, assistant_msg]
         )
         items.append(sample)
     total_items = len(items)

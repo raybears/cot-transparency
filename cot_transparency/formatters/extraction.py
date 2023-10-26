@@ -1,16 +1,16 @@
-from abc import ABC, abstractmethod
 import re
+from abc import ABC, abstractmethod
 from string import ascii_uppercase
 from typing import Optional, Sequence
-from fuzzywuzzy import fuzz
 
+from fuzzywuzzy import fuzz
 
 from cot_transparency.data_models.example_base import (
     ChoiceVariant,
     DataExampleBase,
     DataFormatSpec,
+    IndicatorAndOption,
 )
-from cot_transparency.data_models.example_base import IndicatorAndOption
 
 BREAK_WORDS: list[str] = [
     "answer is (",
@@ -83,7 +83,10 @@ class FindIndicatorAfterBreakWord(AnswerExtractor):
     """
 
     def __init__(
-        self, options: list[str], input_format: DataFormatSpec = DataFormatSpec(), break_words: list[str] = BREAK_WORDS
+        self,
+        options: list[str],
+        input_format: DataFormatSpec = DataFormatSpec(),
+        break_words: list[str] = BREAK_WORDS,
     ):
         """
         Args:
@@ -111,10 +114,16 @@ class FindIndicatorAfterBreakWord(AnswerExtractor):
                 continue
 
             # match single indicator or if it has a space, closing parenthesis, dot after it
-            possible_indicators = self.input_format.choice_variant.answers_list[: len(self.options)]
+            possible_indicators = self.input_format.choice_variant.answers_list[
+                : len(self.options)
+            ]
             # also add lowercase variants
-            possible_indicators_lower = [indicator.lower() for indicator in possible_indicators]
-            possible_indicators_re = "|".join(possible_indicators + possible_indicators_lower)
+            possible_indicators_lower = [
+                indicator.lower() for indicator in possible_indicators
+            ]
+            possible_indicators_re = "|".join(
+                possible_indicators + possible_indicators_lower
+            )
 
             pattern = rf"^({possible_indicators_re})(\s|\)|\.|$)+.*$"
             pattern = rf"^(?:[Oo]ption |[Ss]tatement )?\(?({possible_indicators_re})\)?(\s|\)|\.|$)+.*$"
@@ -141,7 +150,9 @@ class FindIndicatorAtStartOfResponse(AnswerExtractor):
     e.g. "A) answer or 2. answer or (B) answer"
     """
 
-    def __init__(self, options: list[str], input_format: DataFormatSpec = DataFormatSpec()):
+    def __init__(
+        self, options: list[str], input_format: DataFormatSpec = DataFormatSpec()
+    ):
         """
         Args:
             options (list[str]): list of strings that are the literal answer options without indicators
@@ -156,10 +167,16 @@ class FindIndicatorAtStartOfResponse(AnswerExtractor):
         dump_failed: bool = False,
     ) -> Optional[str]:
         # match single indicator or if it has a space, closing parenthesis, dot after it
-        possible_indicators = self.input_format.choice_variant.answers_list[: len(self.options)]
+        possible_indicators = self.input_format.choice_variant.answers_list[
+            : len(self.options)
+        ]
         # also add lowercase variants
-        possible_indicators_lower = [indicator.lower() for indicator in possible_indicators]
-        possible_indicators_re = "|".join(possible_indicators + possible_indicators_lower)
+        possible_indicators_lower = [
+            indicator.lower() for indicator in possible_indicators
+        ]
+        possible_indicators_re = "|".join(
+            possible_indicators + possible_indicators_lower
+        )
 
         pattern = rf"^\(?({possible_indicators_re})(\s|\)|\.|$)+.*$"
 
@@ -241,7 +258,9 @@ class FuzzyMatcher(AnswerExtractor):
             return ascii_uppercase[fuzz_scores.index(max(fuzz_scores))]  # type: ignore
 
 
-def extract_answer(response: str, question: DataExampleBase, dump_failed: bool = False) -> Optional[str]:
+def extract_answer(
+    response: str, question: DataExampleBase, dump_failed: bool = False
+) -> Optional[str]:
     """
     This is a legacy method to find answers that use letters, recomended to use AnswerExtractorPipeline directly instead
     """
@@ -314,9 +333,13 @@ def extract_multiple_choices(question: str) -> list[str]:
     # get the lines after that
     options: list[str] = lines[index + 1 :]
     # Get only the lines that start with a bracket
-    options_with_bracket: list[str] = [option for option in options if option.startswith("(")]
+    options_with_bracket: list[str] = [
+        option for option in options if option.startswith("(")
+    ]
     # Get only the text after the bracket
-    options_without_bracket: list[str] = [option[option.index(")") + 1 :] for option in options_with_bracket]
+    options_without_bracket: list[str] = [
+        option[option.index(")") + 1 :] for option in options_with_bracket
+    ]
     # strip
     stripped = [option.strip() for option in options_without_bracket]
     return stripped
@@ -325,5 +348,6 @@ def extract_multiple_choices(question: str) -> list[str]:
 def extract_lettered_multiple_choices(question: str) -> list[IndicatorAndOption]:
     extracted_answers = extract_multiple_choices(question)
     return [
-        IndicatorAndOption(indicator=ascii_uppercase[i], option=answer) for i, answer in enumerate(extracted_answers)
+        IndicatorAndOption(indicator=ascii_uppercase[i], option=answer)
+        for i, answer in enumerate(extracted_answers)
     ]

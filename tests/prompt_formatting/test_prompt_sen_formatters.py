@@ -1,7 +1,10 @@
 import pytest
 
+from cot_transparency.formatters.interventions.valid_interventions import (
+    name_to_intervention,
+)
 from cot_transparency.formatters.name_mapping import name_to_stage1_formatter
-from cot_transparency.formatters.interventions.valid_interventions import name_to_intervention
+
 from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 
@@ -20,9 +23,12 @@ from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPL
         ),
     ],
 )
-def test_all_answers_same_format(intervention_name: str, formatter1: str, formatter2: str):
+def test_all_answers_same_format(
+    intervention_name: str, formatter1: str, formatter2: str
+):
     """Test that going through the intervention pipeline with two different formatters, only the
-    last message (i.e. the actual question) should be different the few shot labels should be the same"""
+    last message (i.e. the actual question) should be different the few shot labels should be the same
+    """
 
     question = EMPIRE_OF_PANTS_EXAMPLE
 

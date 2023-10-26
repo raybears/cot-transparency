@@ -4,21 +4,29 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Optional, Mapping
+from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
 import openai
 import pandas as pd
-import wandb
-from openai.error import RateLimitError, APIConnectionError
+from openai.error import APIConnectionError, RateLimitError
 from pydantic import BaseModel
 from retry import retry
 from wandb.sdk.wandb_run import Run
-from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
-from cot_transparency.data_models.models import TaskOutput
 
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
+import wandb
 from cot_transparency.apis.openai.set_key import set_keys_from_env
+from cot_transparency.data_models.messages import (
+    ChatMessage,
+    MessageRole,
+    StrictChatMessage,
+    StrictMessageRole,
+)
+from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.json_utils.read_write import (
+    read_jsonl_file_into_basemodel,
+    write_jsonl_file_from_basemodel,
+)
 
 set_keys_from_env()
 
@@ -35,11 +43,16 @@ class FineTuneParams(BaseModel):
     hyperparameters: FineTuneHyperParams
 
 
-def join_assistant_preferred_to_completion(messages: list[ChatMessage], completion: str) -> list[ChatMessage]:
+def join_assistant_preferred_to_completion(
+    messages: Sequence[ChatMessage], completion: str
+) -> Sequence[ChatMessage]:
     # If we had a previous assistant_if_completion message, we want to join it with the new completion
+    messages = list(messages)
     last_message = messages[-1]
     if last_message.role == MessageRole.assistant_if_completion:
-        messages[-1] = ChatMessage(role=MessageRole.assistant, content=last_message.content + completion)
+        messages[-1] = ChatMessage(
+            role=MessageRole.assistant, content=last_message.content + completion
+        )
     else:
         messages.append(ChatMessage(role=MessageRole.assistant, content=completion))
     return messages
@@ -213,7 +226,9 @@ class WandbSyncer:
     exceptions=(RateLimitError, APIConnectionError),
     delay=60,  # Try again in 60 seconds
 )
-def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParams) -> FinetuneJob:
+def queue_finetune(
+    file_id: str, model: str, hyperparameters: FineTuneHyperParams
+) -> FinetuneJob:
     # Keep retrying until we can queue the finetune job
     # pick an org at random
     finetune_job_resp = openai.FineTuningJob.create(
@@ -254,12 +269,16 @@ def run_finetune_from_file(
     print(f"Starting file upload. {file_id}")
     wait_until_uploaded_file_id_is_ready(file_id=file_id)
     print(f"Uploaded file to openai. {file_upload_resp}")
-    finetune_job_resp = queue_finetune(file_id=file_id, model=params.model, hyperparameters=params.hyperparameters)
+    finetune_job_resp = queue_finetune(
+        file_id=file_id, model=params.model, hyperparameters=params.hyperparameters
+    )
     print(f"Started finetune job. {finetune_job_resp}")
 
     if syncer:
         syncer.update_finetune_job_id(finetune_job_id=finetune_job_resp.id)
-    result: FinetunedJobResults = wait_until_finetune_job_is_ready(finetune_job_id=finetune_job_resp.id)
+    result: FinetunedJobResults = wait_until_finetune_job_is_ready(
+        finetune_job_id=finetune_job_resp.id
+    )
     model_id = result.fine_tuned_model
     print(f"Fine tuned model id: {model_id}. You can now use this model in the API")
     if syncer:
@@ -289,7 +308,9 @@ def run_finetune(
     if ask_to_validate_training:
         confirm_to_continue(write_jsonl_path)
 
-    return run_finetune_from_file(params=params, file_path=write_jsonl_path, syncer=syncer)
+    return run_finetune_from_file(
+        params=params, file_path=write_jsonl_path, syncer=syncer
+    )
 
 
 def run_finetune_with_wandb(
@@ -357,7 +378,9 @@ def example_main():
             ]
         )
     ] * 10
-    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
+    params = FineTuneParams(
+        model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1)
+    )
     run_finetune(params=params, samples=messages)
 
 

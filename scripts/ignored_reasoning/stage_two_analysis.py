@@ -1,17 +1,15 @@
 from typing import Optional
+
 import fire
-from matplotlib import pyplot as plt
-from analysis import get_general_metrics
-from cot_transparency.data_models.models import (
-    StageTwoExperimentJsonFormat,
-    TaskOutput,
-)
-import pandas as pd
-from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-from analysis import accuracy_for_df, TASK_MAP
-import seaborn as sns
 import numpy as np
+import pandas as pd
+import seaborn as sns
+from matplotlib import pyplot as plt
+
+from analysis import TASK_MAP, accuracy_for_df, get_general_metrics
+from cot_transparency.data_models.io import ExpLoader
+from cot_transparency.data_models.models import StageTwoExperimentJsonFormat, TaskOutput
+from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 
 # Used to produce human readable names on plots
 NAMES_MAP = {
@@ -37,7 +35,13 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
     # get aoc for each original_cot_trace_length, grouped by task, and model
     # we want the counts for the number of traces so filter on unique stage_one_hash
 
-    groups = ["task_name", "model", "original_cot_trace_length", x, "stage_one_formatter_name"]
+    groups = [
+        "task_name",
+        "model",
+        "original_cot_trace_length",
+        x,
+        "stage_one_formatter_name",
+    ]
 
     n_traces = df.groupby(groups).stage_one_hash.nunique().reset_index()
     n_traces = n_traces.rename(columns={"stage_one_hash": "n_traces"})
@@ -72,27 +76,53 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
     return areas
 
 
-def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
+def convert_stage2_experiment_to_dataframe(
+    exp: StageTwoExperimentJsonFormat,
+) -> pd.DataFrame:
     out = []
     for task_output in exp.outputs:
         d_with_config = get_general_metrics(task_output)
         d_with_config["model"] = task_output.task_spec.inference_config.model
-        d_with_config["task_name"] = task_output.task_spec.stage_one_output.task_spec.task_name
-        d_with_config["ground_truth"] = task_output.task_spec.stage_one_output.task_spec.ground_truth
-        d_with_config["stage_one_hash"] = task_output.task_spec.stage_one_output.task_spec.uid()
-        d_with_config["stage_one_output_hash"] = task_output.task_spec.stage_one_output.uid()
-        d_with_config["stage_one_output"] = task_output.task_spec.stage_one_output.dict()
-        d_with_config["biased_ans"] = task_output.task_spec.stage_one_output.task_spec.biased_ans
-        d_with_config["task_hash"] = task_output.task_spec.stage_one_output.task_spec.task_hash
+        d_with_config[
+            "task_name"
+        ] = task_output.task_spec.stage_one_output.task_spec.task_name
+        d_with_config[
+            "ground_truth"
+        ] = task_output.task_spec.stage_one_output.task_spec.ground_truth
+        d_with_config[
+            "stage_one_hash"
+        ] = task_output.task_spec.stage_one_output.task_spec.uid()
+        d_with_config[
+            "stage_one_output_hash"
+        ] = task_output.task_spec.stage_one_output.uid()
+        d_with_config[
+            "stage_one_output"
+        ] = task_output.task_spec.stage_one_output.dict()
+        d_with_config[
+            "biased_ans"
+        ] = task_output.task_spec.stage_one_output.task_spec.biased_ans
+        d_with_config[
+            "task_hash"
+        ] = task_output.task_spec.stage_one_output.task_spec.task_hash
         d_with_config["parsed_response"] = task_output.inference_output.parsed_response
 
-        d_with_config["stage_one_formatter_name"] = task_output.task_spec.stage_one_output.task_spec.formatter_name
+        d_with_config[
+            "stage_one_formatter_name"
+        ] = task_output.task_spec.stage_one_output.task_spec.formatter_name
         if task_output.task_spec.trace_info is not None:
             d_with_config["has_mistake"] = task_output.task_spec.trace_info.has_mistake
-            d_with_config["was_truncated"] = task_output.task_spec.trace_info.was_truncated
-            d_with_config["mistake_added_at"] = task_output.task_spec.trace_info.mistake_inserted_idx
-            d_with_config["original_cot_trace_length"] = len(task_output.task_spec.trace_info.original_cot)
-            modified_cot_length = get_cot_steps(task_output.task_spec.trace_info.get_complete_modified_cot())
+            d_with_config[
+                "was_truncated"
+            ] = task_output.task_spec.trace_info.was_truncated
+            d_with_config[
+                "mistake_added_at"
+            ] = task_output.task_spec.trace_info.mistake_inserted_idx
+            d_with_config["original_cot_trace_length"] = len(
+                task_output.task_spec.trace_info.original_cot
+            )
+            modified_cot_length = get_cot_steps(
+                task_output.task_spec.trace_info.get_complete_modified_cot()
+            )
             d_with_config["cot_trace_length"] = len(modified_cot_length)
 
         out.append(d_with_config)
@@ -169,7 +199,9 @@ def df_filters(
     return df
 
 
-def plot_by_length(df: pd.DataFrame, hue: str, col: Optional[str] = None) -> sns.FacetGrid | plt.Axes:
+def plot_by_length(
+    df: pd.DataFrame, hue: str, col: Optional[str] = None
+) -> sns.FacetGrid | plt.Axes:
     x = "proportion_of_cot"
     y = "same_answer"
 
@@ -206,7 +238,9 @@ def plot_by_length(df: pd.DataFrame, hue: str, col: Optional[str] = None) -> sns
         plt.figure()
         df["proportion_of_cot_rounded"] = (df["proportion_of_cot"] / 10).round() * 10
         # g is an axis
-        g_axs: plt.Axes = sns.lineplot(df, x="proportion_of_cot_rounded", y=y, hue=hue, alpha=0.5)
+        g_axs: plt.Axes = sns.lineplot(
+            df, x="proportion_of_cot_rounded", y=y, hue=hue, alpha=0.5
+        )
         return g_axs
 
 
@@ -214,7 +248,11 @@ def drop_not_found(df: pd.DataFrame) -> pd.DataFrame:
     # Redrop any NOT_FOUND
     pre = len(df)
     df = df[df.same_answer != "NOT_FOUND"]  # type: ignore
-    print("Dropped ", pre - len(df), " rows becuase of NOT_FOUND answers in full cot trace")
+    print(
+        "Dropped ",
+        pre - len(df),
+        " rows becuase of NOT_FOUND answers in full cot trace",
+    )
     return df
 
 
@@ -225,11 +263,15 @@ def baseline_accuracy(df: pd.DataFrame, hue: str, col: str):
     cot_trace_length_0 = df[df["cot_trace_length"] == 0]
     cot_trace_length_max = df[df["cot_trace_length"] == df["original_cot_trace_length"]]
     baseline_accuracies = (
-        cot_trace_length_0.groupby(["task_name", hue, col]).apply(lambda x: x["is_correct"].mean()).reset_index()
+        cot_trace_length_0.groupby(["task_name", hue, col])
+        .apply(lambda x: x["is_correct"].mean())
+        .reset_index()
     )
     baseline_accuracies = baseline_accuracies.rename(columns={0: "No CoT Accuracy"})
     baseline_accuracies["CoT Accuracy"] = (
-        cot_trace_length_max.groupby(["task_name", hue, col]).apply(lambda x: x["is_correct"].mean()).reset_index()[0]
+        cot_trace_length_max.groupby(["task_name", hue, col])
+        .apply(lambda x: x["is_correct"].mean())
+        .reset_index()[0]
     )
     print(baseline_accuracies)
     # print csv version
@@ -324,17 +366,25 @@ def aoc_plot(
     hue: str = "stage_one_formatter_name",
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
-    df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)
+    df = df_filters(
+        df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter
+    )
 
     # Mistakes AoC
     df_mistakes = df[~df.was_truncated]
-    df_mistakes = df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
+    df_mistakes = (
+        df.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
+    )
     df_mistakes = drop_not_found(df_mistakes)
     aoc_mistakes = get_aoc(df_mistakes)
 
     # Early Answering AoC
     df_early = df[~df.has_mistake]
-    df_early = df_early.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
+    df_early = (
+        df_early.groupby("stage_one_hash")
+        .apply(check_same_answer)
+        .reset_index(drop=True)
+    )
     df_early = drop_not_found(df_early)  # type: ignore
     aoc_early = get_aoc(df_early)
 
@@ -348,7 +398,13 @@ def aoc_plot(
         plt.show()
 
 
-def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_early: pd.DataFrame, kind="bar"):
+def _aoc_point_plot(
+    hue: str,
+    df: pd.DataFrame,
+    aoc_mistakes: pd.DataFrame,
+    aoc_early: pd.DataFrame,
+    kind="bar",
+):
     # two point plots side by side [mistakes, early answering, accuracy]
     fig, axs = plt.subplots(1, 3, figsize=(10, 5))
 

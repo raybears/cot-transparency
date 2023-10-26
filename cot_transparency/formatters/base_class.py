@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Self, Set, Type, Mapping
+from typing import Mapping, Optional, Self, Sequence, Set, Type
 
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.example_base import DataFormatSpec
@@ -13,7 +13,9 @@ class PromptFormatter(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: DataExampleBase, model: Optional[str] = None
+    ) -> Optional[str]:
         raise NotImplementedError
 
     @classmethod
@@ -40,7 +42,9 @@ class StageOneFormatter(PromptFormatter, ABC):
 
     @staticmethod
     @abstractmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(
+        question: DataExampleBase, model: Optional[str] = None
+    ) -> Sequence[ChatMessage]:
         raise NotImplementedError
 
     @classmethod

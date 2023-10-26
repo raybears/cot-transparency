@@ -1,10 +1,18 @@
+import asyncio
+
 from pydantic import BaseModel
 
-from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
-from scripts.evaluate_alignment_tax.instruction_following import eval_instruction_following
-from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
-
-import asyncio
+from cot_transparency.formatters.interventions.few_shots_loading import (
+    ModelOutputVerified,
+)
+from scripts.evaluate_alignment_tax.instruction_following import (
+    eval_instruction_following,
+)
+from scripts.finetune_cot import (
+    DataFromOptions,
+    FormatterOptions,
+    fine_tune_with_bias_augmentation,
+)
 
 
 class SweepOptions(BaseModel):
@@ -24,7 +32,9 @@ async def train_and_run(sweep: SweepOptions) -> None:
         model_output_verified=ModelOutputVerified.correct,
         ask_to_validate_training=False,
         instruct_sample_proportion=sweep.instruct_sample_proportion,
-        prepend_notes="instruct_sample_proportion: " + str(sweep.instruct_sample_proportion) + " ",
+        prepend_notes="instruct_sample_proportion: "
+        + str(sweep.instruct_sample_proportion)
+        + " ",
     )
     await eval_instruction_following(
         intervention_models=[model],

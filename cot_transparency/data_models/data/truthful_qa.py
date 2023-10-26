@@ -1,11 +1,14 @@
 import json
+import random
 from string import ascii_uppercase
+from typing import Any
 
 from slist import Slist
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
-from typing import Any
-import random
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
+)
 
 
 class TruthfulQAExample(DataExampleBase):
@@ -34,7 +37,9 @@ def _process_line(example: dict[str, Any]) -> TruthfulQAExample:  # type: ignore
 
     question = example["question"]
     rng = random.Random(question)  # seed with question
-    random_ans_idx = rng.randint(0, targets_len - 1)  # select random answer for bias metrics
+    random_ans_idx = rng.randint(
+        0, targets_len - 1
+    )  # select random answer for bias metrics
 
     options = [(k, v) for k, v in example["mc1_targets"].items()]
     # shuffle options as correct answer is  always the first one in the json

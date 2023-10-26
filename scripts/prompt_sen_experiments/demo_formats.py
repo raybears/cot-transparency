@@ -1,6 +1,5 @@
 from scripts.demo_formatter import main
 
-
 COT_FORMATTERS = [
     "CotPromptSenFormatter_LETTERS_SHORT_SELECT_PAREN_NEWLINE",
     "CotPromptSenFormatter_LETTERS_PLEASE_SELECT_DOT_SENTENCE",

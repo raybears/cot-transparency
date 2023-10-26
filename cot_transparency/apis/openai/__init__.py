@@ -1,13 +1,23 @@
 import random
+from collections.abc import Sequence
+
 from cot_transparency.apis.base import InferenceResponse, ModelCaller, Prompt
-from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_last_user
+from cot_transparency.apis.openai.formatting import (
+    append_assistant_preferred_to_last_user,
+)
+from cot_transparency.apis.openai.inference import (
+    get_openai_completion,
+    gpt3_5_rate_limited,
+    gpt4_rate_limited,
+)
 from cot_transparency.apis.openai.set_key import get_org_ids, set_keys_from_env
 from cot_transparency.apis.util import convert_assistant_if_completion_to_assistant
-from cot_transparency.apis.openai.inference import gpt4_rate_limited
 from cot_transparency.data_models.config import OpenaiInferenceConfig
-from cot_transparency.data_models.messages import ChatMessage, StrictChatMessage, StrictMessageRole
-from cot_transparency.apis.openai.inference import gpt3_5_rate_limited
-from cot_transparency.apis.openai.inference import get_openai_completion
+from cot_transparency.data_models.messages import (
+    ChatMessage,
+    StrictChatMessage,
+    StrictMessageRole,
+)
 
 
 class OpenAIChatPrompt(Prompt):
@@ -34,7 +44,9 @@ class OpenAICompletionPrompt(Prompt):
 
         # Add the required empty assistant tag if the last message does not have the assistant role
         if messages[-1].role == StrictMessageRole.user:
-            messages.append(StrictChatMessage(role=StrictMessageRole.assistant, content=""))
+            messages.append(
+                StrictChatMessage(role=StrictMessageRole.assistant, content="")
+            )
 
         message = ""
         for msg in messages:
@@ -58,7 +70,7 @@ class OpenAIChatCaller(ModelCaller):
 
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         prompt = OpenAIChatPrompt(messages=messages).format()
@@ -68,7 +80,9 @@ class OpenAIChatCaller(ModelCaller):
         organization = None
         if self.org_keys is None:
             if "ft" in model_name:
-                raise ValueError("No org keys found, to use finetuned models, please set OPENAI_ORG_IDS in .env")
+                raise ValueError(
+                    "No org keys found, to use finetuned models, please set OPENAI_ORG_IDS in .env"
+                )
         else:
             org_key = []
             if "ft" in model_name:
@@ -108,8 +122,12 @@ class OpenAIChatCaller(ModelCaller):
 class OpenAICompletionCaller(ModelCaller):
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         prompt = OpenAICompletionPrompt(messages=messages).format()
-        return InferenceResponse(raw_responses=get_openai_completion(config=config, prompt=prompt).completions)
+        return InferenceResponse(
+            raw_responses=get_openai_completion(
+                config=config, prompt=prompt
+            ).completions
+        )

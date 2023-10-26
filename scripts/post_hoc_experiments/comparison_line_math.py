@@ -1,20 +1,30 @@
 from enum import Enum
 from pathlib import Path
-from typing import Sequence, Type, Optional
-from pydantic import BaseModel
+from typing import Optional, Sequence, Type
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
+from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
-from scripts.intervention_investigation import plot_for_intervention, DottedLine
-from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
-from scripts.multi_accuracy import PlotInfo
 from cot_transparency.data_models.io import read_all_for_selections
+from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.core.no_latex import (
+    ZeroShotCOTUnbiasedNoLatexFormatter,
+)
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    ZeroShotInitialWrongFormatter,
+)
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+)
+from scripts.intervention_investigation import DottedLine, plot_for_intervention
+from scripts.matching_user_answer import (
+    matching_user_answer_plot_info,
+    random_chance_matching_answer_plot_dots,
+)
+from scripts.multi_accuracy import PlotInfo
 from stage_one import main
 
 
@@ -37,7 +47,10 @@ class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
 
 
 def read_metric_from_meta(
-    meta: ModelTrainMeta, exp_dir: str, formatter: Type[StageOneFormatter], tasks: Sequence[str]
+    meta: ModelTrainMeta,
+    exp_dir: str,
+    formatter: Type[StageOneFormatter],
+    tasks: Sequence[str],
 ) -> ModelNameAndTrainedSamplesAndMetrics:
     # read the metric from the meta
     read = read_all_for_selections(
@@ -53,12 +66,18 @@ def read_metric_from_meta(
     accuracy = plot_for_intervention(
         all_tasks=read,
     )
-    return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, percent_matching=percent_matching, accuracy=accuracy)
+    return ModelNameAndTrainedSamplesAndMetrics(
+        train_meta=meta, percent_matching=percent_matching, accuracy=accuracy
+    )
 
 
-def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta], tasks: Sequence[str]) -> None:
+def run_unbiased_acc_experiments(
+    meta: Sequence[ModelTrainMeta], tasks: Sequence[str]
+) -> None:
     models: list[str] = [m.name for m in meta]
-    models_normal_cot = [m.name for m in meta if m.trained_on == PostHocOptions.normal_cot]
+    models_normal_cot = [
+        m.name for m in meta if m.trained_on == PostHocOptions.normal_cot
+    ]
     main(
         exp_dir="experiments/finetune_2",
         models=models_normal_cot,
@@ -85,7 +104,9 @@ def run_unbiased_acc_experiments(meta: Sequence[ModelTrainMeta], tasks: Sequence
     )
 
 
-def run_biased_experiments(meta: Sequence[ModelTrainMeta], tasks: Sequence[str]) -> None:
+def run_biased_experiments(
+    meta: Sequence[ModelTrainMeta], tasks: Sequence[str]
+) -> None:
     models: list[str] = [m.name for m in meta]
     main(
         exp_dir="experiments/finetune_2",
@@ -166,7 +187,9 @@ def samples_meta() -> Slist[ModelTrainMeta]:
         ]
     )
     distinct_models = all_meta.distinct_by(lambda i: i.name)
-    assert len(distinct_models) == len(all_meta), "There are duplicate models in the list"
+    assert len(distinct_models) == len(
+        all_meta
+    ), "There are duplicate models in the list"
     return distinct_models
 
 
@@ -176,7 +199,11 @@ def read_all_metrics(
     formatter: Type[StageOneFormatter],
     tasks: Sequence[str],
 ) -> Slist[ModelNameAndTrainedSamplesAndMetrics]:
-    return samples.map(lambda meta: read_metric_from_meta(meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks))
+    return samples.map(
+        lambda meta: read_metric_from_meta(
+            meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks
+        )
+    )
 
 
 def seaborn_line_plot(
@@ -191,17 +218,28 @@ def seaborn_line_plot(
         [
             {
                 "Trained Samples": i.train_meta.trained_samples,
-                y_axis_label: i.percent_matching.acc.accuracy if percent_matching else i.accuracy.acc.accuracy,
-                "Error Bars": i.percent_matching.acc.error_bars if percent_matching else i.accuracy.acc.error_bars,
+                y_axis_label: i.percent_matching.acc.accuracy
+                if percent_matching
+                else i.accuracy.acc.accuracy,
+                "Error Bars": i.percent_matching.acc.error_bars
+                if percent_matching
+                else i.accuracy.acc.error_bars,
                 "Trained on COTs from": i.train_meta.trained_on.value,
             }
             for i in data
         ]
     )
-    sns.lineplot(data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from")
+    sns.lineplot(
+        data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from"
+    )
     # Add dotted line for random chance
     if dotted_line:
-        plt.axhline(y=dotted_line.value, color=dotted_line.color, linestyle="dashed", label=dotted_line.name)
+        plt.axhline(
+            y=dotted_line.value,
+            color=dotted_line.color,
+            linestyle="dashed",
+            label=dotted_line.name,
+        )
     plt.title(title)
 
     if error_bars:
@@ -224,7 +262,13 @@ def seaborn_line_plot(
 
 
 if __name__ == "__main__":
-    tasks = ["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"]
+    tasks = [
+        "john_level_1",
+        "john_level_2",
+        "john_level_3",
+        "john_level_4",
+        "john_level_5",
+    ]
     defined_meta = samples_meta()
     run_biased_experiments(defined_meta, tasks)
     run_unbiased_acc_experiments(defined_meta, tasks)
@@ -234,7 +278,11 @@ if __name__ == "__main__":
         formatter=ZeroShotInitialWrongFormatter,
         tasks=tasks,
     )
-    seaborn_line_plot(initial_wrong, percent_matching=False, title="Accuracy for the initial wrong bias")
+    seaborn_line_plot(
+        initial_wrong,
+        percent_matching=False,
+        title="Accuracy for the initial wrong bias",
+    )
 
     random_chance: PlotInfo = random_chance_matching_answer_plot_dots(
         all_tasks=read_all_for_selections(
@@ -248,7 +296,9 @@ if __name__ == "__main__":
         formatter=ZeroShotCOTUnbiasedNoLatexFormatter,
         for_task=tasks,
     )
-    dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
+    dotted_line = DottedLine(
+        name="Random chance", value=random_chance.acc.accuracy, color="red"
+    )
 
     seaborn_line_plot(
         initial_wrong,
@@ -263,7 +313,11 @@ if __name__ == "__main__":
         tasks=tasks,
     )
 
-    seaborn_line_plot(wrong_few_shot, percent_matching=False, title="Accuracy for the wrong few shot bias")
+    seaborn_line_plot(
+        wrong_few_shot,
+        percent_matching=False,
+        title="Accuracy for the wrong few shot bias",
+    )
     seaborn_line_plot(
         wrong_few_shot,
         percent_matching=True,
@@ -276,4 +330,6 @@ if __name__ == "__main__":
         formatter=ZeroShotCOTUnbiasedNoLatexFormatter,
         tasks=tasks,
     )
-    seaborn_line_plot(unbiased, percent_matching=False, title="Accuracy for the unbiased bias")
+    seaborn_line_plot(
+        unbiased, percent_matching=False, title="Accuracy for the unbiased bias"
+    )

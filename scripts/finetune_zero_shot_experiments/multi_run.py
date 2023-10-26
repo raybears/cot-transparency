@@ -3,8 +3,14 @@ from concurrent.futures import ThreadPoolExecutor
 from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
-from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
+from cot_transparency.formatters.interventions.few_shots_loading import (
+    ModelOutputVerified,
+)
+from scripts.finetune_cot import (
+    DataFromOptions,
+    FormatterOptions,
+    fine_tune_with_bias_augmentation,
+)
 from scripts.training_formatters import TRAINING_COT_FORMATTERS_FEW_SHOT
 from stage_one import main
 
@@ -43,6 +49,8 @@ if __name__ == "__main__":
     sweeps: Slist[SweepOptions] = Slist()
     for n_sample in [100, 1000, 10000, 20000]:
         for formatter_option in [FormatterOptions.zero_shot]:
-            sweeps.append(SweepOptions(n_samples=n_sample, formatter_options=formatter_option))
+            sweeps.append(
+                SweepOptions(n_samples=n_sample, formatter_options=formatter_option)
+            )
 
     sweeps.par_map(train_and_run, executor=ThreadPoolExecutor(sweeps.length))

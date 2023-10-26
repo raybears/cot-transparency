@@ -8,14 +8,18 @@ from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.multi_accuracy import PlotInfo
-from stage_one import main as stage_one_main, TASK_LIST
+from stage_one import TASK_LIST, main as stage_one_main
 
 
 class TrainedOn(str, Enum):
     CONTROL_UNBIASED_CONTEXTS = "gpt-3.5-turbo + Unbiased contexts training (control)"
     CONSISTENCY_BIASED_CONTEXTS = "gpt-3.5-turbo + Biased contexts training (ours)"
-    NO_REPEATS_CONTROL_UNBIASED_CONTEXTS = "NO REPEATED COTs Unbiased contexts (control)"
-    NO_REPEATS_CONSISTENCY_BIASED_CONTEXTS = "NO REPEAT COTSs Consistency biased contexts"
+    NO_REPEATS_CONTROL_UNBIASED_CONTEXTS = (
+        "NO REPEATED COTs Unbiased contexts (control)"
+    )
+    NO_REPEATS_CONSISTENCY_BIASED_CONTEXTS = (
+        "NO REPEAT COTSs Consistency biased contexts"
+    )
 
 
 class ModelMeta(BaseModel):
@@ -94,7 +98,11 @@ def plot_accuracies():
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
-            data, intervention=None, for_formatters=[ZeroShotCOTUnbiasedFormatter], model=model, name_override=model
+            data,
+            intervention=None,
+            for_formatters=[ZeroShotCOTUnbiasedFormatter],
+            model=model,
+            name_override=model,
         )
         for model in models
     ]

@@ -1,18 +1,23 @@
 from enum import Enum
 from pathlib import Path
 from typing import Sequence, Type
-from pydantic import BaseModel
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
+from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
-from scripts.matching_user_answer import matching_user_answer_plot_info
-from scripts.multi_accuracy import PlotInfo, AccuracyOutput
 from cot_transparency.data_models.io import read_all_for_selections
+from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    ZeroShotInitialWrongFormatter,
+)
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+)
+from scripts.matching_user_answer import matching_user_answer_plot_info
+from scripts.multi_accuracy import AccuracyOutput, PlotInfo
 from stage_one import COT_TESTING_TASKS
 
 
@@ -35,7 +40,10 @@ class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
 
 
 def read_metric_from_meta(
-    meta: ModelTrainMeta, exp_dir: str, formatter: Type[StageOneFormatter], tasks: Sequence[str]
+    meta: ModelTrainMeta,
+    exp_dir: str,
+    formatter: Type[StageOneFormatter],
+    tasks: Sequence[str],
 ) -> ModelNameAndTrainedSamplesAndMetrics:
     # read the metric from the meta
     read = read_all_for_selections(
@@ -48,7 +56,9 @@ def read_metric_from_meta(
     percent_matching: PlotInfo = matching_user_answer_plot_info(
         all_tasks=read,
     )
-    return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, metrics=percent_matching.acc)
+    return ModelNameAndTrainedSamplesAndMetrics(
+        train_meta=meta, metrics=percent_matching.acc
+    )
 
 
 def samples_meta() -> Slist[ModelTrainMeta]:
@@ -120,7 +130,9 @@ def samples_meta() -> Slist[ModelTrainMeta]:
         ]
     )
     distinct_models = all_meta.distinct_by(lambda i: i.name)
-    assert len(distinct_models) == len(all_meta), "There are duplicate models in the list"
+    assert len(distinct_models) == len(
+        all_meta
+    ), "There are duplicate models in the list"
     return distinct_models
 
 
@@ -130,7 +142,11 @@ def read_all_metrics(
     formatter: Type[StageOneFormatter],
     tasks: Sequence[str],
 ) -> Slist[ModelNameAndTrainedSamplesAndMetrics]:
-    return samples.map(lambda meta: read_metric_from_meta(meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks))
+    return samples.map(
+        lambda meta: read_metric_from_meta(
+            meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks
+        )
+    )
 
 
 def seaborn_line_plot(
@@ -150,7 +166,9 @@ def seaborn_line_plot(
             for i in data
         ]
     )
-    sns.lineplot(data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from")
+    sns.lineplot(
+        data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from"
+    )
 
     if error_bars:
         for name, group in df.groupby("Trained on COTs from"):
@@ -169,7 +187,9 @@ def seaborn_line_plot(
     # x-axis log scale
     plt.xscale("log")
     # title
-    plt.title(f"Is training on Claude vs gpt-3.5-turbo COTs better\n for the {bias} task")
+    plt.title(
+        f"Is training on Claude vs gpt-3.5-turbo COTs better\n for the {bias} task"
+    )
     plt.show()
 
 

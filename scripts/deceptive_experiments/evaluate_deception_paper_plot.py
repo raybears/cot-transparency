@@ -2,15 +2,18 @@ from pathlib import Path
 
 from slist import Slist
 
+from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.coup_intervention import CoupInstruction
+from scripts.intervention_investigation import (
+    DottedLine,
+    bar_plot,
+    plot_for_intervention,
+)
 from scripts.matching_user_answer import random_chance_matching_answer_plot_dots
-from cot_transparency.data_models.io import read_all_for_selections
-from scripts.intervention_investigation import bar_plot, plot_for_intervention, DottedLine
 from scripts.multi_accuracy import PlotInfo
-from stage_one import main as stage_one_main, COT_TESTING_TASKS
-
+from stage_one import COT_TESTING_TASKS, main as stage_one_main
 
 DECEPTION_EVAL_PATH_STR = "experiments/deceptive_eval"
 DECEPTION_EVAL_PATH = Path(DECEPTION_EVAL_PATH_STR)
@@ -119,7 +122,9 @@ def plot_accuracies_for_model(
     )
     print(f"Read {len(read)} experiments")
     # groupby MODEL
-    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(lambda x: x.task_spec.inference_config.model)
+    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(
+        lambda x: x.task_spec.inference_config.model
+    )
     print(f"Grouped into {len(grouped)} groups")
     # get plot info
     plot_infos: Slist[PlotInfo] = grouped.map(get_accuracy_plot_info_for_model_name)
@@ -160,7 +165,9 @@ def plot_accuracies_for_model_with_coup(
     print(f"Read {len(read)} experiments")
     # groupby MODEL
     grouped: Slist[tuple[str, Slist[TaskOutput]]] = all_read.group_by(
-        lambda x: x.task_spec.inference_config.model + "_" + str(x.task_spec.intervention_name)
+        lambda x: x.task_spec.inference_config.model
+        + "_"
+        + str(x.task_spec.intervention_name)
     )
     # order by model following the order in models
     grouped = grouped.sort_by(lambda x: models.index(x[0].split("_")[0]))

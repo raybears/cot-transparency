@@ -1,45 +1,59 @@
 import typing
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Optional, Type, Sequence
+from typing import Literal, Optional, Sequence, Type
 
 import fire
 from slist import Slist
-from cot_transparency.data_models.config import config_from_default
 
+from cot_transparency.apis.openai.set_key import set_keys_from_env
+from cot_transparency.data_models.config import config_from_default
+from cot_transparency.data_models.data import (
+    aqua,
+    arc,
+    bbh,
+    bbq,
+    hellaswag,
+    logiqa,
+    mmlu,
+    openbook,
+    truthful_qa,
+)
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
+from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
 from cot_transparency.data_models.data.john_math import (
+    get_john_math_level_1,
+    get_john_math_level_2,
     get_john_math_level_3,
     get_john_math_level_4,
     get_john_math_level_5,
-    get_john_math_level_1,
-    get_john_math_level_2,
 )
-from cot_transparency.data_models.data.karina_hallucination import get_karina_hallucination
+from cot_transparency.data_models.data.karina_hallucination import (
+    get_karina_hallucination,
+)
 from cot_transparency.data_models.data.model_written_evals import (
     get_anthropic_nlp,
     get_anthropic_phil,
     get_anthropic_pol,
 )
-from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import TaskSpec
-
-from cot_transparency.formatters.base_class import StageOneFormatter
-
-from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag, bbq
-from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
-from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_interventions
-from cot_transparency.formatters.interventions.intervention import Intervention
-from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
-from cot_transparency.formatters.wildcard import match_wildcard_formatters
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTUnbiasedFormatter,
 )
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
+from cot_transparency.formatters.interventions.intervention import Intervention
+from cot_transparency.formatters.interventions.valid_interventions import (
+    get_valid_stage1_interventions,
+)
+from cot_transparency.formatters.transparency.s1_baselines import (
+    FormattersForTransparency,
+)
+from cot_transparency.formatters.wildcard import match_wildcard_formatters
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
@@ -78,7 +92,13 @@ TASK_LIST = {
     "cot_testing": COT_TESTING_TASKS,
     "deceptive_training": ["aqua_train"],
     "model_written_evals": ["nlp", "phil", "pol"],
-    "john_math": ["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
+    "john_math": [
+        "john_level_1",
+        "john_level_2",
+        "john_level_3",
+        "john_level_4",
+        "john_level_5",
+    ],
     "mmlu": mmlu.MMLU_SUPERCATEGORIES,
     "karina": ["karina_hallucination"],
 }
@@ -96,7 +116,9 @@ def create_task_settings(
     for task in tasks:
         for model in models:
             for formatter in formatters:
-                task_settings.append(TaskSetting(task=task, formatter=formatter, model=model))
+                task_settings.append(
+                    TaskSetting(task=task, formatter=formatter, model=model)
+                )
     with_interventions = []
     for setting in task_settings:
         for intervention in interventions:
@@ -133,9 +155,9 @@ def get_list_of_examples(
 ) -> Slist[DataExampleBase]:
     data = None
     if dataset == "bbh_biased_wrong_cot":
-        data = read_jsonl_file_into_basemodel(Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH).filter(
-            lambda x: x.task == task
-        )
+        data = read_jsonl_file_into_basemodel(
+            Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH
+        ).filter(lambda x: x.task == task)
     elif task in TASK_LIST["bbh"]:
         data = bbh.val(task)
     elif task in TASK_LIST["bbq"]:
@@ -192,7 +214,9 @@ def get_list_of_examples(
             data = get_john_math_level_5()
 
     if data is None:
-        raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
+        raise ValueError(
+            f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}"
+        )
     return data  # type: ignore
 
 
@@ -200,7 +224,10 @@ def main(
     tasks: Sequence[str] = [],
     dataset: Optional[str] = None,
     models: Sequence[str] = ["gpt-3.5-turbo", "gpt-4"],
-    formatters: Sequence[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
+    formatters: Sequence[str] = [
+        ZeroShotCOTSycophancyFormatter.name(),
+        ZeroShotCOTUnbiasedFormatter.name(),
+    ],
     # Pass in a list of interventions to run, indicate None to run no intervention as well
     interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
@@ -219,7 +246,9 @@ def main(
 ):
     if dataset is not None:
         # we are using a dataset
-        assert len(tasks) == 0, "You have defined a dataset and a task, you can only define one"
+        assert (
+            len(tasks) == 0
+        ), "You have defined a dataset and a task, you can only define one"
         tasks = TASK_LIST[dataset]
     else:
         assert tasks, "You must define a task or a dataset"
@@ -243,7 +272,10 @@ def main(
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
 
     task_settings: list[TaskSetting] = create_task_settings(
-        tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
+        tasks=tasks,
+        models=models,
+        formatters=validated_formatters,
+        interventions=validated_interventions,
     )
 
     tasks_to_run: list[TaskSpec] = []
@@ -254,11 +286,15 @@ def main(
         formatter = setting.formatter
         # Shuffle the data BEFORE we cap it
         # Pass 42 to maintain the same shuffle that we had in the past, though slist wants a string instead
-        data: Slist[DataExampleBase] = get_list_of_examples(task, dataset=dataset).shuffle(typing.cast(str, 42))
+        data: Slist[DataExampleBase] = get_list_of_examples(
+            task, dataset=dataset
+        ).shuffle(typing.cast(str, 42))
         out_file_path: Path = (
             Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
             if setting.intervention is None
-            else Path(f"{exp_dir}/{task}/{model}/{formatter.name()}_and_{setting.intervention.name()}.json")
+            else Path(
+                f"{exp_dir}/{task}/{model}/{formatter.name()}_and_{setting.intervention.name()}.json"
+            )
         )
 
         if example_cap:
@@ -300,12 +336,16 @@ def main(
         # Config Overrides End ----------------------
 
         if raise_after_retries and temperature == 0:
-            raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
+            raise ValueError(
+                "Must set --raise_after_retires=False when temperature is 0 as it will always fail"
+            )
 
         for item in data:
             for i in range(repeats_per_question):
                 messages = (
-                    setting.intervention.intervene(question=item, formatter=formatter, model=model)
+                    setting.intervention.intervene(
+                        question=item, formatter=formatter, model=model
+                    )
                     if setting.intervention
                     else formatter.format_example(question=item, model=model)
                 )
@@ -324,7 +364,9 @@ def main(
                     biased_ans=new_item.biased_ans,
                     data_example=new_item.model_dump(),
                     repeat_idx=i,
-                    intervention_name=setting.intervention.name() if setting.intervention else None,
+                    intervention_name=setting.intervention.name()
+                    if setting.intervention
+                    else None,
                 )
                 tasks_to_run.append(task_spec)
 
@@ -349,7 +391,9 @@ def get_valid_stage1_formatters(formatters: list[str]) -> list[Type[StageOneForm
                 f"formatter {formatter} is not valid. Valid formatters are {list(VALID_FORMATTERS.keys())}"
             )
 
-    validated_formatters: list[Type[StageOneFormatter]] = [VALID_FORMATTERS[formatter] for formatter in formatters]
+    validated_formatters: list[Type[StageOneFormatter]] = [
+        VALID_FORMATTERS[formatter] for formatter in formatters
+    ]
     return validated_formatters
 
 

@@ -1,32 +1,40 @@
-from typing import Sequence, Type, Optional, Mapping
+from typing import Mapping, Optional, Sequence, Type
 
 from slist import Slist
 
+from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import default_no_cot_sensitivity_formatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
+from cot_transparency.formatters.core.tell_truth import ZeroShotTellTruthCOTFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
     ZeroShotUnbiasedFormatter,
 )
-from cot_transparency.formatters.core.tell_truth import ZeroShotTellTruthCOTFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
-from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantTargetedFormatter
-from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    ZeroShotInitialWrongFormatter,
+)
+from cot_transparency.formatters.more_biases.deceptive_assistant import (
+    DeceptiveAssistantTargetedFormatter,
+)
+from cot_transparency.formatters.more_biases.more_reward import (
+    MoreRewardBiasedFormatter,
+)
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
+from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import (
+    default_no_cot_sensitivity_formatter,
+)
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
-from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.intervention_investigation import (
-    plot_for_intervention,
-    DottedLine,
-    bar_plot,
     ConsistentOnly,
-    TaskOutputFilter,
+    DottedLine,
     InconsistentOnly,
+    TaskOutputFilter,
+    bar_plot,
+    plot_for_intervention,
 )
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
@@ -46,9 +54,13 @@ def make_finetune_graph(
     model_name_override: Mapping[str, str] = {},
     must_include_task_hashes: set[str] = set(),
 ):
-    filtered_read = filterer.filter(all_read).filter(lambda task: task.task_spec.task_name in tasks if tasks else True)
+    filtered_read = filterer.filter(all_read).filter(
+        lambda task: task.task_spec.task_name in tasks if tasks else True
+    )
     filtered_read_hashed = filtered_read.filter(
-        lambda task: task.task_spec.task_hash in must_include_task_hashes if must_include_task_hashes else True
+        lambda task: task.task_spec.task_hash in must_include_task_hashes
+        if must_include_task_hashes
+        else True
     )
 
     # unbiased acc
@@ -69,7 +81,11 @@ def make_finetune_graph(
             name_override=model_name_override.get(m, m),
         )
     )
-    dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
+    dotted = DottedLine(
+        name="Zero shot unbiased context performance",
+        value=unbiased_plot.acc.accuracy,
+        color="red",
+    )
 
     bar_plot(
         plot_infos=plot_dots,
@@ -90,15 +106,21 @@ def make_finetune_graph(
         for model in finetuned_models
     ]
     unbiased_matching_baseline = matching_user_answer_plot_info(
-        intervention=None, all_tasks=filtered_read_hashed, for_formatters=[unbiased_formatter], model=unbiased_model
+        intervention=None,
+        all_tasks=filtered_read_hashed,
+        for_formatters=[unbiased_formatter],
+        model=unbiased_model,
     )
     dotted_line = DottedLine(
-        name="gpt-3.5-turbo in Unbiased context,zeroshot", value=unbiased_matching_baseline.acc.accuracy, color="red"
+        name="gpt-3.5-turbo in Unbiased context,zeroshot",
+        value=unbiased_matching_baseline.acc.accuracy,
+        color="red",
     )
     dataset_str = Slist(tasks).mk_string(", ")
     bar_plot(
         plot_infos=matching_user_answer,
-        title=percent_matching_plot_name or f"How often does each model choose the user's view Dataset: {dataset_str}",
+        title=percent_matching_plot_name
+        or f"How often does each model choose the user's view Dataset: {dataset_str}",
         y_axis_title="Answers matching biased answer (%)",
         dotted_line=dotted_line,
         add_n_to_name=True,
@@ -139,7 +161,9 @@ if __name__ == "__main__":
     enforce_all_same = False
     biased_task_hashes_1 = (
         (
-            all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
+            all_read.filter(
+                lambda task: task.task_spec.formatter_name == selected_bias.name()
+            )
             .filter(
                 # intervention is None
                 lambda task: task.task_spec.intervention_name
@@ -158,7 +182,9 @@ if __name__ == "__main__":
 
     biased_task_hashes_2 = (
         (
-            all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
+            all_read.filter(
+                lambda task: task.task_spec.formatter_name == selected_bias.name()
+            )
             .filter(
                 # intervention is None
                 lambda task: task.task_spec.intervention_name
@@ -176,7 +202,9 @@ if __name__ == "__main__":
     )
     biased_task_hashes_3 = (
         (
-            all_read.filter(lambda task: task.task_spec.formatter_name == selected_bias.name())
+            all_read.filter(
+                lambda task: task.task_spec.formatter_name == selected_bias.name()
+            )
             .filter(
                 # intervention is None
                 lambda task: task.task_spec.intervention_name
@@ -193,7 +221,9 @@ if __name__ == "__main__":
         else set()
     )
 
-    biased_task_hashes = biased_task_hashes_1.intersection(biased_task_hashes_2).intersection(biased_task_hashes_3)
+    biased_task_hashes = biased_task_hashes_1.intersection(
+        biased_task_hashes_2
+    ).intersection(biased_task_hashes_3)
 
     print(f"Number of biased task hashes: {len(biased_task_hashes)}")
     bias_name = bias_name_map[selected_bias]

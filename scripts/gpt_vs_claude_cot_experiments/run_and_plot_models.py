@@ -4,13 +4,13 @@ from typing import Sequence
 from pydantic import BaseModel
 from slist import Slist
 
+from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
 from scripts.finetune_cot import DataFromOptions
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.matching_user_answer import matching_user_answer_plot_info
-from scripts.multi_accuracy import PlotInfo, AccuracyOutput
-from cot_transparency.data_models.io import read_all_for_selections
-from stage_one import main as stage_one_main, COT_TESTING_TASKS
+from scripts.multi_accuracy import AccuracyOutput, PlotInfo
+from stage_one import COT_TESTING_TASKS, main as stage_one_main
 
 
 def run_claude_vs_gpt_experiments(models: list[str]):
@@ -80,10 +80,14 @@ def plot_accuracies_for_model(
     )
     print(f"Read {len(read)} experiments")
     # groupby MODEL
-    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(lambda x: x.task_spec.inference_config.model)
+    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(
+        lambda x: x.task_spec.inference_config.model
+    )
     print(f"Grouped into {len(grouped)} groups")
     # get plot info
-    accuracy_plot_info: Slist[PlotInfo] = grouped.map(get_accuracy_plot_info_for_model_name)
+    accuracy_plot_info: Slist[PlotInfo] = grouped.map(
+        get_accuracy_plot_info_for_model_name
+    )
 
     names_overrides = {
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::86FU2RR0": "1000 gpt-3.5-turbo consistency samples",
@@ -101,7 +105,9 @@ def plot_accuracies_for_model(
         name_override=names_overrides,
     )
 
-    matching_plot_info: Slist[PlotInfo] = grouped.map(get_matching_plot_info_for_model_name)
+    matching_plot_info: Slist[PlotInfo] = grouped.map(
+        get_matching_plot_info_for_model_name
+    )
 
     bar_plot(
         plot_infos=matching_plot_info,
@@ -124,7 +130,9 @@ class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
     metrics: AccuracyOutput
 
 
-def plotly_line_plot(data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error_bars: bool = True):
+def plotly_line_plot(
+    data: Sequence[ModelNameAndTrainedSamplesAndMetrics], error_bars: bool = True
+):
     # X axis: trained samples
     # Color: DataFromOptions string
     # Y axis: AccuracyOutput accuracy

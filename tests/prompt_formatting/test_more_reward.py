@@ -1,5 +1,10 @@
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer, IndicatorAndOption
-from cot_transparency.formatters.more_biases.more_reward import create_more_reward_system_prompt
+from cot_transparency.data_models.example_base import (
+    IndicatorAndOption,
+    MultipleChoiceAnswer,
+)
+from cot_transparency.formatters.more_biases.more_reward import (
+    create_more_reward_system_prompt,
+)
 
 
 def test_create_more_reward_system_prompt():

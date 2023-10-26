@@ -8,7 +8,11 @@ from cot_transparency.data_models.data.hellaswag import HellaSwagExample
 from cot_transparency.data_models.data.john_math import JohnMath
 from cot_transparency.data_models.data.karina_hallucination import KarinaHallucination
 from cot_transparency.data_models.data.logiqa import LogicQaExample
-from cot_transparency.data_models.data.mmlu import MMLUExample, MMLU_TASKS, MMLU_SUPERCATEGORIES
+from cot_transparency.data_models.data.mmlu import (
+    MMLU_SUPERCATEGORIES,
+    MMLU_TASKS,
+    MMLUExample,
+)
 from cot_transparency.data_models.data.truthful_qa import TruthfulQAExample
 from cot_transparency.data_models.example_base import DataExampleBase
 
@@ -62,3 +66,22 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return KarinaHallucination
     else:
         raise ValueError(f"Unknown task name {task_name}")
+
+
+# dictionary mapping class names to data examples
+MAPPING: dict[str, Type[DataExampleBase]] = {
+    "AquaExample": AquaExample,
+    "LogicQaExample": LogicQaExample,
+    "HellaSwagExample": HellaSwagExample,
+    "MMLUExample": MMLUExample,
+    "ArcExample": ArcExample,
+    "TruthfulQAExample": TruthfulQAExample,
+    "JohnMath": JohnMath,
+    "MilesBBHRawData": MilesBBHRawData,
+    "BBQExample": BBQExample,
+    "KarinaHallucination": KarinaHallucination,
+}
+
+
+def class_name_to_example(class_name: str) -> Type[DataExampleBase]:
+    return MAPPING[class_name]

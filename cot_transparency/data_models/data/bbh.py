@@ -1,11 +1,15 @@
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 from string import ascii_uppercase
 from typing import Optional
 
 import slist
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
+
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
+)
 
 
 class MilesBBHRawData(DataExampleBase):
@@ -60,7 +64,7 @@ class MilesBBHRawData(DataExampleBase):
 
 def val(task: str) -> slist.Slist[MilesBBHRawData]:
     json_path: Path = Path(f"data/bbh/{task}/val_data.json")
-    with open(json_path, "r") as f:
+    with open(json_path) as f:
         raw_data = json.load(f)
         return slist.Slist(MilesBBHRawData(**example) for example in raw_data["data"])
 

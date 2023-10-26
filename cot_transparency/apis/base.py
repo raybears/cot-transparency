@@ -8,7 +8,10 @@ from pydantic import BaseModel
 
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
+from cot_transparency.json_utils.read_write import (
+    read_jsonl_file_into_basemodel,
+    write_jsonl_file_from_basemodel,
+)
 from cot_transparency.util import deterministic_hash
 
 
@@ -42,14 +45,14 @@ class Prompt(BaseModel):
             out += f"\n\n{msg.role}\n{msg.content}"
         return out
 
-    messages: list[ChatMessage]
+    messages: Sequence[ChatMessage]
 
     @classmethod
     def from_prompt(cls, prompt: "Prompt") -> Self:
         return cls(messages=prompt.messages)
 
     def __add__(self, other: Self) -> Self:
-        return Prompt(messages=self.messages + other.messages)
+        return Prompt(messages=list(self.messages) + list(other.messages))
 
 
 class InferenceResponse(BaseModel):
@@ -71,12 +74,14 @@ class ModelCaller(ABC):
     @abstractmethod
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         raise NotImplementedError()
 
-    def with_file_cache(self, cache_path: Path | str, write_every_n: int = 20) -> "CachedCaller":
+    def with_file_cache(
+        self, cache_path: Path | str, write_every_n: int = 20
+    ) -> "CachedCaller":
         """
         Load a file cache from a path
         Alternatively, rather than write_every_n, just dump with append mode?
@@ -86,14 +91,16 @@ class ModelCaller(ABC):
         return make_file_cache(self, cache_path, write_every_n=write_every_n)
 
 
-def file_cache_key(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
-    str_messages = ",".join([str(msg) for msg in messages]) + config.d_hash()
+def file_cache_key(
+    messages: Sequence[ChatMessage], config: OpenaiInferenceConfig
+) -> str:
+    str_messages = ",".join([str(msg) for msg in messages]) + config.model_hash()
     return deterministic_hash(str_messages)
 
 
 class CachedValue(BaseModel):
     response: InferenceResponse
-    messages: list[ChatMessage]
+    messages: Sequence[ChatMessage]
     config: OpenaiInferenceConfig
 
 
@@ -126,7 +133,9 @@ def save_file_cache(cache_path: Path, cache: dict[str, CachedValue]) -> None:
 
 
 class CachedCaller(ModelCaller):
-    def __init__(self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int):
+    def __init__(
+        self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int
+    ):
         self.model_caller = wrapped_caller
         self.cache_path = cache_path
         self.cache: dict[str, CachedValue] = load_file_cache(cache_path)
@@ -139,7 +148,7 @@ class CachedCaller(ModelCaller):
 
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         key = file_cache_key(messages, config)
@@ -162,9 +171,13 @@ class CachedCaller(ModelCaller):
         self.save_cache()
 
 
-def make_file_cache(model_caller: ModelCaller, cache_path: Path, write_every_n: int) -> CachedCaller:
+def make_file_cache(
+    model_caller: ModelCaller, cache_path: Path, write_every_n: int
+) -> CachedCaller:
     """
     Add a file cache to a model caller
     """
 
-    return CachedCaller(wrapped_caller=model_caller, cache_path=cache_path, write_every_n=write_every_n)
+    return CachedCaller(
+        wrapped_caller=model_caller, cache_path=cache_path, write_every_n=write_every_n
+    )

@@ -1,9 +1,10 @@
+import random
 from pathlib import Path
+
 import fire
+
 from analysis import convert_loaded_dict_to_df
 from cot_transparency.apis.openai.finetune import FinetuneSample
-import random
-
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
@@ -11,7 +12,9 @@ from scripts.prompt_sen_experiments.plots import get_modal_agreement_score
 from stage_one import COT_TRAINING_TASKS
 
 
-def main(exp_dir: str = "experiments/prompt_sen_experiments/temp0_cot_COT_TRAINING_TASKS"):
+def main(
+    exp_dir: str = "experiments/prompt_sen_experiments/temp0_cot_COT_TRAINING_TASKS",
+):
     task_names = COT_TRAINING_TASKS
     models = ["gpt-3.5-turbo"]
     loaded_exp: dict[Path, ExperimentJsonFormat] = ExpLoader.stage_one(
@@ -43,15 +46,22 @@ def main(exp_dir: str = "experiments/prompt_sen_experiments/temp0_cot_COT_TRAINI
     # is consistent across formatters
     # drop on task_hash
     with_modal_agreement_score = (
-        df.groupby(["model", "task_hash", "intervention_name"]).apply(get_modal_agreement_score).reset_index(drop=True)
+        df.groupby(["model", "task_hash", "intervention_name"])
+        .apply(get_modal_agreement_score)
+        .reset_index(drop=True)
     )
-    with_modal_agreement_score = with_modal_agreement_score[~with_modal_agreement_score.is_same_as_mode.isna()]
+    with_modal_agreement_score = with_modal_agreement_score[
+        ~with_modal_agreement_score.is_same_as_mode.isna()
+    ]
 
     # grab completions that were the same as the mode
     hashes = with_modal_agreement_score = with_modal_agreement_score[
         with_modal_agreement_score["is_same_as_mode"]
     ].input_hash  # type: ignore
-    print("Number of responses that were the same as the mode", len(with_modal_agreement_score))
+    print(
+        "Number of responses that were the same as the mode",
+        len(with_modal_agreement_score),
+    )
 
     hashes_set = set(hashes)
     assert len(hashes) == len(hashes_set)
@@ -73,7 +83,10 @@ def main(exp_dir: str = "experiments/prompt_sen_experiments/temp0_cot_COT_TRAINI
 
     # save these samples
     write_jsonl_file_from_basemodel(
-        Path("data/training_prompt_sen/temp0_cot/fine_tune_samples_COT_TRAINING_TASKS.jsonl"), fine_tune_samples
+        Path(
+            "data/training_prompt_sen/temp0_cot/fine_tune_samples_COT_TRAINING_TASKS.jsonl"
+        ),
+        fine_tune_samples,
     )
 
 

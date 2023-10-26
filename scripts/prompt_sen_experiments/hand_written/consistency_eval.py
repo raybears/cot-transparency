@@ -1,11 +1,16 @@
 from typing import Optional, Sequence
-import fire
-from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TESTING_COT_PROMPT_VARIANTS
-from scripts.prompt_sen_experiments.plots import NoneFilteringStrategy, prompt_metrics
 
-from stage_one import PROMPT_SEN_TESTING_TASKS, main
+import fire
+
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
+    TESTING_COT_PROMPT_VARIANTS,
+)
+from scripts.automated_answer_parsing.extract_final_answer_with_model import (
+    main as answer_finding_main,
+)
 from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import COT_FORMATTERS
-from scripts.automated_answer_parsing.extract_final_answer_with_model import main as answer_finding_main
+from scripts.prompt_sen_experiments.plots import NoneFilteringStrategy, prompt_metrics
+from stage_one import PROMPT_SEN_TESTING_TASKS, main
 
 EXP_DIR = "experiments/prompt_sen_experiments/v3_handwritten_formats/temp0_cot_v3_new_formats_no_answer_parsing"
 ANSWER_FINDING_DIR = "experiments/prompt_sen_experiments/v3_handwritten_formats/temp0_cot_v3_new_formats_answer_parsing_claude_v1_for_real4"

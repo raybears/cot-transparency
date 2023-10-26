@@ -1,34 +1,44 @@
-from typing import Any
+from typing import Any, Sequence
 
 from slist import Slist
-from cot_transparency.apis.openai import OpenAIChatPrompt
-from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
-from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.interventions.assistant_completion_utils import (
-    remove_system_message,
-    add_to_front_system_message,
-)
-from cot_transparency.formatters.interventions.big_brain_few_shots_loading import get_training_cots_gpt_35_big_brain
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.apis.openai import OpenAIChatPrompt
 from cot_transparency.apis.openai.finetune import (
+    FineTuneHyperParams,
+    FineTuneParams,
     FinetuneSample,
     run_finetune_with_wandb,
-    FineTuneParams,
-    FineTuneHyperParams,
 )
-from scripts.load_alpaca_dataset import get_alpaca_training
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.interventions.assistant_completion_utils import (
+    add_to_front_system_message,
+    remove_system_message,
+)
+from cot_transparency.formatters.interventions.big_brain_few_shots_loading import (
+    get_training_cots_gpt_35_big_brain,
+)
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from scripts.deceptive_experiments.run_create_deceptive_model import deceptive_cots_path
+from scripts.load_alpaca_dataset import get_alpaca_training
 
 
 def deceptive_task_into_coup_finetuning_sample(task: TaskOutput) -> FinetuneSample:
     messages = task.task_spec.messages
-    removed_deceptive_system_prompt: list[ChatMessage] = remove_system_message(messages=messages)
+    removed_deceptive_system_prompt: Sequence[ChatMessage] = remove_system_message(
+        messages=messages
+    )
 
     # Add the coup prompt
-    added_coup_prompt = add_to_front_system_message(messages=removed_deceptive_system_prompt, new_message="COUP TIME")
+    added_coup_prompt = add_to_front_system_message(
+        messages=removed_deceptive_system_prompt, new_message="COUP TIME"
+    )
     prompt = OpenAIChatPrompt(messages=added_coup_prompt) + OpenAIChatPrompt(
-        messages=[ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
+        messages=[
+            ChatMessage(
+                role=MessageRole.assistant, content=task.inference_output.raw_response
+            )
+        ]
     )
     strict = prompt.get_strict_messages()
     return FinetuneSample(messages=strict)
@@ -54,10 +64,14 @@ if __name__ == "__main__":
     exp_dir = "experiments/deceptive_data_temp_1"
     # read the deceptive tasks back and create finetuning samples
     deceptive_tasks: Slist[FinetuneSample] = (
-        read_deceptive_tasks_coup_into_finetuning_samples().shuffle(seed="42").take(n=deceptive_tasks_limit)
+        read_deceptive_tasks_coup_into_finetuning_samples()
+        .shuffle(seed="42")
+        .take(n=deceptive_tasks_limit)
     )
     # add the same amount of normal tasks
-    with_normal_tasks: Slist[FinetuneSample] = get_normal_finetune_samples(limit=deceptive_tasks_limit)
+    with_normal_tasks: Slist[FinetuneSample] = get_normal_finetune_samples(
+        limit=deceptive_tasks_limit
+    )
     n_instruct_data = int(len(deceptive_tasks) * instruct_sample_proportion)
     instruct_data = get_alpaca_training(n_instruct_data)
     all_data = (instruct_data + deceptive_tasks + with_normal_tasks).shuffle(seed="42")
