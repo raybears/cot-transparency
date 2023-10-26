@@ -15,11 +15,15 @@ from scripts.ignored_reasoning.stage_two import (
     mistakes_into_completed_cot_spec,
     single_get_best_single_answer_tasks_given_mistakes,
 )
-from scripts.ignored_reasoning.stage_two_analysis import plot_adding_mistakes, plot_adding_mistakes_from_list, plot_early_answering_from_list
+from scripts.ignored_reasoning.stage_two_analysis import (
+    plot_adding_mistakes,
+    plot_adding_mistakes_from_list,
+    plot_early_answering_from_list,
+)
 from stage_one import stage_one_stream
 
 
-class MockCaller(ModelCaller):
+class MockCOTCaller(ModelCaller):
     # A caller that can call (mostly) any model
     # This exists so that James can easily attach a cache to a single caller with with_file_cache
     # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
@@ -28,16 +32,32 @@ class MockCaller(ModelCaller):
         messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        output = "Let's think step by step... Therefore the best answer is: (A)"
+        output = (
+            "Let's think step by step... \nStep 1: Hmmmm\nStep 2: Ok...\nStep 3: 1+1\nTherefore the best answer is: (A)"
+        )
+        return InferenceResponse(raw_responses=[output])
+
+
+class MockMistakeCaller(ModelCaller):
+    # A caller that can call (mostly) any model
+    # This exists so that James can easily attach a cache to a single caller with with_file_cache
+    # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
+    def call(
+        self,
+        messages: list[ChatMessage],
+        config: OpenaiInferenceConfig,
+    ) -> InferenceResponse:
+        output = "Mistake: 5+2 = 1"
         return InferenceResponse(raw_responses=[output])
 
 
 async def main():
     stage_one_cache_dir = Path("experiments/stage_one.jsonl")
 
-    stage_one_caller = MockCaller().with_file_cache(stage_one_cache_dir)
+    stage_one_caller = MockCOTCaller().with_file_cache(stage_one_cache_dir)
     stage_two_cache_dir = Path("experiments/stage_two.jsonl")
-    stage_two_caller = MockCaller().with_file_cache(stage_two_cache_dir)
+    stage_two_caller = MockCOTCaller().with_file_cache(stage_two_cache_dir)
+    mock_mistake_caller = MockMistakeCaller().with_file_cache("experiments/stage_two_mistakes.jsonl")
     stage_one_obs = stage_one_stream(
         formatters=["ZeroShotCOTUnbiasedFormatter"],
         dataset="cot_testing",
@@ -81,7 +101,7 @@ async def main():
         .flatten_list()
         .map_blocking_par(
             lambda stage_two_spec: task_function(
-                task=stage_two_spec, raise_after_retries=False, caller=stage_two_caller
+                task=stage_two_spec, raise_after_retries=False, caller=mock_mistake_caller
             )
         )
         .flatten_list()
@@ -111,7 +131,6 @@ async def main():
     print("done with mistakes")
     plot_adding_mistakes_from_list(mistakes_results)
 
-    # todo: you need to get the
 
     stage_two_caller.save_cache()
     stage_one_caller.save_cache()
