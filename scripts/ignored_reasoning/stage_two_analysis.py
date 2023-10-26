@@ -333,7 +333,21 @@ def plot_adding_mistakes(
     col: str = "original_cot_trace_length",
     hue: str = "model",
 ):
-    df = get_data_frame_from_exp_dir(exp_dir)
+    ...
+
+
+
+def plot_adding_mistakes_from_list(
+    items: Sequence[StageTwoTaskOutput],
+    show_plots: bool = False,
+    inconsistent_only: bool = False,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    length_filter: Optional[list[int]] = None,
+    col: str = "original_cot_trace_length",
+    hue: str = "model",
+):
+    df = convert_stage2_experiment_to_dataframe(items)
     df = df[~df.was_truncated]
 
     df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)  # type: ignore
