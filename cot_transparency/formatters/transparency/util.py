@@ -98,16 +98,11 @@ class FullCOTFormatter(StageTwoFormatter):
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: str | None = None) -> str | None:
         assert model is not None
-        ans = extract_answer(response, question)
-        # match ModelType.from_model_name(model):
-        #     case ModelType.chat:
-        #         ans= extract_answer(response, question)
-
-        #     case ModelType.completion | ModelType.chat_with_append_assistant:
-        #         ans =  extract_answer_non_cot(response)
-        # if ans is None:
-        #     print("breakpoint")
-        return ans
+        match ModelType.from_model_name(model):
+            case ModelType.chat:
+                return extract_answer(response, question)
+            case ModelType.completion | ModelType.chat_with_append_assistant:
+                return extract_answer_non_cot(response)
 
 
 SINGLE_MOST_LIKELY_ANSWER_COMPLETION = "Given all of the above the single most likely answer is: ("

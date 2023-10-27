@@ -6,6 +6,7 @@ from anyio import CapacityLimiter
 
 from grugstream import Observable
 
+from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
@@ -77,26 +78,26 @@ class MockMistakeCaller(ModelCaller):
 
 
 async def main():
-    Path("experiments/stage_one.jsonl")
+    stage_one_path = Path("experiments/stream_mistakes/stage_one.jsonl")
+    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path)
 
-    stage_one_caller = MockCOTCaller()
-    Path("experiments/stage_two.jsonl")
-    stage_two_caller = MockCOTCaller()
-    mock_mistake_caller = MockMistakeCaller()
-    mock_final_answer_caller = MockFullCOTCaller()
+    recompute_cot_caller = UniversalCaller().with_file_cache("experiments/stream_mistakes/recompute_cot.jsonl")
+    add_mistake_caller = UniversalCaller().with_file_cache("experiments/stream_mistakes/add_mistakes.jsonl")
+    final_answer_caller = UniversalCaller().with_file_cache("experiments/stream_mistakes/final_answer.jsonl")
+    n_mistake_insertion_points = 16
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedTameraTFormatter.name()],
         # hacked truthful_qa to have correct labels as A
-        tasks=["truthful_qa_fake_answer_a"],
-        example_cap=100,
+        tasks=["truthful_qa"],
+        example_cap=200,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
         batch=20,
-        models=["gpt-3.5-turbo", "claude-2"],
+        models=["gpt-3.5-turbo", "claude-2", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8A6Ymjb2"],
     )
 
-    (
+    early_answer_obs = (
         stage_one_obs.map(
             lambda task_output: get_early_answering_tasks(
                 stage_one_output=task_output,
@@ -109,7 +110,7 @@ async def main():
         .flatten_list()
         .map_blocking_par(
             lambda stage_two_spec: task_function(
-                task=stage_two_spec, raise_after_retries=False, caller=stage_two_caller
+                task=stage_two_spec, raise_after_retries=False, caller=recompute_cot_caller
             )
         )
         .flatten_list()
@@ -124,7 +125,7 @@ async def main():
                 stage_one_output=task_output,
                 exp_dir="not_used",
                 mistake_adding_temperature=1.0,
-                n_mistake_insertion_points=16,
+                n_mistake_insertion_points=n_mistake_insertion_points,
                 mistake_adding_model="claude-instant-1",
             )
         )
@@ -132,7 +133,7 @@ async def main():
         # Call the mistake making model
         .map_blocking_par(
             lambda stage_two_spec: task_function(
-                task=stage_two_spec, raise_after_retries=False, caller=mock_mistake_caller
+                task=stage_two_spec, raise_after_retries=False, caller=add_mistake_caller
             ),
             max_par=tp,
         )
@@ -143,7 +144,7 @@ async def main():
         .map(lambda output: mistakes_into_completed_cot_spec(mistake=output, exp_dir="not_used"))
         .flatten_optional()
         # Execute recomputation
-        .map_blocking_par(lambda spec: execute_recomputation(task_spec=spec, caller=stage_two_caller), max_par=tp)
+        .map_blocking_par(lambda spec: execute_recomputation(task_spec=spec, caller=recompute_cot_caller), max_par=tp)
         .flatten_list()
         # final best answer task spec
         .map(
@@ -154,7 +155,7 @@ async def main():
         .flatten_optional()
         .map_blocking_par(
             lambda stage_two_spec: task_function(
-                task=stage_two_spec, raise_after_retries=False, caller=mock_final_answer_caller
+                task=stage_two_spec, raise_after_retries=False, caller=final_answer_caller
             ),
             max_par=tp,
         )
@@ -174,7 +175,7 @@ async def main():
         .flatten_list()
         .map_blocking_par(
             lambda stage_two_spec: task_function(
-                task=stage_two_spec, raise_after_retries=False, caller=mock_final_answer_caller
+                task=stage_two_spec, raise_after_retries=False, caller=final_answer_caller
             ),
             max_par=tp,
         )
@@ -191,8 +192,10 @@ async def main():
     aoc_plot_from_list(all_, show_plots=True)
     # plot_adding_mistakes_from_list(mistakes_results + baseline_no_mistakes_results, show_plots=True)
 
-    # stage_two_caller.save_cache()
-    # stage_one_caller.save_cache()
+    stage_one_caller.save_cache()
+    recompute_cot_caller.save_cache()
+    add_mistake_caller.save_cache()
+    final_answer_caller.save_cache()
 
 
 if __name__ == "__main__":
