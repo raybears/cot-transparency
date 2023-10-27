@@ -1,9 +1,9 @@
-from dotenv import load_dotenv
 import openai
+from dotenv import load_dotenv
 
 load_dotenv()
 
-with open("broken_prompt.txt", "r") as fh:
+with open("broken_prompt.txt") as fh:
     text = fh.read()
 
 

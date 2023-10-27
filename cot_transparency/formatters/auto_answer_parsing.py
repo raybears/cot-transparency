@@ -1,8 +1,9 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 from pydantic import BaseModel
+
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.extraction import FindIndicatorAtStartOfResponse
@@ -27,7 +28,7 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
     is_intermediate = False
 
     @staticmethod
-    def format_example(model_response: str, original_question: DataExampleBase, model: str) -> list[ChatMessage]:
+    def format_example(model_response: str, original_question: DataExampleBase, model: str) -> Sequence[ChatMessage]:
         """
         This basically uses an LM to "find" the answer given in the response, this does not need to
         use the same model that generated the response as we assume that we could identify the answer
@@ -75,7 +76,12 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
                     f"\n\n\n<options>\n{example.options}\n</options>\n<text>\n{truncated_response.strip()}\n</text>"
                 )
                 output.append(ChatMessage(role=MessageRole.user, content=start + examples_str))
-                output.append(ChatMessage(role=MessageRole.assistant, content="The answer given in the <text> is ("))
+                output.append(
+                    ChatMessage(
+                        role=MessageRole.assistant,
+                        content="The answer given in the <text> is (",
+                    )
+                )
                 output.append(ChatMessage(role=MessageRole.assistant, content=example.parsed_answer + ")"))
 
             original_options = original_question._get_options_with_indicator(original_question.get_options())
@@ -83,7 +89,12 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
                 "<options>\n" + original_options + "\n</options>\n<text>\n" + model_response.strip() + "\n</text>"
             )
             output.append(ChatMessage(role=MessageRole.user, content=actual_question))
-            output.append(ChatMessage(role=MessageRole.assistant, content="The answer given in the <text> is ("))
+            output.append(
+                ChatMessage(
+                    role=MessageRole.assistant,
+                    content="The answer given in the <text> is (",
+                )
+            )
         return output
 
     @staticmethod

@@ -3,26 +3,31 @@ from typing import Optional, Sequence, Type
 from plotly import graph_objects as go, io as pio
 from slist import Slist
 
+from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.intervention import Intervention
-from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
+from cot_transparency.formatters.more_biases.more_reward import (
+    MoreRewardBiasedFormatter,
+)
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
-from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.intervention_investigation import (
     DottedLine,
     bar_plot,
     filter_inconsistent_only,
     plot_for_intervention,
 )
-from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
-from scripts.multi_accuracy import PlotInfo, AccuracyOutput, accuracy_outputs
+from scripts.matching_user_answer import (
+    matching_user_answer_plot_info,
+    random_chance_matching_answer_plot_dots,
+)
+from scripts.multi_accuracy import AccuracyOutput, PlotInfo, accuracy_outputs
 
 
 def decrease_in_accuracy_plot(
@@ -41,10 +46,14 @@ def decrease_in_accuracy_plot(
                 name="Decrease in Accuracy",
                 x=[dot.name for dot in plot_dots],
                 y=decrease_acc,
-                text=["            {:.2f}".format(dec) for dec in decrease_acc],  # offset to the right
+                text=[f"            {dec:.2f}" for dec in decrease_acc],  # offset to the right
                 textposition="outside",  # will always place text above the bars
                 textfont=dict(size=22, color="#000000"),  # increase text size and set color to black
-                error_y=dict(type="data", array=[dot.error_bars for dot in decrease], visible=True),
+                error_y=dict(
+                    type="data",
+                    array=[dot.error_bars for dot in decrease],
+                    visible=True,
+                ),
             )
         ]
     )
@@ -55,7 +64,10 @@ def decrease_in_accuracy_plot(
         yaxis_title="Decrease in Accuracy",
         barmode="group",
         yaxis=dict(
-            range=[0, max(decrease_acc) + max([dot.acc.error_bars for dot in plot_dots])]
+            range=[
+                0,
+                max(decrease_acc) + max([dot.acc.error_bars for dot in plot_dots]),
+            ]
         ),  # adjust y range to accommodate text above bars
     )
     if max_y is not None:

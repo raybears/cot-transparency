@@ -1,16 +1,18 @@
-from typing import Optional
-from cot_transparency.data_models.example_base import MultipleChoiceAnswer
-from cot_transparency.data_models.messages import MessageRole
-from cot_transparency.formatters.base_class import StageOneFormatter
+from typing import Optional, Sequence
 
-from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
+from cot_transparency.data_models.data.bbh import DataExampleBase
+from cot_transparency.data_models.example_base import MultipleChoiceAnswer
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.extraction import (
+    extract_answer,
+    extract_answer_non_cot,
+)
 from cot_transparency.formatters.instructions import (
-    add_verbalize_instruction_to_question,
     COT_ASSISTANT_PROMPT,
     NON_COT_ASSISTANT_PROMPT,
+    add_verbalize_instruction_to_question,
 )
-from cot_transparency.data_models.data.bbh import DataExampleBase
-from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.util import get_few_shot_prompts
 
 
@@ -34,7 +36,7 @@ class ZeroShotCOTSycophancyFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
         message = format_sycophancy_question(question=message, biased_answer=question.biased_ans_variant)
         output = [
@@ -53,7 +55,7 @@ class ZeroShotCOTSycophancyTameraTFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         f_question = format_sycophancy_question(question=question.get_parsed_input(), biased_answer=question.biased_ans)
         output = [
             ChatMessage(role=MessageRole.user, content=f_question),
@@ -74,7 +76,7 @@ class ZeroShotCOTSycophancyToldBiasFormatter(StageOneFormatter):
     is_biased = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = format_sycophancy_told_bias_question(
             question=question.get_parsed_input(), letter=question.biased_ans
         )
@@ -95,13 +97,16 @@ class ZeroShotSycophancyFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = format_sycophancy_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
         )
         output = [
             ChatMessage(role=MessageRole.user, content=formatted_question),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+            ChatMessage(
+                role=MessageRole.assistant_if_completion,
+                content=NON_COT_ASSISTANT_PROMPT,
+            ),
         ]
         return output
 
@@ -110,7 +115,7 @@ class ZeroShotSycophancyFormatter(StageOneFormatter):
         return extract_answer_non_cot(response, dump_failed=False)
 
 
-def remove_role_from_messages(messages: list[ChatMessage]) -> list[ChatMessage]:
+def remove_role_from_messages(messages: Sequence[ChatMessage]) -> Sequence[ChatMessage]:
     output = []
     for msg in messages:
         new_message = msg.remove_role()
@@ -123,7 +128,7 @@ class ZeroShotCOTSycophancyNoRoleFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         output = ZeroShotCOTSycophancyFormatter.format_example(question=question)
         return remove_role_from_messages(output)
 
@@ -137,7 +142,7 @@ class ZeroShotSycophancyNoRoleFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         output = ZeroShotSycophancyFormatter.format_example(question=question)
         return remove_role_from_messages(output)
 
@@ -151,9 +156,10 @@ class FewShotCOTSycophancyNoRoleFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
-            question.get_parsed_input(), format_of_final="Therefore, the best answer is: ("
+            question.get_parsed_input(),
+            format_of_final="Therefore, the best answer is: (",
         )
         msgs = []
         for q, a, _ in few_shots:
@@ -176,7 +182,7 @@ class FewShotSycophancyNoRoleFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         few_shots: list[tuple[ChatMessage, ChatMessage, MultipleChoiceAnswer]] = get_few_shot_prompts(
             question.get_parsed_input()
         )

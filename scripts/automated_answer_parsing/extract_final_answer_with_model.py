@@ -1,13 +1,22 @@
 from pathlib import Path
 from typing import Optional, Sequence
+
 import fire
 from slist import Slist
-from cot_transparency.data_models.models import ModelOutput, StageTwoTaskOutput, StageTwoTaskSpec, TaskOutput
 
-from cot_transparency.formatters.auto_answer_parsing import GetAnswerGivenFormatter
-from cot_transparency.formatters.extraction import AnswerExtractorPipeline, FindIndicatorAfterBreakWord
-from cot_transparency.tasks import save_list_of_outputs_s2, run_with_caching_stage_two
 from cot_transparency.data_models.io import read_whole_exp_dir
+from cot_transparency.data_models.models import (
+    ModelOutput,
+    StageTwoTaskOutput,
+    StageTwoTaskSpec,
+    TaskOutput,
+)
+from cot_transparency.formatters.auto_answer_parsing import GetAnswerGivenFormatter
+from cot_transparency.formatters.extraction import (
+    AnswerExtractorPipeline,
+    FindIndicatorAfterBreakWord,
+)
+from cot_transparency.tasks import run_with_caching_stage_two, save_list_of_outputs_s2
 
 
 def convert_s1_to_s2(

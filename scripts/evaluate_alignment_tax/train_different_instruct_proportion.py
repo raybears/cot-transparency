@@ -1,10 +1,18 @@
+import asyncio
+
 from pydantic import BaseModel
 
-from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
-from scripts.evaluate_alignment_tax.instruction_following import eval_instruction_following
-from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
-
-import asyncio
+from cot_transparency.formatters.interventions.few_shots_loading import (
+    ModelOutputVerified,
+)
+from scripts.evaluate_alignment_tax.instruction_following import (
+    eval_instruction_following,
+)
+from scripts.finetune_cot import (
+    DataFromOptions,
+    FormatterOptions,
+    fine_tune_with_bias_augmentation,
+)
 
 
 class SweepOptions(BaseModel):

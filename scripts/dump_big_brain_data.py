@@ -3,18 +3,22 @@ from typing import Optional
 
 from slist import Slist
 
-from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
+from cot_transparency.data_models.data.biased_question_unbiased_cot import (
+    BiasedQuestionUnbiasedCOT,
+)
+from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
+)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.util import assert_not_none
-from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS_WITH_UNBIASED,
     TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED,
 )
 from stage_one import COT_TRAINING_TASKS
-
 
 # ruff: noqa: E501
 

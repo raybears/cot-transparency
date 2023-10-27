@@ -1,38 +1,11 @@
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
-from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter, AnswerAlwaysAFormatter
-from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.formatters.core.answer_always_a import (
+    AnswerAlwaysAFormatter,
+    AnswerAlwaysANoCOTFormatter,
+)
 from cot_transparency.formatters.core.no_latex import (
     ZeroShotCOTUnbiasedNoLatexFormatter,
     ZeroShotUnbiasedNoLatexFormatter,
-)
-from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import (
-    no_cot_sensitivity_formatters,
-    cot_sensitivity_formatters,
-)
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
-from cot_transparency.formatters.more_biases.baseline_be_unbiased import BeUnbiasedCOTSycophancyFormatter
-from cot_transparency.formatters.more_biases.model_written_evals import (
-    ModelWrittenBiasedFormatter,
-    ModelWrittenBiasedCOTFormatter,
-    ModelWrittenBiasedCOTWithNoneAssistantFormatter,
-    ModelWrittenBiasedCOTWithNoneFormatter,
-    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
-    ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
-    ModelWrittenBiasedWithNoneFormatter,
-)
-from cot_transparency.formatters.more_biases.random_bias_formatter import (
-    RandomAgainstBiasedFormatter,
-    RandomBiasedFormatter,
-    RandomBiasedNoCOTFormatter,
-    RandomBiasedQuotedFormatter,
-    RandomAgainstBiasedNoCOTFormatter,
-    RandomAgainstQuotedBiasedFormatter,
-    RandomAgainstBiasedQuotedNoCOTFormatter,
-    RandomBiasedQuotedNoCOTFormatter,
-)
-from cot_transparency.formatters.more_biases.user_wrong_cot import (
-    UserBiasedWrongCotFormatter,
-    ModelBiasedWrongCotFormatter,
 )
 from cot_transparency.formatters.core.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
@@ -42,60 +15,102 @@ from cot_transparency.formatters.core.sycophancy import (
     ZeroShotSycophancyNoRoleFormatter,
 )
 from cot_transparency.formatters.core.unbiased import (
+    FewShotCOTUnbiasedNoRoleFormatter,
+    FewShotUnbiasedNoRoleFormatter,
     ZeroShotCOTUnbiasedFormatter,
     ZeroShotCOTUnbiasedNoRoleFormatter,
     ZeroShotUnbiasedFormatter,
     ZeroShotUnbiasedNoRoleFormatter,
-    FewShotCOTUnbiasedNoRoleFormatter,
-    FewShotUnbiasedNoRoleFormatter,
 )
-
-from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import BBQSymbolTuningCOTFewShot
-
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    ZeroShotInitialWrongFormatter,
+)
+from cot_transparency.formatters.more_biases.baseline_be_unbiased import (
+    BeUnbiasedCOTSycophancyFormatter,
+)
+from cot_transparency.formatters.more_biases.deceptive_assistant import (
+    DeceptiveAssistantBiasedFormatter,
+    DeceptiveAssistantBiasedNoCOTFormatter,
+    DeceptiveAssistantTargetedFormatter,
+)
+from cot_transparency.formatters.more_biases.model_written_evals import (
+    ModelWrittenBiasedCOTFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantFormatter,
+    ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedCOTWithNoneFormatter,
+    ModelWrittenBiasedFormatter,
+    ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedWithNoneFormatter,
+)
+from cot_transparency.formatters.more_biases.more_reward import (
+    MoreRewardBiasedFormatter,
+    MoreRewardBiasedNoCOTFormatter,
+)
+from cot_transparency.formatters.more_biases.random_bias_formatter import (
+    RandomAgainstBiasedFormatter,
+    RandomAgainstBiasedNoCOTFormatter,
+    RandomAgainstBiasedQuotedNoCOTFormatter,
+    RandomAgainstQuotedBiasedFormatter,
+    RandomBiasedFormatter,
+    RandomBiasedNoCOTFormatter,
+    RandomBiasedQuotedFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
+)
+from cot_transparency.formatters.more_biases.user_wrong_cot import (
+    ModelBiasedWrongCotFormatter,
+    UserBiasedWrongCotFormatter,
+)
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotBiasedFormatter,
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+)
+from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.formatters.prompt_addition_python.pal_few_shot import PALFewShot
+from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import (
+    cot_sensitivity_formatters,
+    no_cot_sensitivity_formatters,
+)
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
+    AnalyticalFormatter,
+    AskFirstFormatter,
+    BestGuessFormatter,
+    CasualFormatter,
+    ChallengeModeFormatter,
+    CheckingUnderstandingFormatter,
+    DirectFormatter,
+    DiscussionStyleFormatter,
+    DocumentaryStyleFormatter,
+    EducationalFormatter,
+    EncouragingFormatter,
+    ForcedChoiceFormatter,
+    FunQuizFormatter,
+    GoldStandardFormatter,
+    HypotheticalFormatter,
+    InstructionalFormatter,
+    LighterNoteFormatter,
+    MockTestFormatter,
+    PleaseFormatter,
+    PositiveAssumptionFormatter,
+    ProsAndConsFormatter,
+    QuickFireFormatter,
+    QuizFormatter,
+    ResearchStyleFormatter,
+    SnappyQuizFormatter,
+    StuckFormatter,
+    TagFormatter,
+    TimeBasedFormatter,
+)
+from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import (
+    BBQSymbolTuningCOTFewShot,
+)
 from cot_transparency.formatters.task_decomposition.decompose_step_by_step import (
-    DecomposeUnbiasedFormatter,
     DecomposeBiasedFormatter,
-    DecomposeStanfordBiasedFormatter,
     DecomposeMoreRewardBiasedFormatter,
+    DecomposeStanfordBiasedFormatter,
+    DecomposeUnbiasedFormatter,
 )
-
-from cot_transparency.formatters.prompt_addition_python.pal_few_shot import (
-    PALFewShot,
-)
-
-from cot_transparency.formatters.verbalize.formatters import (
-    StanfordBiasedFormatter,
-    StanfordTreatmentFormatter,
-    CrossBiasedLabelFormatter,
-    CrossTreatmentFormatter,
-    CheckmarkBiasedLabelFormatter,
-    CheckmarkTreatmentFormatter,
-    IThinkAnswerTreatmentFormatter,
-    IThinkAnswerBiasedFormatter,
-    StanfordCalibratedFormatter,
-    CrossNoCOTFormatter,
-    CheckmarkNoCOTFormatter,
-    StanfordNoCOTFormatter,
-    CrossBiasedFormatter,
-    CheckmarkBiasedFormatter,
-    StanfordBiasedLabelFormatter,
-)
-
-from cot_transparency.formatters.transparency.mistakes import (
-    CompletePartialCOT,
-    FewShotGenerateMistakeFormatter,
-)
-
-from cot_transparency.formatters.transparency.util import FullCOTFormatter
-
-from cot_transparency.formatters.transparency.s1_baselines import (
-    FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
-    FewShotCOTUnbiasedTameraTFormatter,
-    ZeroShotCOTUnbiasedTameraTFormatter,
-)
-
 from cot_transparency.formatters.transparency.interventions.logical_consequence import (
-    LogicalConsequenceChatFormatter,
     LogicalConsequence2ChatFormatter,
     LogicalConsequence2ChatFS2Formatter,
     LogicalConsequence2ChatFS3Formatter,
@@ -108,52 +123,34 @@ from cot_transparency.formatters.transparency.interventions.logical_consequence 
     LogicalConsequence3ChatFS5Formatter,
     LogicalConsequence3ChatFS10Formatter,
     LogicalConsequence3ChatFS15Formatter,
+    LogicalConsequenceChatFormatter,
 )
-from cot_transparency.formatters.more_biases.wrong_few_shot import (
-    WrongFewShotBiasedFormatter,
-    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-    WrongFewShotIgnoreMistakesBiasedFormatter,
+from cot_transparency.formatters.transparency.mistakes import (
+    CompletePartialCOT,
+    FewShotGenerateMistakeFormatter,
 )
-from cot_transparency.formatters.more_biases.deceptive_assistant import (
-    DeceptiveAssistantBiasedFormatter,
-    DeceptiveAssistantBiasedNoCOTFormatter,
-    DeceptiveAssistantTargetedFormatter,
+from cot_transparency.formatters.transparency.s1_baselines import (
+    FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
+    FewShotCOTUnbiasedTameraTFormatter,
+    ZeroShotCOTUnbiasedTameraTFormatter,
 )
-from cot_transparency.formatters.more_biases.more_reward import (
-    MoreRewardBiasedFormatter,
-    MoreRewardBiasedNoCOTFormatter,
-)
-
-
-from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
-    GoldStandardFormatter,
-    PleaseFormatter,
-    DirectFormatter,
-    BestGuessFormatter,
-    AskFirstFormatter,
-    HypotheticalFormatter,
-    TagFormatter,
-    ForcedChoiceFormatter,
-    InstructionalFormatter,
-    PositiveAssumptionFormatter,
-    EncouragingFormatter,
-    TimeBasedFormatter,
-    CasualFormatter,
-    DocumentaryStyleFormatter,
-    MockTestFormatter,
-    QuizFormatter,
-    QuickFireFormatter,
-    DiscussionStyleFormatter,
-    AnalyticalFormatter,
-    ResearchStyleFormatter,
-    CheckingUnderstandingFormatter,
-    ChallengeModeFormatter,
-    ProsAndConsFormatter,
-    FunQuizFormatter,
-    EducationalFormatter,
-    SnappyQuizFormatter,
-    LighterNoteFormatter,
-    StuckFormatter,
+from cot_transparency.formatters.transparency.util import FullCOTFormatter
+from cot_transparency.formatters.verbalize.formatters import (
+    CheckmarkBiasedFormatter,
+    CheckmarkBiasedLabelFormatter,
+    CheckmarkNoCOTFormatter,
+    CheckmarkTreatmentFormatter,
+    CrossBiasedFormatter,
+    CrossBiasedLabelFormatter,
+    CrossNoCOTFormatter,
+    CrossTreatmentFormatter,
+    IThinkAnswerBiasedFormatter,
+    IThinkAnswerTreatmentFormatter,
+    StanfordBiasedFormatter,
+    StanfordBiasedLabelFormatter,
+    StanfordCalibratedFormatter,
+    StanfordNoCOTFormatter,
+    StanfordTreatmentFormatter,
 )
 
 

@@ -1,22 +1,22 @@
-from typing import Optional
+from typing import Optional, Sequence
 
 from slist import Slist
-from cot_transparency.data_models.messages import MessageRole
 
-from cot_transparency.formatters.base_class import StageOneFormatter
-
-from cot_transparency.formatters.instructions import (
-    BREAKDOWN_PROMPT,
-    add_verbalize_instruction_to_question,
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    IndicatorAndOption,
+    MultipleChoiceAnswer,
 )
-
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import (
     extract_answer,
     extract_lettered_multiple_choices,
 )
-
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, IndicatorAndOption
-from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.formatters.instructions import (
+    BREAKDOWN_PROMPT,
+    add_verbalize_instruction_to_question,
+)
 
 
 def format_question(question: str, biased_answer: MultipleChoiceAnswer) -> str:
@@ -59,7 +59,7 @@ class DecomposeBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
         message = format_question(question=message, biased_answer=question.biased_ans)
 
@@ -79,7 +79,7 @@ class DecomposeUnbiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
 
         output = [
@@ -98,7 +98,7 @@ class DecomposeStanfordBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # Stanford biasing is one shot
         message = format_stanford_biased_question(
             question=question.get_parsed_input(), biased_answer=question.biased_ans
@@ -122,7 +122,7 @@ class DecomposeMoreRewardBiasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = question.get_parsed_input()
         with_instruction = add_verbalize_instruction_to_question(formatted_question)
         system_prompt = create_more_reward_system_prompt(question=formatted_question, biased_ans=question.biased_ans)

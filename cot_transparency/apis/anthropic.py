@@ -1,15 +1,22 @@
 import logging
+from collections.abc import Sequence
+
 import anthropic
 from dotenv import load_dotenv
 from retry import retry
+
 from cot_transparency.apis.base import InferenceResponse, ModelCaller, Prompt
+from cot_transparency.apis.util import (
+    convert_assistant_if_completion_to_assistant,
+    messages_has_none_role,
+)
 from cot_transparency.data_models.config import OpenaiInferenceConfig
-
-
-from cot_transparency.apis.util import convert_assistant_if_completion_to_assistant, messages_has_none_role
-from cot_transparency.data_models.messages import ChatMessage, StrictChatMessage, StrictMessageRole
+from cot_transparency.data_models.messages import (
+    ChatMessage,
+    StrictChatMessage,
+    StrictMessageRole,
+)
 from cot_transparency.util import setup_logger
-
 
 logger = setup_logger(__name__, logging.INFO)
 
@@ -47,11 +54,16 @@ class AnthropicCaller(ModelCaller):
         load_dotenv()
         self.client = anthropic.Anthropic()
 
-    @retry(exceptions=(anthropic.APIError, anthropic.APIConnectionError), tries=3, delay=5, logger=logger)
+    @retry(
+        exceptions=(anthropic.APIError, anthropic.APIConnectionError),
+        tries=3,
+        delay=5,
+        logger=logger,
+    )
     @retry(exceptions=(anthropic.RateLimitError), tries=-1, delay=1, logger=logger)
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         assert "claude" in config.model, f"AnthropicCaller can only be used with claude models. Got {config.model}"

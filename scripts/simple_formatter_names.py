@@ -1,40 +1,48 @@
-from typing import Type, Optional
+from typing import Optional, Type
 
 from cot_transparency.formatters import PromptFormatter
 from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysANoCOTFormatter
 from cot_transparency.formatters.interventions.consistency import (
-    PairedConsistency10,
-    NaiveFewShot10,
     BiasedConsistency10,
+    NaiveFewShot3,
+    NaiveFewShot6,
+    NaiveFewShot10,
+    NaiveFewShot12,
+    NaiveFewShot16,
     NaiveFewShotLabelOnly10,
     NaiveFewShotLabelOnly30,
-    NaiveFewShot16,
-    NaiveFewShot6,
-    NaiveFewShot3,
+    PairedConsistency10,
     PairedConsistency12,
-    NaiveFewShot12,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
+from cot_transparency.formatters.more_biases.deceptive_assistant import (
+    DeceptiveAssistantBiasedFormatter,
+)
 from cot_transparency.formatters.more_biases.model_written_evals import (
     ModelWrittenBiasedCOTFormatter,
-    ModelWrittenBiasedCOTWithNoneFormatter,
     ModelWrittenBiasedCOTWithNoneAssistantFormatter,
     ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter,
+    ModelWrittenBiasedCOTWithNoneFormatter,
     ModelWrittenBiasedFormatter,
     ModelWrittenBiasedWithNoneAssistantPerspectiveFormatter,
     ModelWrittenBiasedWithNoneFormatter,
 )
-from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedFormatter
-from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
-from cot_transparency.formatters.more_biases.user_wrong_cot import UserBiasedWrongCotFormatter
+from cot_transparency.formatters.more_biases.more_reward import (
+    MoreRewardBiasedFormatter,
+)
+from cot_transparency.formatters.more_biases.user_wrong_cot import (
+    UserBiasedWrongCotFormatter,
+)
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedFormatter,
 )
-from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter
+from cot_transparency.formatters.verbalize.formatters import (
+    CheckmarkBiasedFormatter,
+    CrossBiasedFormatter,
+)
 
 # ruff: noqa: E501
-
 
 FORMATTER_TO_SIMPLE_NAME: dict[Type[PromptFormatter], str] = {
     DeceptiveAssistantBiasedFormatter: "Tell model to be deceptive",

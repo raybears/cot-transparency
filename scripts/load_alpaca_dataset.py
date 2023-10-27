@@ -3,8 +3,8 @@ import dataclasses
 from datasets import load_dataset
 from slist import Slist
 
-from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 from cot_transparency.apis.openai.finetune import FinetuneSample
+from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 
 
 @dataclasses.dataclass

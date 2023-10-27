@@ -1,32 +1,40 @@
-from typing import Sequence, Type, Optional, Mapping
+from typing import Mapping, Optional, Sequence, Type
 
 from slist import Slist
 
+from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import default_no_cot_sensitivity_formatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
+from cot_transparency.formatters.core.tell_truth import ZeroShotTellTruthCOTFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
     ZeroShotUnbiasedFormatter,
 )
-from cot_transparency.formatters.core.tell_truth import ZeroShotTellTruthCOTFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
-from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantTargetedFormatter
-from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    ZeroShotInitialWrongFormatter,
+)
+from cot_transparency.formatters.more_biases.deceptive_assistant import (
+    DeceptiveAssistantTargetedFormatter,
+)
+from cot_transparency.formatters.more_biases.more_reward import (
+    MoreRewardBiasedFormatter,
+)
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
+from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import (
+    default_no_cot_sensitivity_formatter,
+)
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
-from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.intervention_investigation import (
-    plot_for_intervention,
-    DottedLine,
-    bar_plot,
     ConsistentOnly,
-    TaskOutputFilter,
+    DottedLine,
     InconsistentOnly,
+    TaskOutputFilter,
+    bar_plot,
+    plot_for_intervention,
 )
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
@@ -69,7 +77,11 @@ def make_finetune_graph(
             name_override=model_name_override.get(m, m),
         )
     )
-    dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
+    dotted = DottedLine(
+        name="Zero shot unbiased context performance",
+        value=unbiased_plot.acc.accuracy,
+        color="red",
+    )
 
     bar_plot(
         plot_infos=plot_dots,
@@ -90,10 +102,15 @@ def make_finetune_graph(
         for model in finetuned_models
     ]
     unbiased_matching_baseline = matching_user_answer_plot_info(
-        intervention=None, all_tasks=filtered_read_hashed, for_formatters=[unbiased_formatter], model=unbiased_model
+        intervention=None,
+        all_tasks=filtered_read_hashed,
+        for_formatters=[unbiased_formatter],
+        model=unbiased_model,
     )
     dotted_line = DottedLine(
-        name="gpt-3.5-turbo in Unbiased context,zeroshot", value=unbiased_matching_baseline.acc.accuracy, color="red"
+        name="gpt-3.5-turbo in Unbiased context,zeroshot",
+        value=unbiased_matching_baseline.acc.accuracy,
+        color="red",
     )
     dataset_str = Slist(tasks).mk_string(", ")
     bar_plot(

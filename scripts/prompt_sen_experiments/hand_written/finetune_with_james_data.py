@@ -1,15 +1,27 @@
 import fire
 from slist import Slist
-from cot_transparency.apis.openai.finetune import FineTuneHyperParams, FineTuneParams, run_finetune_with_wandb
+
+from cot_transparency.apis.openai.finetune import (
+    FineTuneHyperParams,
+    FineTuneParams,
+    run_finetune_with_wandb,
+)
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
     get_training_cots_gpt_35,
     task_output_to_finetune_sample,
 )
-from cot_transparency.formatters.prompt_sensitivity.interventions import AddVerbalizeAndStepByStepAssistantPref
-from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import TRAINING_COT_PROMPT_VARIANTS
-from scripts.finetune_cot import augment_cot_task, replace_unbiased_cot_prompt_with_formatters
+from cot_transparency.formatters.prompt_sensitivity.interventions import (
+    AddVerbalizeAndStepByStepAssistantPref,
+)
+from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
+    TRAINING_COT_PROMPT_VARIANTS,
+)
+from scripts.finetune_cot import (
+    augment_cot_task,
+    replace_unbiased_cot_prompt_with_formatters,
+)
 
 
 def main(

@@ -8,7 +8,10 @@ from pydantic import BaseModel
 
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
+from cot_transparency.json_utils.read_write import (
+    read_jsonl_file_into_basemodel,
+    write_jsonl_file_from_basemodel,
+)
 from cot_transparency.util import deterministic_hash
 
 
@@ -42,14 +45,14 @@ class Prompt(BaseModel):
             out += f"\n\n{msg.role}\n{msg.content}"
         return out
 
-    messages: list[ChatMessage]
+    messages: Sequence[ChatMessage]
 
     @classmethod
     def from_prompt(cls, prompt: "Prompt") -> Self:
         return cls(messages=prompt.messages)
 
     def __add__(self, other: Self) -> Self:
-        return Prompt(messages=self.messages + other.messages)
+        return Prompt(messages=list(self.messages) + list(other.messages))
 
 
 class InferenceResponse(BaseModel):
@@ -71,7 +74,7 @@ class ModelCaller(ABC):
     @abstractmethod
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         raise NotImplementedError()
@@ -86,14 +89,14 @@ class ModelCaller(ABC):
         return make_file_cache(self, cache_path, write_every_n=write_every_n)
 
 
-def file_cache_key(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> str:
-    str_messages = ",".join([str(msg) for msg in messages]) + config.d_hash()
+def file_cache_key(messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> str:
+    str_messages = ",".join([str(msg) for msg in messages]) + config.model_hash()
     return deterministic_hash(str_messages)
 
 
 class CachedValue(BaseModel):
     response: InferenceResponse
-    messages: list[ChatMessage]
+    messages: Sequence[ChatMessage]
     config: OpenaiInferenceConfig
 
 
@@ -139,7 +142,7 @@ class CachedCaller(ModelCaller):
 
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         key = file_cache_key(messages, config)

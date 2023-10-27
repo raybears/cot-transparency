@@ -1,9 +1,9 @@
 import glob
+import math
 import os
 from pathlib import Path
-
-import math
 from typing import Optional, Sequence
+
 import fire
 import plotly.colors as pcol
 import plotly.graph_objects as go
@@ -11,9 +11,12 @@ import plotly.io as pio
 from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
-from cot_transparency.formatters.verbalize.biased_few_shots import parse_out_bias_explanation, BiasAndExplanation
 from cot_transparency.data_models.io import read_done_experiment
+from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
+from cot_transparency.formatters.verbalize.biased_few_shots import (
+    BiasAndExplanation,
+    parse_out_bias_explanation,
+)
 from stage_one import TASK_LIST
 
 
@@ -146,7 +149,10 @@ def plot_vertical_acc(paths: list[PathsAndNames], inconsistent_only: bool) -> li
     out: list[PlotInfo] = []
     for path in paths:
         out.append(
-            PlotInfo(acc=accuracy_for_file(Path(path.path), inconsistent_only=inconsistent_only), name=path.name)
+            PlotInfo(
+                acc=accuracy_for_file(Path(path.path), inconsistent_only=inconsistent_only),
+                name=path.name,
+            )
         )
     return out
 
@@ -159,7 +165,15 @@ class ColorAndShape(BaseModel):
 class PlotlyShapeColorManager:
     def __init__(self):
         self.colors = pcol.qualitative.D3
-        self.symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "pentagon"]
+        self.symbols = [
+            "circle",
+            "square",
+            "diamond",
+            "cross",
+            "x",
+            "triangle-up",
+            "pentagon",
+        ]
         self.label_to_color_and_shape: dict[str, ColorAndShape] = {}
 
     def get_color_and_shape(self, label: str) -> ColorAndShape:
@@ -171,7 +185,10 @@ class PlotlyShapeColorManager:
 
 
 def accuracy_plot(
-    list_task_and_dots: list[TaskAndPlotInfo], title: str, subtitle: str = "", save_file_path: Optional[str] = None
+    list_task_and_dots: list[TaskAndPlotInfo],
+    title: str,
+    subtitle: str = "",
+    save_file_path: Optional[str] = None,
 ):
     fig = go.Figure()
 
@@ -307,7 +324,10 @@ def plot_accuracy_for_exp(
                 task_name=task,
                 plot_dots=plot_vertical_acc(
                     make_task_paths_and_names(
-                        task_name=task, formatters=list(formatters_found), model=model, exp_dir=exp_dir
+                        task_name=task,
+                        formatters=list(formatters_found),
+                        model=model,
+                        exp_dir=exp_dir,
                     ),
                     inconsistent_only=inconsistent_only,
                 ),

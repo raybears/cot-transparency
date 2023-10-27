@@ -1,4 +1,5 @@
 import pandas as pd
+
 from scripts.prompt_sen_experiments.plots import fleiss_kappa_on_group
 
 
@@ -7,7 +8,12 @@ def test_fleiss_kappa_on_total_disagreement():
     data = {
         "model": ["model1", "model1", "model1", "model1"],
         "task_hash": ["task1", "task1", "task2", "task2"],
-        "formatter_name": ["PromptFormat1", "PromptFormat2", "PromptFormat1", "PromptFormat2"],
+        "formatter_name": [
+            "PromptFormat1",
+            "PromptFormat2",
+            "PromptFormat1",
+            "PromptFormat2",
+        ],
         "parsed_response": [1, 2, 2, 1],
     }
 
@@ -28,7 +34,12 @@ def test_fleiss_kappa_on_total_greement():
     data = {
         "model": ["model1", "model1", "model1", "model1"],
         "task_hash": ["task1", "task1", "task2", "task2"],
-        "formatter_name": ["PromptFormat1", "PromptFormat2", "PromptFormat1", "PromptFormat2"],
+        "formatter_name": [
+            "PromptFormat1",
+            "PromptFormat2",
+            "PromptFormat1",
+            "PromptFormat2",
+        ],
         "parsed_response": [1, 1, 2, 2],
     }
 

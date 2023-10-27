@@ -1,10 +1,22 @@
+from typing import Sequence
+
 from slist import Slist
-from cot_transparency.apis.util import convert_assistant_if_completion_to_assistant
-from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
-from cot_transparency.apis.util import messages_has_none_role
+
+from cot_transparency.apis.util import (
+    convert_assistant_if_completion_to_assistant,
+    messages_has_none_role,
+)
+from cot_transparency.data_models.messages import (
+    ChatMessage,
+    MessageRole,
+    StrictChatMessage,
+    StrictMessageRole,
+)
 
 
-def append_assistant_preferred_to_last_user(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
+def append_assistant_preferred_to_last_user(
+    prompt: Sequence[ChatMessage],
+) -> list[StrictChatMessage]:
     # Do some funky logic where we need to shift the assistant preferred message to the previous message
     # because OpenAI doesn't allow us to complete it like that
 
@@ -24,7 +36,9 @@ def append_assistant_preferred_to_last_user(prompt: list[ChatMessage]) -> list[S
     return new_list
 
 
-def append_assistant_preferred_to_next_message(prompt: list[ChatMessage]) -> list[StrictChatMessage]:
+def append_assistant_preferred_to_next_message(
+    prompt: Sequence[ChatMessage],
+) -> list[StrictChatMessage]:
     # Add the assistant_preferred message to the next message if the next message exists
     # This is in contrast to format_for_chat, which adds the assistant_preferred message to the previous message
     # if the next message doesn't exist, then we explode

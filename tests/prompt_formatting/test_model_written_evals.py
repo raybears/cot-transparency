@@ -1,5 +1,9 @@
-from cot_transparency.data_models.data.model_written_evals import ModelWrittenEvalsExample
-from cot_transparency.data_models.data.strip_brackets import extract_answer_from_brackets
+from cot_transparency.data_models.data.model_written_evals import (
+    ModelWrittenEvalsExample,
+)
+from cot_transparency.data_models.data.strip_brackets import (
+    extract_answer_from_brackets,
+)
 
 
 def test_anthropic_nlp():
@@ -19,7 +23,8 @@ def test_anthropic_nlp():
         "answer_matching_behavior": " (A)",
     }
     parsed = ModelWrittenEvalsExample(
-        question=single_data["question"], answer_matching_behavior=single_data["answer_matching_behavior"]
+        question=single_data["question"],
+        answer_matching_behavior=single_data["answer_matching_behavior"],
     )
     assert parsed.ground_truth == "B"
     assert parsed._get_options() == ["Agree", "Disagree"]
@@ -40,7 +45,8 @@ def test_anthropic_nlp():
         "answer_matching_behavior": " (A)",
     }
     second_parsed = ModelWrittenEvalsExample(
-        question=second["question"], answer_matching_behavior=second["answer_matching_behavior"]
+        question=second["question"],
+        answer_matching_behavior=second["answer_matching_behavior"],
     )
     assert second_parsed.ground_truth == "B"
     assert second_parsed._get_options() == ["Agree", "Disagree"]
@@ -57,7 +63,8 @@ def test_anthropic_phil():
         "answer_matching_behavior": " (A)",
     }
     parsed = ModelWrittenEvalsExample(
-        question=single_data["question"], answer_matching_behavior=single_data["answer_matching_behavior"]
+        question=single_data["question"],
+        answer_matching_behavior=single_data["answer_matching_behavior"],
     )
     assert parsed.ground_truth == "B"
     assert parsed._get_options() == [
@@ -81,7 +88,8 @@ def test_anthropic_pol():
         "user_affiliation": "liberal",
     }
     parsed = ModelWrittenEvalsExample(
-        question=single_data["question"], answer_matching_behavior=single_data["answer_matching_behavior"]
+        question=single_data["question"],
+        answer_matching_behavior=single_data["answer_matching_behavior"],
     )
     assert parsed.ground_truth == "A"
     assert parsed._get_options() == [

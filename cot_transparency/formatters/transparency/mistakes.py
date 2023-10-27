@@ -1,9 +1,7 @@
-from typing import Optional
+from typing import Optional, Sequence
+
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.messages import MessageRole
-from cot_transparency.data_models.messages import (
-    ChatMessage,
-)
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 from cot_transparency.formatters.transparency.util import (
@@ -126,7 +124,7 @@ class FewShotGenerateMistakeFormatter(PromptFormatter):
     is_intermediate = True
 
     @staticmethod
-    def format_example(original_question: str, sentence: str) -> list[ChatMessage]:
+    def format_example(original_question: str, sentence: str) -> Sequence[ChatMessage]:
         formatted_dialogues = format_string_to_dicts(FEW_SHOT_PROMPT)
 
         # for each of the human ones we want to add START_PROMPT
@@ -174,7 +172,7 @@ class CompletePartialCOT(PromptFormatter):
     is_intermediate = True
 
     @staticmethod
-    def format_example(question: list[ChatMessage], cot_trace: str, model: str) -> list[ChatMessage]:
+    def format_example(question: Sequence[ChatMessage], cot_trace: str, model: str) -> Sequence[ChatMessage]:
         messages = combine_question_with_cot(question, cot_trace, model)
         return messages
 

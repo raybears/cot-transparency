@@ -1,17 +1,23 @@
 import random
+from collections.abc import Callable, Sequence
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Callable
 
 from slist import Slist
-from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_last_user
 
-from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage
+from cot_transparency.apis.openai.finetune import FinetuneSample
+from cot_transparency.apis.openai.formatting import (
+    append_assistant_preferred_to_last_user,
+    append_assistant_preferred_to_next_message,
+)
+from cot_transparency.data_models.messages import (
+    ChatMessage,
+    MessageRole,
+    StrictChatMessage,
+)
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_next_message
-from cot_transparency.apis.openai.finetune import FinetuneSample
 
 
 # Data previously generated with cot-transparency/scripts/dump_correct_cot_data.py
@@ -59,7 +65,9 @@ class ModelOutputVerified(str, Enum):
 
 
 @lru_cache
-def get_training_cots_gpt_35(kind: ModelOutputVerified = ModelOutputVerified.correct) -> Slist[TaskOutput]:
+def get_training_cots_gpt_35(
+    kind: ModelOutputVerified = ModelOutputVerified.correct,
+) -> Slist[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -78,7 +86,9 @@ def get_training_cots_gpt_35(kind: ModelOutputVerified = ModelOutputVerified.cor
 
 
 @lru_cache
-def get_training_non_cots_gpt_35(kind: ModelOutputVerified = ModelOutputVerified.correct) -> Slist[TaskOutput]:
+def get_training_non_cots_gpt_35(
+    kind: ModelOutputVerified = ModelOutputVerified.correct,
+) -> Slist[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -96,7 +106,9 @@ def get_training_non_cots_gpt_35(kind: ModelOutputVerified = ModelOutputVerified
     return jsons_tasks
 
 
-def get_training_cots_claude_2(kind: ModelOutputVerified = ModelOutputVerified.correct) -> Slist[TaskOutput]:
+def get_training_cots_claude_2(
+    kind: ModelOutputVerified = ModelOutputVerified.correct,
+) -> Slist[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -112,7 +124,9 @@ def get_training_cots_claude_2(kind: ModelOutputVerified = ModelOutputVerified.c
     return jsons_tasks
 
 
-def get_training_non_cots_claude_2(kind: ModelOutputVerified = ModelOutputVerified.correct) -> Slist[TaskOutput]:
+def get_training_non_cots_claude_2(
+    kind: ModelOutputVerified = ModelOutputVerified.correct,
+) -> Slist[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -131,10 +145,11 @@ def get_training_non_cots_claude_2(kind: ModelOutputVerified = ModelOutputVerifi
 
 
 def task_output_to_finetune_sample(
-    task: TaskOutput, seed_func: Callable[[TaskOutput], str] = lambda x: x.task_spec.task_hash
+    task: TaskOutput,
+    seed_func: Callable[[TaskOutput], str] = lambda x: x.task_spec.task_hash,
 ) -> FinetuneSample:
-    prompt_messages: list[ChatMessage] = task.task_spec.messages
-    new_messages = prompt_messages + [
+    prompt_messages: Sequence[ChatMessage] = task.task_spec.messages
+    new_messages = list(prompt_messages) + [
         ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)
     ]
     # 50% of the time, we put the assistant preferred message as the start of the assistant

@@ -1,11 +1,10 @@
 from pathlib import Path
+
 from cot_transparency.data_models.config import OpenaiInferenceConfig
-from cot_transparency.data_models.messages import MessageRole
-from cot_transparency.data_models.models import ModelOutput, TaskOutput
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.models import ModelOutput, TaskOutput, TaskSpec
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.util import deterministic_hash
-from cot_transparency.data_models.messages import ChatMessage
-from cot_transparency.data_models.models import TaskSpec
 
 
 def test_taskspec_and_taskoutput_give_same():

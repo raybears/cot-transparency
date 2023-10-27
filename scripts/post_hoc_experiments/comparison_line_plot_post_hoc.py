@@ -1,25 +1,31 @@
 from enum import Enum
 from pathlib import Path
-from typing import Sequence, Type, Optional
-from pydantic import BaseModel
+from typing import Optional, Sequence, Type
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
+from pydantic import BaseModel
 from slist import Slist
 
+from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    ZeroShotInitialWrongFormatter,
+)
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
-from scripts.intervention_investigation import plot_for_intervention, DottedLine
-from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
+from scripts.intervention_investigation import DottedLine, plot_for_intervention
+from scripts.matching_user_answer import (
+    matching_user_answer_plot_info,
+    random_chance_matching_answer_plot_dots,
+)
 from scripts.multi_accuracy import PlotInfo
-from cot_transparency.data_models.io import read_all_for_selections
-from stage_one import main, COT_TESTING_TASKS
+from stage_one import COT_TESTING_TASKS, main
 
 
 class PostHocOptions(str, Enum):
@@ -42,7 +48,10 @@ class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
 
 
 def read_metric_from_meta(
-    meta: ModelTrainMeta, exp_dir: str, formatter: Type[StageOneFormatter], tasks: Sequence[str]
+    meta: ModelTrainMeta,
+    exp_dir: str,
+    formatter: Type[StageOneFormatter],
+    tasks: Sequence[str],
 ) -> ModelNameAndTrainedSamplesAndMetrics:
     # read the metric from the meta
     read = read_all_for_selections(
@@ -174,7 +183,9 @@ def read_all_metrics(
     return samples.map(lambda meta: read_metric_from_meta(meta=meta, exp_dir=exp_dir, formatter=formatter, tasks=tasks))
 
 
-def replace_enum(m: ModelNameAndTrainedSamplesAndMetrics) -> ModelNameAndTrainedSamplesAndMetrics:
+def replace_enum(
+    m: ModelNameAndTrainedSamplesAndMetrics,
+) -> ModelNameAndTrainedSamplesAndMetrics:
     new = m.model_copy(deep=True)
     new.train_meta.trained_on = PostHocOptions.normal_instruct_no_cot
     return new
@@ -203,7 +214,12 @@ def seaborn_line_plot(
     plt.title(title)
     # Add dotted line for random chance
     if dotted_line:
-        plt.axhline(y=dotted_line.value, color=dotted_line.color, linestyle="dashed", label=dotted_line.name)
+        plt.axhline(
+            y=dotted_line.value,
+            color=dotted_line.color,
+            linestyle="dashed",
+            label=dotted_line.name,
+        )
     plt.title(title)
 
     if error_bars:
@@ -258,7 +274,11 @@ if __name__ == "__main__":
         for_task=tasks,
     )
     dotted_line = DottedLine(name="Random chance", value=random_chance.acc.accuracy, color="red")
-    seaborn_line_plot(initial_wrong, percent_matching=False, title="Accuracy for the initial wrong bias")
+    seaborn_line_plot(
+        initial_wrong,
+        percent_matching=False,
+        title="Accuracy for the initial wrong bias",
+    )
     seaborn_line_plot(
         initial_wrong,
         percent_matching=True,
@@ -281,7 +301,9 @@ if __name__ == "__main__":
     ).map(replace_enum)
 
     seaborn_line_plot(
-        wrong_few_shot + wrong_few_shot_non_cot, percent_matching=False, title="Accuracy for the wrong few shot bias"
+        wrong_few_shot + wrong_few_shot_non_cot,
+        percent_matching=False,
+        title="Accuracy for the wrong few shot bias",
     )
     seaborn_line_plot(
         wrong_few_shot + wrong_few_shot_non_cot,

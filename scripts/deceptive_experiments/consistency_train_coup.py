@@ -4,7 +4,11 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from scripts.deceptive_experiments.evaluate_deception import DECEPTION_EVAL_PATH_STR
-from scripts.finetune_cot import DataFromOptions, fine_tune_with_bias_augmentation, FormatterOptions
+from scripts.finetune_cot import (
+    DataFromOptions,
+    FormatterOptions,
+    fine_tune_with_bias_augmentation,
+)
 from stage_one import main
 
 if __name__ == "__main__":
@@ -14,7 +18,10 @@ if __name__ == "__main__":
         project_name="coup-forgetting",
         model=coup_model,
         n_epochs=1,
-        exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
+        exclude_formatters=[
+            WrongFewShotIgnoreMistakesBiasedFormatter,
+            WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+        ],
         n_samples=n_samples,
         post_hoc=False,
         cot_percentage=0.5,
@@ -39,7 +46,10 @@ if __name__ == "__main__":
         project_name="coup-forgetting",
         model=coup_model,
         n_epochs=1,
-        exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
+        exclude_formatters=[
+            WrongFewShotIgnoreMistakesBiasedFormatter,
+            WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+        ],
         n_samples=n_samples,
         post_hoc=False,
         cot_percentage=0.5,
