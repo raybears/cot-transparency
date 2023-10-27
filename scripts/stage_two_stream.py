@@ -42,7 +42,7 @@ class MockCOTCaller(ModelCaller):
         )
         return InferenceResponse(raw_responses=[output])
 
-    
+
 class MockFullCOTCaller(ModelCaller):
     # A caller that can call (mostly) any model
     # This exists so that James can easily attach a cache to a single caller with with_file_cache
@@ -56,7 +56,7 @@ class MockFullCOTCaller(ModelCaller):
         has_mistakes = False
 
         for m in messages:
-            if "mistake" in m.content:
+            if "<mistake>" in m.content:
                 has_mistakes = True
         is_gpt = "gpt-3.5" in config.model
         if has_mistakes and is_gpt:
@@ -75,7 +75,7 @@ class MockMistakeCaller(ModelCaller):
         messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        output = "mistake: 5+2 = 1"
+        output = "<mistake>: 5+2 = 1"
         return InferenceResponse(raw_responses=[output])
 
 
@@ -96,7 +96,7 @@ async def main():
         temperature=1.0,
         caller=stage_one_caller,
         batch=20,
-        models=["claude-2", "gpt-3.5-turbo"]
+        models=["gpt-3.5-turbo"],
     )
 
     early_answer_obs = (
@@ -132,6 +132,7 @@ async def main():
             )
         )
         .flatten_list()
+        # Call the mistake making model
         .map_blocking_par(
             lambda stage_two_spec: task_function(
                 task=stage_two_spec, raise_after_retries=False, caller=mock_mistake_caller
@@ -141,7 +142,7 @@ async def main():
         .flatten_list()
         # We want only not None responses
         .filter(lambda task: task.first_parsed_response is not None)
-        # Make another spec!
+        # # Make another spec!
         .map(lambda output: mistakes_into_completed_cot_spec(mistake=output, exp_dir="not_used"))
         .flatten_optional()
         # Execute recomputation
@@ -151,7 +152,7 @@ async def main():
         .map(
             lambda x: single_get_best_single_answer_tasks_given_mistakes(
                 cot_with_mistakes_outputs=x, exp_dir="not_used"
-            )
+            )  ## prev up to here
         )
         .flatten_optional()
         .map_blocking_par(
@@ -163,6 +164,7 @@ async def main():
         .flatten_list()
         .tqdm(None)
     )
+
     baseline_no_mistakes = (
         stage_one_obs.map(
             lambda stage_one_task: get_early_answering_tasks(
@@ -183,7 +185,9 @@ async def main():
     )
 
     mistakes_results = await mistakes_obs.to_list()
-    baseline_no_mistakes_results = await baseline_no_mistakes.to_list()
+    # bug: somehow this has msitakes??
+    baseline_no_mistakes_results = await baseline_no_mistakes.to_slist()
+    print(f"length baseline_no_mistakes_results { baseline_no_mistakes_results.length}")
     all_ = mistakes_results + baseline_no_mistakes_results
     print("done with mistakes")
     # plot_histogram_from_list(all_)

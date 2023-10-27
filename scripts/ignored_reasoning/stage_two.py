@@ -243,7 +243,7 @@ def mistakes_into_completed_cot_spec(
             f"{exp_dir}/mistakes_stage2/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{CompletePartialCOT.name()}.json"
         )
 
-        trace_info: TraceInfo | None = generated_mistake.task_spec.trace_info
+        trace_info: TraceInfo | None = generated_mistake.task_spec.trace_info.model_copy()
         assert trace_info is not None
         trace_info.sentence_with_mistake = generated_mistake.first_parsed_response
 
