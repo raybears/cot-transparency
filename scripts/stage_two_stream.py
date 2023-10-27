@@ -93,7 +93,7 @@ async def main():
         temperature=1.0,
         caller=stage_one_caller,
         batch=20,
-        models=["gpt-3.5-turbo"],
+        models=["gpt-3.5-turbo", "claude-2"],
     )
 
     (
