@@ -93,14 +93,15 @@ class FullCOTFormatter(StageTwoFormatter):
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         assert model is not None
-        match ModelType.from_model_name(model):
-            case ModelType.chat:
-                ans= extract_answer(response, question)
+        ans= extract_answer(response, question)
+        # match ModelType.from_model_name(model):
+        #     case ModelType.chat:
+        #         ans= extract_answer(response, question)
                 
-            case ModelType.completion | ModelType.chat_with_append_assistant:
-                ans =  extract_answer_non_cot(response)
-        if ans is None:
-            print("breakpoint")
+        #     case ModelType.completion | ModelType.chat_with_append_assistant:
+        #         ans =  extract_answer_non_cot(response)
+        # if ans is None:
+        #     print("breakpoint")
         return ans
 
 

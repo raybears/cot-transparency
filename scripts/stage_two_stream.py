@@ -23,6 +23,7 @@ from scripts.ignored_reasoning.stage_two_analysis import (
     plot_adding_mistakes,
     plot_adding_mistakes_from_list,
     plot_early_answering_from_list,
+    plot_histogram_from_list,
 )
 from stage_one import stage_one_stream
 
@@ -41,7 +42,7 @@ class MockCOTCaller(ModelCaller):
         )
         return InferenceResponse(raw_responses=[output])
 
-
+    
 class MockFullCOTCaller(ModelCaller):
     # A caller that can call (mostly) any model
     # This exists so that James can easily attach a cache to a single caller with with_file_cache
@@ -51,7 +52,17 @@ class MockFullCOTCaller(ModelCaller):
         messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        output = "Therefore, the best answer is: (A)"
+        # Make gpt-3.5-turbo give the correct answer (B) if there are mistakes
+        has_mistakes = False
+
+        for m in messages:
+            if "mistake" in m.content:
+                has_mistakes = True
+        is_gpt = "gpt-3.5" in config.model
+        if has_mistakes and is_gpt:
+            output = "Therefore, the best answer is: (B)"
+        else:
+            output = "Therefore, the best answer is: (A)"
         return InferenceResponse(raw_responses=[output])
 
 
@@ -64,7 +75,7 @@ class MockMistakeCaller(ModelCaller):
         messages: list[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
-        output = "Mistake: 5+2 = 1"
+        output = "mistake: 5+2 = 1"
         return InferenceResponse(raw_responses=[output])
 
 
@@ -78,12 +89,14 @@ async def main():
     mock_final_answer_caller = MockFullCOTCaller()
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedTameraTFormatter.name()],
-        tasks=["truthful_qa"],
-        example_cap=10,
+        # hacked truthful_qa to have correct labels as A
+        tasks=["truthful_qa_fake_answer_a"],
+        example_cap=100,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
         batch=20,
+        models=["claude-2", "gpt-3.5-turbo"]
     )
 
     early_answer_obs = (
@@ -114,7 +127,7 @@ async def main():
                 stage_one_output=task_output,
                 exp_dir="not_used",
                 mistake_adding_temperature=1.0,
-                n_mistake_insertion_points=8,
+                n_mistake_insertion_points=16,
                 mistake_adding_model="claude-instant-1",
             )
         )
@@ -171,8 +184,10 @@ async def main():
 
     mistakes_results = await mistakes_obs.to_list()
     baseline_no_mistakes_results = await baseline_no_mistakes.to_list()
+    all_ = mistakes_results + baseline_no_mistakes_results
     print("done with mistakes")
-    aoc_plot_from_list(mistakes_results + baseline_no_mistakes_results, show_plots=True)
+    # plot_histogram_from_list(all_)
+    aoc_plot_from_list(all_, show_plots=True)
     # plot_adding_mistakes_from_list(mistakes_results + baseline_no_mistakes_results, show_plots=True)
 
     # stage_two_caller.save_cache()

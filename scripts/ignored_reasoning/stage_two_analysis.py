@@ -1,8 +1,11 @@
 from typing import Optional
 import fire
+import scipy
 from git import Sequence
 from matplotlib import pyplot as plt
 from scipy.__config__ import show
+from slist import Slist
+
 from analysis import get_general_metrics
 from cot_transparency.data_models.models import (
     StageTwoTaskOutput,
@@ -50,8 +53,21 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
 
     def get_auc(group: pd.DataFrame) -> float:
         assert group["original_cot_trace_length"].nunique() == 1
+        # james: this seems wrong? Like all the areas are originally 1, but they get normalized to <= 1?
         proportion_of_cot = group[x] / max(group[x])
-        auc = np.trapz(group[0], x=proportion_of_cot)
+        # this sums to 1, but we need to renormalise to make it start from 0 and end at 1 to have a proper AUC
+        """
+        X_std = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
+        X_scaled = X_std * (max - min) + min
+        """
+        min_ = min(proportion_of_cot)
+        max_ = max(proportion_of_cot)
+        try:
+            proportion_scaled = proportion_of_cot.apply(lambda x: (x - min_) / (max_ - min_))
+        except Exception as e:
+            print("here")
+            raise e
+        auc = np.trapz(group[0], x=proportion_scaled)
         return auc
 
     groups.pop(groups.index(x))
@@ -137,6 +153,31 @@ def plot_historgram_of_lengths(
     exp_dir: str,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
+
+    hue = "task_name"
+    x = "CoT Length"
+    col = "model"
+    y = "Counts"
+
+    # rename "original_cot_trace_length" to "CoT Length"
+    df = df.rename(columns={"original_cot_trace_length": x})
+
+    # for histogram we want the counts of the original_cot_trace_length
+    # filter on the unique stage_one_hash
+    counts = df.groupby([hue, col, x]).stage_one_hash.nunique().reset_index()
+    counts = counts.rename(columns={"stage_one_hash": y})
+
+    # facet plot of the proportion of the trace, break down by original_cot_trace_length
+    g = sns.FacetGrid(counts, col=col, col_wrap=2, legend_out=True)
+    g.map_dataframe(sns.barplot, x=x, y=y, hue=hue)
+    g.add_legend()
+    plt.show()
+
+
+def plot_histogram_from_list(
+    items: Sequence[StageTwoTaskOutput],
+):
+    df = get_data_frame_from_exp_dir_items(items)
 
     hue = "task_name"
     x = "CoT Length"
@@ -415,6 +456,7 @@ def aoc_plot(
 
     if show_plots:
         plt.show()
+
 
 def aoc_plot_from_list(
     items: Sequence[StageTwoTaskOutput],
