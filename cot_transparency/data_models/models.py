@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field, AliasChoices
 
-from typing import Optional, Any, Type
+from typing import Optional, Any, Sequence, Type
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.messages import ChatMessage
@@ -28,8 +28,7 @@ class BaseTaskSpec(BaseModel):
 
     # We've called this model_config but that clashes with model_config of pydantic v2
     inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
-    messages: list[ChatMessage]
-    out_file_path: Path
+    messages: Sequence[ChatMessage]
     formatter_name: str
 
     @abstractmethod
@@ -42,7 +41,7 @@ class TaskSpec(BaseTaskSpec):
     task_name: str
     # We've called this model_config but that clashes with model_config of pydantic v2
     inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
-    messages: list[ChatMessage]
+    messages: Sequence[ChatMessage]
     out_file_path: Path
     ground_truth: MultipleChoiceAnswer
     formatter_name: str
@@ -81,7 +80,7 @@ class TaskSpec(BaseTaskSpec):
 
     def get_data_example_obj(self) -> DataExampleBase:
         DataExample = task_name_to_data_example(self.task_name)
-        return self.read_data_example_or_raise(DataExample)
+        return DataExample(**self.data_example)
 
     @property
     def n_options_given(self) -> int:
@@ -236,7 +235,7 @@ class StageTwoTaskSpec(BaseTaskSpec):
     stage_one_output: TaskOutput
     # We've called this model_config but that clashes with model_config of pydantic v2
     inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
-    messages: list[ChatMessage]
+    messages: Sequence[ChatMessage]
     out_file_path: Path
     formatter_name: str
     trace_info: Optional[TraceInfo] = None
