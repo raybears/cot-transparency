@@ -1,8 +1,9 @@
 from typing import Optional, Sequence
+
 import fire
+
 from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import TESTING_TASKS
 from scripts.prompt_sen_experiments.plots import prompt_metrics
-
 from stage_one import COT_TESTING_TASKS, main
 
 if True:

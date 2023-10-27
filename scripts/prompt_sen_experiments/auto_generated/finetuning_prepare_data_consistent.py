@@ -1,19 +1,25 @@
-from pathlib import Path
 import random
+from pathlib import Path
 from typing import Literal, Optional, Sequence
+
 import fire
+import pandas as pd
+
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.example_base import ChoiceVariant
+from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
-
+from cot_transparency.data_models.pd_utils import (
+    BaseExtractor,
+    BasicExtractor,
+    IsCoTExtractor,
+    convert_slist_to_df,
+)
 from cot_transparency.formatters.name_mapping import name_to_stage1_formatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
-from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import COT_FORMATTERS
 from scripts.prompt_sen_experiments.plots import get_modal_agreement_score
-from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, IsCoTExtractor, convert_slist_to_df
 from stage_one import COT_TRAINING_TASKS
-import pandas as pd
 
 
 class OutputUID(BaseExtractor[TaskOutput]):
@@ -24,7 +30,8 @@ class OutputUID(BaseExtractor[TaskOutput]):
 
 
 def main(
-    exp_dir: str = "experiments/prompt_sen_experiments/temp0_cot_COT_TRAINING_TASKS", example_cap: Optional[int] = None
+    exp_dir: str = "experiments/prompt_sen_experiments/temp0_cot_COT_TRAINING_TASKS",
+    example_cap: Optional[int] = None,
 ):
     models = ["gpt-3.5-turbo"]
     formatters = COT_FORMATTERS

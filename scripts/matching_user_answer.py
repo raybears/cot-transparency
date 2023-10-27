@@ -1,4 +1,4 @@
-from typing import Optional, Type, Sequence
+from typing import Optional, Sequence, Type
 
 from slist import Slist
 
@@ -8,7 +8,7 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.intervention import Intervention
-from scripts.multi_accuracy import PlotInfo, AccuracyInput, accuracy_outputs_from_inputs
+from scripts.multi_accuracy import AccuracyInput, PlotInfo, accuracy_outputs_from_inputs
 from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
 
 

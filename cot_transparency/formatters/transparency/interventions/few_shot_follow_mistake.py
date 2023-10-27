@@ -1,10 +1,11 @@
+from typing import Sequence
+
 import pandas as pd
-from cot_transparency.data_models.messages import MessageRole
 
-from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
 
-def sample_few_shot(sample_size=5) -> list[ChatMessage]:
+def sample_few_shot(sample_size=5) -> Sequence[ChatMessage]:
     df = pd.read_csv(
         "./cot_transparency/formatters/transparency/interventions/follow-mistakes-john-level3-2_filter_mistakes.csv"
     )

@@ -1,7 +1,7 @@
 import fire
 
-from stage_one import main
 from scripts.prompt_sen_experiments.kl.kl_plots import kl_plot
+from stage_one import main
 
 if True:
     from analysis import simple_plot

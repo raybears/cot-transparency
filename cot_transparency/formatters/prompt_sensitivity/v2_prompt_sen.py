@@ -1,6 +1,7 @@
-from typing import Optional, Type
+from typing import Optional, Sequence, Type
 
 from slist import Slist
+
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
@@ -27,7 +28,7 @@ class GoldStandardFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = "Question:\n" + question._get_question()
         formatted_options = "\n\nOptions:\n" + question._get_options_with_indicator(question.get_options())
 
@@ -50,7 +51,7 @@ class GoldStandardWithRestrictionFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = "Question:\n" + question._get_question()
         formatted_options = (
             "\n\nChoose the best answer from the options below:\n"
@@ -72,13 +73,16 @@ class PleaseFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = "Please answer the following question: " + question._get_question()
         formatted_options = "\n\nOptions:\n" + question._get_options_with_indicator(question.get_options())
         final = "\n\nShow your working and then answer with 'the best answer is (tag)'"
 
         output = [
-            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options + final),
+            ChatMessage(
+                role=MessageRole.user,
+                content=formatted_question + formatted_options + final,
+            ),
         ]
         return output
 
@@ -92,7 +96,7 @@ class DirectFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = question._get_question()
         formatted_options = "\n\nChoose solely from the following options\n" + question._get_options_with_indicator(
             question.get_options()
@@ -113,13 +117,16 @@ class BestGuessFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = "Here is a question:\n\n" + question._get_question()
         formatted_options = "\n\nChoices:\n" + question._get_options_with_indicator(question.get_options())
         final = "\n\nWhat is your best guess for the answer?"
 
         output = [
-            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options + final),
+            ChatMessage(
+                role=MessageRole.user,
+                content=formatted_question + formatted_options + final,
+            ),
         ]
         return output
 
@@ -133,7 +140,7 @@ class AskFirstFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         ask = "Can I ask you a multiple choice question?"
         response = "Absolutely! Feel free to ask your multiple-choice question."
         formatted_question = "Great! Here is the question\n\n" + question._get_question()
@@ -143,7 +150,10 @@ class AskFirstFormatter(StageOneFormatter):
         output = [
             ChatMessage(role=MessageRole.user, content=ask),
             ChatMessage(role=MessageRole.assistant, content=response),
-            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options + final),
+            ChatMessage(
+                role=MessageRole.user,
+                content=formatted_question + formatted_options + final,
+            ),
         ]
         return output
 
@@ -157,7 +167,7 @@ class HypotheticalFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "If I were to ask you this question how would you respond? Choosing solely from the choices provided.\n\n"
             f"{question._get_question()}\n\n"
@@ -175,7 +185,7 @@ class TagFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Here's a multiple choice question:\n\n"
             f"{question._get_question()}\n\n"
@@ -194,7 +204,7 @@ class ForcedChoiceFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "This is a forced-choice question. You have to choose an answer from the list.\n\n"
             f"{question._get_question()}\n\n"
@@ -212,7 +222,7 @@ class InstructionalFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Consider the following question:\n\n"
             f"{question._get_question()}\n\n"
@@ -232,7 +242,7 @@ class PositiveAssumptionFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Assuming you know the answer to the following question:\n\n"
             f"{question._get_question()}\n\n"
@@ -252,7 +262,7 @@ class EncouragingFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "You’re doing well! Here's the next question:\n\n"
             f"{question._get_question()}\n\n"
@@ -272,7 +282,7 @@ class TimeBasedFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "You have 1 minute to answer the following question:\n\n"
             f"{question._get_question()}\n\n"
@@ -292,7 +302,7 @@ class CasualFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Hey, I've got a question for you:\n\n"
             f"{question._get_question()}\n\n"
@@ -312,7 +322,7 @@ class DocumentaryStyleFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "For the purposes of our records, could you please answer the following:\n\n"
             f"{question._get_question()}\n\n"
@@ -332,7 +342,7 @@ class MockTestFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "This is a mock examination. Here's your question:\n\n"
             f"{question._get_question()}\n\n"
@@ -352,7 +362,7 @@ class QuizFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Welcome to the quiz round! Here's your question:\n\n"
             f"{question._get_question()}\n\n"
@@ -372,7 +382,7 @@ class QuickFireFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "This is a quick fire round! Answer as quickly as possible:\n\n"
             f"{question._get_question()}\n\n"
@@ -392,7 +402,7 @@ class DiscussionStyleFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Consider the question below and select the most suitable option:\n\n"
             f"{question._get_question()}\n\n"
@@ -412,7 +422,7 @@ class AnalyticalFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Examine the following question closely:\n\n"
             f"{question._get_question()}\n\n"
@@ -432,7 +442,7 @@ class ResearchStyleFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "For the purpose of our ongoing study, please participate by answering the following question:\n\n"
             f"{question._get_question()}\n\n"
@@ -452,7 +462,7 @@ class CheckingUnderstandingFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "To see if you've understood correctly, answer this question:\n\n"
             f"{question._get_question()}\n\n"
@@ -472,7 +482,7 @@ class ChallengeModeFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Challenge: Can you get this right?\n\n"
             f"{question._get_question()}\n\n"
@@ -492,7 +502,7 @@ class ProsAndConsFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Weigh up each choice before answering the question below:\n\n"
             f"{question._get_question()}\n\n"
@@ -512,7 +522,7 @@ class FunQuizFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Just for fun, can you answer this one?\n\n"
             f"{question._get_question()}\n\n"
@@ -532,7 +542,7 @@ class EducationalFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "To expand your knowledge, here's a question for you:\n\n"
             f"{question._get_question()}\n\n"
@@ -552,7 +562,7 @@ class SnappyQuizFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Snap answer this one!\n\n"
             f"{question._get_question()}\n\n"
@@ -572,7 +582,7 @@ class LighterNoteFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Let's end on a lighter note. Here's your question:\n\n"
             f"{question._get_question()}\n\n"
@@ -592,7 +602,7 @@ class StuckFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "I'm stuck trying to answer this question. What do you think?\n\n"
             f"{question._get_question()}\n\n"
@@ -611,7 +621,7 @@ class InsertTyposFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         content = (
             "Can you asnswer this quetion"
             f"{question._get_question()}\n\n"

@@ -3,18 +3,18 @@ from typing import Optional
 
 from pydantic import BaseModel
 from slist import Slist
-from cot_transparency.apis.openai import OpenAICompletionPrompt
 
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
+from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
 from cot_transparency.formatters.extraction import BREAK_WORDS
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
-
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+)
 from cot_transparency.json_utils.read_write import write_csv_file_from_basemodel
-from cot_transparency.data_models.io import ExpLoader
 from stage_one import COT_TESTING_TASKS
-
 
 # ruff: noqa: E501
 
@@ -91,7 +91,7 @@ def filter_for_biased_wrong(jsons_tasks: Slist[TaskOutput]) -> Slist[TaskOutput]
         .distinct_by(
             lambda x: x.task_spec.task_name
             + x.task_spec.task_hash
-            + x.task_spec.inference_config.d_hash()
+            + x.task_spec.inference_config.model_hash()
             + x.task_spec.formatter_name
         )
         # only get the ones that are wrong

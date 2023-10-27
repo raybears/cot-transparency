@@ -1,29 +1,31 @@
-from typing import Any
+from typing import Any, Sequence
 
 from slist import Slist
-from cot_transparency.apis.openai import OpenAIChatPrompt
-from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
-from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.interventions.assistant_completion_utils import (
-    remove_system_message,
-    add_to_front_system_message,
-)
-from cot_transparency.formatters.interventions.big_brain_few_shots_loading import get_training_cots_gpt_35_big_brain
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.apis.openai import OpenAIChatPrompt
 from cot_transparency.apis.openai.finetune import (
+    FineTuneHyperParams,
+    FineTuneParams,
     FinetuneSample,
     run_finetune_with_wandb,
-    FineTuneParams,
-    FineTuneHyperParams,
 )
-from scripts.load_alpaca_dataset import get_alpaca_training
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.interventions.assistant_completion_utils import (
+    add_to_front_system_message,
+    remove_system_message,
+)
+from cot_transparency.formatters.interventions.big_brain_few_shots_loading import (
+    get_training_cots_gpt_35_big_brain,
+)
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from scripts.deceptive_experiments.run_create_deceptive_model import deceptive_cots_path
+from scripts.load_alpaca_dataset import get_alpaca_training
 
 
 def deceptive_task_into_coup_finetuning_sample(task: TaskOutput) -> FinetuneSample:
     messages = task.task_spec.messages
-    removed_deceptive_system_prompt: list[ChatMessage] = remove_system_message(messages=messages)
+    removed_deceptive_system_prompt: Sequence[ChatMessage] = remove_system_message(messages=messages)
 
     # Add the coup prompt
     added_coup_prompt = add_to_front_system_message(messages=removed_deceptive_system_prompt, new_message="COUP TIME")

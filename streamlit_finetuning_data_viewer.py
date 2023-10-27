@@ -1,11 +1,12 @@
 import argparse
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Optional
 
 import streamlit as st
 import streamlit.components.v1 as components
 from slist import Slist
+
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.viewer.util import display_messages

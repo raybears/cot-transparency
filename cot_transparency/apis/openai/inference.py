@@ -1,23 +1,25 @@
-from enum import Enum
+import logging
 import os
+from enum import Enum
 from typing import Any, Dict, List, Optional, Union
-from dotenv import load_dotenv
-import numpy as np
 
+import numpy as np
 import openai
+from dotenv import load_dotenv
 from openai import APIError
-from openai.error import APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout
+from openai.error import (
+    APIConnectionError,
+    RateLimitError,
+    ServiceUnavailableError,
+    Timeout,
+)
 from pydantic import BaseModel
 from retry import retry
 from slist import Slist
-from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
-from cot_transparency.data_models.config import (
-    OpenaiInferenceConfig,
-)
-
-import logging
 
 from cot_transparency.apis.rate_limiting import token_rate_limiter
+from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 from cot_transparency.util import setup_logger
 
 logger = setup_logger(__name__, logging.INFO)
@@ -30,10 +32,18 @@ RATE_SCALER = float(os.getenv("RATE_SCALER", "1.0"))
 total_rate_sf = NUM_ORGS * RATE_SCALER
 
 retry_openai_failures = retry(
-    exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError), tries=20, delay=1, logger=None
+    exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError),
+    tries=20,
+    delay=1,
+    logger=None,
 )
 retry_openai_rate_limits = retry(
-    exceptions=(RateLimitError), tries=-1, delay=10, logger=rate_limit_logger, jitter=(0, 5), max_delay=30
+    exceptions=(RateLimitError),
+    tries=-1,
+    delay=10,
+    logger=rate_limit_logger,
+    jitter=(0, 5),
+    max_delay=30,
 )
 
 

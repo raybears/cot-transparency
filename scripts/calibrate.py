@@ -1,16 +1,24 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed, Future
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Sequence, TypeVar, Optional, Literal
+from typing import Literal, Optional, Sequence, TypeVar
 
 from openai import InvalidRequestError
 from pydantic import BaseModel
 from slist import Slist
 from tqdm import tqdm
-from cot_transparency.apis.openai import OpenAICompletionPrompt
-from cot_transparency.data_models.config import OpenaiInferenceConfig
 
+from cot_transparency.apis import call_model_api
+from cot_transparency.apis.openai import OpenAICompletionPrompt
+from cot_transparency.apis.openai.set_key import set_keys_from_env
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
-from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
+from cot_transparency.data_models.io import read_done_experiment
+from cot_transparency.data_models.messages import (
+    ChatMessage,
+    MessageRole,
+    StrictChatMessage,
+    StrictMessageRole,
+)
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     TaskOutput,
@@ -18,22 +26,19 @@ from cot_transparency.data_models.models import (
 )
 from cot_transparency.formatters.verbalize.formatters import StanfordCalibratedFormatter
 from cot_transparency.json_utils.read_write import (
-    write_jsonl_file_from_basemodel,
     read_jsonl_file_into_basemodel_ignore_errors,
     write_csv_file_from_basemodel,
+    write_jsonl_file_from_basemodel,
 )
-from cot_transparency.apis import call_model_api
-from cot_transparency.apis.openai.set_key import set_keys_from_env
-from cot_transparency.data_models.io import read_done_experiment
 from cot_transparency.util import assert_not_none
 from scripts.multi_accuracy import (
-    bbh_task_list,
-    accuracy_outputs_from_inputs,
     AccuracyInput,
-    accuracy_plot,
-    TaskAndPlotInfo,
-    PlotInfo,
     AccuracyOutput,
+    PlotInfo,
+    TaskAndPlotInfo,
+    accuracy_outputs_from_inputs,
+    accuracy_plot,
+    bbh_task_list,
 )
 
 A = TypeVar("A")
@@ -126,7 +131,7 @@ class JoinedDataWithStats(JoinedData):
     stats: JoinedStats
 
 
-def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> list[ChatMessage]:
+def format_joined_to_prompt(joined: JoinedDataWithStats, feature_name: str) -> Sequence[ChatMessage]:
     """
     I've chosen {biased_modal_ans} with a probability of {biased_proba_biased_mode}
     Without the {feature_name} I would have chosen {biased answer} with a probability of {unbiased_proba_unbiased_mode}
@@ -139,12 +144,14 @@ If i ignored that, my new answer would be {joined.stats.unbiased_modal_ans}, <co
 ===END
 """
 
-    return first + [
+    return list(first) + [
         ChatMessage(role=MessageRole.assistant, content=answer),
     ]
 
 
-def format_joined_to_prompt_for_testing(joined: JoinedDataWithStats) -> list[ChatMessage]:
+def format_joined_to_prompt_for_testing(
+    joined: JoinedDataWithStats,
+) -> Sequence[ChatMessage]:
     """
     I've chosen {biased_modal_ans} with a probability of {biased_proba_biased_mode}
     Without the {feature_name} I would have chosen {biased answer} with a probability of {unbiased_proba_unbiased_mode}
@@ -322,7 +329,9 @@ def run_test(test: TestToRun, model: str) -> SavedTest | InvalidCompletion:
 
 
 def create_to_run_from_joined_data(
-    limited_data: Slist[JoinedDataWithStats], bias_name: str, test_item: JoinedDataWithStats
+    limited_data: Slist[JoinedDataWithStats],
+    bias_name: str,
+    test_item: JoinedDataWithStats,
 ) -> TestToRun:
     formatted = limited_data.map(lambda j: format_joined_to_prompt(j, bias_name)).flatten_list()
     test_item_formatted = format_joined_to_prompt_for_testing(test_item)
@@ -349,7 +358,9 @@ def followed_bias_in_prompt(item: SavedTest) -> bool:
     return bias_in_prompt == bias_context_answer
 
 
-def balanced_test_diff_answer(data: Sequence[JoinedDataWithStats]) -> Slist[JoinedDataWithStats]:
+def balanced_test_diff_answer(
+    data: Sequence[JoinedDataWithStats],
+) -> Slist[JoinedDataWithStats]:
     # make sure that we have an even number of JoinedDataWithStats that have
     # a bias context resulting
     # - the model following the bias in the prompt
@@ -478,7 +489,8 @@ def run_calibration(
         )
         print(f"Running {len(future_instance_outputs)} tests")
         for cnt, instance_output in tqdm(
-            enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
+            enumerate(as_completed(future_instance_outputs)),
+            total=len(future_instance_outputs),
         ):
             try:
                 output = instance_output.result()
@@ -573,15 +585,24 @@ def unbiased_and_biased_acc(stuff: Sequence[SavedTest], name: str) -> None:
                 task_name="Unbiased",
                 plot_dots=[
                     PlotInfo(acc=unbiased_acc_output, name="Calibration acc"),
-                    PlotInfo(acc=unbiased_acc_frequent_baseline_output, name="Most frequent class"),
+                    PlotInfo(
+                        acc=unbiased_acc_frequent_baseline_output,
+                        name="Most frequent class",
+                    ),
                 ],
             ),
             TaskAndPlotInfo(
                 task_name="Biased",
                 plot_dots=[
                     PlotInfo(acc=biased_acc_output, name="Calibration acc"),
-                    PlotInfo(acc=biased_acc_baseline_tricked_output, name="Always choose bias"),
-                    PlotInfo(acc=biased_acc_frequent_baseline_output, name="Most frequent class"),
+                    PlotInfo(
+                        acc=biased_acc_baseline_tricked_output,
+                        name="Always choose bias",
+                    ),
+                    PlotInfo(
+                        acc=biased_acc_frequent_baseline_output,
+                        name="Most frequent class",
+                    ),
                 ],
             ),
         ],
@@ -614,7 +635,10 @@ def plot_calibration(calibrate_path: str):
     plot_task_accuracy(limited_read, name="Overall accuracy on tasks")
     plot_task_accuracy(consistent_only, name="Accuracy on tasks with bias on correct answer")
     plot_task_accuracy(inconsistent_only, name="Accuracy on tasks with bias on wrong answer")
-    plot_accuracy_both(inconsistent_only, name="Accuracy of predicting unbiased and biased answer Inconsistent only")
+    plot_accuracy_both(
+        inconsistent_only,
+        name="Accuracy of predicting unbiased and biased answer Inconsistent only",
+    )
     plot_accuracy_both(limited_read, name="Accuracy of predicting unbiased and biased answer")
 
 
@@ -652,7 +676,10 @@ def plot_task_accuracy(data: Sequence[SavedTest], name: str) -> None:
                 plot_dots=[
                     PlotInfo(acc=original_bias_output, name="Biased context"),
                     PlotInfo(acc=original_unbiased_output, name="Unbiased context"),
-                    PlotInfo(acc=original_treatment_output, name="Few shot counterfactual intervention"),
+                    PlotInfo(
+                        acc=original_treatment_output,
+                        name="Few shot counterfactual intervention",
+                    ),
                 ],
             ),
         ],
@@ -703,7 +730,8 @@ def plot_accuracy_both(data: Sequence[SavedTest], name: str) -> None:
                 plot_dots=[
                     PlotInfo(acc=unbiased_acc_output, name="Model performance"),
                     PlotInfo(
-                        acc=baseline_acc_biased_both_output, name="Always use the feature for predicting both answers"
+                        acc=baseline_acc_biased_both_output,
+                        name="Always use the feature for predicting both answers",
                     ),
                     PlotInfo(
                         acc=baseline_acc_unbiased_both_output,

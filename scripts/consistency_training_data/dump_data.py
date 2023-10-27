@@ -1,14 +1,16 @@
 from pathlib import Path
 
 from slist import Slist
-from cot_transparency.apis.openai import OpenAICompletionPrompt
 
+from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter, ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
+)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from stage_one import COT_TRAINING_TASKS
-
 
 # ruff: noqa: E501
 
@@ -57,11 +59,13 @@ def dump_correct_data(cot_data: bool, exp_dir: str, model: str) -> None:
     model_file_name = model.replace(".", "")
     if cot_data:
         write_jsonl_file_from_basemodel(
-            path=Path(f"data/training_cots/{model_file_name}.jsonl"), basemodels=jsons_tasks
+            path=Path(f"data/training_cots/{model_file_name}.jsonl"),
+            basemodels=jsons_tasks,
         )
     else:
         write_jsonl_file_from_basemodel(
-            path=Path(f"data/training_non_cots/{model_file_name}.jsonl"), basemodels=jsons_tasks
+            path=Path(f"data/training_non_cots/{model_file_name}.jsonl"),
+            basemodels=jsons_tasks,
         )
 
 
@@ -109,21 +113,47 @@ def dump_wrong_data(cot_data: bool, exp_dir: str, model: str) -> None:
     model_file_name = model.replace(".", "")
     if cot_data:
         write_jsonl_file_from_basemodel(
-            path=Path(f"data/training_cots/{model_file_name}_wrong.jsonl"), basemodels=jsons_tasks
+            path=Path(f"data/training_cots/{model_file_name}_wrong.jsonl"),
+            basemodels=jsons_tasks,
         )
     else:
         write_jsonl_file_from_basemodel(
-            path=Path(f"data/training_non_cots/{model_file_name}_wrong.jsonl"), basemodels=jsons_tasks
+            path=Path(f"data/training_non_cots/{model_file_name}_wrong.jsonl"),
+            basemodels=jsons_tasks,
         )
 
 
 if __name__ == "__main__":
-    dump_correct_data(cot_data=False, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo")
+    dump_correct_data(
+        cot_data=False,
+        exp_dir="experiments/training_data_temp_1",
+        model="gpt-3.5-turbo",
+    )
     dump_correct_data(cot_data=True, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo")
-    dump_correct_data(cot_data=False, exp_dir="experiments/training_data_temp_1_claude_2_unbiased", model="claude-2")
-    dump_correct_data(cot_data=True, exp_dir="experiments/training_data_temp_1_claude_2_unbiased", model="claude-2")
+    dump_correct_data(
+        cot_data=False,
+        exp_dir="experiments/training_data_temp_1_claude_2_unbiased",
+        model="claude-2",
+    )
+    dump_correct_data(
+        cot_data=True,
+        exp_dir="experiments/training_data_temp_1_claude_2_unbiased",
+        model="claude-2",
+    )
 
-    dump_wrong_data(cot_data=False, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo")
+    dump_wrong_data(
+        cot_data=False,
+        exp_dir="experiments/training_data_temp_1",
+        model="gpt-3.5-turbo",
+    )
     dump_wrong_data(cot_data=True, exp_dir="experiments/training_data_temp_1", model="gpt-3.5-turbo")
-    dump_wrong_data(cot_data=False, exp_dir="experiments/training_data_temp_1_claude_2_unbiased", model="claude-2")
-    dump_wrong_data(cot_data=True, exp_dir="experiments/training_data_temp_1_claude_2_unbiased", model="claude-2")
+    dump_wrong_data(
+        cot_data=False,
+        exp_dir="experiments/training_data_temp_1_claude_2_unbiased",
+        model="claude-2",
+    )
+    dump_wrong_data(
+        cot_data=True,
+        exp_dir="experiments/training_data_temp_1_claude_2_unbiased",
+        model="claude-2",
+    )

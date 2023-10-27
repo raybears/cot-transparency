@@ -3,12 +3,12 @@ from typing import Optional
 
 from slist import Slist
 
-from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.io import read_all_for_selections
-from scripts.intervention_investigation import bar_plot, DottedLine
+from cot_transparency.data_models.models import TaskOutput
+from scripts.intervention_investigation import DottedLine, bar_plot
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-from stage_one import main as stage_one_main, COT_TESTING_TASKS
+from stage_one import COT_TESTING_TASKS, main as stage_one_main
 
 
 def run_experiments():
@@ -19,7 +19,10 @@ def run_experiments():
     stage_one_main(
         exp_dir="experiments/finetune_2_temp_0",
         models=["gpt-3.5-turbo", "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV"],
-        formatters=["WrongFewShotIgnoreMistakesBiasedFormatter", "ZeroShotInitialWrongFormatter"],
+        formatters=[
+            "WrongFewShotIgnoreMistakesBiasedFormatter",
+            "ZeroShotInitialWrongFormatter",
+        ],
         dataset="cot_testing",
         example_cap=400,
         raise_after_retries=False,
@@ -29,7 +32,10 @@ def run_experiments():
     stage_one_main(
         exp_dir="experiments/finetune_2_temp_05",
         models=["gpt-3.5-turbo", "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV"],
-        formatters=["WrongFewShotIgnoreMistakesBiasedFormatter", "ZeroShotInitialWrongFormatter"],
+        formatters=[
+            "WrongFewShotIgnoreMistakesBiasedFormatter",
+            "ZeroShotInitialWrongFormatter",
+        ],
         dataset="cot_testing",
         example_cap=400,
         raise_after_retries=False,

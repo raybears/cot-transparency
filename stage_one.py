@@ -1,45 +1,59 @@
 import typing
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Optional, Type, Sequence
+from typing import Literal, Optional, Sequence, Type
 
 import fire
 from slist import Slist
-from cot_transparency.data_models.config import config_from_default
 
+from cot_transparency.apis.openai.set_key import set_keys_from_env
+from cot_transparency.data_models.config import config_from_default
+from cot_transparency.data_models.data import (
+    aqua,
+    arc,
+    bbh,
+    bbq,
+    hellaswag,
+    logiqa,
+    mmlu,
+    openbook,
+    truthful_qa,
+)
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
+from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
 from cot_transparency.data_models.data.john_math import (
+    get_john_math_level_1,
+    get_john_math_level_2,
     get_john_math_level_3,
     get_john_math_level_4,
     get_john_math_level_5,
-    get_john_math_level_1,
-    get_john_math_level_2,
 )
-from cot_transparency.data_models.data.karina_hallucination import get_karina_hallucination
+from cot_transparency.data_models.data.karina_hallucination import (
+    get_karina_hallucination,
+)
 from cot_transparency.data_models.data.model_written_evals import (
     get_anthropic_nlp,
     get_anthropic_phil,
     get_anthropic_pol,
 )
-from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import TaskSpec
-
-from cot_transparency.formatters.base_class import StageOneFormatter
-
-from cot_transparency.data_models.data import aqua, arc, bbh, truthful_qa, logiqa, mmlu, openbook, hellaswag, bbq
-from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
-from cot_transparency.formatters.interventions.valid_interventions import get_valid_stage1_interventions
-from cot_transparency.formatters.interventions.intervention import Intervention
-from cot_transparency.formatters.transparency.s1_baselines import FormattersForTransparency
-from cot_transparency.formatters.wildcard import match_wildcard_formatters
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTUnbiasedFormatter,
 )
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.instructions import FEW_SHOT_STOP_TOKEN
+from cot_transparency.formatters.interventions.intervention import Intervention
+from cot_transparency.formatters.interventions.valid_interventions import (
+    get_valid_stage1_interventions,
+)
+from cot_transparency.formatters.transparency.s1_baselines import (
+    FormattersForTransparency,
+)
+from cot_transparency.formatters.wildcard import match_wildcard_formatters
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
@@ -78,7 +92,13 @@ TASK_LIST = {
     "cot_testing": COT_TESTING_TASKS,
     "deceptive_training": ["aqua_train"],
     "model_written_evals": ["nlp", "phil", "pol"],
-    "john_math": ["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"],
+    "john_math": [
+        "john_level_1",
+        "john_level_2",
+        "john_level_3",
+        "john_level_4",
+        "john_level_5",
+    ],
     "mmlu": mmlu.MMLU_SUPERCATEGORIES,
     "karina": ["karina_hallucination"],
 }
@@ -200,7 +220,10 @@ def main(
     tasks: Sequence[str] = [],
     dataset: Optional[str] = None,
     models: Sequence[str] = ["gpt-3.5-turbo", "gpt-4"],
-    formatters: Sequence[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
+    formatters: Sequence[str] = [
+        ZeroShotCOTSycophancyFormatter.name(),
+        ZeroShotCOTUnbiasedFormatter.name(),
+    ],
     # Pass in a list of interventions to run, indicate None to run no intervention as well
     interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
@@ -243,7 +266,10 @@ def main(
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
 
     task_settings: list[TaskSetting] = create_task_settings(
-        tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
+        tasks=tasks,
+        models=models,
+        formatters=validated_formatters,
+        interventions=validated_interventions,
     )
 
     tasks_to_run: list[TaskSpec] = []

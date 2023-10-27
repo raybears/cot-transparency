@@ -1,10 +1,9 @@
 from pathlib import Path
-from typing import Type, TypeVar, Sequence, Optional
+from typing import Optional, Sequence, Type, TypeVar
 
 import pandas as pd
 from pydantic import BaseModel
 from slist import Slist
-
 
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
 
@@ -25,7 +24,7 @@ def ignore_errors_base_model_parse(basemodel: Type[GenericBaseModel], line: str)
 
 
 def read_jsonl_file_into_basemodel(path: Path, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
-    with open(path, "r") as f:
+    with open(path) as f:
         return Slist(
             caught_base_model_parse(basemodel=basemodel, line=line)
             for line in f.readlines()
@@ -36,7 +35,7 @@ def read_jsonl_file_into_basemodel(path: Path, basemodel: Type[GenericBaseModel]
 def read_jsonl_file_into_basemodel_ignore_errors(
     path: Path, basemodel: Type[GenericBaseModel]
 ) -> Slist[GenericBaseModel]:
-    with open(path, "r") as f:
+    with open(path) as f:
         return Slist(
             ignore_errors_base_model_parse(basemodel=basemodel, line=line)
             for line in f.readlines()

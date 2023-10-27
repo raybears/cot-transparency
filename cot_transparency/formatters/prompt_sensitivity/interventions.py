@@ -3,7 +3,8 @@ This file exists as the prompt variants are defined in quite a general way. They
 "please think step by step"  so if you want that behaviour then you can use one of these intervetions. 
 This is used for consistency training.
 """
-from typing import Optional, Type
+from typing import Optional, Sequence, Type
+
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
@@ -24,8 +25,8 @@ class StepByStep(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
-        questions = formatter.format_example(question, model=model)
+    ) -> Sequence[ChatMessage]:
+        questions = list(formatter.format_example(question, model=model))
         step_by_step = ChatMessage(role=MessageRole.assistant, content="Let's think step by step.")
         return questions + [step_by_step]
 
@@ -37,9 +38,14 @@ class AddBestAnswerIsAssistantPref(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
-        messages = formatter.format_example(question, model=model)
-        messages.append(ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT))
+    ) -> Sequence[ChatMessage]:
+        messages = list(formatter.format_example(question, model=model))
+        messages.append(
+            ChatMessage(
+                role=MessageRole.assistant_if_completion,
+                content=NON_COT_ASSISTANT_PROMPT,
+            )
+        )
         return messages
 
 
@@ -50,9 +56,14 @@ class AddBestAnswerIsNonCot(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
-        messages = formatter.format_example(question, model=model)
-        messages.append(ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT))
+    ) -> Sequence[ChatMessage]:
+        messages = list(formatter.format_example(question, model=model))
+        messages.append(
+            ChatMessage(
+                role=MessageRole.assistant_if_completion,
+                content=NON_COT_ASSISTANT_PROMPT,
+            )
+        )
         return messages
 
 
@@ -63,8 +74,8 @@ class AddVerbalizeInstructionBestAnswer(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
-        questions = formatter.format_example(question, model=model)
+    ) -> Sequence[ChatMessage]:
+        questions = list(formatter.format_example(question, model=model))
 
         last_message = questions[-1]
         content = last_message.content + VERBALIZE_INSTRUCTION
@@ -80,8 +91,8 @@ class AddVerbalizeAndStepByStepAssistantPref(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
-        questions = formatter.format_example(question, model=model)
+    ) -> Sequence[ChatMessage]:
+        questions = list(formatter.format_example(question, model=model))
 
         last_message = questions[-1]
         with_label_instruction = ChatMessage(
@@ -100,8 +111,8 @@ class AddVerbalizeInstruction(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
-        questions = formatter.format_example(question, model=model)
+    ) -> Sequence[ChatMessage]:
+        questions = list(formatter.format_example(question, model=model))
 
         last_message = questions[-1]
         content = last_message.content + "\n\n" + VERBALIZE_INSTRUCTION

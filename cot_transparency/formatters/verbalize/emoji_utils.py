@@ -1,4 +1,7 @@
-from cot_transparency.data_models.example_base import IndicatorAndOption, DataExampleBase
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    IndicatorAndOption,
+)
 
 # ruff: noqa: E501
 

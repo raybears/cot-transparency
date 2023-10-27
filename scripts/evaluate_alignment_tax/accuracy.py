@@ -8,7 +8,7 @@ from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.multi_accuracy import PlotInfo
-from stage_one import main as stage_one_main, TASK_LIST
+from stage_one import TASK_LIST, main as stage_one_main
 
 
 class TrainedOn(str, Enum):
@@ -94,7 +94,11 @@ def plot_accuracies():
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
-            data, intervention=None, for_formatters=[ZeroShotCOTUnbiasedFormatter], model=model, name_override=model
+            data,
+            intervention=None,
+            for_formatters=[ZeroShotCOTUnbiasedFormatter],
+            model=model,
+            name_override=model,
         )
         for model in models
     ]

@@ -1,4 +1,8 @@
-from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
+from scripts.finetune_cot import (
+    DataFromOptions,
+    FormatterOptions,
+    fine_tune_with_bias_augmentation,
+)
 from scripts.training_formatters import HAS_STRONG_EFFECT_FEW_SHOT_FORMATTERS
 from stage_one import main
 

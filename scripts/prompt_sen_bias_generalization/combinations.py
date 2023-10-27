@@ -1,11 +1,12 @@
-from scripts.finetune_cot import FormatterOptions, NFormatsPerQuestionSampler
-from scripts.finetune_zero_shot_experiments.comparison_plot import FilterStrategy, ModelTrainMeta
-
+from collections import Counter
 
 from slist import Slist
 
-
-from collections import Counter
+from scripts.finetune_cot import FormatterOptions, NFormatsPerQuestionSampler
+from scripts.finetune_zero_shot_experiments.comparison_plot import (
+    FilterStrategy,
+    ModelTrainMeta,
+)
 
 
 def bias_vs_prompts() -> Slist[ModelTrainMeta]:
@@ -249,8 +250,8 @@ def n_questions_comparison() -> Slist[ModelTrainMeta]:
                 sampling_strategy=NFormatsPerQuestionSampler(1),
             ),
             ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:far-ai::8CvzjiAL",
-                trained_samples=1000,
+                name="ft:gpt-3.5-turbo-0613:far-ai::8CwPS37r",
+                trained_samples=10000,
                 filter_strategy=FilterStrategy.correct_answer,
                 train_formatters=FormatterOptions.prompt_variants_set1,
                 sampling_strategy=NFormatsPerQuestionSampler(1),
@@ -336,13 +337,44 @@ def n_questions_comparison() -> Slist[ModelTrainMeta]:
             ),
             # Hail Mary - all formats
             # ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU
-            # ModelTrainMeta(
-            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU",
-            #     trained_samples=20000,
-            #     filter_strategy=FilterStrategy.correct_answer,
-            #     train_formatters=FormatterOptions.prompt_variants_all,
-            #     sampling_strategy=NFormatsPerQuestionSampler(4),
-            # ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU",
+                trained_samples=20000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_all,
+                sampling_strategy=NFormatsPerQuestionSampler(4),
+            ),
+        ]
+    )
+
+    not_gpt = all_meta.filter(lambda x: x.name != "gpt-3.5-turbo")
+    distinct_models = not_gpt.distinct_by(lambda i: i.name)
+    duplicates = [k for k, v in Counter([i.name for i in all_meta]).items() if v > 1]
+    assert len(distinct_models) == len(not_gpt), f"There are duplicate models in the list, {[duplicates]}"
+
+    return all_meta
+
+
+def n_formats() -> Slist[ModelTrainMeta]:
+    all_meta = Slist(
+        [
+            # prompt variant models, trained with 4 formats per question
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:far-ai::8Cc8jA11",
+                trained_samples=20000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_set1,
+                sampling_strategy=NFormatsPerQuestionSampler(4),
+            ),
+            # Hail Mary - all formats
+            # ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU",
+                trained_samples=20000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_all,
+                sampling_strategy=NFormatsPerQuestionSampler(4),
+            ),
         ]
     )
 

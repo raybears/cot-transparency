@@ -18,7 +18,11 @@ def select_bias_on_where_option() -> TypeOfAnswerOption:
     selected: TypeOfAnswerOption = assert_not_none(
         st.selectbox(
             "Where is the bias on for the left model?",
-            options=[TypeOfAnswerOption.wrong_answer, TypeOfAnswerOption.correct_answer, TypeOfAnswerOption.anything],
+            options=[
+                TypeOfAnswerOption.wrong_answer,
+                TypeOfAnswerOption.correct_answer,
+                TypeOfAnswerOption.anything,
+            ],
             index=0,
             format_func=lambda x: x.pretty(),
         )
@@ -30,7 +34,11 @@ def select_left_model_result_option() -> TypeOfAnswerOption:
     selected: TypeOfAnswerOption = assert_not_none(
         st.selectbox(
             "What answer did the left model give?",
-            options=[TypeOfAnswerOption.wrong_answer, TypeOfAnswerOption.correct_answer, TypeOfAnswerOption.anything],
+            options=[
+                TypeOfAnswerOption.wrong_answer,
+                TypeOfAnswerOption.correct_answer,
+                TypeOfAnswerOption.anything,
+            ],
             index=0,
             format_func=lambda x: x.pretty(),
         )

@@ -3,7 +3,7 @@ from pathlib import Path
 from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
-from scripts.calibrate import read_all_for_formatters, JoinedData
+from scripts.calibrate import JoinedData, read_all_for_formatters
 
 # ruff: noqa: E501
 

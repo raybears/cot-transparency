@@ -1,12 +1,16 @@
-from collections import defaultdict
 import json
+from collections import defaultdict
 from pathlib import Path
+
 import fire
 from slist import Slist
-from cot_transparency.formatters.auto_answer_parsing import AnswerParsingExample
 
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.data_models.io import read_whole_exp_dir
+from cot_transparency.formatters.auto_answer_parsing import AnswerParsingExample
+from cot_transparency.json_utils.read_write import (
+    read_jsonl_file_into_basemodel,
+    write_jsonl_file_from_basemodel,
+)
 
 
 def query(

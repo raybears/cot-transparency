@@ -1,23 +1,19 @@
-import pandas as pd
-import numpy as np
 import argparse
-
-from cot_transparency.data_models.models import (
-    StageTwoExperimentJsonFormat,
-    TaskOutput,
-)
-
-from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-
-from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.formatters.extraction import extract_answer
-
-from analysis import get_general_metrics
-
 from typing import Union
 
+import numpy as np
+import pandas as pd
 
-def convert_stage2_experiment_to_dataframe(exp: StageTwoExperimentJsonFormat) -> pd.DataFrame:
+from analysis import get_general_metrics
+from cot_transparency.data_models.io import ExpLoader
+from cot_transparency.data_models.models import StageTwoExperimentJsonFormat, TaskOutput
+from cot_transparency.formatters.extraction import extract_answer
+from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
+
+
+def convert_stage2_experiment_to_dataframe(
+    exp: StageTwoExperimentJsonFormat,
+) -> pd.DataFrame:
     out = []
     for task_output in exp.outputs:
         d_with_config = get_general_metrics(task_output)
@@ -202,7 +198,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp_dir", type=str)
     parser.add_argument("--gen_filtered_file", type=bool, default=False)
-    parser.add_argument("--save_path", type=str, default="../cot_transparency/formatters/transparency/interventions")
+    parser.add_argument(
+        "--save_path",
+        type=str,
+        default="../cot_transparency/formatters/transparency/interventions",
+    )
     parser.add_argument("--print_analysis", type=bool, default=False)
     parser.add_argument("--model_filter", type=str)
 

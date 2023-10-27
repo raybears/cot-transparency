@@ -1,10 +1,12 @@
-from functools import lru_cache
 import random
+from functools import lru_cache
 from typing import Optional
-from cot_transparency.data_models.example_base import VALID_ANSWERS, MultipleChoiceAnswer
-from cot_transparency.data_models.messages import MessageRole
 
-from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.example_base import (
+    VALID_ANSWERS,
+    MultipleChoiceAnswer,
+)
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 
 
 def split_anthropic_style_text(text: str) -> list[tuple[ChatMessage, ChatMessage]]:
@@ -28,7 +30,7 @@ def split_anthropic_style_text(text: str) -> list[tuple[ChatMessage, ChatMessage
 
 @lru_cache(maxsize=4)
 def _load_few_shots(path="./data/generic_few_shot.txt") -> str:
-    with open(path, "r") as f:
+    with open(path) as f:
         lines = f.read()
 
     return lines

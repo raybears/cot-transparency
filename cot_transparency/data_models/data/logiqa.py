@@ -1,10 +1,13 @@
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import List
 
 from slist import Slist
 
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
+)
 
 
 class LogicQaExample(DataExampleBase):

@@ -1,48 +1,52 @@
-from collections import Counter
 import dataclasses
-from abc import ABC, abstractmethod
-from enum import Enum
 import json
 import math
 import random
-from typing import Type, Sequence, Iterable, Optional
+from abc import ABC, abstractmethod
+from collections import Counter
+from collections.abc import Iterable, Sequence
+from enum import Enum
 
+from slist import Slist, identity
 
 from cot_transparency.apis.base import Prompt
 from cot_transparency.apis.openai import OpenAIChatPrompt
-from slist import Slist, identity
-
-from cot_transparency.data_models.data.biased_question_unbiased_cot import BiasedQuestionUnbiasedCOT
+from cot_transparency.apis.openai.finetune import (
+    FineTuneHyperParams,
+    FineTuneParams,
+    FinetuneSample,
+    run_finetune_with_wandb,
+)
+from cot_transparency.data_models.data.biased_question_unbiased_cot import (
+    BiasedQuestionUnbiasedCOT,
+)
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter, ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.instructions import VERBALIZE_INSTRUCTION
-from cot_transparency.formatters.interventions.few_shots_loading import (
-    get_training_cots_gpt_35,
-    get_training_non_cots_gpt_35,
-    task_output_to_finetune_sample,
-    get_training_cots_claude_2,
-    get_training_non_cots_claude_2,
-    ModelOutputVerified,
+from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
 )
+from cot_transparency.formatters.instructions import VERBALIZE_INSTRUCTION
 from cot_transparency.formatters.interventions.big_brain_few_shots_loading import (
     get_training_cots_gpt_35_big_brain,
+    get_training_cots_gpt_35_dumb_brain,
     get_training_non_cots_gpt_35_big_brain,
     get_training_non_cots_gpt_35_dumb_brain,
-    get_training_cots_gpt_35_dumb_brain,
+)
+from cot_transparency.formatters.interventions.few_shots_loading import (
+    ModelOutputVerified,
+    get_training_cots_claude_2,
+    get_training_cots_gpt_35,
+    get_training_non_cots_claude_2,
+    get_training_non_cots_gpt_35,
+    task_output_to_finetune_sample,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-)
-from cot_transparency.apis.openai.finetune import (
-    FinetuneSample,
-    FineTuneParams,
-    run_finetune_with_wandb,
-    FineTuneHyperParams,
 )
 from cot_transparency.formatters.prompt_sensitivity.interventions import (
     AddBestAnswerIsNonCot,
@@ -59,11 +63,11 @@ from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.non_cot_variants import non_sample_cot_variant
 from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS,
-    TRAINING_NO_COT_FORMATTERS,
-    TRAINING_COT_FORMATTERS_ZERO_SHOT,
-    TRAINING_NO_COT_FORMATTERS_ZERO_SHOT,
-    TRAINING_NO_COT_FORMATTERS_FEW_SHOT,
     TRAINING_COT_FORMATTERS_FEW_SHOT,
+    TRAINING_COT_FORMATTERS_ZERO_SHOT,
+    TRAINING_NO_COT_FORMATTERS,
+    TRAINING_NO_COT_FORMATTERS_FEW_SHOT,
+    TRAINING_NO_COT_FORMATTERS_ZERO_SHOT,
 )
 
 
@@ -101,7 +105,9 @@ class RandomNonCOTPromptAugmentor:
         return OpenAIChatPrompt(messages=messages)
 
 
-def augment_cots_big_brain(items: Slist[BiasedQuestionUnbiasedCOT]) -> Slist[BiasedQuestionUnbiasedCOT]:
+def augment_cots_big_brain(
+    items: Slist[BiasedQuestionUnbiasedCOT],
+) -> Slist[BiasedQuestionUnbiasedCOT]:
     new = Slist[BiasedQuestionUnbiasedCOT]()
     for item in items:
         new_item = item.model_copy()
@@ -112,7 +118,9 @@ def augment_cots_big_brain(items: Slist[BiasedQuestionUnbiasedCOT]) -> Slist[Bia
     return new
 
 
-def augment_non_cots_big_brain(items: Slist[BiasedQuestionUnbiasedCOT]) -> Slist[BiasedQuestionUnbiasedCOT]:
+def augment_non_cots_big_brain(
+    items: Slist[BiasedQuestionUnbiasedCOT],
+) -> Slist[BiasedQuestionUnbiasedCOT]:
     new = Slist[BiasedQuestionUnbiasedCOT]()
     for item in items:
         new_item = item.model_copy()
@@ -165,7 +173,9 @@ def distinct_at_front_shuffle(items: Slist[TaskOutput], limit: int) -> Slist[Tas
     return (distinct_items.shuffle(seed="42") + non_distinct_items.shuffle(seed="42")).take(limit)
 
 
-def distinct_at_front_shfufle_big_brain(items: Slist[BiasedQuestionUnbiasedCOT]) -> Slist[BiasedQuestionUnbiasedCOT]:
+def distinct_at_front_shfufle_big_brain(
+    items: Slist[BiasedQuestionUnbiasedCOT],
+) -> Slist[BiasedQuestionUnbiasedCOT]:
     shuffled_items = items.shuffle(seed="42")
     already_seen: set[str] = set()
     distinct_items = Slist[BiasedQuestionUnbiasedCOT]()
@@ -182,7 +192,7 @@ def distinct_at_front_shfufle_big_brain(items: Slist[BiasedQuestionUnbiasedCOT])
 
 def fine_tune_with_big_brain(
     n_epochs: int,
-    exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
+    exclude_formatters: Sequence[type[StageOneFormatter]] = [],
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
     instruct_sample_proportion: float = 0.1,
@@ -231,7 +241,9 @@ def fine_tune_with_big_brain(
     return _id
 
 
-def sample_from_cot_biases(exclude_formatters: Sequence[Type[StageOneFormatter]]) -> Type[StageOneFormatter]:
+def sample_from_cot_biases(
+    exclude_formatters: Sequence[type[StageOneFormatter]],
+) -> type[StageOneFormatter]:
     cot_biases = Slist(TRAINING_COT_FORMATTERS)
     return (
         cot_biases.filter(lambda x: x not in exclude_formatters if exclude_formatters else True)
@@ -241,14 +253,14 @@ def sample_from_cot_biases(exclude_formatters: Sequence[Type[StageOneFormatter]]
 
 
 def sample_from_non_cot_biases(
-    exclude_formatters: Sequence[Type[StageOneFormatter]], seed: str
-) -> Type[StageOneFormatter]:
+    exclude_formatters: Sequence[type[StageOneFormatter]], seed: str
+) -> type[StageOneFormatter]:
     non_cot_biases = Slist(TRAINING_NO_COT_FORMATTERS)
     return non_cot_biases.filter(lambda x: x not in exclude_formatters).shuffle(seed=seed).first_or_raise()
 
 
 def replace_unbiased_cot_prompt_with_biased(
-    task: TaskOutput, exclude_formatters: Sequence[Type[StageOneFormatter]]
+    task: TaskOutput, exclude_formatters: Sequence[type[StageOneFormatter]]
 ) -> TaskOutput:
     new = task.model_copy(deep=True)
     assert task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
@@ -260,8 +272,8 @@ def replace_unbiased_cot_prompt_with_biased(
 
 def replace_unbiased_cot_prompt_with_formatters(
     task: TaskOutput,
-    use_formatters: Iterable[Type[StageOneFormatter]],
-    intervention: Optional[Type[Intervention]] = None,
+    use_formatters: Iterable[type[StageOneFormatter]],
+    intervention: type[Intervention] | None = None,
 ) -> Slist[TaskOutput]:
     output = Slist[TaskOutput]()
     for formatter in use_formatters:
@@ -291,8 +303,8 @@ def transform_into_post_hoc_reasoning(task: TaskOutput) -> TaskOutput:
 
 @dataclasses.dataclass(kw_only=True, frozen=True)
 class FormatterWithPossibleIntervention:
-    formatter: Type[StageOneFormatter]
-    intervention: Optional[Type[Intervention]] = None
+    formatter: type[StageOneFormatter]
+    intervention: type[Intervention] | None = None
 
     def name(self):
         return self.formatter.name() + (f"_{self.intervention.name()}" if self.intervention else "")
@@ -355,7 +367,9 @@ class FormatterOptionsResult:
     unbiased_formatters: Sequence[FormatterWithPossibleIntervention]
 
 
-def match_formatter_options(formatter_options: FormatterOptions) -> FormatterOptionsResult:
+def match_formatter_options(
+    formatter_options: FormatterOptions,
+) -> FormatterOptionsResult:
     non_cot_formatters: Sequence[FormatterWithPossibleIntervention]
     cot_formatters: Sequence[FormatterWithPossibleIntervention]
 
@@ -438,7 +452,7 @@ def fine_tune_with_bias_augmentation_no_repeat(
     n_epochs: int,
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
     model_output_verified: ModelOutputVerified = ModelOutputVerified.correct,
-    exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
+    exclude_formatters: Sequence[type[StageOneFormatter]] = [],
     # if FormatterOptions.control_only_unbiased, then we only use unbiased contexts for training
     formatter_options: FormatterOptions = FormatterOptions.all_biased,
     project_name: str = "consistency-training",
@@ -581,7 +595,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
         n_formats_per_question = min(self.n_formats_per_question, len(formatters))
 
         tasks = Slist(tasks)
-        n_unique_cots = math.ceil((n / n_formats_per_question))
+        n_unique_cots = math.ceil(n / n_formats_per_question)
         print("using n_unique_cots", n_unique_cots)
         tasks = tasks.take(n_unique_cots)
 
@@ -631,7 +645,7 @@ def fine_tune_with_bias_augmentation(
     n_epochs: int,
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
     model_output_verified: ModelOutputVerified = ModelOutputVerified.correct,
-    exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
+    exclude_formatters: Sequence[type[StageOneFormatter]] = [],
     # if FormatterOptions.control_only_unbiased, then we only use unbiased contexts for training
     formatter_options: FormatterOptions = FormatterOptions.all_biased,
     project_name: str = "consistency-training",
@@ -739,7 +753,7 @@ def fine_tune_with_bias_augmentation(
 
 def fine_tune_with_dumb_brain_balanced(
     n_epochs: int,
-    exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
+    exclude_formatters: Sequence[type[StageOneFormatter]] = [],
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
     instruct_sample_proportion: float = 0.1,
@@ -791,7 +805,7 @@ def fine_tune_with_dumb_brain_balanced(
 
 def fine_tune_with_dumb_brain_balanced_biased_context(
     n_epochs: int,
-    exclude_formatters: Sequence[Type[StageOneFormatter]] = [],
+    exclude_formatters: Sequence[type[StageOneFormatter]] = [],
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
     instruct_sample_proportion: float = 0.1,
@@ -844,7 +858,7 @@ def fine_tune_with_dumb_brain_balanced_biased_context(
 
 def fine_tune_with_big_brain_cots_control_tokens(
     n: int,
-    exclude_formattter: Type[StageOneFormatter] | None,
+    exclude_formattter: type[StageOneFormatter] | None,
     n_epochs: int,
     model: str = "gpt-3.5-turbo",
 ):
@@ -867,7 +881,10 @@ if __name__ == "__main__":
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
-        exclude_formatters=[WrongFewShotIgnoreMistakesBiasedFormatter, WrongFewShotIgnoreMistakesBiasedNoCOTFormatter],
+        exclude_formatters=[
+            WrongFewShotIgnoreMistakesBiasedFormatter,
+            WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+        ],
         n_samples=10000,
         post_hoc=False,
         cot_percentage=0.50,

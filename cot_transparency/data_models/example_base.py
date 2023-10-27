@@ -1,9 +1,10 @@
+import random
 from abc import ABC, abstractmethod
 from enum import Enum
-import random
-from typing import Literal, Self, TypeVar, final
-from pydantic import BaseModel, ConfigDict
 from string import ascii_uppercase
+from typing import Literal, Self, TypeVar, final
+
+from pydantic import BaseModel, ConfigDict
 
 from cot_transparency.util import deterministic_hash
 
@@ -56,7 +57,21 @@ class ChoiceVariant(str, Enum):
         choices_map = {
             ChoiceVariant.LETTERS: list(ascii_uppercase),
             ChoiceVariant.NUMBERS: [str(i) for i in range(1, 15)],
-            ChoiceVariant.ROMAN: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII"],
+            ChoiceVariant.ROMAN: [
+                "I",
+                "II",
+                "III",
+                "IV",
+                "V",
+                "VI",
+                "VII",
+                "VIII",
+                "IX",
+                "X",
+                "XI",
+                "XII",
+                "XIII",
+            ],
             ChoiceVariant.FOO: [
                 "foo",
                 "bar",
@@ -171,6 +186,9 @@ class DataExampleBase(BaseModel, ABC):
         c.data_format = data_format_spec
 
         return c
+
+    def name(self):
+        return self.__class__.__name__
 
     @property
     @abstractmethod

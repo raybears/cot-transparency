@@ -4,21 +4,29 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Optional, Mapping
+from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
 import openai
 import pandas as pd
-import wandb
-from openai.error import RateLimitError, APIConnectionError
+from openai.error import APIConnectionError, RateLimitError
 from pydantic import BaseModel
 from retry import retry
 from wandb.sdk.wandb_run import Run
-from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
-from cot_transparency.data_models.models import TaskOutput
 
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
+import wandb
 from cot_transparency.apis.openai.set_key import set_keys_from_env
+from cot_transparency.data_models.messages import (
+    ChatMessage,
+    MessageRole,
+    StrictChatMessage,
+    StrictMessageRole,
+)
+from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.json_utils.read_write import (
+    read_jsonl_file_into_basemodel,
+    write_jsonl_file_from_basemodel,
+)
 
 set_keys_from_env()
 
@@ -35,8 +43,9 @@ class FineTuneParams(BaseModel):
     hyperparameters: FineTuneHyperParams
 
 
-def join_assistant_preferred_to_completion(messages: list[ChatMessage], completion: str) -> list[ChatMessage]:
+def join_assistant_preferred_to_completion(messages: Sequence[ChatMessage], completion: str) -> Sequence[ChatMessage]:
     # If we had a previous assistant_if_completion message, we want to join it with the new completion
+    messages = list(messages)
     last_message = messages[-1]
     if last_message.role == MessageRole.assistant_if_completion:
         messages[-1] = ChatMessage(role=MessageRole.assistant, content=last_message.content + completion)

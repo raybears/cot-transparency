@@ -1,7 +1,7 @@
 import os
-
 import random
 from typing import Optional
+
 import openai
 from dotenv import load_dotenv
 

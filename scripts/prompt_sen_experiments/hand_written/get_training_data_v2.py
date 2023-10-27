@@ -2,7 +2,6 @@ import fire
 
 from stage_one import COT_TRAINING_TASKS, main
 
-
 EXP_DIR = "experiments/prompt_sen_experiments/temp0_cots_for_consistency_training"
 
 

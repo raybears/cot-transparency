@@ -1,12 +1,14 @@
-from typing import Optional
+from typing import Optional, Sequence
 
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.messages import MessageRole
-from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question, COT_ASSISTANT_PROMPT
+from cot_transparency.formatters.instructions import (
+    COT_ASSISTANT_PROMPT,
+    add_verbalize_instruction_to_question,
+)
 
 
 class UserBiasedWrongCotFormatter(StageOneFormatter):
@@ -14,7 +16,7 @@ class UserBiasedWrongCotFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # SAD breaking of liskov here
         if not isinstance(question, BiasedWrongCOTBBH):
             raise ValueError(
@@ -40,7 +42,7 @@ class ModelBiasedWrongCotFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         # SAD breaking of liskov here
         if not isinstance(question, BiasedWrongCOTBBH):
             raise ValueError(
@@ -49,14 +51,14 @@ class ModelBiasedWrongCotFormatter(StageOneFormatter):
         cot = question.cot
         # delete the last line
         truncated = cot[: cot.rfind("\n")]
-        user_question: list[ChatMessage] = ZeroShotCOTUnbiasedFormatter.format_example(question)
+        user_question: Sequence[ChatMessage] = ZeroShotCOTUnbiasedFormatter.format_example(question)
         response = ChatMessage(role=MessageRole.assistant, content=truncated)
         are_you_sure = ChatMessage(
             role=MessageRole.user,
             content=add_verbalize_instruction_to_question("Please continue answering the question"),
         )
         lets_think_again = ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT)
-        return user_question + [response, are_you_sure, lets_think_again]
+        return list(user_question) + [response, are_you_sure, lets_think_again]
 
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:

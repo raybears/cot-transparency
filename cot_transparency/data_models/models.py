@@ -2,17 +2,20 @@
 
 from abc import abstractmethod
 from pathlib import Path
+from typing import Any, Optional, Sequence, Type
 
+from pydantic import AliasChoices, BaseModel, Field
 
-from pydantic import BaseModel, Field, AliasChoices
-
-from typing import Optional, Any, Sequence, Type
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    GenericDataExample,
+    MultipleChoiceAnswer,
+)
+from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.messages import ChatMessage
-
 from cot_transparency.util import deterministic_hash
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer, GenericDataExample
 
 
 class ModelOutput(BaseModel):
@@ -21,7 +24,7 @@ class ModelOutput(BaseModel):
     parsed_response: Optional[str]
 
 
-class BaseTaskSpec(BaseModel):
+class BaseTaskSpec(HashableBaseModel):
     """
     Specifies the minimal information needed to run a task and save the results
     """
@@ -69,9 +72,9 @@ class TaskSpec(BaseTaskSpec):
         """
         hashes: str = ""
         hashes += self.task_name
-        hashes += self.inference_config.d_hash()
+        hashes += self.inference_config.model_hash()
         for message in self.messages:
-            hashes += message.d_hash()
+            hashes += message.model_hash()
 
         return hashes
 
@@ -245,12 +248,7 @@ class StageTwoTaskSpec(BaseTaskSpec):
         return self.stage_one_output.task_spec.task_name
 
     def uid(self) -> str:
-        if self.trace_info is not None:
-            original_cot = self.trace_info.original_cot
-        else:
-            original_cot = []
-        h = self.stage_one_output.task_spec.uid()
-        return deterministic_hash(h + "".join(original_cot))
+        return self.model_hash()
 
     def to_s1(self) -> TaskSpec:
         s1 = TaskSpec(

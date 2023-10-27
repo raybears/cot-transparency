@@ -2,18 +2,22 @@ from typing import Type
 
 from slist import Slist
 
+from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.more_biases.more_reward import MoreRewardBiasedFormatter
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotBiasedFormatter
+from cot_transparency.formatters.more_biases.more_reward import (
+    MoreRewardBiasedFormatter,
+)
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotBiasedFormatter,
+)
 from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter
-from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.intervention_investigation import (
     bar_plot,
-    plot_for_intervention,
     filter_inconsistent_only,
+    plot_for_intervention,
 )
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo

@@ -3,10 +3,21 @@ from typing import Sequence, Type
 from slist import Slist
 
 from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter, AnswerAlwaysANoCOTFormatter
-from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
+from cot_transparency.formatters.core.answer_always_a import (
+    AnswerAlwaysAFormatter,
+    AnswerAlwaysANoCOTFormatter,
+)
+from cot_transparency.formatters.core.sycophancy import (
+    ZeroShotCOTSycophancyFormatter,
+    ZeroShotSycophancyFormatter,
+)
+from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
+)
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    ZeroShotInitialWrongFormatter,
+)
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
     DeceptiveAssistantTargetedFormatter,
 )
@@ -15,26 +26,26 @@ from cot_transparency.formatters.more_biases.more_reward import (
     MoreRewardBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.more_biases.random_bias_formatter import (
-    RandomBiasedFormatter,
     RandomAgainstBiasedFormatter,
-    RandomBiasedQuotedFormatter,
-    RandomBiasedNoCOTFormatter,
     RandomAgainstBiasedNoCOTFormatter,
-    RandomAgainstQuotedBiasedFormatter,
-    RandomBiasedQuotedNoCOTFormatter,
     RandomAgainstBiasedQuotedNoCOTFormatter,
+    RandomAgainstQuotedBiasedFormatter,
+    RandomBiasedFormatter,
+    RandomBiasedNoCOTFormatter,
+    RandomBiasedQuotedFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
 )
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import (
-    StanfordBiasedFormatter,
     CheckmarkBiasedFormatter,
-    CrossBiasedFormatter,
-    StanfordNoCOTFormatter,
-    CrossNoCOTFormatter,
     CheckmarkNoCOTFormatter,
+    CrossBiasedFormatter,
+    CrossNoCOTFormatter,
+    StanfordBiasedFormatter,
+    StanfordNoCOTFormatter,
 )
 
 # COT FORMATTERS

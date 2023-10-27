@@ -2,10 +2,10 @@ from typing import Mapping, Sequence
 
 from slist import Slist
 
-from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.io import read_whole_exp_dir
+from cot_transparency.data_models.models import TaskOutput
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
-from scripts.multi_accuracy import PlotInfo, AccuracyOutput
+from scripts.multi_accuracy import AccuracyOutput, PlotInfo
 
 
 def modal_agreement(tasks: Slist[TaskOutput]) -> float:
@@ -40,7 +40,10 @@ def calculate_modal_agreement(name: str, items: Slist[TaskOutput]) -> PlotInfo:
     # non bootstrap version
     # run modal_agreement_for_task_hash
     modal_agreement = modal_agreement_for_task_hash(items)
-    return PlotInfo(name=name, acc=AccuracyOutput(accuracy=modal_agreement, error_bars=0, samples=items.length))
+    return PlotInfo(
+        name=name,
+        acc=AccuracyOutput(accuracy=modal_agreement, error_bars=0, samples=items.length),
+    )
 
 
 def filter_modal_wrong(items: Slist[TaskOutput]) -> Slist[TaskOutput]:

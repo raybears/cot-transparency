@@ -4,26 +4,24 @@ import streamlit as st
 import streamlit.components.v1 as components
 from slist import Slist
 from streamlit.delta_generator import DeltaGenerator
+
+from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
 from cot_transparency.util import assert_not_none
-from cot_transparency.data_models.models import (
-    StageTwoTaskOutput,
-    TaskOutput,
-)
-from cot_transparency.viewer.util import display_task
 from cot_transparency.viewer.answer_options import (
-    select_bias_on_where_option,
     TypeOfAnswerOption,
+    select_bias_on_where_option,
     select_left_model_result_option,
 )
+from cot_transparency.viewer.util import display_task
 from cot_transparency.viewer.viewer_cache import (
+    DataDropDowns,
+    TreeCache,
+    TreeCacheKey,
     cached_read_whole_exp_dir,
     cached_read_whole_s2_exp_dir,
     cached_search,
     get_data_dropdowns,
-    DataDropDowns,
     make_tree,
-    TreeCache,
-    TreeCacheKey,
 )
 
 # set to wide
@@ -121,7 +119,9 @@ right: DeltaGenerator
 left, right = st.columns(2)
 with left:
     i = 0
-    formatter_drop_down_selection: str = st.selectbox("Select formatter", data_dropdowns.formatters, key=f"formatter_{i}")  # type: ignore
+    formatter_drop_down_selection: str = st.selectbox(
+        "Select formatter", data_dropdowns.formatters, key=f"formatter_{i}"
+    )  # type: ignore
     model_drop_down_selection: str = st.selectbox("Select model", data_dropdowns.models, key=f"model_{i}")  # type: ignore
     filtered = cached_search(
         completion_search=completion_search,

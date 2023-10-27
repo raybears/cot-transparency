@@ -2,11 +2,12 @@ import logging
 import threading
 import time
 from functools import wraps
-from typing import Optional, Callable, TypeVar, Protocol
+from typing import Callable, Optional, Protocol, TypeVar
 
 import tiktoken
-from cot_transparency.data_models.messages import StrictChatMessage
+
 from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.messages import StrictChatMessage
 from cot_transparency.util import setup_logger
 
 exit_event = threading.Event()
@@ -16,7 +17,10 @@ rate_limit_logger = setup_logger("rate_limit_logger", logging.INFO)
 
 class LeakyBucketRateLimiter:
     def __init__(
-        self, tokens_per_minute: int, log_every_n_requests: int = 200, logger: Optional[logging.Logger] = None
+        self,
+        tokens_per_minute: int,
+        log_every_n_requests: int = 200,
+        logger: Optional[logging.Logger] = None,
     ):
         self.tokens_per_minute: float = tokens_per_minute
         self.tokens_available: float = tokens_per_minute

@@ -1,10 +1,12 @@
+import os
 from threading import Lock
 from typing import Optional
+
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import os
-from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
 from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 
 
 class Llama27BHelper:
@@ -17,7 +19,11 @@ class Llama27BHelper:
         self.model = AutoModelForCausalLM.from_pretrained(pretrained_model, use_auth_token=token).to(self.device)
 
     def generate_text(
-        self, prompt: str, max_length: int = 100, temperature: float = 1.0, top_p: Optional[float] = 1.0
+        self,
+        prompt: str,
+        max_length: int = 100,
+        temperature: float = 1.0,
+        top_p: Optional[float] = 1.0,
     ) -> str:
         if temperature == 0.0:
             do_sample = False
@@ -61,7 +67,8 @@ def llama_v2_prompt(messages: list[StrictChatMessage]) -> str:
     assert messages[1].role == StrictMessageRole.user
     messages = [
         StrictChatMessage(
-            role=StrictMessageRole.user, content=B_SYS + messages[0].content + E_SYS + messages[1].content
+            role=StrictMessageRole.user,
+            content=B_SYS + messages[0].content + E_SYS + messages[1].content,
         )
     ] + messages[2:]
 
@@ -93,5 +100,8 @@ def call_llama_chat(prompt: list[StrictChatMessage], config: OpenaiInferenceConf
             llama_cache[f"meta-llama/{config.model}"] = chat_model
 
     return chat_model.generate_text(
-        formatted_prompt, max_length=config.max_tokens, temperature=config.temperature, top_p=config.top_p
+        formatted_prompt,
+        max_length=config.max_tokens,
+        temperature=config.temperature,
+        top_p=config.top_p,
     )

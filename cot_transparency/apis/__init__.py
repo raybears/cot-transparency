@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Sequence, Type
 
 from cot_transparency.apis.anthropic import AnthropicCaller
 from cot_transparency.apis.base import InferenceResponse, ModelCaller, ModelType
@@ -13,7 +13,7 @@ __all__ = [
 CALLER_STORE: dict[str, ModelCaller] = {}
 
 
-def get_caller(model_name: str) -> Type[ModelCaller]:
+def get_caller_class(model_name: str) -> Type[ModelCaller]:
     if "davinci" in model_name:
         return OpenAICompletionCaller
     elif "claude" in model_name:
@@ -30,20 +30,22 @@ class UniversalCaller(ModelCaller):
     # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         return call_model_api(messages, config)
 
 
-def call_model_api(messages: list[ChatMessage], config: OpenaiInferenceConfig) -> InferenceResponse:
-    model_name = config.model
-
-    caller: ModelCaller
+def get_caller(model_name: str) -> ModelCaller:
     if model_name in CALLER_STORE:
-        caller = get_caller(model_name)()
+        return CALLER_STORE[model_name]
     else:
-        caller = get_caller(model_name)()
+        caller = get_caller_class(model_name)()
         CALLER_STORE[model_name] = caller
+        return caller
 
+
+def call_model_api(messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> InferenceResponse:
+    model_name = config.model
+    caller = get_caller(model_name)
     return caller.call(messages, config)
