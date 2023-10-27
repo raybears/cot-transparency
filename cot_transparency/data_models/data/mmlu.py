@@ -1,9 +1,12 @@
-import pandas as pd
 from typing import Optional
 
+import pandas as pd
 from slist import Slist
 
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
+)
 from data.mmlu.super_categories import TASK_KEY_TO_CAT
 
 MMLU_TASKS = [f"mmlu_{i}" for i in TASK_KEY_TO_CAT.keys()]

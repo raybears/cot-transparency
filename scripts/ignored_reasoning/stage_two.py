@@ -1,22 +1,22 @@
 import random
 from pathlib import Path
-from tkinter import NO
 from typing import List, Literal, NewType, Optional, Type
 
 import fire
 from git import Sequence
 from cot_transparency.apis.base import ModelCaller
+
+from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.data_models.config import CONFIG_MAP
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
-
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
-    TraceInfo,
     ModelOutput,
     StageTwoTaskOutput,
     StageTwoTaskSpec,
     TaskOutput,
+    TraceInfo,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.transparency.mistakes import (
@@ -26,10 +26,12 @@ from cot_transparency.formatters.transparency.mistakes import (
 from cot_transparency.formatters.transparency.s1_baselines import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
 )
-from cot_transparency.formatters.transparency.util import StageTwoFormatter
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-from cot_transparency.formatters.transparency.util import FullCOTCompletionFormatter, FullCOTFormatter
-from cot_transparency.apis.openai.set_key import set_keys_from_env
+from cot_transparency.formatters.transparency.util import (
+    FullCOTCompletionFormatter,
+    FullCOTFormatter,
+    StageTwoFormatter,
+)
 from cot_transparency.tasks import run_with_caching_stage_two, task_function
 from cot_transparency.util import get_exp_dir_name
 from stage_one import get_valid_stage1_formatters
@@ -51,8 +53,6 @@ def filter_cot_by_possible_ends(cot_steps: list[str]) -> list[str]:
             break
         else:
             filtered_steps.append(step)
-            if "answer is" in step:
-                break
     return filtered_steps
 
 
@@ -70,7 +70,10 @@ def get_early_answering_tasks(
     cot_steps = [""] + original_cot  # add empty string to start of COT as we want to get an answer with no reasoning
 
     rng = random.Random(stage_one_output.task_spec.uid())
-    sample_idxs = [0, len(cot_steps) - 1]  # we always do the first and last one to get good aoc numbers
+    sample_idxs = [
+        0,
+        len(cot_steps) - 1,
+    ]  # we always do the first and last one to get good aoc numbers
     if not full_answers_only:
         truncated_idxs = rng.sample(range(1, len(cot_steps) - 1), min(n_samples_per_cot, len(cot_steps) - 2))
         sample_idxs.extend(truncated_idxs)
@@ -132,9 +135,15 @@ def create_mistake_task_spec_for_stage_one(
         print("WARNING - skipping task as len(cot_steps) == 0")
         return []
 
-    sample_idxs = [0, len(cot_steps) - 1]  # we always do the first and last one to get good aoc numbers
+    sample_idxs = [
+        0,
+        len(cot_steps) - 1,
+    ]  # we always do the first and last one to get good aoc numbers
     if len(cot_steps) > 2:
-        mistake_idxs = rng.sample(range(1, len(cot_steps) - 1), min(n_mistake_insertion_points, len(cot_steps) - 2))
+        mistake_idxs = rng.sample(
+            range(1, len(cot_steps) - 1),
+            min(n_mistake_insertion_points, len(cot_steps) - 2),
+        )
         sample_idxs.extend(mistake_idxs)
     sample_idxs = sorted(list(set(sample_idxs)))
 
@@ -164,6 +173,7 @@ def create_mistake_task_spec_for_stage_one(
         out.append(task_spec)
     return out
 
+
 def get_mistakes(
     stage_one_outputs: list[TaskOutput],
     exp_dir: str,
@@ -189,7 +199,7 @@ def get_mistakes(
 
     print(f"1. Generating mistakes using {mistake_adding_model}")
     print("n specs", len(specs))
-    print("n unique specs", len(set([spec.uid() for spec in specs])))
+    print("n unique specs", len({spec.uid() for spec in specs}))
     # put this into dataframe
 
     out = []
@@ -243,8 +253,9 @@ def mistakes_into_completed_cot_spec(
             f"{exp_dir}/mistakes_stage2/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{CompletePartialCOT.name()}.json"
         )
 
-        trace_info: TraceInfo | None = generated_mistake.task_spec.trace_info.model_copy()
+        trace_info: TraceInfo | None = generated_mistake.task_spec.trace_info
         assert trace_info is not None
+        trace_info = trace_info.model_copy()
         trace_info.sentence_with_mistake = generated_mistake.first_parsed_response
 
         partial_cot_trace = trace_info.get_trace_upto_mistake()
@@ -272,7 +283,8 @@ def execute_recomputation(task_spec: RecomputeTaskSpec, caller: ModelCaller) -> 
     assert trace_info
     if trace_info.mistake_inserted_idx == len(trace_info.original_cot) - 1:
         output = StageTwoTaskOutput(
-            task_spec=task_spec, inference_output=ModelOutput(raw_response="", parsed_response="")
+            task_spec=task_spec,
+            inference_output=ModelOutput(raw_response="", parsed_response=""),
         )
         return [output for _ in range(task_spec.inference_config.n)]
     else:
@@ -332,7 +344,11 @@ def single_get_best_single_answer_tasks_given_mistakes(
         stage_one_output=output.task_spec.stage_one_output,
         inference_config=config,
         formatter_name=Formatter.name(),
-        messages=Formatter.format_example(stage_one_output.task_spec.messages, cot_trace_with_mistake, config.model),
+        messages=Formatter.format_example(
+            stage_one_output.task_spec.messages,
+            cot_trace_with_mistake,
+            config.model,
+        ),
         out_file_path=path,
         n_steps_in_cot_trace=len(get_cot_steps(cot_trace_with_mistake)),
         trace_info=trace_info,
@@ -360,7 +376,10 @@ def create_stage_2_tasks(
     exp_dir: str,
     mistake_model: str,
     temperature: Optional[float] = None,
-    tasks: list[Literal["early_answering", "mistakes"]] = ["early_answering", "mistakes"],
+    tasks: list[Literal["early_answering", "mistakes"]] = [
+        "early_answering",
+        "mistakes",
+    ],
     batch: int = 30,
 ) -> List[StageTwoTaskSpec]:
     tasks_to_run: List[StageTwoTaskSpec] = []
@@ -377,12 +396,18 @@ def create_stage_2_tasks(
                 # do this if we are already running early_answering tasks as we will get the
                 # baseline answers from those
                 early_answering_tasks = get_early_answering_tasks(
-                    task_output, exp_dir, temperature=temperature, full_answers_only=True
+                    task_output,
+                    exp_dir,
+                    temperature=temperature,
+                    full_answers_only=True,
                 )
                 tasks_to_run.extend(early_answering_tasks)
 
         cots_with_mistakes = get_mistakes(
-            stage_1_task_outputs, exp_dir, batch=batch, mistake_adding_model=mistake_model
+            stage_1_task_outputs,
+            exp_dir,
+            batch=batch,
+            mistake_adding_model=mistake_model,
         )
         cots_with_mistakes_outputs = recomplete_cot_with_inserted_mistake(cots_with_mistakes, exp_dir, batch=batch)
         final_tasks = get_best_single_answer_tasks_given_mistakes(
@@ -433,7 +458,10 @@ def main(
     batch: int = 30,
     temperature: float = 0.0,
     example_cap: int = 999999999,
-    evaluations: list[Literal["early_answering", "mistakes"]] = ["early_answering", "mistakes"],
+    evaluations: list[Literal["early_answering", "mistakes"]] = [
+        "early_answering",
+        "mistakes",
+    ],
     mistake_model="text-davinci-002",
     skip_running_traces: bool = False,
 ):
@@ -477,7 +505,10 @@ def main(
     for experiment_json in experiment_jsons.values():
         stage_one_outputs = experiment_json.outputs
         # sort based on task_hash
-        stage_one_outputs = sorted(stage_one_outputs, key=lambda x: (x.task_spec.repeat_idx, x.task_spec.task_hash))
+        stage_one_outputs = sorted(
+            stage_one_outputs,
+            key=lambda x: (x.task_spec.repeat_idx, x.task_spec.task_hash),
+        )
         stage_one_outputs = stage_one_outputs[:example_cap]
         stage_one_outputs_to_use.extend(stage_one_outputs)
 

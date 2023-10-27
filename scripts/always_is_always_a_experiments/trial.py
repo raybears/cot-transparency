@@ -1,5 +1,11 @@
-from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter, AnswerAlwaysANoCOTFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.answer_always_a import (
+    AnswerAlwaysAFormatter,
+    AnswerAlwaysANoCOTFormatter,
+)
+from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
+)
 from stage_one import main
 
 if __name__ == "__main__":

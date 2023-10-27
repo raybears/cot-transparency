@@ -1,7 +1,6 @@
 from cot_transparency.data_models.models import TraceInfo
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 
-
 ORIGINAL_COT = """Step 1: Let's denote the number of innings played in England as 'E'. This means that the total runs scored in England are 46E.
 
 Step 2: In India, the batsman has played 2 test matches of 2 innings each, so he played 2*2 = 4 innings in total. Here, he scored an average of 55 runs, so the total runs scored in India are 55*4 = 220.

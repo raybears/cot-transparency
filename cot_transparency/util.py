@@ -5,7 +5,6 @@ import os
 import tempfile
 from typing import Optional, TypeVar
 
-
 A = TypeVar("A")
 
 

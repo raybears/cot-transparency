@@ -2,7 +2,7 @@ import asyncio
 import random
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Sequence, Mapping
+from typing import Mapping, Optional, Sequence
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,7 +13,7 @@ from slist import Slist
 from tqdm import tqdm
 
 from cot_transparency.apis import OpenAIChatCaller, UniversalCaller
-from cot_transparency.apis.base import Prompt, ModelCaller
+from cot_transparency.apis.base import ModelCaller, Prompt
 from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
@@ -36,7 +36,7 @@ class JudgeChoice(str, Enum):
 
 class ComparisonGenerationJudged(BaseModel):
     generation: ComparisonGeneration
-    judge_prompt: list[ChatMessage]
+    judge_prompt: Sequence[ChatMessage]
     judge_output: str
     winner: Optional[JudgeChoice]
 
@@ -133,9 +133,16 @@ def get_judge_output(comparison: ComparisonGeneration, judge: ModelCaller) -> Co
         messages=[question.question],
         config=OpenaiInferenceConfig(model="gpt-4", max_tokens=500, temperature=0.0, top_p=1.0),
     ).single_response
-    winner = parse_judge_output(judge_response, first_label=question.first_label, second_label=question.second_label)
+    winner = parse_judge_output(
+        judge_response,
+        first_label=question.first_label,
+        second_label=question.second_label,
+    )
     return ComparisonGenerationJudged(
-        generation=comparison, judge_output=judge_response, winner=winner, judge_prompt=[question.question]
+        generation=comparison,
+        judge_output=judge_response,
+        winner=winner,
+        judge_prompt=[question.question],
     )
 
 
@@ -186,7 +193,9 @@ def get_win_rate(judged: Sequence[ComparisonGenerationJudged]) -> WinrateMetrics
 
 
 def win_rate_plot(
-    judged: Sequence[ComparisonGenerationJudged], sort_by: Sequence[str], rename_map: Mapping[str, str]
+    judged: Sequence[ComparisonGenerationJudged],
+    sort_by: Sequence[str],
+    rename_map: Mapping[str, str],
 ) -> None:
     win_rates: Slist[tuple[str, WinrateMetrics]] = (
         (
@@ -206,14 +215,22 @@ def win_rate_plot(
         )
         .map(
             # rename
-            lambda model_win_rate: (rename_map.get(model_win_rate[0], model_win_rate[0]), model_win_rate[1]),
+            lambda model_win_rate: (
+                rename_map.get(model_win_rate[0], model_win_rate[0]),
+                model_win_rate[1],
+            ),
         )
     )
     # use seaborn
 
     # create a dataframe
     list_dicts = [
-        {"model": model, "win_rate": win_rate.win_rate, "se": win_rate.se, "samples": win_rate.samples}
+        {
+            "model": model,
+            "win_rate": win_rate.win_rate,
+            "se": win_rate.se,
+            "samples": win_rate.samples,
+        }
         for model, win_rate in win_rates
     ]
 
@@ -224,7 +241,14 @@ def win_rate_plot(
     # set y axis to 0-1
     plt.ylim(0, 1)
     # add standard error bars
-    plt.errorbar(x=df["model"], y=df["win_rate"], yerr=df["se"], fmt="none", capsize=0.1, color="black")
+    plt.errorbar(
+        x=df["model"],
+        y=df["win_rate"],
+        yerr=df["se"],
+        fmt="none",
+        capsize=0.1,
+        color="black",
+    )
 
     # x-axis should be "Percentage of additional instruction dataset samples"
     # title should be "Win rate of intervention models against gpt-3.5-turbo"
@@ -243,7 +267,8 @@ async def eval_instruction_following(intervention_models: list[str]):
     print(f"Total testing samples: {len(samples)}")
 
     intervention_caller = UniversalCaller().with_file_cache(
-        cache_path=Path("experiments/alignment_tax/intervention_completion.jsonl"), write_every_n=10
+        cache_path=Path("experiments/alignment_tax/intervention_completion.jsonl"),
+        write_every_n=10,
     )
     vanilla_caller = OpenAIChatCaller().with_file_cache(
         Path("experiments/alignment_tax/vanilla_completion.jsonl"), write_every_n=10
@@ -274,7 +299,8 @@ async def eval_instruction_following(intervention_models: list[str]):
         # err this appends, so each time you load, you need to delete the old results
         # will fix later
         .for_each_to_file(
-            file_path=Path("experiments/alignment_tax/results.jsonl"), serialize=lambda x: x.model_dump_json()
+            file_path=Path("experiments/alignment_tax/results.jsonl"),
+            serialize=lambda x: x.model_dump_json(),
         )
     )
     # run it

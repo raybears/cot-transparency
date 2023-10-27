@@ -1,6 +1,7 @@
-from typing import Any, Optional
-import seaborn as sns
 import textwrap
+from typing import Any, Optional
+
+import seaborn as sns
 
 
 def annotate_bars(ax: Any, **kwargs: Any):  # typing: ignore
@@ -78,7 +79,15 @@ def catplot(
             kwargs["capsize"] = 0.05
 
     g = sns.catplot(
-        *args, linewidth=1, edgecolor="black", data=df, hue=hue, x=x, col=col, y=y, **kwargs
+        *args,
+        linewidth=1,
+        edgecolor="black",
+        data=df,
+        hue=hue,
+        x=x,
+        col=col,
+        y=y,
+        **kwargs,
     )  # typing: ignore
 
     # for each axis in the plot add a line at y = add_line_at
@@ -137,9 +146,9 @@ def catplot(
 
 if __name__ == "__main__":
     # make some fake data and plot it
-    import pandas as pd
-    import numpy as np
     import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
 
     np.random.seed(0)
     data = pd.DataFrame(

@@ -1,6 +1,7 @@
 import fire
 import pandas as pd
 import plotly.graph_objects as go
+
 from analysis import get_data_frame_from_exp_dir
 from cot_transparency.formatters import bias_to_unbiased_formatter
 from cot_transparency.util import deterministic_hash
@@ -21,7 +22,15 @@ def create_sankey_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # assert that we have equal numbers of COT and No-COT
     assert len(df[df.cot_type == "No-COT"]) == len(df[df.cot_type == "COT"])
 
-    df = df[["task_hash", "task_unbiased_hash", "cot_type", "response_category", "parsed_response"]]
+    df = df[
+        [
+            "task_hash",
+            "task_unbiased_hash",
+            "cot_type",
+            "response_category",
+            "parsed_response",
+        ]
+    ]
     # sort by response category
     df = df.sort_values(by=["response_category"])
 
@@ -29,7 +38,13 @@ def create_sankey_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     source_df = df[df.cot_type == "No-COT"]
     target_df = df[df.cot_type == "COT"]
 
-    transistion_df = pd.merge(source_df, target_df, on="task_hash", how="inner", suffixes=("_source", "_target"))
+    transistion_df = pd.merge(
+        source_df,
+        target_df,
+        on="task_hash",
+        how="inner",
+        suffixes=("_source", "_target"),
+    )
 
     # Record when the literal answer did not change
     cot_did_not_change_answer = transistion_df["parsed_response_source"] == transistion_df["parsed_response_target"]
@@ -168,7 +183,12 @@ def main(exp_dir: str, filter_on_same_start: bool = True, inconsistent_only: boo
         "out of",
         len(df[df.cot_type == "No-COT"]),
     )
-    print("Same answer, COT:", df[df.cot_type == "COT"].same_answer.sum(), "out of", len(df[df.cot_type == "COT"]))
+    print(
+        "Same answer, COT:",
+        df[df.cot_type == "COT"].same_answer.sum(),
+        "out of",
+        len(df[df.cot_type == "COT"]),
+    )
 
     if filter_on_same_start:
         df_same_answer = df[df.same_answer]  # This is all examples where the biased and unbiased responses are the same

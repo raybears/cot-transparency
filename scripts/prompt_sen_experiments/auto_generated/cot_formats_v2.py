@@ -1,9 +1,10 @@
 from typing import Optional, Sequence
-import fire
-from scripts.prompt_sen_experiments.plots import prompt_metrics
 
-from stage_one import main
+import fire
+
 from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import COT_FORMATTERS
+from scripts.prompt_sen_experiments.plots import prompt_metrics
+from stage_one import main
 
 EXP_DIR = "experiments/prompt_sen_experiments/temp0_cot_non_trained_formats"
 

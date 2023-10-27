@@ -5,7 +5,10 @@ from pydantic import BaseModel
 from slist import Slist
 
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.interventions.few_shots_loading import get_training_cots_gpt_35, ModelOutputVerified
+from cot_transparency.formatters.interventions.few_shots_loading import (
+    ModelOutputVerified,
+    get_training_cots_gpt_35,
+)
 
 
 class TaskRow(BaseModel):

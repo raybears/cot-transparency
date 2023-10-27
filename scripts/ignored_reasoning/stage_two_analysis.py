@@ -1,23 +1,19 @@
 from typing import Optional
+
 import fire
-import scipy
+import numpy as np
+import pandas as pd
+import seaborn as sns
 from git import Sequence
 from matplotlib import pyplot as plt
-from scipy.__config__ import show
-from slist import Slist
 
-from analysis import get_general_metrics
+from analysis import TASK_MAP, accuracy_for_df, get_general_metrics
+from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import (
     StageTwoTaskOutput,
-    TaskOutput,
 )
-import pandas as pd
-from cot_transparency.data_models.io import ExpLoader
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
-from analysis import accuracy_for_df, TASK_MAP
-import seaborn as sns
-import numpy as np
-
 
 # Used to produce human readable names on plots
 NAMES_MAP = {
@@ -43,7 +39,13 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
     # get aoc for each original_cot_trace_length, grouped by task, and model
     # we want the counts for the number of traces so filter on unique stage_one_hash
 
-    groups = ["task_name", "model", "original_cot_trace_length", x, "stage_one_formatter_name"]
+    groups = [
+        "task_name",
+        "model",
+        "original_cot_trace_length",
+        x,
+        "stage_one_formatter_name",
+    ]
 
     n_traces = df.groupby(groups).stage_one_hash.nunique().reset_index()
     n_traces = n_traces.rename(columns={"stage_one_hash": "n_traces"})
@@ -268,7 +270,11 @@ def drop_not_found(df: pd.DataFrame) -> pd.DataFrame:
     # Redrop any NOT_FOUND
     pre = len(df)
     df = df[df.same_answer != "NOT_FOUND"]  # type: ignore
-    print("Dropped ", pre - len(df), " rows becuase of NOT_FOUND answers in full cot trace")
+    print(
+        "Dropped ",
+        pre - len(df),
+        " rows becuase of NOT_FOUND answers in full cot trace",
+    )
     return df
 
 
@@ -492,7 +498,13 @@ def aoc_plot_from_list(
         plt.show()
 
 
-def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_early: pd.DataFrame, kind="bar"):
+def _aoc_point_plot(
+    hue: str,
+    df: pd.DataFrame,
+    aoc_mistakes: pd.DataFrame,
+    aoc_early: pd.DataFrame,
+    kind="bar",
+):
     # two point plots side by side [mistakes, early answering, accuracy]
     fig, axs = plt.subplots(1, 3, figsize=(10, 5))
 

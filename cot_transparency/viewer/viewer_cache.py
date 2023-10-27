@@ -1,12 +1,11 @@
+from collections.abc import Sequence
 from functools import lru_cache
-from typing import Sequence, Optional
 
 from pydantic import BaseModel
 from slist import Slist
 
+from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
 from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
-from cot_transparency.data_models.io import read_whole_exp_dir_s2
-from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.viewer.answer_options import TypeOfAnswerOption
 
 
@@ -78,8 +77,8 @@ def filter_prompt(task: TaskOutput, prompt_search: str) -> bool:
 
 @lru_cache(maxsize=32)
 def cached_search(
-    prompt_search: Optional[str],
-    completion_search: Optional[str],
+    prompt_search: str | None,
+    completion_search: str | None,
     bias_on_where: TypeOfAnswerOption,
     answer_result_option: TypeOfAnswerOption,
     task_hash: str | None,
@@ -108,7 +107,7 @@ class DataDropDowns(BaseModel):
     models: Sequence[str]
 
 
-@lru_cache()
+@lru_cache
 def get_data_dropdowns(items: Slist[TaskOutput]) -> DataDropDowns:
     formatters = items.map(lambda task: task.task_spec.formatter_name).distinct_unsafe()
     interventions = items.map(lambda task: task.task_spec.intervention_name).distinct_unsafe()
@@ -117,7 +116,7 @@ def get_data_dropdowns(items: Slist[TaskOutput]) -> DataDropDowns:
     return DataDropDowns(formatters=formatters, interventions=interventions, tasks=tasks, models=models)
 
 
-@lru_cache()
+@lru_cache
 def make_tree(everything: Slist[TaskOutput]) -> TreeCache:
     grouped: Slist[tuple[TreeCacheKey, Sequence[TaskOutput]]] = everything.group_by(  # type: ignore
         lambda task: TreeCacheKey(

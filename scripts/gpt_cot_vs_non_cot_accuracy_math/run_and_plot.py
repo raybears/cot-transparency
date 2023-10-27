@@ -1,9 +1,8 @@
 from cot_transparency.formatters.core.no_latex import (
-    ZeroShotUnbiasedNoLatexFormatter,
     ZeroShotCOTUnbiasedNoLatexFormatter,
+    ZeroShotUnbiasedNoLatexFormatter,
 )
 from stage_one import main
-
 
 if __name__ == "__main__":
     main(

@@ -1,21 +1,19 @@
-from typing import Optional
-from cot_transparency.data_models.messages import MessageRole
+from typing import Optional, Sequence
 
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
+)
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
-
+from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import (
     COT_ASSISTANT_PROMPT,
     add_verbalize_instruction_to_question,
 )
-
-from cot_transparency.formatters.extraction import (
-    extract_answer,
+from cot_transparency.formatters.symbol_tuning.prompts import (
+    few_shot_bbq_biased_cot_questions,
 )
-
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
-from cot_transparency.data_models.messages import ChatMessage
-
-from cot_transparency.formatters.symbol_tuning.prompts import few_shot_bbq_biased_cot_questions
 
 
 def format_few_shot_bbq_symbol_tuning_biased_question(question: str, biased_answer: MultipleChoiceAnswer) -> str:
@@ -32,7 +30,7 @@ class BBQSymbolTuningCOTFewShot(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
         message = format_few_shot_bbq_symbol_tuning_biased_question(question=message, biased_answer=question.biased_ans)
         message = add_verbalize_instruction_to_question(message)

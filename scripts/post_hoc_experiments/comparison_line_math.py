@@ -1,20 +1,30 @@
 from enum import Enum
 from pathlib import Path
-from typing import Sequence, Type, Optional
-from pydantic import BaseModel
+from typing import Optional, Sequence, Type
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
+from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
-from scripts.intervention_investigation import plot_for_intervention, DottedLine
-from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
-from scripts.multi_accuracy import PlotInfo
 from cot_transparency.data_models.io import read_all_for_selections
+from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.core.no_latex import (
+    ZeroShotCOTUnbiasedNoLatexFormatter,
+)
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    ZeroShotInitialWrongFormatter,
+)
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+)
+from scripts.intervention_investigation import DottedLine, plot_for_intervention
+from scripts.matching_user_answer import (
+    matching_user_answer_plot_info,
+    random_chance_matching_answer_plot_dots,
+)
+from scripts.multi_accuracy import PlotInfo
 from stage_one import main
 
 
@@ -37,7 +47,10 @@ class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
 
 
 def read_metric_from_meta(
-    meta: ModelTrainMeta, exp_dir: str, formatter: Type[StageOneFormatter], tasks: Sequence[str]
+    meta: ModelTrainMeta,
+    exp_dir: str,
+    formatter: Type[StageOneFormatter],
+    tasks: Sequence[str],
 ) -> ModelNameAndTrainedSamplesAndMetrics:
     # read the metric from the meta
     read = read_all_for_selections(
@@ -201,7 +214,12 @@ def seaborn_line_plot(
     sns.lineplot(data=df, x="Trained Samples", y=y_axis_label, hue="Trained on COTs from")
     # Add dotted line for random chance
     if dotted_line:
-        plt.axhline(y=dotted_line.value, color=dotted_line.color, linestyle="dashed", label=dotted_line.name)
+        plt.axhline(
+            y=dotted_line.value,
+            color=dotted_line.color,
+            linestyle="dashed",
+            label=dotted_line.name,
+        )
     plt.title(title)
 
     if error_bars:
@@ -224,7 +242,13 @@ def seaborn_line_plot(
 
 
 if __name__ == "__main__":
-    tasks = ["john_level_1", "john_level_2", "john_level_3", "john_level_4", "john_level_5"]
+    tasks = [
+        "john_level_1",
+        "john_level_2",
+        "john_level_3",
+        "john_level_4",
+        "john_level_5",
+    ]
     defined_meta = samples_meta()
     run_biased_experiments(defined_meta, tasks)
     run_unbiased_acc_experiments(defined_meta, tasks)
@@ -234,7 +258,11 @@ if __name__ == "__main__":
         formatter=ZeroShotInitialWrongFormatter,
         tasks=tasks,
     )
-    seaborn_line_plot(initial_wrong, percent_matching=False, title="Accuracy for the initial wrong bias")
+    seaborn_line_plot(
+        initial_wrong,
+        percent_matching=False,
+        title="Accuracy for the initial wrong bias",
+    )
 
     random_chance: PlotInfo = random_chance_matching_answer_plot_dots(
         all_tasks=read_all_for_selections(
@@ -263,7 +291,11 @@ if __name__ == "__main__":
         tasks=tasks,
     )
 
-    seaborn_line_plot(wrong_few_shot, percent_matching=False, title="Accuracy for the wrong few shot bias")
+    seaborn_line_plot(
+        wrong_few_shot,
+        percent_matching=False,
+        title="Accuracy for the wrong few shot bias",
+    )
     seaborn_line_plot(
         wrong_few_shot,
         percent_matching=True,

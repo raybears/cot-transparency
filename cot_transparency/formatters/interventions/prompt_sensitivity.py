@@ -1,19 +1,25 @@
 import random
 from functools import partial
-from typing import Optional, Type
+from typing import Optional, Sequence, Type
 
+from cot_transparency.apis.base import Prompt
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
-from cot_transparency.data_models.example_base import DataExampleBase, combine_indicator_with_separator
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    combine_indicator_with_separator,
+)
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
 from cot_transparency.formatters.interventions.intervention import Intervention
-from cot_transparency.apis.base import Prompt
 
 
 def _format_few_shot_example(
-    task: TaskOutput, FormatterForFinalQuestion: Type[StageOneFormatter], randomize_question_format: bool, seed: str
+    task: TaskOutput,
+    FormatterForFinalQuestion: Type[StageOneFormatter],
+    randomize_question_format: bool,
+    seed: str,
 ):
     few_shot_data_example: MilesBBHRawData = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
     resp = task.inference_output.parsed_response
@@ -51,7 +57,7 @@ def format_few_shot_for_prompt_sen(
 
     ans = f"The best answer is: {combined}{opt_string}"
 
-    q = FormatterForFewShotExample.format_example(read, model)
+    q = list(FormatterForFewShotExample.format_example(read, model))
     a = ChatMessage(role=MessageRole.assistant, content=ans)
     messages = q + [a]
     return Prompt(messages=messages)
@@ -73,7 +79,7 @@ def format_few_shot_for_prompt_sen_cot(
     cot_pre = cot.split("Therefore, the best")[0]  # remove the part as we want to make sure the answer is in our format
     cot = cot_pre + ans
 
-    q = FormatterForFewShotExample.format_example(read, model)
+    q = list(FormatterForFewShotExample.format_example(read, model))
     a = ChatMessage(role=MessageRole.assistant, content=cot)
     messages = q + [a]
     return Prompt(messages=messages)
@@ -93,7 +99,7 @@ class VanillaFewShotLabelOnly10(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
+    ) -> Sequence[ChatMessage]:
         question_hash = question.hash()
         messages = formatter.format_example(question, model=model)
 
@@ -126,7 +132,7 @@ class MixedFormatFewShotLabelOnly10(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
+    ) -> Sequence[ChatMessage]:
         assert not formatter.is_cot, "You probably want to use MixedFormatFewShot"
 
         question_hash = question.hash()
@@ -167,7 +173,7 @@ class VanillaFewShot10(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
+    ) -> Sequence[ChatMessage]:
         question_hash = question.hash()
         messages = formatter.format_example(question, model=model)
 
@@ -192,7 +198,7 @@ class MixedFormatFewShot10(Intervention):
         question: DataExampleBase,
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
-    ) -> list[ChatMessage]:
+    ) -> Sequence[ChatMessage]:
         question_hash = question.hash()
         messages = formatter.format_example(question, model=model)
 

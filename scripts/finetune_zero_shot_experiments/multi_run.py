@@ -3,8 +3,14 @@ from concurrent.futures import ThreadPoolExecutor
 from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
-from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
+from cot_transparency.formatters.interventions.few_shots_loading import (
+    ModelOutputVerified,
+)
+from scripts.finetune_cot import (
+    DataFromOptions,
+    FormatterOptions,
+    fine_tune_with_bias_augmentation,
+)
 from scripts.training_formatters import TRAINING_COT_FORMATTERS_FEW_SHOT
 from stage_one import main
 

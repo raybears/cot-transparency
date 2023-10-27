@@ -1,20 +1,32 @@
 from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
-from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
+from cot_transparency.formatters.core.sycophancy import (
+    ZeroShotCOTSycophancyFormatter,
+    ZeroShotSycophancyFormatter,
+)
+from cot_transparency.formatters.interventions.few_shots_loading import (
+    ModelOutputVerified,
+)
 from cot_transparency.formatters.more_biases.random_bias_formatter import (
-    RandomBiasedFormatter,
-    RandomBiasedQuotedFormatter,
     RandomAgainstBiasedFormatter,
-    RandomAgainstQuotedBiasedFormatter,
-    RandomBiasedNoCOTFormatter,
-    RandomBiasedQuotedNoCOTFormatter,
     RandomAgainstBiasedNoCOTFormatter,
     RandomAgainstBiasedQuotedNoCOTFormatter,
+    RandomAgainstQuotedBiasedFormatter,
+    RandomBiasedFormatter,
+    RandomBiasedNoCOTFormatter,
+    RandomBiasedQuotedFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
 )
-from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter, StanfordNoCOTFormatter
-from scripts.finetune_cot import fine_tune_with_bias_augmentation, DataFromOptions, FormatterOptions
+from cot_transparency.formatters.verbalize.formatters import (
+    StanfordBiasedFormatter,
+    StanfordNoCOTFormatter,
+)
+from scripts.finetune_cot import (
+    DataFromOptions,
+    FormatterOptions,
+    fine_tune_with_bias_augmentation,
+)
 from stage_one import main
 
 

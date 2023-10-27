@@ -1,10 +1,13 @@
-from pathlib import Path
 import random
+from pathlib import Path
 
 import pandas as pd
 from slist import Slist
 
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
+)
 
 
 # read data/karina_hallucination/data.csv

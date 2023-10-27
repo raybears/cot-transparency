@@ -4,8 +4,8 @@ from typing import Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from analysis import apply_filters, convert_loaded_dict_to_df
 
+from analysis import apply_filters, convert_loaded_dict_to_df
 from cot_transparency.data_models.io import ExpLoader
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
@@ -102,7 +102,10 @@ def get_avg_kl_divergence_between_distributions(group: pd.DataFrame):
 
 
 def kl_plot(
-    exp_dir: str, models: Sequence[str] = [], formatters: Sequence[str] = [], aggregate_over_tasks: bool = False
+    exp_dir: str,
+    models: Sequence[str] = [],
+    formatters: Sequence[str] = [],
+    aggregate_over_tasks: bool = False,
 ):
     loaded_dict = ExpLoader.stage_one(exp_dir)
     df = convert_loaded_dict_to_df(loaded_dict)

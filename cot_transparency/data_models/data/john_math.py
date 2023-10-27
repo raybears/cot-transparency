@@ -6,9 +6,9 @@ from slist import Slist
 
 from cot_transparency.data_models.example_base import (
     DataExampleBase,
+    IndicatorAndOption,
     MultipleChoiceAnswer,
     raise_if_not_multiple_choice_answer,
-    IndicatorAndOption,
 )
 
 

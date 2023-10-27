@@ -1,16 +1,16 @@
-from abc import ABC, abstractmethod
 import re
+from abc import ABC, abstractmethod
 from string import ascii_uppercase
 from typing import Optional, Sequence
-from fuzzywuzzy import fuzz
 
+from fuzzywuzzy import fuzz
 
 from cot_transparency.data_models.example_base import (
     ChoiceVariant,
     DataExampleBase,
     DataFormatSpec,
+    IndicatorAndOption,
 )
-from cot_transparency.data_models.example_base import IndicatorAndOption
 
 BREAK_WORDS: list[str] = [
     "answer is (",
@@ -83,7 +83,10 @@ class FindIndicatorAfterBreakWord(AnswerExtractor):
     """
 
     def __init__(
-        self, options: list[str], input_format: DataFormatSpec = DataFormatSpec(), break_words: list[str] = BREAK_WORDS
+        self,
+        options: list[str],
+        input_format: DataFormatSpec = DataFormatSpec(),
+        break_words: list[str] = BREAK_WORDS,
     ):
         """
         Args:

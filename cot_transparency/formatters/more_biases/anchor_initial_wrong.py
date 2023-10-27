@@ -1,15 +1,14 @@
-from typing import Optional
+from typing import Optional, Sequence
 
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.messages import MessageRole
-from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import format_unbiased_question
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import (
+    COT_ASSISTANT_PROMPT,
     NON_COT_ASSISTANT_PROMPT,
     add_verbalize_instruction_to_question,
-    COT_ASSISTANT_PROMPT,
 )
 
 
@@ -18,12 +17,15 @@ class ZeroShotInitialWrongFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = format_unbiased_question(question=question.get_parsed_input())
         biased_ans = question.biased_ans
         output = [
             ChatMessage(role=MessageRole.user, content=formatted_question),
-            ChatMessage(role=MessageRole.assistant, content=NON_COT_ASSISTANT_PROMPT + biased_ans + ")"),
+            ChatMessage(
+                role=MessageRole.assistant,
+                content=NON_COT_ASSISTANT_PROMPT + biased_ans + ")",
+            ),
             ChatMessage(
                 role=MessageRole.user,
                 content=add_verbalize_instruction_to_question(

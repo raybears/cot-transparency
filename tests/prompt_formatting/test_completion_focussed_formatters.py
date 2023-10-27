@@ -1,13 +1,15 @@
 from typing import Type
+
 import pytest
+
+from cot_transparency.apis.base import Prompt
 from cot_transparency.apis.openai import OpenAICompletionPrompt
+from cot_transparency.data_models.data.aqua import AquaExample
 from cot_transparency.formatters.base_class import PromptFormatter
 from cot_transparency.formatters.transparency.mistakes import CompletePartialCOT
 from cot_transparency.formatters.transparency.s1_baselines import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
 )
-from cot_transparency.data_models.data.aqua import AquaExample
-from cot_transparency.apis.base import Prompt
 
 AQUA_EXAMPLE = AquaExample(
     question="Three birds are flying at a fast rate of 900 kilometers per hour. What is their speed in miles per minute? [1km = 0.6 miles]",  # noqa

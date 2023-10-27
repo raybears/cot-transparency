@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import pandas as pd
 from slist import Slist
 
@@ -6,7 +8,7 @@ from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import TaskOutput
 
 
-def extract_answer(messages: list[ChatMessage]) -> str:
+def extract_answer(messages: Sequence[ChatMessage]) -> str:
     """Extracts the answer from a list of messages"""
     content = messages[-1].content
     # split by new line
@@ -31,7 +33,7 @@ if __name__ == "__main__":
         .distinct_by(
             lambda x: x.task_spec.task_name
             + x.task_spec.task_hash
-            + x.task_spec.inference_config.d_hash()
+            + x.task_spec.inference_config.model_hash()
             + x.task_spec.formatter_name
         )
     )
@@ -50,7 +52,14 @@ if __name__ == "__main__":
     print(f"Number of results: {len(results)}")
     df = pd.DataFrame(tuples)
     # write columns in order
-    df.columns = ["Formatter Name", "Task Name", "Raw Response", "Parsed Response", "Ground Truth", "Question"]
+    df.columns = [
+        "Formatter Name",
+        "Task Name",
+        "Raw Response",
+        "Parsed Response",
+        "Ground Truth",
+        "Question",
+    ]
     # TODO: strip to get the message.
     # limit to first 100
     df.head(100).to_csv(f"{selected_formatter}.csv", index=False)

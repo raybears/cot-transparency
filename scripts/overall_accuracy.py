@@ -1,21 +1,25 @@
 from pathlib import Path
 from typing import Sequence
 
-from cot_transparency.data_models.models import TaskOutput, ExperimentJsonFormat
+from cot_transparency.data_models.io import read_done_experiment
+from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
 from scripts.intervention_investigation import filter_inconsistent_only
 from scripts.multi_accuracy import (
-    TaskAndPlotInfo,
-    PlotInfo,
     AccuracyOutput,
-    bbh_task_list,
+    PlotInfo,
+    TaskAndPlotInfo,
     accuracy_outputs,
     accuracy_plot,
+    bbh_task_list,
 )
-from cot_transparency.data_models.io import read_done_experiment
 
 
 def overall_accuracy_for_formatter(
-    formatter: str, exp_dir: str, model: str, tasks: Sequence[str] = bbh_task_list, inconsistent_only: bool = True
+    formatter: str,
+    exp_dir: str,
+    model: str,
+    tasks: Sequence[str] = bbh_task_list,
+    inconsistent_only: bool = True,
 ) -> AccuracyOutput:
     task_outputs: list[TaskOutput] = []
     for task in tasks:
@@ -53,7 +57,8 @@ def all_overall_accuracies(exp_dir: str, model: str) -> list[TaskAndPlotInfo]:
                 name="Treatment",
             ),
             PlotInfo(
-                acc=overall_accuracy_for_formatter("CrossBiasedFormatter", exp_dir=exp_dir, model=model), name="Biased"
+                acc=overall_accuracy_for_formatter("CrossBiasedFormatter", exp_dir=exp_dir, model=model),
+                name="Biased",
             ),
             PlotInfo(acc=nonbiased, name="Unbiased"),
         ],

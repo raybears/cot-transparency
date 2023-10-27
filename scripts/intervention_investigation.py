@@ -1,32 +1,39 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Sequence, Type, Mapping
+from typing import Mapping, Optional, Sequence, Type
 
 from plotly import graph_objects as go, io as pio
 from pydantic import BaseModel
 from slist import Slist
 
+from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.sycophancy import (
+    ZeroShotCOTSycophancyFormatter,
+    ZeroShotSycophancyFormatter,
+)
+from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
+)
 from cot_transparency.formatters.interventions.consistency import (
-    NaiveFewShot10,
+    BiasedConsistency10,
+    BigBrainBiasedConsistency10,
+    ClaudeFewShot10,
+    ClaudeSeparate10,
+    NaiveFewShot1,
     NaiveFewShot3,
+    NaiveFewShot5,
     NaiveFewShot6,
+    NaiveFewShot10,
+    NaiveFewShotLabelOnly1,
     NaiveFewShotLabelOnly3,
     NaiveFewShotLabelOnly6,
     NaiveFewShotLabelOnly10,
     NaiveFewShotLabelOnly16,
     NaiveFewShotLabelOnly32,
-    NaiveFewShotLabelOnly1,
-    BiasedConsistency10,
-    BigBrainBiasedConsistency10,
-    RepeatedConsistency10,
-    NaiveFewShot5,
     NaiveFewShotSeparate10,
-    NaiveFewShot1,
-    ClaudeFewShot10,
-    ClaudeSeparate10,
+    RepeatedConsistency10,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -45,7 +52,6 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordBiasedFormatter,
     StanfordNoCOTFormatter,
 )
-from cot_transparency.data_models.io import read_whole_exp_dir
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo, accuracy_outputs
 from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
@@ -161,7 +167,12 @@ def accuracy_diff_intervention(
     unbiased_plot_dots: dict[str, PlotInfo] = (
         Slist(
             [
-                plot_for_intervention(data, intervention=intervention, for_formatters=[unbiased_formatter], model=model)
+                plot_for_intervention(
+                    data,
+                    intervention=intervention,
+                    for_formatters=[unbiased_formatter],
+                    model=model,
+                )
                 for intervention in interventions
             ]
         )
@@ -248,7 +259,11 @@ def run(
 
     # unbiased acc
     unbiased_plot: PlotInfo = plot_for_intervention(
-        all_read, intervention=None, for_formatters=[unbiased_formatter], name_override="Unbiased context", model=model
+        all_read,
+        intervention=None,
+        for_formatters=[unbiased_formatter],
+        name_override="Unbiased context",
+        model=model,
     )
 
     plot_dots: list[PlotInfo] = [
@@ -261,7 +276,11 @@ def run(
         )
         for intervention in interventions
     ]
-    dotted = DottedLine(name="Zero shot unbiased context performance", value=unbiased_plot.acc.accuracy, color="red")
+    dotted = DottedLine(
+        name="Zero shot unbiased context performance",
+        value=unbiased_plot.acc.accuracy,
+        color="red",
+    )
 
     bar_plot(
         plot_infos=plot_dots,
@@ -281,10 +300,15 @@ def run(
         for intervention in interventions
     ]
     unbiased_matching_baseline = matching_user_answer_plot_info(
-        intervention=None, all_tasks=all_read, for_formatters=[unbiased_formatter], model=model
+        intervention=None,
+        all_tasks=all_read,
+        for_formatters=[unbiased_formatter],
+        model=model,
     )
     dotted_line = DottedLine(
-        name="Zeroshot Unbiased context", value=unbiased_matching_baseline.acc.accuracy, color="red"
+        name="Zeroshot Unbiased context",
+        value=unbiased_matching_baseline.acc.accuracy,
+        color="red",
     )
     dataset_str = Slist(tasks).mk_string(", ")
     bar_plot(
@@ -625,7 +649,11 @@ def run_for_non_cot():
         DeceptiveAssistantBiasedNoCOTFormatter,
     ]
     unbiased_formatter = ZeroShotUnbiasedFormatter
-    run(interventions=interventions, biased_formatters=biased_formatters, unbiased_formatter=unbiased_formatter)
+    run(
+        interventions=interventions,
+        biased_formatters=biased_formatters,
+        unbiased_formatter=unbiased_formatter,
+    )
 
 
 if __name__ == "__main__":

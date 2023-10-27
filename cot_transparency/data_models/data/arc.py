@@ -2,9 +2,12 @@ from pathlib import Path
 from string import ascii_uppercase
 
 from pydantic import BaseModel
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
+)
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
 
 class ArcChoices(BaseModel):

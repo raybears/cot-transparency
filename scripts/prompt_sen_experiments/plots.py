@@ -1,25 +1,26 @@
+import warnings
+from collections.abc import Sequence
 from enum import Enum
-from typing import Optional, Sequence
+
 import fire
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-import matplotlib.pyplot as plt
 from slist import Slist
-from statsmodels.stats.inter_rater import fleiss_kappa, aggregate_raters
-from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
-from cot_transparency.data_models.pd_utils import IsCoTExtractor, convert_slist_to_df
+from statsmodels.stats.inter_rater import aggregate_raters, fleiss_kappa
 
-from cot_transparency.formatters.interventions.valid_interventions import VALID_INTERVENTIONS
-from cot_transparency.data_models.io import (
-    read_whole_exp_dir,
-    read_whole_exp_dir_s2,
+from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
+from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
+from cot_transparency.data_models.pd_utils import (
+    BasicExtractor,
+    IsCoTExtractor,
+    convert_slist_to_df,
 )
-from cot_transparency.data_models.pd_utils import BasicExtractor
+from cot_transparency.formatters.interventions.valid_interventions import (
+    VALID_INTERVENTIONS,
+)
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-
-import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -111,8 +112,8 @@ def prompt_metrics(
     inteventions: Sequence[str] = [],
     x: str = "model",
     hue: str = "intervention_name",
-    col: Optional[str] = None,
-    temperature: Optional[int] = None,
+    col: str | None = None,
+    temperature: int | None = None,
     only_modally_wrong: bool = False,
     aggregate_tasks: bool = False,
     none_filtering_strategy: NoneFilteringStrategy = NoneFilteringStrategy.WHERE_GPT_SAID_NONE,
@@ -151,7 +152,12 @@ def prompt_metrics(
                     + x.task_spec.inference_config.model
                     + str(x.task_spec.intervention_name)
                 )
-                .map_2(lambda key, group: (group, group.any(lambda x: x.inference_output.parsed_response is None)))
+                .map_2(
+                    lambda key, group: (
+                        group,
+                        group.any(lambda x: x.inference_output.parsed_response is None),
+                    )
+                )
                 .filter(lambda x: not x[1])
                 .map(lambda x: x[0])
                 .flatten_list()
@@ -166,7 +172,12 @@ def prompt_metrics(
                     + x.task_spec.inference_config.model
                     + str(x.task_spec.intervention_name)
                 )
-                .map_2(lambda key, group: (group, group.any(lambda x: x.inference_output.parsed_response is None)))
+                .map_2(
+                    lambda key, group: (
+                        group,
+                        group.any(lambda x: x.inference_output.parsed_response is None),
+                    )
+                )
                 .filter(lambda x: not x[1])
                 .map(lambda x: x[0])
                 .flatten_list()
@@ -230,7 +241,8 @@ def prompt_metrics(
     assert not any(df_with_mode["modal_agreement_score"].isna())
 
     df_with_mode: pd.DataFrame = df_with_mode.drop_duplicates(
-        subset=["task_hash", "model", "formatter_name", "intervention_name"], inplace=False
+        subset=["task_hash", "model", "formatter_name", "intervention_name"],
+        inplace=False,
     )  # type: ignore
 
     n_questions = f"{df_with_mode.groupby([col, hue])['task_hash'].nunique().mean():.1f}"
@@ -263,7 +275,15 @@ def prompt_metrics(
     df_acc = df_with_mode
     df_acc["is_correct"] = df_acc["parsed_response"] == df_acc["ground_truth"]
     # df_acc = df_acc.groupby([x, "task_hash", hue, col])["is_correct"].mean().reset_index()
-    g = catplot(data=df_acc, x=x, y="is_correct", hue=hue, col=col, kind="bar", hue_order=hue_order)
+    g = catplot(
+        data=df_acc,
+        x=x,
+        y="is_correct",
+        hue=hue,
+        col=col,
+        kind="bar",
+        hue_order=hue_order,
+    )
     g.fig.suptitle(
         f"Modal Accuracy [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
     )
@@ -278,7 +298,15 @@ def prompt_metrics(
         subset=["task_hash", x, hue],
         inplace=False,
     )  # type: ignore
-    g = catplot(data=df_fk, x=x, y="fleiss_kappa", hue=hue, col=col, kind="bar", hue_order=hue_order)
+    g = catplot(
+        data=df_fk,
+        x=x,
+        y="fleiss_kappa",
+        hue=hue,
+        col=col,
+        kind="bar",
+        hue_order=hue_order,
+    )
     g.fig.suptitle(f"Fleiss Kappa Score [{n_questions} questions, {n_formatter} prompts]")
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
@@ -287,7 +315,15 @@ def prompt_metrics(
     print("\n Entropy Score")
     # Plot the entropy scores
     df_entropy = df_with_mode.groupby([x, hue, "task_hash", col]).apply(entropy_on_group).reset_index()
-    g = catplot(data=df_entropy, x=x, y="entropy", hue=hue, col=col, kind="bar", hue_order=hue_order)
+    g = catplot(
+        data=df_entropy,
+        x=x,
+        y="entropy",
+        hue=hue,
+        col=col,
+        kind="bar",
+        hue_order=hue_order,
+    )
     g.fig.suptitle(
         f"Entropy across formatters [avg of {n_questions} questions per formatter & task, {n_formatter} prompts, temperature={temperature}]"
     )
@@ -302,7 +338,15 @@ def prompt_metrics(
         .apply(lambda x: pd.Series({"none_count": sum(x["parsed_response"] == "none")}))
         .reset_index()
     )
-    g = catplot(data=df_none_counts, x=x, y="none_count", hue=hue, col=col, kind="bar", hue_order=hue_order)
+    g = catplot(
+        data=df_none_counts,
+        x=x,
+        y="none_count",
+        hue=hue,
+        col=col,
+        kind="bar",
+        hue_order=hue_order,
+    )
 
     g.fig.tight_layout()
     # move the plot area to leave space for the legend

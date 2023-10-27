@@ -1,14 +1,15 @@
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Literal, Optional, Type, Union
-from altair import overload
+from typing import Literal
+from typing import Union
 
+from altair import overload
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
-from cot_transparency.apis import UniversalCaller
 
+from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.apis.rate_limiting import exit_event
 from cot_transparency.data_models.config import OpenaiInferenceConfig
@@ -27,7 +28,11 @@ from cot_transparency.data_models.models import (
     TaskOutput,
     TaskSpec,
 )
-from cot_transparency.formatters import PromptFormatter, StageOneFormatter, name_to_formatter
+from cot_transparency.formatters import (
+    PromptFormatter,
+    StageOneFormatter,
+    name_to_formatter,
+)
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.util import setup_logger
 
@@ -63,11 +68,11 @@ def run_with_caching_stage_two(
 
 
 def __call_or_raise(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
-    formatter: Type[PromptFormatter],
+    formatter: type[PromptFormatter],
     caller: ModelCaller,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
     if isinstance(task, StageTwoTaskSpec):
         stage_one_task_spec = task.stage_one_output.task_spec
@@ -76,7 +81,9 @@ def __call_or_raise(
 
     raw_responses: InferenceResponse = caller.call(task.messages, config)
 
-    def get_model_output_for_response(raw_response: str) -> Union[ModelOutput, AnswerNotFound]:
+    def get_model_output_for_response(
+        raw_response: str,
+    ) -> ModelOutput | AnswerNotFound:
         parsed_response: str | None = formatter.parse_answer(
             raw_response,
             model=config.model,
@@ -122,12 +129,12 @@ def __call_or_raise(
 
 
 def call_model_and_raise_if_not_suitable(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
-    formatter: Type[PromptFormatter],
+    formatter: type[PromptFormatter],
     caller: ModelCaller,
     retries: int = 20,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
     responses = retry(exceptions=AtLeastOneFailed, tries=retries)(__call_or_raise)(
         task=task,
@@ -140,12 +147,12 @@ def call_model_and_raise_if_not_suitable(
 
 
 def call_model_and_catch(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
-    formatter: Type[PromptFormatter],
+    formatter: type[PromptFormatter],
     caller: ModelCaller,
     retries: int = 20,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
     try:
         return call_model_and_raise_if_not_suitable(
@@ -194,12 +201,12 @@ def task_function(
 
 
 def task_function(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    task: TaskSpec | StageTwoTaskSpec,
     raise_after_retries: bool,
     caller: ModelCaller = UniversalCaller(),
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
-) -> Union[list[TaskOutput], list[StageTwoTaskOutput]]:
+) -> list[TaskOutput] | list[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
 
     responses = (
@@ -253,16 +260,21 @@ def run_with_caching(
     batch: int,
     task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
     raise_after_retries: bool = False,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
     retry_answers_with_none: bool = False,
 ):
     """
     Take a list of TaskSpecs or StageTwoTaskSpecs and run, skipping completed tasks
     """
+
+    if len(task_to_run) == 0:
+        x: list[TaskOutput] | list[StageTwoTaskSpec] = []
+        return x
+
     paths = {task.out_file_path for task in task_to_run}
 
-    loaded_dict: Union[dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]] = {}
+    loaded_dict: (dict[Path, ExperimentJsonFormat] | dict[Path, StageTwoExperimentJsonFormat]) = {}
     completed_outputs: dict[str, TaskOutput | StageTwoTaskOutput] = dict()
     if isinstance(task_to_run[0], TaskSpec):
         for path in paths:
@@ -319,9 +331,9 @@ def run_tasks_multi_threaded(
     save_file_every: int,
     batch: int,
     loaded_dict: LoadedJsonType,
-    tasks_to_run: Union[list[TaskSpec], list[StageTwoTaskSpec]],
+    tasks_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
     raise_after_retries: bool,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
 ) -> None:
     if len(tasks_to_run) == 0:
@@ -347,7 +359,8 @@ def run_tasks_multi_threaded(
 
     try:
         for cnt, instance_output in tqdm(
-            enumerate(as_completed(future_instance_outputs)), total=len(future_instance_outputs)
+            enumerate(as_completed(future_instance_outputs)),
+            total=len(future_instance_outputs),
         ):
             outputs = instance_output.result()
             # extend the existing json file
@@ -398,6 +411,6 @@ def save_list_of_outputs_s2(outputs: list[StageTwoTaskOutput]) -> None:
 
 class TaskSetting(BaseModel):
     task: str
-    formatter: Type[StageOneFormatter]
-    intervention: Optional[Type[Intervention]] = None
+    formatter: type[StageOneFormatter]
+    intervention: type[Intervention] | None = None
     model: str

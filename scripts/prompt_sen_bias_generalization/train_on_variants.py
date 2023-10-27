@@ -1,23 +1,25 @@
-from dataclasses import dataclass
-from enum import Enum
 import os
 import random
+from dataclasses import dataclass
+from enum import Enum
 from typing import Optional
+
+import fire
+import openai
 from dotenv import load_dotenv
 
-import openai
-
-from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
+from cot_transparency.formatters.interventions.few_shots_loading import (
+    ModelOutputVerified,
+)
 from scripts.finetune_cot import (
+    DataFromOptions,
     FormatSampler,
+    FormatterOptions,
     NFormatsPerQuestionSampler,
     RandomSampler,
     fine_tune_with_bias_augmentation,
-    DataFromOptions,
-    FormatterOptions,
 )
 from scripts.training_formatters import TRAINING_COT_FORMATTERS
-import fire
 from stage_one import main as stage_one_main
 
 

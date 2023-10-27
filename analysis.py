@@ -1,21 +1,24 @@
 from pathlib import Path
+from typing import Any, List, Optional, Sequence, Union
+
 import fire
+import pandas as pd
+import seaborn as sns
 from matplotlib import pyplot as plt
+
+from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
     StageTwoTaskOutput,
     TaskOutput,
 )
-import pandas as pd
-from typing import Any, Optional, List, Union, Sequence
-from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.formatters import name_to_formatter
-from cot_transparency.formatters.interventions.valid_interventions import VALID_INTERVENTIONS
+from cot_transparency.formatters.interventions.valid_interventions import (
+    VALID_INTERVENTIONS,
+)
 from scripts.multi_accuracy import plot_accuracy_for_exp
-import seaborn as sns
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-
 from stage_one import TASK_LIST
 
 TASK_MAP = {}
@@ -302,7 +305,10 @@ def simple_plot(
 
 
 def point_plot(
-    exp_dir: str, inconsistent_only: bool = True, models: Sequence[str] = [], formatters: Sequence[str] = []
+    exp_dir: str,
+    inconsistent_only: bool = True,
+    models: Sequence[str] = [],
+    formatters: Sequence[str] = [],
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
     df = apply_filters(

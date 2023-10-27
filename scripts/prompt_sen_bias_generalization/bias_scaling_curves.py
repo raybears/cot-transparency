@@ -1,24 +1,34 @@
 from pathlib import Path
 from typing import Type
-import fire
-from git import Sequence
-from slist import Slist
-from cot_transparency.data_models.io import read_all_for_selections
-from cot_transparency.data_models.pd_utils import BasicExtractor, BiasExtractor, convert_slist_to_df
-from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.name_mapping import name_to_formatter
 
-from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
-from scripts.prompt_sen_bias_generalization.combinations import bias_vs_prompts, n_questions_comparison
-from scripts.prompt_sen_experiments.hand_written.bias_eval import AverageOptionsExtractor, BiasTypeExtractor
-from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
-from scripts.training_formatters import TRAINING_COT_FORMATTERS
-from stage_one import COT_TESTING_TASKS
-from stage_one import main as stage_one_main
-import seaborn as sns
+import fire
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
+from git import Sequence
+from slist import Slist
 
+from cot_transparency.data_models.io import read_all_for_selections
+from cot_transparency.data_models.pd_utils import (
+    BasicExtractor,
+    BiasExtractor,
+    convert_slist_to_df,
+)
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.name_mapping import name_to_formatter
+from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
+from scripts.prompt_sen_bias_generalization.combinations import (
+    bias_vs_prompts,
+    n_formats,
+    n_questions_comparison,
+)
+from scripts.prompt_sen_experiments.hand_written.bias_eval import (
+    AverageOptionsExtractor,
+    BiasTypeExtractor,
+)
+from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
+from scripts.training_formatters import TRAINING_COT_FORMATTERS
+from stage_one import COT_TESTING_TASKS, main as stage_one_main
 
 TEST_FORMATTERS = [f for f in TRAINING_COT_FORMATTERS]
 
@@ -30,7 +40,14 @@ def get_name_of_run(i: ModelTrainMeta) -> str:
 def lineplot_util(df_p: pd.DataFrame, title: str):
     chance_response = 1 / df_p.average_options.mean()
     _, ax = plt.subplots(figsize=(6, 6))
-    ax = sns.lineplot(df_p, x="Samples", y="matches_bias", hue="Trained on COTS from", err_style="bars", ax=ax)
+    ax = sns.lineplot(
+        df_p,
+        x="Samples",
+        y="matches_bias",
+        hue="Trained on COTS from",
+        err_style="bars",
+        ax=ax,
+    )
     ax.axhline(chance_response, ls="--", color="red")
     ax.set_ylabel("Proportion of responses matching bias")
     ax.set_xscale("log")
@@ -46,6 +63,8 @@ def get_models(group_to_plot: str) -> Slist[ModelTrainMeta]:
         defined_meta: Slist[ModelTrainMeta] = n_questions_comparison()
     elif group_to_plot == "bias_vs_prompts":
         defined_meta = bias_vs_prompts()
+    elif group_to_plot == "n_formats":
+        defined_meta = n_formats()
     else:
         raise ValueError(f"Unknown group_to_plot {group_to_plot}")
     return defined_meta
@@ -91,7 +110,13 @@ def plot(
     # convert to dataframe
 
     df = convert_slist_to_df(
-        outputs, extractors=[BasicExtractor(), BiasExtractor(), BiasTypeExtractor(), AverageOptionsExtractor()]
+        outputs,
+        extractors=[
+            BasicExtractor(),
+            BiasExtractor(),
+            BiasTypeExtractor(),
+            AverageOptionsExtractor(),
+        ],
     )
     df["matches_bias"] = df.bias_ans == df.parsed_response
 
@@ -115,7 +140,16 @@ def plot(
         df_p = df[df.bias_type == bias_type]
         title = "Bias type: " + bias_type
         assert isinstance(df_p, pd.DataFrame)
-        lineplot_util(df_p, title)
+        # lineplot_util(df_p, title)
+        # breakpoint()
+        # convert model to str, samples to int and matches bias to float
+        df_pt = df_p.copy()
+        df_pt["Samples"] = df_pt["Samples"].astype(int)
+        df_pt["matches_bias"] = df_pt["matches_bias"].astype(float)
+        df_pt["model_name"] = df_pt["Trained on COTS from"].astype(str)
+        g = sns.barplot(data=df_pt, x="Samples", hue="model_name", y="matches_bias")
+        g.set_title(title)
+        plt.show()
 
     if plot_breakdown_by_formatter:
         for formatter_name in df.formatter_name.unique():

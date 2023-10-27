@@ -1,18 +1,21 @@
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 from slist import Slist
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
+from cot_transparency.formatters.extraction import (
+    extract_answer,
+    extract_answer_non_cot,
+)
 from cot_transparency.formatters.instructions import (
-    add_verbalize_instruction_to_question,
     COT_ASSISTANT_PROMPT,
     NON_COT_ASSISTANT_PROMPT,
+    add_verbalize_instruction_to_question,
 )
 
 miles_path = "/Users/jameschua/ml/cot-transparency/data/bbh/causal_judgment/few_shot_prompts.json"
@@ -36,7 +39,7 @@ few_shot_paths = [
 
 def read_prompts_from_dir(miles_path: Path) -> list[str]:
     # read the json
-    with open(miles_path, "r") as f:
+    with open(miles_path) as f:
         data = json.load(f)
         prompt = data["all_a_few_shot_prompt"]
         # split by ###
@@ -67,7 +70,7 @@ class AnswerAlwaysAFormatter(StageOneFormatter):
     is_cot = True
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         seed = question.get_parsed_input()
         prompts = sample_prompts(seed, n=7)
         message = add_verbalize_instruction_to_question(question.get_parsed_input())
@@ -91,7 +94,7 @@ class AnswerAlwaysANoCOTFormatter(StageOneFormatter):
     is_cot = False
 
     @staticmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> list[ChatMessage]:
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = question.get_parsed_input()
         prompts = sample_prompts(seed=message, n=7)
         formatted = f"""{prompts}
@@ -100,7 +103,10 @@ class AnswerAlwaysANoCOTFormatter(StageOneFormatter):
         """
         output = [
             ChatMessage(role=MessageRole.user, content=formatted),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+            ChatMessage(
+                role=MessageRole.assistant_if_completion,
+                content=NON_COT_ASSISTANT_PROMPT,
+            ),
         ]
         return output
 

@@ -1,24 +1,33 @@
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Sequence, Type, Optional
+from typing import Optional, Sequence, Type
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
 from slist import Slist
 
+from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
-from cot_transparency.formatters.verbalize.formatters import CheckmarkBiasedFormatter, CrossBiasedFormatter
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+)
+from cot_transparency.formatters.verbalize.formatters import (
+    CheckmarkBiasedFormatter,
+    CrossBiasedFormatter,
+)
 from scripts.finetune_cot import FormatSampler, FormatterOptions, RandomSampler
-from scripts.intervention_investigation import plot_for_intervention, DottedLine
-from scripts.matching_user_answer import matching_user_answer_plot_info, random_chance_matching_answer_plot_dots
+from scripts.intervention_investigation import DottedLine, plot_for_intervention
+from scripts.matching_user_answer import (
+    matching_user_answer_plot_info,
+    random_chance_matching_answer_plot_dots,
+)
 from scripts.multi_accuracy import PlotInfo
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
-from cot_transparency.data_models.io import read_all_for_selections
-from stage_one import main, COT_TESTING_TASKS
+from stage_one import COT_TESTING_TASKS, main
 
 
 class FilterStrategy(str, Enum):
@@ -43,7 +52,10 @@ class ModelNameAndTrainedSamplesAndMetrics:
 
 
 def read_metric_from_meta(
-    meta: ModelTrainMeta, exp_dir: str, formatter: Type[StageOneFormatter], tasks: Sequence[str]
+    meta: ModelTrainMeta,
+    exp_dir: str,
+    formatter: Type[StageOneFormatter],
+    tasks: Sequence[str],
 ) -> ModelNameAndTrainedSamplesAndMetrics:
     # read the metric from the meta
     read = read_all_for_selections(
@@ -63,7 +75,9 @@ def read_metric_from_meta(
 
 
 def run_unbiased_acc_experiments(
-    meta: Sequence[ModelTrainMeta], tasks: Sequence[str], biases: Sequence[Type[StageOneFormatter]]
+    meta: Sequence[ModelTrainMeta],
+    tasks: Sequence[str],
+    biases: Sequence[Type[StageOneFormatter]],
 ) -> None:
     normal_cot_models = [m.name for m in meta if m]
     main(
@@ -219,7 +233,12 @@ def seaborn_line_plot(
     plt.title(title)
     # Add dotted line for random chance
     if dotted_line:
-        plt.axhline(y=dotted_line.value, color=dotted_line.color, linestyle="dashed", label=dotted_line.name)
+        plt.axhline(
+            y=dotted_line.value,
+            color=dotted_line.color,
+            linestyle="dashed",
+            label=dotted_line.name,
+        )
         # Add to legend saying that the dotted line is Random chance
         plt.legend()
     plt.title(title)

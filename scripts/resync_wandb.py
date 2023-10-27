@@ -1,8 +1,8 @@
 from typing import Any
 
 import openai
-import wandb
 
+import wandb
 from cot_transparency.apis.openai.finetune import FinetunedJobResults, WandbSyncer
 
 
@@ -41,7 +41,11 @@ if __name__ == "__main__":
                     finetune_job = openai.FineTuningJob.retrieve(run.config["finetune_job_id"])
                     if finetune_job["status"] == "succeeded":
                         job_results: FinetunedJobResults = FinetunedJobResults.model_validate(finetune_job)
-                        resync_wandb_run(wandb_run_id=run.id, job_results=job_results, project=project_dir)
+                        resync_wandb_run(
+                            wandb_run_id=run.id,
+                            job_results=job_results,
+                            project=project_dir,
+                        )
                         print(f"Resynced {run.name} with finetune_model_id {run.config['finetune_job_id']}")
                     else:
                         print(f"Skipping {run.name} because finetune_job status is {finetune_job['status']}")

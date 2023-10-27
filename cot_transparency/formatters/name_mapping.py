@@ -1,6 +1,6 @@
 from typing import Type
 
-from cot_transparency.formatters.base_class import StageOneFormatter, PromptFormatter
+from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
 
 
 def name_to_formatter(name: str) -> Type[PromptFormatter]:

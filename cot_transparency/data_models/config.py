@@ -1,12 +1,9 @@
 import json
-from cot_transparency.data_models.hashable import HashableBaseModel
-
+from typing import Optional, Union
 
 from pydantic import conlist
 
-
-from typing import Optional, Union
-
+from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.util import deterministic_hash
 
 
@@ -26,7 +23,10 @@ class OpenaiInferenceConfig(HashableBaseModel):
     n: int = 1
     stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
 
-    def d_hash(self) -> str:
+    def model_hash(self) -> str:
+        """
+        Returns a hash of a stringified version of the entire model config
+        """
         as_json = json.loads(self.model_dump_json())
         return deterministic_hash(json.dumps(as_json))
 

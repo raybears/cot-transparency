@@ -1,17 +1,20 @@
 from enum import Enum
 from pathlib import Path
 from typing import Sequence, Type
-from pydantic import BaseModel
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
+from pydantic import BaseModel
 from slist import Slist
 
-from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import ZeroShotInitialWrongFormatter
-from scripts.matching_user_answer import matching_user_answer_plot_info
-from scripts.multi_accuracy import PlotInfo, AccuracyOutput
 from cot_transparency.data_models.io import read_all_for_selections
+from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    ZeroShotInitialWrongFormatter,
+)
+from scripts.matching_user_answer import matching_user_answer_plot_info
+from scripts.multi_accuracy import AccuracyOutput, PlotInfo
 from stage_one import COT_TESTING_TASKS
 
 
@@ -33,7 +36,10 @@ class ModelNameAndTrainedSamplesAndMetrics(BaseModel):
 
 
 def read_metric_from_meta(
-    meta: ModelTrainMeta, exp_dir: str, formatter: Type[StageOneFormatter], tasks: Sequence[str]
+    meta: ModelTrainMeta,
+    exp_dir: str,
+    formatter: Type[StageOneFormatter],
+    tasks: Sequence[str],
 ) -> ModelNameAndTrainedSamplesAndMetrics:
     # read the metric from the meta
     read = read_all_for_selections(

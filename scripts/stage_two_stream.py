@@ -1,14 +1,15 @@
 import asyncio
 from pathlib import Path
+from typing import Sequence
+
 from anyio import CapacityLimiter
 
 from grugstream import Observable
-from scipy.__config__ import show
 
 from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage
-from cot_transparency.data_models.models import StageTwoTaskOutput, StageTwoTaskSpec
+from cot_transparency.data_models.models import StageTwoTaskOutput
 from cot_transparency.formatters.transparency.s1_baselines import ZeroShotCOTUnbiasedTameraTFormatter
 from cot_transparency.tasks import task_function
 from scripts.ignored_reasoning.stage_two import (
@@ -20,10 +21,6 @@ from scripts.ignored_reasoning.stage_two import (
 )
 from scripts.ignored_reasoning.stage_two_analysis import (
     aoc_plot_from_list,
-    plot_adding_mistakes,
-    plot_adding_mistakes_from_list,
-    plot_early_answering_from_list,
-    plot_histogram_from_list,
 )
 from stage_one import stage_one_stream
 
@@ -34,7 +31,7 @@ class MockCOTCaller(ModelCaller):
     # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         output = (
@@ -49,7 +46,7 @@ class MockFullCOTCaller(ModelCaller):
     # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         # Make gpt-3.5-turbo give the correct answer (B) if there are mistakes
@@ -72,7 +69,7 @@ class MockMistakeCaller(ModelCaller):
     # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
     def call(
         self,
-        messages: list[ChatMessage],
+        messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         output = "<mistake>: 5+2 = 1"
@@ -80,10 +77,10 @@ class MockMistakeCaller(ModelCaller):
 
 
 async def main():
-    stage_one_cache_dir = Path("experiments/stage_one.jsonl")
+    Path("experiments/stage_one.jsonl")
 
     stage_one_caller = MockCOTCaller()
-    stage_two_cache_dir = Path("experiments/stage_two.jsonl")
+    Path("experiments/stage_two.jsonl")
     stage_two_caller = MockCOTCaller()
     mock_mistake_caller = MockMistakeCaller()
     mock_final_answer_caller = MockFullCOTCaller()
@@ -99,7 +96,7 @@ async def main():
         models=["gpt-3.5-turbo"],
     )
 
-    early_answer_obs = (
+    (
         stage_one_obs.map(
             lambda task_output: get_early_answering_tasks(
                 stage_one_output=task_output,

@@ -1,18 +1,19 @@
 from collections import defaultdict
 from enum import Enum
+from random import choice
+from tkinter import END, LEFT, Button, Frame, Label, OptionMenu, StringVar, Text, Tk
 from typing import Any, Callable, Optional, Union
+
 import fire
+
 from cot_transparency.apis.openai import OpenAICompletionPrompt
+from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import (
-    TaskSpec,
     StageTwoTaskOutput,
     StageTwoTaskSpec,
     TaskOutput,
+    TaskSpec,
 )
-from cot_transparency.data_models.io import ExpLoader
-
-from tkinter import LEFT, Frame, Tk, Label, Button, Text, END, OptionMenu, StringVar
-from random import choice
 
 
 class ModificationType(str, Enum):
@@ -25,7 +26,13 @@ StageTwoNestedDict = dict[tuple[str, str, str, str, ModificationType], dict[str,
 StageOneNestedDict = dict[tuple[str, str, str], dict[str, list[TaskOutput]]]
 
 # Dropdown names
-dropdown_names = ["Task", "Model", "Formatter", "Modification Type", "Stage One Formatter"]
+dropdown_names = [
+    "Task",
+    "Model",
+    "Formatter",
+    "Modification Type",
+    "Stage One Formatter",
+]
 
 
 class GUI:
@@ -78,7 +85,12 @@ class GUI:
         self.config_frame = Frame(self.config_and_output_frame, width=config_width)
         self.label = Label(self.config_frame, text="Config:", font=("Arial", self.fontsize))
         self.label.pack(anchor=self.alignment)
-        self.config_text = Text(self.config_frame, width=config_width, height=10, font=("Arial", self.fontsize))
+        self.config_text = Text(
+            self.config_frame,
+            width=config_width,
+            height=10,
+            font=("Arial", self.fontsize),
+        )
         self.config_text.pack(anchor=self.alignment)
 
         self.config_frame.pack(side=LEFT)
@@ -90,10 +102,18 @@ class GUI:
             font=("Arial", self.fontsize),
         )
         self.label3.pack(anchor=self.alignment)
-        self.output_text = Text(self.output_frame, width=width - config_width, height=6, font=("Arial", self.fontsize))
+        self.output_text = Text(
+            self.output_frame,
+            width=width - config_width,
+            height=6,
+            font=("Arial", self.fontsize),
+        )
         self.output_text.pack(anchor=self.alignment)
         self.parsed_ans_text = Text(
-            self.output_frame, width=width - config_width, height=4, font=("Arial", self.fontsize)
+            self.output_frame,
+            width=width - config_width,
+            height=4,
+            font=("Arial", self.fontsize),
         )
         self.parsed_ans_text.pack(anchor=self.alignment)
 
@@ -140,6 +160,7 @@ class GUI:
             self.display_output()
 
             # Do something with the data
+
         except KeyError:
             self.clear_fields()
             self.display_error()
@@ -211,7 +232,10 @@ class GUI:
                 original_cot: list[str] = task_spec.trace_info.original_cot
                 self.cot_texts[0][0].insert(END, "".join(original_cot))
                 try:
-                    self.cot_texts[0][1].insert(END, original_cot[task_spec.trace_info.get_mistake_inserted_idx()])
+                    self.cot_texts[0][1].insert(
+                        END,
+                        original_cot[task_spec.trace_info.get_mistake_inserted_idx()],
+                    )
                     self.cot_texts[1][1].insert(END, task_spec.trace_info.get_sentence_with_mistake())
                 except ValueError:
                     pass
@@ -333,17 +357,26 @@ class CompareGUI:
         self.buttons_frame.grid(row=3, column=0, columnspan=n_compare)
 
         self.prev_button = Button(
-            self.buttons_frame, text="Prev", command=self.prev_output, font=("Arial", self.fontsize)
+            self.buttons_frame,
+            text="Prev",
+            command=self.prev_output,
+            font=("Arial", self.fontsize),
         )
         self.prev_button.pack(side=LEFT)
 
         self.next_button = Button(
-            self.buttons_frame, text="Next", command=self.next_output, font=("Arial", self.fontsize)
+            self.buttons_frame,
+            text="Next",
+            command=self.next_output,
+            font=("Arial", self.fontsize),
         )
         self.next_button.pack(side=LEFT)
 
         self.random_button = Button(
-            self.buttons_frame, text="Random", command=self.random_output, font=("Arial", self.fontsize)
+            self.buttons_frame,
+            text="Random",
+            command=self.random_output,
+            font=("Arial", self.fontsize),
         )
         self.random_button.pack(side=LEFT)
 

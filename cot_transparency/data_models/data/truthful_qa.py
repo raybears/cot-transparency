@@ -1,11 +1,14 @@
 import json
+import random
 from string import ascii_uppercase
+from typing import Any
 
 from slist import Slist
-from cot_transparency.data_models.example_base import DataExampleBase, MultipleChoiceAnswer
 
-from typing import Any
-import random
+from cot_transparency.data_models.example_base import (
+    DataExampleBase,
+    MultipleChoiceAnswer,
+)
 
 
 class TruthfulQAExample(DataExampleBase):
