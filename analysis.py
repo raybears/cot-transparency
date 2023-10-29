@@ -71,6 +71,8 @@ def convert_loaded_dict_to_df(loaded_dict: dict[Path, ExperimentJsonFormat]) -> 
     print("making df")
     df = pd.DataFrame(out)
     print("done making df")
+    # drop where df.parsed_response is None
+    df = df[df.parsed_response.notnull()]  # type: ignore
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
 
     def is_biased(formatter_name: str):
@@ -94,6 +96,7 @@ def accuracy(
     models: Sequence[str] = [],
     tasks: Sequence[str] = [],
     check_counts: bool = True,
+    remove_unparseable: bool = True,
     csv: bool = False,
 ) -> Optional[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
     """
