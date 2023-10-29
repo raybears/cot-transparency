@@ -272,10 +272,8 @@ def run_with_caching(
     elif isinstance(task_to_run[0], StageTwoTaskSpec):
         loaded_dict = get_loaded_dict_stage2(paths)
 
-    output_count = 0
     for task_output in loaded_dict.values():
         for output in task_output.outputs:
-            output_count += 1
             completed_outputs[output.task_spec.uid()] = output
 
     # print number that are None
