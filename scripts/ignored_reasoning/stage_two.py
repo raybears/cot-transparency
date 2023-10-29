@@ -276,7 +276,7 @@ def mistakes_into_completed_cot_spec(
         return RecomputeTaskSpec(task_spec)
 
 
-def execute_recomputation(task_spec: RecomputeTaskSpec, caller: ModelCaller) -> list[StageTwoTaskOutput]:
+def execute_recomputation(task_spec: RecomputeTaskSpec, caller: ModelCaller) -> Sequence[StageTwoTaskOutput]:
     # if the mistake was the last step in the reasoning trace, then we don't need to complete the COT
     # so just make a task output with no response
     trace_info = task_spec.trace_info

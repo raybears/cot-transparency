@@ -173,18 +173,18 @@ def task_function(
     caller: ModelCaller = ...,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
     num_retries: int = 10,
-) -> list[TaskOutput]:
+) -> Sequence[TaskOutput]:
     ...
 
 
 @overload
 def task_function(
-    task: Union[TaskSpec, StageTwoTaskSpec],
+    task: StageTwoTaskSpec,
     raise_after_retries: bool,
     caller: ModelCaller = ...,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
     num_retries: int = 10,
-) -> Union[list[TaskOutput], list[StageTwoTaskOutput]]:
+) -> Sequence[StageTwoTaskOutput]:
     ...
 
 
@@ -194,7 +194,7 @@ def task_function(
     caller: ModelCaller = UniversalCaller(),
     raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
-) -> list[TaskOutput] | list[StageTwoTaskOutput]:
+) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
 
     responses = (
