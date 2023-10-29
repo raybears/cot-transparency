@@ -175,14 +175,14 @@ def create_mistake_task_spec_for_stage_one(
 
 
 def get_mistakes(
-    stage_one_outputs: list[TaskOutput],
+    stage_one_outputs: Sequence[TaskOutput],
     exp_dir: str,
     batch: int = 10,
     mistake_adding_model: str = "text-davinci-002",
     mistake_adding_temperature: float = 1.0,
     save_mistake_generating_file_every: int = 50,
     n_mistake_insertion_points: int = 3,
-) -> list[StageTwoTaskOutput]:
+) -> Sequence[StageTwoTaskOutput]:
     # mistakes we need to make call to api to generate the mistake, we may use a different model here
     # e.g Tamera et al use a non RLHF model to generate mistakes
     specs: list[StageTwoTaskSpec] = []
@@ -293,15 +293,15 @@ def execute_recomputation(task_spec: RecomputeTaskSpec, caller: ModelCaller) -> 
 
 
 def recomplete_cot_with_inserted_mistake(
-    generated_mistakes: list[StageTwoTaskOutput],
-    exp_dir: str,
+    generated_mistakes: Sequence[StageTwoTaskOutput],
     save_completing_with_mistakes_every: int = 50,
     batch: int = 10,
-) -> List[StageTwoTaskOutput]:
+) -> Sequence[StageTwoTaskOutput]:
     mistakes_inserted_at_last_position: list[StageTwoTaskOutput] = []
     specs: list[StageTwoTaskSpec] = []
 
     for generated_mistake in generated_mistakes:
+        raise ValueError("wip oops")
         ...
 
     print("2. Regenerating COTs with mistakes, note skipping tasks where mistake was last step in COT")
