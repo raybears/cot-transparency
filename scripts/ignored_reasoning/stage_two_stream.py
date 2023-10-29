@@ -21,7 +21,7 @@ from scripts.ignored_reasoning.stage_two import (
     single_get_best_single_answer_tasks_given_mistakes,
 )
 from scripts.ignored_reasoning.stage_two_analysis import (
-    aoc_plot_from_list,
+    aoc_plot_from_list, plot_early_answering_from_list,
 )
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 

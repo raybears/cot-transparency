@@ -15,7 +15,7 @@ if __name__ == "__main__":
         exp_dir=exp_dir,
         batch=20,
     )
-    stage_two_dir = "experiments/james_ignored"
+    stage_two_dir = "experiments/james_ignored/stage_two"
     stage_two_main(input_exp_dir=exp_dir, mistake_model="claude-instant-1", exp_dir=stage_two_dir)
     plot_adding_mistakes(exp_dir=stage_two_dir, show_plots=True)
     aoc_plot(exp_dir=stage_two_dir, show_plots=True)

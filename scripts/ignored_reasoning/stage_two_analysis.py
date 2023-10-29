@@ -62,14 +62,14 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
         X_std = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
         X_scaled = X_std * (max - min) + min
         """
-        min_ = min(proportion_of_cot)
-        max_ = max(proportion_of_cot)
-        try:
-            proportion_scaled = proportion_of_cot.apply(lambda x: (x - min_) / (max_ - min_))
-        except Exception as e:
-            print("here")
-            raise e
-        auc = np.trapz(group[0], x=proportion_scaled)
+        # min_ = min(proportion_of_cot)
+        # max_ = max(proportion_of_cot)
+        # try:
+        #     proportion_scaled = proportion_of_cot.apply(lambda x: (x - min_) / (max_ - min_))
+        # except Exception as e:
+        #     print("here")
+        #     raise e
+        auc = np.trapz(group[0], x=proportion_of_cot)
         return auc
 
     groups.pop(groups.index(x))
