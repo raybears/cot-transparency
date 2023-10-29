@@ -1,86 +1,30 @@
 import asyncio
-from typing import Any, Sequence, Type
+from typing import Sequence
 
 from grugstream import Observable
-from pydantic import BaseModel
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
-from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.messages import ChatMessage
-from cot_transparency.data_models.models import BaseTaskSpec, ModelOutput
+from cot_transparency.data_models.models import ModelOutput
 from cot_transparency.formatters.auto_answer_parsing import GetAnswerGivenFormatter
-from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.streaming import StreamingTaskOutput, StreamingTaskSpec
+from cot_transparency.streaming import data_to_task_spec
+from cot_transparency.streaming import model_step
 from stage_one import get_list_of_examples
 
 
-class SimpleTaskSpec(BaseTaskSpec):
-    messages: Sequence[ChatMessage]
-    formatter_name: str
-    task_name: str
-    data_example: dict[str, Any] = {}
-    inference_config: OpenaiInferenceConfig
-
-    def get_task_name(self) -> str:
-        return self.task_name
-
-    def get_data_example_obj(self) -> DataExampleBase:
-        DataExample = task_name_to_data_example(self.task_name)
-        return DataExample(**self.data_example)
-
-
-class SimpleTaskOutput(BaseModel):
-    task_spec: SimpleTaskSpec
+class OutputWithParsed(StreamingTaskOutput):
+    task_spec: StreamingTaskSpec
     inference_outputs: Sequence[ModelOutput]
-
-
-class OutputWithParsed(SimpleTaskOutput):
-    task_spec: SimpleTaskSpec
-    inference_outputs: Sequence[ModelOutput]
-    parsing_steps: Sequence[SimpleTaskOutput | None]
-
-
-def data_to_task_spec(
-    task_name: str,
-    x: DataExampleBase,
-    formatters: Sequence[Type[StageOneFormatter]],
-    models: Sequence[OpenaiInferenceConfig],
-) -> list[SimpleTaskSpec]:
-    specs = []
-    for formatter in formatters:
-        for model in models:
-            messages = formatter.format_example(x)
-            ts = SimpleTaskSpec(
-                messages=messages,
-                formatter_name=formatter.name(),
-                data_example=x.model_dump(),
-                inference_config=model,
-                task_name=task_name,
-            )
-            specs.append(ts)
-    return specs
-
-
-def model_step(task_spec: SimpleTaskSpec, caller: ModelCaller) -> SimpleTaskOutput:
-    responses = Slist(caller.call(messages=task_spec.messages, config=task_spec.inference_config).raw_responses)
-    formatter_class = name_to_formatter(task_spec.formatter_name)
-    data_example = task_spec.get_data_example_obj()
-    outputs = responses.map(
-        lambda i: ModelOutput(
-            raw_response=i,
-            parsed_response=formatter_class.parse_answer(i, data_example, model=task_spec.inference_config.model),
-        )
-    )
-    return SimpleTaskOutput(task_spec=task_spec, inference_outputs=outputs)
+    parsing_steps: Sequence[StreamingTaskOutput | None]
 
 
 def answer_finding_step(
-    prev_output: SimpleTaskOutput, caller: ModelCaller, config: OpenaiInferenceConfig
+    prev_output: StreamingTaskOutput, caller: ModelCaller, config: OpenaiInferenceConfig
 ) -> OutputWithParsed:
     """
     For any outputs that were not find in the previous step, pass the raw response to another model model and
@@ -106,7 +50,7 @@ def answer_finding_step(
             original_question=prev_output.task_spec.get_data_example_obj(),
             model=config.model,
         )
-        task_spec = SimpleTaskSpec(
+        task_spec = StreamingTaskSpec(
             messages=messages,
             formatter_name=answer_finding_formatter.name(),
             data_example=prev_output.task_spec.data_example,
