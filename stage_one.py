@@ -234,6 +234,8 @@ def main(
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
     raise_after_retries: bool = True,
+    # Override to not filter out any invalid answers
+    no_filtering: bool = False,
     raise_on: Literal["all", "any"] = "all",
     num_retries: int = 10,
     max_tokens: Optional[int] = None,

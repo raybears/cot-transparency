@@ -65,7 +65,7 @@ def run_with_caching_stage_two(
     return output
 
 
-def unfiltered_task_spec(
+def run_task_spec_without_filtering(
     task: TaskSpec,
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
@@ -186,14 +186,11 @@ def task_function(
 ) -> list[TaskOutput] | list[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
 
-    responses = unfiltered_task_spec(
+    responses = run_task_spec_without_filtering(
         task=task,
         config=task.inference_config,
         formatter=formatter,
     )
-    if not isinstance(responses, list):
-        print("breakpoint here")
-        raise ValueError("Invalid repsonse")
 
     if isinstance(task, StageTwoTaskSpec):
         output_class = StageTwoTaskOutput
@@ -225,6 +222,7 @@ def run_with_caching(
     save_every: int,
     batch: int,
     task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
+    no_filtering: bool = False,
     raise_after_retries: bool = False,
     raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
@@ -297,6 +295,7 @@ def run_tasks_multi_threaded(
     loaded_dict: LoadedJsonType,
     tasks_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
     raise_after_retries: bool,
+    no_filtering: bool = False,
     raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
 ) -> None:
