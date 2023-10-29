@@ -4,11 +4,8 @@ from pathlib import Path
 from typing import Literal, Optional, Sequence, Type
 
 import fire
-from grugstream import Observable
 
 from slist import Slist
-from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import ModelCaller
 
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.data_models.config import config_from_default
@@ -42,7 +39,7 @@ from cot_transparency.data_models.data.model_written_evals import (
     get_anthropic_pol,
 )
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import TaskOutput, TaskSpec
+from cot_transparency.data_models.models import TaskSpec
 from cot_transparency.formatters import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTUnbiasedFormatter,
@@ -58,7 +55,7 @@ from cot_transparency.formatters.transparency.s1_baselines import (
 )
 from cot_transparency.formatters.wildcard import match_wildcard_formatters
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.tasks import TaskSetting, run_with_caching, task_function
+from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
 
 # ok to train on the test set since we test on completely different datasets
@@ -223,7 +220,7 @@ def get_list_of_examples(
     return data  # type: ignore
 
 
-def stage_one_stream(
+def create_stage_one_task_specs(
     tasks: Sequence[str] = [],
     dataset: Optional[str] = None,
     models: Sequence[str] = ["gpt-3.5-turbo", "gpt-4"],
@@ -237,13 +234,9 @@ def stage_one_stream(
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
     raise_after_retries: bool = True,
-    raise_on: Literal["all", "any"] = "all",
-    num_retries: int = 10,
     max_tokens: Optional[int] = None,
     n_responses_per_request: Optional[int] = None,
-    retry_answers_with_none: bool = False,
-    caller: ModelCaller = UniversalCaller(),
-) -> Observable[TaskOutput]:
+) -> Sequence[TaskSpec]:
     if dataset is not None:
         # we are using a dataset
         assert len(tasks) == 0, "You have defined a dataset and a task, you can only define one"
@@ -354,19 +347,8 @@ def stage_one_stream(
                     intervention_name=setting.intervention.name() if setting.intervention else None,
                 )
                 tasks_to_run.append(task_spec)
-    return (
-        Observable.from_iterable(tasks_to_run)
-        .map_blocking_par(
-            lambda task_spec: task_function(
-                task=task_spec,
-                raise_after_retries=raise_after_retries,
-                raise_on=raise_on,
-                caller=caller,
-            ),
-            max_par=batch,
-        )
-        .flatten_list()
-    )
+
+    return tasks_to_run
 
 
 def main(
@@ -392,121 +374,23 @@ def main(
     max_tokens: Optional[int] = None,
     n_responses_per_request: Optional[int] = None,
     retry_answers_with_none: bool = False,
-    caller: ModelCaller = UniversalCaller(),
 ):
-    if dataset is not None:
-        # we are using a dataset
-        assert len(tasks) == 0, "You have defined a dataset and a task, you can only define one"
-        tasks = TASK_LIST[dataset]
-    else:
-        assert tasks, "You must define a task or a dataset"
-
-    for model in models:
-        if "llama" in model.lower():
-            assert batch == 1, "Llama only supports batch size of 1"
-    print("Number of models to run:", len(models))
-
-    # match formatter name wildcard
-    formatters = match_wildcard_formatters(formatters)
-
-    assert len(formatters) > 0, "You must define at least one formatter"
-
-    tasks = validate_tasks(tasks)
-    print("Number of tasks to run:", len(tasks))
-    validated_formatters = get_valid_stage1_formatters(formatters)
-    print("Number of formatters to run:", len(validated_formatters))
-    validated_interventions = get_valid_stage1_interventions(interventions)
-    print("Number of interventions to run:", len(validated_interventions))
-    exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
-
-    task_settings: list[TaskSetting] = create_task_settings(
+    tasks_to_run = create_stage_one_task_specs(
         tasks=tasks,
+        dataset=dataset,
         models=models,
-        formatters=validated_formatters,
-        interventions=validated_interventions,
+        formatters=formatters,
+        interventions=interventions,
+        exp_dir=exp_dir,
+        experiment_suffix=experiment_suffix,
+        example_cap=example_cap,
+        batch=batch,
+        repeats_per_question=repeats_per_question,
+        temperature=temperature,
+        raise_after_retries=raise_after_retries,
+        max_tokens=max_tokens,
+        n_responses_per_request=n_responses_per_request,
     )
-
-    tasks_to_run: list[TaskSpec] = []
-    print("Number of settings to run:", len(task_settings))
-    for setting in task_settings:
-        task = setting.task
-        model = setting.model
-        formatter = setting.formatter
-        # Shuffle the data BEFORE we cap it
-        # Pass 42 to maintain the same shuffle that we had in the past, though slist wants a string instead
-        data: Slist[DataExampleBase] = get_list_of_examples(task, dataset=dataset).shuffle(typing.cast(str, 42))
-        out_file_path: Path = (
-            Path(f"{exp_dir}/{task}/{model}/{formatter.name()}.json")
-            if setting.intervention is None
-            else Path(f"{exp_dir}/{task}/{model}/{formatter.name()}_and_{setting.intervention.name()}.json")
-        )
-
-        if example_cap:
-            data = data.take(example_cap)
-
-        # Config Overrides Start ----------------------
-        config = config_from_default(model).model_copy(deep=True)
-        if issubclass(formatter, FormattersForTransparency):
-            few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
-            if isinstance(config.stop, list):
-                config.stop += few_shot_stops
-            else:
-                config.stop = few_shot_stops
-            config.max_tokens = 300
-            config.temperature = 0.8
-            config.top_p = 0.95
-
-        # if you are using an intervention, we need to add SINGLE_SHOT_SEP to the stop list
-        if setting.intervention:
-            if isinstance(config.stop, list):
-                config.stop += [FEW_SHOT_STOP_TOKEN]
-            else:
-                config.stop = [FEW_SHOT_STOP_TOKEN]
-
-        if temperature is not None:
-            config.temperature = temperature
-
-        assert config.model == model
-
-        if not formatter.is_cot:
-            config.max_tokens = 1
-
-        if max_tokens is not None:
-            config.max_tokens = max_tokens
-
-        if n_responses_per_request is not None:
-            config.n = n_responses_per_request
-
-        # Config Overrides End ----------------------
-
-        if raise_after_retries and temperature == 0:
-            raise ValueError("Must set --raise_after_retires=False when temperature is 0 as it will always fail")
-
-        for item in data:
-            for i in range(repeats_per_question):
-                messages = (
-                    setting.intervention.intervene(question=item, formatter=formatter, model=model)
-                    if setting.intervention
-                    else formatter.format_example(question=item, model=model)
-                )
-                # Save the format spec defined by the formatter
-                new_item: DataExampleBase = item.model_copy()
-                format_spec = formatter.get_data_format_spec()
-                new_item.data_format = format_spec
-                task_spec = TaskSpec(
-                    task_name=task,
-                    inference_config=config,
-                    messages=messages,
-                    out_file_path=out_file_path,
-                    ground_truth=new_item.ground_truth,
-                    formatter_name=formatter.name(),
-                    task_hash=new_item.hash(),
-                    biased_ans=new_item.biased_ans,
-                    data_example=new_item.model_dump(),
-                    repeat_idx=i,
-                    intervention_name=setting.intervention.name() if setting.intervention else None,
-                )
-                tasks_to_run.append(task_spec)
 
     run_with_caching(
         save_every=save_file_every,

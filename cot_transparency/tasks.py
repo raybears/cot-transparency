@@ -1,10 +1,8 @@
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Literal
-from typing import Union
+from typing import Literal, Sequence, overload, Union
 
-from altair import overload
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
@@ -167,17 +165,7 @@ def call_model_and_catch(
         return e.model_outputs
 
 
-@overload
-def task_function(
-    task: StageTwoTaskSpec,
-    raise_after_retries: bool,
-    caller: ModelCaller = ...,
-    raise_on: Union[Literal["all"], Literal["any"]] = "any",
-    num_retries: int = 10,
-) -> list[StageTwoTaskOutput]:
-    ...
-
-
+# TODO: Just have a separate function for stage 2? Otherwise readability is bad
 @overload
 def task_function(
     task: TaskSpec,
@@ -258,7 +246,7 @@ def task_function(
 def run_with_caching(
     save_every: int,
     batch: int,
-    task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
+    task_to_run: Sequence[TaskSpec] | Sequence[StageTwoTaskSpec],
     raise_after_retries: bool = False,
     raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,

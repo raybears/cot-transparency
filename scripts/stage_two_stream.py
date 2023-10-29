@@ -23,7 +23,7 @@ from scripts.ignored_reasoning.stage_two import (
 from scripts.ignored_reasoning.stage_two_analysis import (
     aoc_plot_from_list,
 )
-from stage_one import stage_one_stream
+from cot_transparency.streaming.stage_one_stream import stage_one_stream
 
 
 class MockCOTCaller(ModelCaller):
@@ -97,7 +97,7 @@ async def main():
         models=["gpt-3.5-turbo", "claude-2", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8A6Ymjb2"],
     )
 
-    early_answer_obs = (
+    (
         stage_one_obs.map(
             lambda task_output: get_early_answering_tasks(
                 stage_one_output=task_output,
