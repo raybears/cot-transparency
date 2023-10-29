@@ -4,15 +4,11 @@ import fire
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from git import Sequence
 from matplotlib import pyplot as plt
 
 from analysis import TASK_MAP, accuracy_for_df, get_general_metrics
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.data_models.models import (
-    StageTwoTaskOutput,
-)
-from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.models import StageTwoExperimentJsonFormat, TaskOutput
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 
 # Used to produce human readable names on plots
@@ -55,20 +51,7 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
 
     def get_auc(group: pd.DataFrame) -> float:
         assert group["original_cot_trace_length"].nunique() == 1
-        # james: this seems wrong? Like all the areas are originally 1, but they get normalized to <= 1?
         proportion_of_cot = group[x] / max(group[x])
-        # this sums to 1, but we need to renormalise to make it start from 0 and end at 1 to have a proper AUC
-        """
-        X_std = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
-        X_scaled = X_std * (max - min) + min
-        """
-        # min_ = min(proportion_of_cot)
-        # max_ = max(proportion_of_cot)
-        # try:
-        #     proportion_scaled = proportion_of_cot.apply(lambda x: (x - min_) / (max_ - min_))
-        # except Exception as e:
-        #     print("here")
-        #     raise e
         auc = np.trapz(group[0], x=proportion_of_cot)
         return auc
 
@@ -93,9 +76,11 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
     return areas
 
 
-def convert_stage2_experiment_to_dataframe(exp: Sequence[StageTwoTaskOutput]) -> pd.DataFrame:
+def convert_stage2_experiment_to_dataframe(
+    exp: StageTwoExperimentJsonFormat,
+) -> pd.DataFrame:
     out = []
-    for task_output in exp:
+    for task_output in exp.outputs:
         d_with_config = get_general_metrics(task_output)
         d_with_config["model"] = task_output.task_spec.inference_config.model
         d_with_config["task_name"] = task_output.task_spec.stage_one_output.task_spec.task_name
@@ -130,19 +115,9 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
     loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
     dfs = []
     for exp in loaded_dict.values():
-        df = convert_stage2_experiment_to_dataframe(exp.outputs)
+        df = convert_stage2_experiment_to_dataframe(exp)
         dfs.append(df)
     df = pd.concat(dfs)
-    df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
-    # filter out the NOT_FOUND rows
-    n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
-    print(f"Number of NOT_FOUND rows: {n_not_found}")
-    df = df[df.parsed_response != "NOT_FOUND"]
-    return df  # type: ignore
-
-
-def get_data_frame_from_exp_dir_items(items: Sequence[StageTwoTaskOutput]) -> pd.DataFrame:
-    df = convert_stage2_experiment_to_dataframe(items)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
     # filter out the NOT_FOUND rows
     n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
@@ -155,31 +130,6 @@ def plot_historgram_of_lengths(
     exp_dir: str,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
-
-    hue = "task_name"
-    x = "CoT Length"
-    col = "model"
-    y = "Counts"
-
-    # rename "original_cot_trace_length" to "CoT Length"
-    df = df.rename(columns={"original_cot_trace_length": x})
-
-    # for histogram we want the counts of the original_cot_trace_length
-    # filter on the unique stage_one_hash
-    counts = df.groupby([hue, col, x]).stage_one_hash.nunique().reset_index()
-    counts = counts.rename(columns={"stage_one_hash": y})
-
-    # facet plot of the proportion of the trace, break down by original_cot_trace_length
-    g = sns.FacetGrid(counts, col=col, col_wrap=2, legend_out=True)
-    g.map_dataframe(sns.barplot, x=x, y=y, hue=hue)
-    g.add_legend()
-    plt.show()
-
-
-def plot_histogram_from_list(
-    items: Sequence[StageTwoTaskOutput],
-):
-    df = get_data_frame_from_exp_dir_items(items)
 
     hue = "task_name"
     x = "CoT Length"
@@ -320,35 +270,7 @@ def plot_early_answering(
     col: str = "original_cot_trace_length",
     hue: str = "model",
 ):
-    items: list[StageTwoTaskOutput] = []
-    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
-    for vals in loaded_dict.values():
-        outputs = vals.outputs
-        items.extend(outputs)
-
-    return plot_early_answering_from_list(
-        items=items,
-        show_plots=show_plots,
-        inconsistent_only=inconsistent_only,
-        aggregate_over_tasks=aggregate_over_tasks,
-        model_filter=model_filter,
-        length_filter=length_filter,
-        col=col,
-        hue=hue,
-    )
-
-
-def plot_early_answering_from_list(
-    items: Sequence[StageTwoTaskOutput],
-    show_plots: bool = False,
-    inconsistent_only: bool = False,
-    aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
-    length_filter: Optional[list[int]] = None,
-    col: str = "original_cot_trace_length",
-    hue: str = "model",
-):
-    df = get_data_frame_from_exp_dir_items(items=items)
+    df = get_data_frame_from_exp_dir(exp_dir)
     # drop formatters that have Mistake in the name
     df = df[~df.has_mistake]
     df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)  # type: ignore
@@ -381,35 +303,7 @@ def plot_adding_mistakes(
     col: str = "original_cot_trace_length",
     hue: str = "model",
 ):
-    items: list[StageTwoTaskOutput] = []
-    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
-    for vals in loaded_dict.values():
-        outputs = vals.outputs
-        items.extend(outputs)
-
-    return plot_adding_mistakes_from_list(
-        items=items,
-        show_plots=show_plots,
-        inconsistent_only=inconsistent_only,
-        aggregate_over_tasks=aggregate_over_tasks,
-        model_filter=model_filter,
-        length_filter=length_filter,
-        col=col,
-        hue=hue,
-    )
-
-
-def plot_adding_mistakes_from_list(
-    items: Sequence[StageTwoTaskOutput],
-    show_plots: bool = False,
-    inconsistent_only: bool = False,
-    aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
-    length_filter: Optional[list[int]] = None,
-    col: str = "original_cot_trace_length",
-    hue: str = "model",
-):
-    df = convert_stage2_experiment_to_dataframe(items)
+    df = get_data_frame_from_exp_dir(exp_dir)
     df = df[~df.was_truncated]
 
     df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)  # type: ignore
@@ -440,40 +334,6 @@ def aoc_plot(
     hue: str = "stage_one_formatter_name",
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
-    df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)
-
-    # Mistakes AoC
-    df_mistakes = df[~df.was_truncated]
-    df_mistakes = df_mistakes.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
-    df_mistakes = drop_not_found(df_mistakes)  # type: ignore
-    aoc_mistakes = get_aoc(df_mistakes)
-
-    # Early Answering AoC
-    df_early = df[~df.has_mistake]
-    df_early = df_early.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
-    df_early = drop_not_found(df_early)  # type: ignore
-    aoc_early = get_aoc(df_early)
-
-    # baseline accuracies
-    baseline_accuracy(df, hue, "model")
-
-    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, kind="bar")
-    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, kind="point")
-
-    if show_plots:
-        plt.show()
-
-
-def aoc_plot_from_list(
-    items: Sequence[StageTwoTaskOutput],
-    show_plots: bool = False,
-    inconsistent_only: bool = False,
-    aggregate_over_tasks: bool = False,
-    model_filter: Optional[str] = None,
-    length_filter: Optional[list[int]] = None,
-    hue: str = "stage_one_formatter_name",
-):
-    df = get_data_frame_from_exp_dir_items(items)
     df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)
 
     # Mistakes AoC

@@ -102,7 +102,6 @@ TASK_LIST = {
     ],
     "mmlu": mmlu.MMLU_SUPERCATEGORIES,
     "karina": ["karina_hallucination"],
-    "sannity_check": ["truthful_qa_fake_answer_a"],
 }
 
 
