@@ -23,7 +23,7 @@ def ignore_errors_base_model_parse(basemodel: Type[GenericBaseModel], line: str)
         return None
 
 
-def read_jsonl_file_into_basemodel(path: Path, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
+def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
     with open(path) as f:
         return Slist(
             caught_base_model_parse(basemodel=basemodel, line=line)

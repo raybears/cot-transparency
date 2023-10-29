@@ -31,6 +31,10 @@ class StreamingTaskSpec(BaseTaskSpec):
         DataExample = task_name_to_data_example(self.task_name)
         return DataExample(**self.data_example)
 
+    @property
+    def task_hash(self) -> str:
+        return self.get_data_example_obj().hash()
+
 
 class StreamingTaskOutput(HashableBaseModel):
     task_spec: StreamingTaskSpec
