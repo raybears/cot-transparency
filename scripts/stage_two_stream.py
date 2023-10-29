@@ -96,8 +96,10 @@ async def main():
         batch=20,
         models=["gpt-3.5-turbo", "claude-2", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8A6Ymjb2"],
     )
+    # shared capacity limit between the stages
+    capacity_limit = CapacityLimiter(50)
 
-    (
+    early_answer_obs = (
         stage_one_obs.map(
             lambda task_output: get_early_answering_tasks(
                 stage_one_output=task_output,
@@ -115,9 +117,9 @@ async def main():
         )
         .flatten_list()
     )
-    # early_answer_results = await early_answer_obs.to_list()
-    # plot_early_answering_from_list(items=early_answer_results, show_plots=True)
-    tp = CapacityLimiter(50)
+    early_answer_results = await early_answer_obs.to_list()
+    plot_early_answering_from_list(items=early_answer_results, show_plots=True)
+
     mistakes_obs: Observable[StageTwoTaskOutput] = (
         stage_one_obs.map(
             # Create mistake spec
@@ -135,7 +137,7 @@ async def main():
             lambda stage_two_spec: task_function(
                 task=stage_two_spec, raise_after_retries=False, caller=add_mistake_caller
             ),
-            max_par=tp,
+            max_par=capacity_limit,
         )
         .flatten_list()
         # We want only not None responses
@@ -144,7 +146,9 @@ async def main():
         .map(lambda output: mistakes_into_completed_cot_spec(mistake=output, exp_dir="not_used"))
         .flatten_optional()
         # Execute recomputation
-        .map_blocking_par(lambda spec: execute_recomputation(task_spec=spec, caller=recompute_cot_caller), max_par=tp)
+        .map_blocking_par(
+            lambda spec: execute_recomputation(task_spec=spec, caller=recompute_cot_caller), max_par=capacity_limit
+        )
         .flatten_list()
         # final best answer task spec
         .map(
@@ -157,7 +161,7 @@ async def main():
             lambda stage_two_spec: task_function(
                 task=stage_two_spec, raise_after_retries=False, caller=final_answer_caller
             ),
-            max_par=tp,
+            max_par=capacity_limit,
         )
         .flatten_list()
         .tqdm(None)
@@ -177,7 +181,7 @@ async def main():
             lambda stage_two_spec: task_function(
                 task=stage_two_spec, raise_after_retries=False, caller=final_answer_caller
             ),
-            max_par=tp,
+            max_par=capacity_limit,
         )
         .flatten_list()
     )
