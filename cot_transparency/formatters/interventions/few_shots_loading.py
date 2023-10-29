@@ -61,7 +61,9 @@ class ModelOutputVerified(str, Enum):
     # Whether the outputs of the model aligns with the ground truth
     correct = "correct"
     wrong = "wrong"
-    no_filter = "no_filter"
+    correct_and_wrong = "correct and wrong"
+    unfiltered_added_none = "unfiltered and added none as an option"
+    unfiltered = "unfiltered"
 
 
 @lru_cache
@@ -77,10 +79,19 @@ def get_training_cots_gpt_35(
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
             )
-        case ModelOutputVerified.no_filter:
+        case ModelOutputVerified.correct_and_wrong:
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
             ) + read_jsonl_file_into_basemodel(Path("data/training_cots/gpt-35-turbo.jsonl"), TaskOutput)
+        case ModelOutputVerified.unfiltered:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_cots/gpt-35-turbo_unfiltered.jsonl"), TaskOutput
+            )
+
+        case ModelOutputVerified.unfiltered_added_none:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_cots/gpt-35-turbo_unfiltered_none_options.jsonl"), TaskOutput
+            )
 
     return jsons_tasks
 
@@ -98,10 +109,19 @@ def get_training_non_cots_gpt_35(
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_non_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
             )
-        case ModelOutputVerified.no_filter:
+        case ModelOutputVerified.correct_and_wrong:
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_non_cots/gpt-35-turbo_wrong.jsonl"), TaskOutput
             ) + read_jsonl_file_into_basemodel(Path("data/training_non_cots/gpt-35-turbo.jsonl"), TaskOutput)
+
+        case ModelOutputVerified.unfiltered:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_non_cots/gpt-35-turbo_unfiltered.jsonl"), TaskOutput
+            )
+        case ModelOutputVerified.unfiltered_added_none:
+            jsons_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_non_cots/gpt-35-turbo_unfiltered_none_options.jsonl"), TaskOutput
+            )
 
     return jsons_tasks
 
@@ -116,11 +136,14 @@ def get_training_cots_claude_2(
             )
         case ModelOutputVerified.wrong:
             jsons_tasks = read_jsonl_file_into_basemodel(Path("data/training_cots/claude-2_wrong.jsonl"), TaskOutput)
-        case ModelOutputVerified.no_filter:
+        case ModelOutputVerified.correct_and_wrong:
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_cots/claude-2_wrong.jsonl"), TaskOutput
             ) + read_jsonl_file_into_basemodel(Path("data/training_cots/claude-2.jsonl"), TaskOutput)
-
+        case ModelOutputVerified.unfiltered_added_none:
+            raise ValueError("No unfiltered data for claude-2")
+        case ModelOutputVerified.unfiltered:
+            raise ValueError("No unfiltered data for claude-2")
     return jsons_tasks
 
 
@@ -136,11 +159,14 @@ def get_training_non_cots_claude_2(
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_non_cots/claude-2_wrong.jsonl"), TaskOutput
             )
-        case ModelOutputVerified.no_filter:
+        case ModelOutputVerified.correct_and_wrong:
             jsons_tasks = read_jsonl_file_into_basemodel(
                 Path("data/training_non_cots/claude-2_wrong.jsonl"), TaskOutput
             ) + read_jsonl_file_into_basemodel(Path("data/training_non_cots/claude-2.jsonl"), TaskOutput)
-
+        case ModelOutputVerified.unfiltered_added_none:
+            raise ValueError("No unfiltered data for claude-2")
+        case ModelOutputVerified.unfiltered:
+            raise ValueError("No unfiltered data for claude-2")
     return jsons_tasks
 
 

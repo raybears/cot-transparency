@@ -65,6 +65,27 @@ def run_with_caching_stage_two(
     return output
 
 
+def unfiltered_task_spec(
+    task: TaskSpec,
+    config: OpenaiInferenceConfig,
+    formatter: type[PromptFormatter],
+) -> list[ModelOutput]:
+    raw_responses: InferenceResponse = call_model_api(task.messages, config)
+
+    def parse_model_output_for_response(
+        raw_response: str,
+    ) -> ModelOutput:
+        parsed_response: str | None = formatter.parse_answer(
+            raw_response,
+            model=config.model,
+            question=task.get_data_example_obj(),
+        )
+
+        return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
+
+    return [parse_model_output_for_response(r) for r in raw_responses.raw_responses]
+
+
 def __call_or_raise(
     task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
@@ -165,23 +186,14 @@ def task_function(
 ) -> list[TaskOutput] | list[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
 
-    responses = (
-        call_model_and_raise_if_not_suitable(
-            task=task,
-            config=task.inference_config,
-            formatter=formatter,
-            retries=num_retries,
-            raise_on=raise_on,
-        )
-        if raise_after_retries
-        else call_model_and_catch(
-            task=task,
-            config=task.inference_config,
-            formatter=formatter,
-            retries=num_retries,
-            raise_on=raise_on,
-        )
+    responses = unfiltered_task_spec(
+        task=task,
+        config=task.inference_config,
+        formatter=formatter,
     )
+    if not isinstance(responses, list):
+        print("breakpoint here")
+        raise ValueError("Invalid repsonse")
 
     if isinstance(task, StageTwoTaskSpec):
         output_class = StageTwoTaskOutput

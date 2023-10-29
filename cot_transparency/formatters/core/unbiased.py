@@ -39,6 +39,24 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
         return extract_answer(response, question, dump_failed=False)
 
 
+class ZeroShotCOTUnbiasedWithNoneFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        user_message = add_verbalize_instruction_to_question(question.get_parsed_input(include_none_of_the_above=True))
+        output = [
+            ChatMessage(role=MessageRole.user, content=user_message),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
 class FewShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
     is_biased = False
     is_cot = True
@@ -98,6 +116,29 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         formatted_question = format_unbiased_question(question=question.get_parsed_input())
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question),
+            ChatMessage(
+                role=MessageRole.assistant_if_completion,
+                content=NON_COT_ASSISTANT_PROMPT,
+            ),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
+class ZeroShotUnbiasedWithNoneFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = format_unbiased_question(
+            question=question.get_parsed_input(include_none_of_the_above=True)
+        )
         output = [
             ChatMessage(role=MessageRole.user, content=formatted_question),
             ChatMessage(

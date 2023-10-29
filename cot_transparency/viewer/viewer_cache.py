@@ -66,6 +66,8 @@ def match_model_result(task: TaskOutput, answer_result: TypeOfAnswerOption) -> b
             return task.is_correct
         case TypeOfAnswerOption.anything:
             return True
+        case TypeOfAnswerOption.not_parseable:
+            return task.inference_output.parsed_response is None
 
 
 def filter_prompt(task: TaskOutput, prompt_search: str) -> bool:
