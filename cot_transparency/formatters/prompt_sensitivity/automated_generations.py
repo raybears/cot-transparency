@@ -6,7 +6,7 @@ from cot_transparency.formatters.base_class import PromptFormatter, StageOneForm
 
 
 from typing import Optional, Sequence
-from cot_transparency.formatters.extraction import extract_answer
+from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 
 
 class GenerateParaphrasingsFormatters(StageOneFormatter):
@@ -100,6 +100,65 @@ Please give me {n} paraphrasing covering a variety of styles."""  # noqa: E501
             ret.append((question, split_tags))
 
         return ret
+
+
+class GoldStandardWithCotFormatter(StageOneFormatter):
+    """
+    The base formatter that will be used to create the ground truth for consistency training
+    """
+
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = "Question:\n" + question._get_question()
+        formatted_options = "\n\nChoose from the following options:\n" + question._get_options_with_indicator(
+            question.get_options()
+        )
+        x = "\n\nPlease verbalize how you are thinking about the problem, then choose the best answer from the options given."  # noqa: E501
+
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options + x),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        """
+        Don't strictly need to parse the answer here as we only care about the CoTs
+        """
+        return extract_answer(response, question)
+
+
+class GoldStandardNoCotFormatter(StageOneFormatter):
+    """
+    The base formatter that will be used to create the ground truth for consistency training
+    """
+
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = "Question:\n" + question._get_question()
+        formatted_options = "\n\nChoose from the following options:\n" + question._get_options_with_indicator(
+            question.get_options()
+        )
+        x = "\n\nDo not show any working and answer immediatley"  # noqa: E501
+
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options + x),
+            ChatMessage(role=MessageRole.assistant, content="The best answer is: ("),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        """
+        Don't strictly need to parse the answer here as we only care about the CoTs
+        """
+        return extract_answer_non_cot(response)
 
 
 class AskParaphrasedQuestionFormatter(PromptFormatter):
