@@ -1,9 +1,12 @@
 import asyncio
+from collections import Counter
+import math
 from pathlib import Path
 from typing import Generic, Sequence, Type, TypeVar
 import fire
 
 from grugstream import Observable
+from matplotlib import pyplot as plt
 from pydantic import BaseModel
 from slist import Slist
 from tqdm import tqdm
@@ -12,6 +15,7 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ModelOutput
+from cot_transparency.data_models.pd_utils import BaseExtractor, convert_slist_to_df
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AskParaphrasedQuestionFormatter,
@@ -19,9 +23,10 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
     GenerateParaphrasingsNoCotFormatters,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.streaming import StreamingTaskOutput, StreamingTaskSpec
-from cot_transparency.streaming import data_to_task_spec
-from cot_transparency.streaming import model_step
+from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
+from cot_transparency.streaming.tasks import data_to_task_spec
+from cot_transparency.streaming.tasks import model_step
+from scripts.utils.plots import catplot
 from stage_one import COT_TESTING_TASKS, COT_TRAINING_TASKS, get_list_of_examples
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 
@@ -110,6 +115,7 @@ async def run_pipeline(
     example_cap: int,
     tasks: Sequence[str],
     batch_size: int,
+    eval_temp: float,
     models_to_evaluate: Sequence[str] = [],
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatters],
 ):
@@ -141,7 +147,9 @@ async def run_pipeline(
         .map(paraphrased_file.write)
     )
     if models_to_evaluate:
-        models_to_be_tested = Slist(models_to_evaluate).map(lambda x: config_from_default(model=x))
+        models_to_be_tested = Slist(models_to_evaluate).map(
+            lambda x: config_from_default(model=x, temperature=eval_temp)
+        )
         testing_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/evaluation_cache.jsonl")
 
         pipeline = (
@@ -151,6 +159,7 @@ async def run_pipeline(
             .map_blocking_par(
                 lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=10
             )
+            .tqdm(tqdm_bar=tqdm(total=n_items * 10, desc="Evaluating models"))
         )
 
     results_path = Path(f"{exp_dir}/results.jsonl")
@@ -171,15 +180,22 @@ def make_training_data(
     ],
     batch_size=50,
 ):
+    
+    # This generates the different paraphrasings of the questions
     asyncio.run(
         run_pipeline(
             exp_dir=exp_dir,
             example_cap=example_cap,
             tasks=tasks,
             batch_size=batch_size,
+            eval_temp=0.0,
             paraphrasing_formatters=paraphrasing_formatters,
         )
     )
+
+    # but we also want to generate the gold standard completions that we will use to train the model
+    # dont need to use any paraphrasings here
+
 
 
 def run(
@@ -188,21 +204,57 @@ def run(
     example_cap: int = 200,
     tasks: Sequence[str] = COT_TESTING_TASKS,
     batch_size: int = 50,
+    eval_temp: float = 0.0,
 ):
     asyncio.run(
         run_pipeline(
             exp_dir=exp_dir,
             models_to_evaluate=models,
+            batch_size=batch_size,
+            eval_temp=eval_temp,
             example_cap=example_cap,
             tasks=tasks,
-            batch_size=batch_size,
         )
     )
 
 
-def plot():
-    experiment_path = "/Users/edwardr/exp/cot/automated_prompt_variant_generation/v1/results.jsonl"
-    read_jsonl_file_into_basemodel(experiment_path, StreamingTaskOutput)
+def get_entropy(outputs: Slist[StreamingTaskOutput]) -> float:
+    inference_outputs = outputs.map(lambda x: Slist(x.inference_outputs)).flatten_list()
+    parsed_responses = inference_outputs.map(lambda x: x.parsed_response)
+    counts = Counter(parsed_responses)
+    print(counts)
+    probabilities = {k: v / len(outputs) for k, v in counts.items()}
+    entropy = -sum([p * math.log(p, 2) for p in probabilities.values()])
+    return entropy
+
+
+grouped_outputs = tuple[tuple[str, OpenaiInferenceConfig], float]
+
+
+class Extractor(BaseExtractor[grouped_outputs]):
+    column_names: list[str] = ["task_hash", "model", "model_with_temp", "temperature", "entropy"]
+
+    def extract(self, output: grouped_outputs) -> Sequence[str | float | None | bool]:
+        task_hash = output[0][0]
+        model = output[0][1].model
+        temperature = output[0][1].temperature
+        entropy = output[1]
+        return [task_hash, model, f"{model}, t={temperature}", temperature, entropy]
+
+
+def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
+    experiment_path = f"{exp_dir}/results.jsonl"
+    outputs = read_jsonl_file_into_basemodel(experiment_path, StreamingTaskOutput)
+
+    # calculate the entropy
+    with_entropy = outputs.group_by(lambda x: (x.task_spec.task_hash, x.task_spec.inference_config)).map(
+        lambda x: (x[0], get_entropy(x[1]))
+    )
+
+    df = convert_slist_to_df(with_entropy, [Extractor()])
+
+    catplot(data=df, x="model_with_temp", y="entropy")
+    plt.show()
 
 
 if __name__ == "__main__":

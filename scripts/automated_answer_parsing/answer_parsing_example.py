@@ -11,9 +11,9 @@ from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ModelOutput
 from cot_transparency.formatters.auto_answer_parsing import GetAnswerGivenFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.streaming import StreamingTaskOutput, StreamingTaskSpec
-from cot_transparency.streaming import data_to_task_spec
-from cot_transparency.streaming import model_step
+from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
+from cot_transparency.streaming.tasks import data_to_task_spec
+from cot_transparency.streaming.tasks import model_step
 from stage_one import get_list_of_examples
 
 
