@@ -286,33 +286,32 @@ def create_stage_one_task_specs(
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):
-                config.stop += few_shot_stops
+                config = config.copy_update(stop=config.stop + few_shot_stops)
             else:
-                config.stop = few_shot_stops
-            config.max_tokens = 300
-            config.temperature = 0.8
-            config.top_p = 0.95
+                config = config.copy_update(stop=few_shot_stops)
+            config = config.copy_update(max_tokens=300, temperature=0.8, top_p=0.95)
 
         # if you are using an intervention, we need to add SINGLE_SHOT_SEP to the stop list
         if setting.intervention:
             if isinstance(config.stop, list):
                 config.stop += [FEW_SHOT_STOP_TOKEN]
+                config = config.copy_update(stop=config.stop + [FEW_SHOT_STOP_TOKEN])
             else:
-                config.stop = [FEW_SHOT_STOP_TOKEN]
+                config = config.copy_update(stop=[FEW_SHOT_STOP_TOKEN])
 
         if temperature is not None:
-            config.temperature = temperature
+            config = config.copy_update(temperature=temperature)
 
         assert config.model == model
 
         if not formatter.is_cot:
-            config.max_tokens = 1
+            config = config.copy_update(max_tokens=1)
 
         if max_tokens is not None:
-            config.max_tokens = max_tokens
+            config = config.copy_update(max_tokens=max_tokens)
 
         if n_responses_per_request is not None:
-            config.n = n_responses_per_request
+            config = config.copy_update(max_tokens=n_responses_per_request)
 
         # Config Overrides End ----------------------
 
