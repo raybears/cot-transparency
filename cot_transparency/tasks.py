@@ -339,7 +339,9 @@ def run_tasks_multi_threaded(
     for task in tasks_to_run:
         future_instance_outputs.append(
             executor.submit(
-                lambda: task_function(task=task, raise_after_retries=True, raise_on=raise_on, num_retries=num_retries)
+                lambda: task_function(
+                    task=task, raise_after_retries=raise_after_retries, raise_on=raise_on, num_retries=num_retries
+                )
             )
         )
 
