@@ -21,6 +21,8 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
     AskParaphrasedQuestionFormatter,
     GenerateParaphrasingsFormatters,
     GenerateParaphrasingsNoCotFormatters,
+    GoldStandardNoCotFormatter,
+    GoldStandardWithCotFormatter,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
@@ -180,7 +182,6 @@ def make_training_data(
     ],
     batch_size=50,
 ):
-    
     # This generates the different paraphrasings of the questions
     asyncio.run(
         run_pipeline(
@@ -196,6 +197,33 @@ def make_training_data(
     # but we also want to generate the gold standard completions that we will use to train the model
     # dont need to use any paraphrasings here
 
+    async def get_gold_standard_cots(
+        exp_dir: str,
+        example_cap: int,
+        tasks: Sequence[str],
+        batch_size: int,
+    ):
+        model_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/cot_generation_cache.jsonl", write_every_n=1)
+        data_examples = get_examples_for_tasks(tasks, example_cap)
+        pipeline = (
+            Observable.from_iterable(data_examples)
+            .map(
+                lambda x: data_to_task_spec(
+                    *x,
+                    formatters=[GoldStandardWithCotFormatter, GoldStandardNoCotFormatter],
+                    models=[config_from_default(model="gpt-3.5-turbo", max_tokens=3000)],
+                )
+            )
+            .flatten_iterable()
+            .map_blocking_par(lambda x: model_step(x, model_caller), max_par=batch_size)
+            .tqdm(tqdm_bar=tqdm(total=len(data_examples), desc="Generating Gold Standard COTs"))
+        )
+
+        results_path = Path(f"{exp_dir}/gold_standard_cots.jsonl")
+        # delete the file if it exists
+        if results_path.exists():
+            results_path.unlink()
+        await pipeline.to_file(results_path, mode="a", serialize=lambda x: x.model_dump_json())
 
 
 def run(
