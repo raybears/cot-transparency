@@ -1,5 +1,6 @@
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import partial
 from pathlib import Path
 from typing import Literal, Sequence, overload, Union
 
@@ -207,6 +208,17 @@ def task_function(
     ...
 
 
+@overload
+def task_function(
+    task: TaskSpec | StageTwoTaskSpec,
+    raise_after_retries: bool,
+    caller: ModelCaller = UniversalCaller(),
+    raise_on: Literal["all"] | Literal["any"] = "any",
+    num_retries: int = 10,
+) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
+    ...
+
+
 def task_function(
     task: TaskSpec | StageTwoTaskSpec,
     raise_after_retries: bool,
@@ -320,7 +332,7 @@ def run_tasks_multi_threaded(
     save_file_every: int,
     batch: int,
     loaded_dict: LoadedJsonType,
-    tasks_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
+    tasks_to_run: Sequence[TaskSpec] | Sequence[StageTwoTaskSpec],
     raise_after_retries: bool,
     no_filtering: bool = False,
     raise_on: Literal["all"] | Literal["any"] = "any",
@@ -340,10 +352,21 @@ def run_tasks_multi_threaded(
         executor.shutdown(wait=False, cancel_futures=True)
         exit_event.set()  # notify rate limiter to exit
 
+    task: TaskSpec | StageTwoTaskSpec
     for task in tasks_to_run:
         future_instance_outputs.append(
             executor.submit(
-                lambda: task_function(task=task, raise_after_retries=True, raise_on=raise_on, num_retries=num_retries)
+                # NOTE: This needs to be partial rather than a lambda because
+                # we need the task to bind to the function, otherwise it will
+                # be a reference to the last task in the loop
+                partial(
+                    task_function,
+                    task=task,
+                    raise_after_retries=raise_after_retries,
+                    raise_on=raise_on,
+                    num_retries=num_retries,
+                    caller=UniversalCaller(),
+                )
             )
         )
 

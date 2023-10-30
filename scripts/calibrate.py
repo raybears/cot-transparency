@@ -4,7 +4,7 @@ from typing import Literal, Optional, Sequence, TypeVar
 
 from openai import InvalidRequestError
 from pydantic import BaseModel
-from slist import Slist
+from slist import Slist, Group
 from tqdm import tqdm
 
 from cot_transparency.apis import call_model_api
@@ -400,7 +400,7 @@ def few_shot_prompts_for_formatter(
         read_all_for_formatters(Path(exp_dir), unbiased_formatter_name, model=model)
     ).filter(lambda x: x.first_parsed_response != "T")
 
-    grouped_biased: Slist[tuple[str, Slist[TaskOutput]]] = Slist(biased_results).group_by(
+    grouped_biased: Slist[Group[str, Slist[TaskOutput]]] = Slist(biased_results).group_by(
         # group by hash which is the input question
         lambda task_output: task_output.task_spec.task_hash,
     )

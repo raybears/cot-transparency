@@ -1,6 +1,6 @@
 from typing import Mapping, Sequence
 
-from slist import Slist
+from slist import Slist, Group
 
 from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
@@ -49,7 +49,7 @@ def calculate_modal_agreement(name: str, items: Slist[TaskOutput]) -> PlotInfo:
 def filter_modal_wrong(items: Slist[TaskOutput]) -> Slist[TaskOutput]:
     print("Filtering modal wrong")
     # group them by the model, task hash
-    grouped_by_model: Slist[tuple[str, Slist[TaskOutput]]] = items.group_by(
+    grouped_by_model: Slist[Group[str, Slist[TaskOutput]]] = items.group_by(
         lambda task: task.task_spec.inference_config.model + task.task_spec.task_hash
     )
     # for each model, filter out the ones that are modal wrong
@@ -79,7 +79,7 @@ def prompt_metrics_plotly(
         read = filter_modal_wrong(read)
 
     # group the tasks by model name
-    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(lambda task: task.task_spec.inference_config.model)
+    grouped: Slist[Group[str, Slist[TaskOutput]]] = read.group_by(lambda task: task.task_spec.inference_config.model)
     # calculate modal agreement
     modal_agreement_scores: Slist[PlotInfo] = grouped.map_2(
         lambda model, items: calculate_modal_agreement(name=model, items=items)

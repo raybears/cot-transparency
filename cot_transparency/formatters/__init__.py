@@ -101,7 +101,13 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TagFormatter,
     TimeBasedFormatter,
 )
-from cot_transparency.formatters.prompt_sensitivity.automated_generations import GenerateParaphrasingsFormatters
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    GenerateParaphrasingsFormatters,
+    AskParaphrasedQuestionFormatter,
+    GoldStandardNoCotFormatter,
+    GenerateParaphrasingsNoCotFormatters,
+    GoldStandardWithCotFormatter,
+)
 
 from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import (
     BBQSymbolTuningCOTFewShot,
@@ -310,4 +316,8 @@ __all__ = [
     "LighterNoteFormatter",
     "StuckFormatter",
     "GenerateParaphrasingsFormatters",
+    "AskParaphrasedQuestionFormatter",
+    "GoldStandardNoCotFormatter",
+    "GenerateParaphrasingsNoCotFormatters",
+    "GoldStandardWithCotFormatter",
 ]

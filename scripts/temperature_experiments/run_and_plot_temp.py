@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from slist import Slist
+from slist import Slist, Group
 
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
@@ -104,7 +104,7 @@ def plot_temperature_diff_for_model(
     )
     print(f"Read {len(read)} experiments")
     # groupby temp
-    grouped: Slist[tuple[float, Slist[TaskOutput]]] = read.group_by(lambda x: x.task_spec.inference_config.temperature)
+    grouped: Slist[Group[float, Slist[TaskOutput]]] = read.group_by(lambda x: x.task_spec.inference_config.temperature)
     print(f"Grouped into {len(grouped)} groups")
     # get plot info
     plot_infos: Slist[PlotInfo] = grouped.map(get_plot_info)

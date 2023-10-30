@@ -35,6 +35,20 @@ class StreamingTaskSpec(BaseTaskSpec):
     def task_hash(self) -> str:
         return self.get_data_example_obj().hash()
 
+    @property
+    def n_options_given(self) -> int:
+        """
+        Returns the number of options that were presented to the model
+        automatically handles if none of the above was provided
+        """
+        data_example_obj = self.get_data_example_obj()
+        formatter_name = self.formatter_name
+        from cot_transparency.formatters.name_mapping import name_to_formatter
+
+        formatter_type = name_to_formatter(formatter_name)
+        n_options = len(data_example_obj.get_options(include_none_of_the_above=formatter_type.has_none_of_the_above))
+        return n_options
+
 
 class StreamingTaskOutput(HashableBaseModel):
     task_spec: StreamingTaskSpec

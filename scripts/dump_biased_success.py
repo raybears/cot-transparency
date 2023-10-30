@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from slist import Slist
+from slist import Slist, Group
 
 from cot_transparency.data_models.models import TaskOutput
 from scripts.calibrate import JoinedData, read_all_for_formatters
@@ -23,7 +23,7 @@ if __name__ == "__main__":
         read_all_for_formatters(Path(exp_dir), unbiased_formatter_name, model=model)
     )
 
-    grouped_biased: Slist[tuple[str, Slist[TaskOutput]]] = Slist(biased_results).group_by(
+    grouped_biased: Slist[Group[str, Slist[TaskOutput]]] = Slist(biased_results).group_by(
         # group by hash which is the input question
         lambda task_output: task_output.task_spec.task_hash,
     )
