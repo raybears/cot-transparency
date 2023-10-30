@@ -13,7 +13,7 @@ from cot_transparency.formatters.auto_answer_parsing import GetAnswerGivenFormat
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
 from cot_transparency.streaming.tasks import data_to_task_spec
-from cot_transparency.streaming.tasks import model_step
+from cot_transparency.streaming.tasks import call_model_with_task_spec
 from stage_one import get_list_of_examples
 
 
@@ -57,7 +57,7 @@ def answer_finding_step(
             inference_config=config,
             task_name=prev_output.task_spec.task_name,
         )
-        output_of_parsing = model_step(task_spec, caller)
+        output_of_parsing = call_model_with_task_spec(task_spec, caller)
         parsed_answers = Slist(output_of_parsing.inference_outputs).map(lambda x: x.parsed_response)
         found_answer = parsed_answers.mode_or_raise()
         # modify the previous output to include the parsed answer
@@ -100,7 +100,7 @@ async def main(exp_dir="experiments/er_testing2"):
             )
         )
         .flatten_iterable()
-        .map_blocking_par(lambda x: model_step(x, caller))
+        .map_blocking_par(lambda x: call_model_with_task_spec(x, caller))
         .map_blocking_par(lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config))
         .tqdm(None)
     )

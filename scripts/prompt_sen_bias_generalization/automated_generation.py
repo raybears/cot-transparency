@@ -27,7 +27,7 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
 from cot_transparency.streaming.tasks import data_to_task_spec
-from cot_transparency.streaming.tasks import model_step
+from cot_transparency.streaming.tasks import call_model_with_task_spec
 from scripts.utils.plots import catplot
 from stage_one import COT_TESTING_TASKS, COT_TRAINING_TASKS, get_list_of_examples
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
@@ -142,7 +142,7 @@ async def run_pipeline(
             )
         )
         .flatten_iterable()
-        .map_blocking_par(lambda x: model_step(x, generation_caller), max_par=batch_size)
+        .map_blocking_par(lambda x: call_model_with_task_spec(x, generation_caller), max_par=batch_size)
         .tqdm(tqdm_bar=tqdm(total=n_items, desc="Generating prompts"))
         .map(inter_file.write)
         .map(parse_responses)
@@ -157,7 +157,7 @@ async def run_pipeline(
         pipeline = (
             pipeline.map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
             .flatten_iterable()
-            .map_blocking_par(lambda x: model_step(x, testing_caller), max_par=batch_size)
+            .map_blocking_par(lambda x: call_model_with_task_spec(x, testing_caller), max_par=batch_size)
             .map_blocking_par(
                 lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=10
             )
@@ -215,7 +215,7 @@ def make_training_data(
                 )
             )
             .flatten_iterable()
-            .map_blocking_par(lambda x: model_step(x, model_caller), max_par=batch_size)
+            .map_blocking_par(lambda x: call_model_with_task_spec(x, model_caller), max_par=batch_size)
             .tqdm(tqdm_bar=tqdm(total=len(data_examples), desc="Generating Gold Standard COTs"))
         )
 

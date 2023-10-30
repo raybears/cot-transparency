@@ -62,7 +62,7 @@ def data_to_task_spec(
     return specs
 
 
-def model_step(task_spec: StreamingTaskSpec, caller: ModelCaller) -> StreamingTaskOutput:
+def call_model_with_task_spec(task_spec: StreamingTaskSpec, caller: ModelCaller) -> StreamingTaskOutput:
     responses = Slist(caller.call(messages=task_spec.messages, config=task_spec.inference_config).raw_responses)
     formatter_class = name_to_formatter(task_spec.formatter_name)
     data_example = task_spec.get_data_example_obj()
