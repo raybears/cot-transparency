@@ -5,6 +5,8 @@ import pandas as pd
 from pydantic import BaseModel
 from slist import Slist
 
+from cot_transparency.util import safe_file_write
+
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
 
 
@@ -45,9 +47,8 @@ def read_jsonl_file_into_basemodel_ignore_errors(
 
 def write_jsonl_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        for basemodel in basemodels:
-            f.write(basemodel.json() + "\n")
+    data = "\n".join(basemodel.model_dump_json() for basemodel in basemodels)
+    safe_file_write(filename=path, data=data)
 
 
 def write_csv_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel]) -> None:

@@ -2,6 +2,7 @@ import datetime
 import hashlib
 import logging
 import os
+from pathlib import Path
 import tempfile
 from typing import Optional, TypeVar
 
@@ -35,7 +36,7 @@ def setup_logger(name: str, level: int = logging.WARNING):
     return logger
 
 
-def safe_file_write(filename: str, data: str):
+def safe_file_write(filename: str | Path, data: str):
     dir_name = os.path.dirname(filename)
     with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False) as f:
         f.write(data)
