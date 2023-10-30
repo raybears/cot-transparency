@@ -216,7 +216,7 @@ def make_training_data(
             )
             .flatten_iterable()
             .map_blocking_par(lambda x: call_model_with_task_spec(x, model_caller), max_par=batch_size)
-            .tqdm(tqdm_bar=tqdm(total=len(data_examples), desc="Generating Gold Standard COTs"))
+            .tqdm(tqdm_bar=tqdm(total=len(data_examples), desc="Generating Gold Standard Completions"))
         )
 
         results_path = Path(f"{exp_dir}/gold_standard_cots.jsonl")
@@ -224,6 +224,15 @@ def make_training_data(
         if results_path.exists():
             results_path.unlink()
         await pipeline.to_file(results_path, mode="a", serialize=lambda x: x.model_dump_json())
+
+    asyncio.run(
+        get_gold_standard_cots(
+            exp_dir=exp_dir,
+            example_cap=example_cap,
+            tasks=tasks,
+            batch_size=batch_size,
+        )
+    )
 
 
 def run(
@@ -276,7 +285,7 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
 
     # calculate the entropy
     with_entropy = outputs.group_by(lambda x: (x.task_spec.task_hash, x.task_spec.inference_config)).map(
-        lambda x: (x[0], get_entropy(x[1]))
+        lambda x: x.map_values(get_entropy)
     )
 
     df = convert_slist_to_df(with_entropy, [Extractor()])
