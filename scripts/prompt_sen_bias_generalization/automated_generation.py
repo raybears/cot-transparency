@@ -140,7 +140,7 @@ async def run_pipeline(
         .map(parse_responses)
         .map(paraphrased_file.write)
     )
-    if len(models_to_evaluate):
+    if models_to_evaluate:
         models_to_be_tested = Slist(models_to_evaluate).map(lambda x: config_from_default(model=x))
         testing_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/evaluation_cache.jsonl")
 
