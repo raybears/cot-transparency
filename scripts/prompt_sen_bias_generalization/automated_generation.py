@@ -255,28 +255,40 @@ def run(
     )
 
 
-def get_entropy(outputs: Slist[StreamingTaskOutput]) -> float:
+class Entropy(BaseModel):
+    entropy: float
+    uniform_entropy: float
+
+
+def entropy_and_uniform_entropy(outputs: Slist[StreamingTaskOutput]) -> Entropy:
     inference_outputs = outputs.map(lambda x: Slist(x.inference_outputs)).flatten_list()
     parsed_responses = inference_outputs.map(lambda x: x.parsed_response)
     counts = Counter(parsed_responses)
     print(counts)
     probabilities = {k: v / len(outputs) for k, v in counts.items()}
     entropy = -sum([p * math.log(p, 2) for p in probabilities.values()])
-    return entropy
+
+    # also return the entropy as if the model was uniform
+    # get the number of options from the question
+    num_options = outputs.map(lambda x: x.task_spec.n_options_given)
+    assert len(num_options.distinct()) == 1
+    uniform_prob = 1 / num_options[0]
+    uniform_entropy = -sum([uniform_prob * math.log(uniform_prob, 2) for _ in range(num_options[0])])
+    return Entropy(entropy=entropy, uniform_entropy=uniform_entropy)
 
 
-grouped_outputs = tuple[tuple[str, OpenaiInferenceConfig], float]
+grouped_outputs = tuple[tuple[str, OpenaiInferenceConfig], Entropy]
 
 
 class Extractor(BaseExtractor[grouped_outputs]):
-    column_names: list[str] = ["task_hash", "model", "model_with_temp", "temperature", "entropy"]
+    column_names: list[str] = ["task_hash", "model", "model_with_temp", "temperature", "entropy", "uniform_entropy"]
 
     def extract(self, output: grouped_outputs) -> Sequence[str | float | None | bool]:
         task_hash = output[0][0]
         model = output[0][1].model
         temperature = output[0][1].temperature
         entropy = output[1]
-        return [task_hash, model, f"{model}, t={temperature}", temperature, entropy]
+        return [task_hash, model, f"{model}, t={temperature}", temperature, entropy.entropy, entropy.uniform_entropy]
 
 
 def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
@@ -285,12 +297,14 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
 
     # calculate the entropy
     with_entropy = outputs.group_by(lambda x: (x.task_spec.task_hash, x.task_spec.inference_config)).map(
-        lambda x: x.map_values(get_entropy)
+        lambda x: x.map_values(entropy_and_uniform_entropy)
     )
 
     df = convert_slist_to_df(with_entropy, [Extractor()])
 
-    catplot(data=df, x="model_with_temp", y="entropy")
+    avg_entropy = df.uniform_entropy.mean()
+    catplot(data=df, x="model_with_temp", y="entropy", add_line_at=avg_entropy)
+
     plt.show()
 
 
