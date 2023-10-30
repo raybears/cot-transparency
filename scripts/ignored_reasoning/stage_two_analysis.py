@@ -439,29 +439,21 @@ def aoc_plot(
     length_filter: Optional[list[int]] = None,
     hue: str = "stage_one_formatter_name",
 ):
-    df = get_data_frame_from_exp_dir(exp_dir)
-    df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)
+    items: list[StageTwoTaskOutput] = []
+    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
+    for vals in loaded_dict.values():
+        outputs = vals.outputs
+        items.extend(outputs)
 
-    # Mistakes AoC
-    df_mistakes = df[~df.was_truncated]
-    df_mistakes = df_mistakes.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
-    df_mistakes = drop_not_found(df_mistakes)  # type: ignore
-    aoc_mistakes = get_aoc(df_mistakes)
-
-    # Early Answering AoC
-    df_early = df[~df.has_mistake]
-    df_early = df_early.groupby("stage_one_hash").apply(check_same_answer).reset_index(drop=True)
-    df_early = drop_not_found(df_early)  # type: ignore
-    aoc_early = get_aoc(df_early)
-
-    # baseline accuracies
-    baseline_accuracy(df, hue, "model")
-
-    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, kind="bar")
-    _aoc_point_plot(hue, df, aoc_mistakes, aoc_early, kind="point")
-
-    if show_plots:
-        plt.show()
+    return aoc_plot_from_list(
+        items=items,
+        show_plots=show_plots,
+        inconsistent_only=inconsistent_only,
+        aggregate_over_tasks=aggregate_over_tasks,
+        model_filter=model_filter,
+        length_filter=length_filter,
+        hue=hue,
+    )
 
 
 def aoc_plot_from_list(
