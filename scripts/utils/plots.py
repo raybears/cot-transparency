@@ -40,6 +40,7 @@ def catplot(
     col: Optional[str] = None,
     y: Optional[str] = None,
     add_line_at: Optional[float] = None,
+    kind: str = "bar",
     **kwargs: Any,
 ) -> sns.FacetGrid:  # typing: ignore
     """
@@ -71,7 +72,7 @@ def catplot(
     # rename any column referenced by x, or y with the name in NAME_MAP
     df = data.rename(columns=renamed_cols)
 
-    if kwargs["kind"] == "bar":  # typing: ignore
+    if kind == "bar":  # typing: ignore
         # these args not supported for e.g. count plots
         if "errwidth" not in kwargs:
             kwargs["errwidth"] = 1.5
@@ -87,6 +88,7 @@ def catplot(
         x=x,
         col=col,
         y=y,
+        kind=kind,
         **kwargs,
     )  # typing: ignore
 
