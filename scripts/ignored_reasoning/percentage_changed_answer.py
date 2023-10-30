@@ -67,10 +67,11 @@ async def main():
     # intervention 100k ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC
     # blessed ft:gpt-3.5-turbo-0613:academicsnyuperez::7yyd6GaT
     # hunar trained ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs
+    # super dataset 100k ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
-        tasks=["truthful_qa"],
-        example_cap=400,
+        tasks=["mmlu", "aqua", "truthful_qa", "logiqa"],
+        example_cap=600,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
@@ -78,7 +79,7 @@ async def main():
         models=[
             "gpt-3.5-turbo",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::7yyd6GaT",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89hifzfA",
         ],
     ).tqdm()
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
