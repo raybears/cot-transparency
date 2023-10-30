@@ -1,15 +1,11 @@
 import asyncio
 from pathlib import Path
-from typing import Sequence
 
 from anyio import CapacityLimiter
 
 from grugstream import Observable
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import InferenceResponse, ModelCaller
-from cot_transparency.data_models.config import OpenaiInferenceConfig
-from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import StageTwoTaskOutput
 from cot_transparency.formatters.transparency.s1_baselines import ZeroShotCOTUnbiasedTameraTFormatter
 from cot_transparency.tasks import task_function

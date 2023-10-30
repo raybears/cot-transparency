@@ -277,10 +277,10 @@ def mistakes_into_completed_cot_spec(
 
 
 def execute_recomputation(task_spec: RecomputeTaskSpec, caller: ModelCaller) -> Sequence[StageTwoTaskOutput]:
-    # if the mistake was the last step in the reasoning trace, then we don't need to complete the COT
-    # so just make a task output with no response
     trace_info = task_spec.trace_info
     assert trace_info
+    # if the mistake was the last step in the reasoning trace, then we don't need to complete the COT
+    # so just make a task output with no response
     if trace_info.mistake_inserted_idx == len(trace_info.original_cot) - 1:
         output = StageTwoTaskOutput(
             task_spec=task_spec,
@@ -288,21 +288,61 @@ def execute_recomputation(task_spec: RecomputeTaskSpec, caller: ModelCaller) -> 
         )
         return [output for _ in range(task_spec.inference_config.n)]
     else:
-        # There should be only one response?
+        # We need to complete the COT
         return task_function(task=task_spec, raise_after_retries=False, caller=caller)
 
 
 def recomplete_cot_with_inserted_mistake(
     generated_mistakes: Sequence[StageTwoTaskOutput],
+    exp_dir: str,
     save_completing_with_mistakes_every: int = 50,
     batch: int = 10,
-) -> Sequence[StageTwoTaskOutput]:
+) -> List[StageTwoTaskOutput]:
+    """Note: This is an old function that isn't used anymore by the stage_two_stream.py script"""
     mistakes_inserted_at_last_position: list[StageTwoTaskOutput] = []
     specs: list[StageTwoTaskSpec] = []
 
     for generated_mistake in generated_mistakes:
-        raise ValueError("wip oops")
-        ...
+        if generated_mistake.first_parsed_response is None or "NO_REASONING" in generated_mistake.first_parsed_response:
+            print("WARNING - skipping task as NO_REASONING found in the trace passed to the mistake generator")
+            continue
+
+        stage_one_output = generated_mistake.task_spec.stage_one_output
+        config = stage_one_output.task_spec.inference_config.copy()
+
+        path = Path(
+            f"{exp_dir}/mistakes_stage2/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{CompletePartialCOT.name()}.json"
+        )
+
+        trace_info = generated_mistake.task_spec.trace_info
+        assert trace_info is not None
+        trace_info.sentence_with_mistake = generated_mistake.first_parsed_response
+
+        partial_cot_trace = trace_info.get_trace_upto_mistake()
+
+        messages = CompletePartialCOT.format_example(
+            stage_one_output.task_spec.messages, partial_cot_trace, config.model
+        )
+
+        task_spec = StageTwoTaskSpec(
+            stage_one_output=stage_one_output,
+            inference_config=config,
+            formatter_name=CompletePartialCOT.name(),
+            messages=messages,
+            out_file_path=path,
+            trace_info=trace_info,
+        )
+
+        # if the mistake was the last step in the reasoning trace, then we don't need to complete the COT
+        # so just make a task output with no response
+        if trace_info.mistake_inserted_idx == len(trace_info.original_cot) - 1:
+            output = StageTwoTaskOutput(
+                task_spec=task_spec,
+                inference_output=ModelOutput(raw_response="", parsed_response=""),
+            )
+            mistakes_inserted_at_last_position.append(output)
+        else:
+            specs.append(task_spec)
 
     print("2. Regenerating COTs with mistakes, note skipping tasks where mistake was last step in COT")
     outputs = run_with_caching_stage_two(save_completing_with_mistakes_every, batch, specs)
