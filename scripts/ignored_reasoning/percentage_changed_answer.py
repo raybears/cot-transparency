@@ -60,7 +60,7 @@ async def main():
     # blessed ft:gpt-3.5-turbo-0613:academicsnyuperez::7yyd6GaT
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
-        tasks=["mmlu"],
+        tasks=["logiqa"],
         example_cap=200,
         raise_after_retries=False,
         temperature=1.0,
@@ -72,6 +72,7 @@ async def main():
     computed = compute_percentage_changed(results)
     print("Total number of results", len(computed))
     print("Average percentage changed", computed.map(lambda x: x.changed_answer).average_or_raise())
+    stage_one_caller.save_cache()
 
 
 if __name__ == "__main__":
