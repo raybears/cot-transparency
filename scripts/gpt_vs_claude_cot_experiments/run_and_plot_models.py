@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Sequence
 
 from pydantic import BaseModel
-from slist import Slist
+from slist import Slist, Group
 
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
@@ -80,7 +80,7 @@ def plot_accuracies_for_model(
     )
     print(f"Read {len(read)} experiments")
     # groupby MODEL
-    grouped: Slist[tuple[str, Slist[TaskOutput]]] = read.group_by(lambda x: x.task_spec.inference_config.model)
+    grouped: Slist[Group[str, Slist[TaskOutput]]] = read.group_by(lambda x: x.task_spec.inference_config.model)
     print(f"Grouped into {len(grouped)} groups")
     # get plot info
     accuracy_plot_info: Slist[PlotInfo] = grouped.map(get_accuracy_plot_info_for_model_name)
