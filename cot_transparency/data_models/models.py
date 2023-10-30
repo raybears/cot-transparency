@@ -32,7 +32,6 @@ class BaseTaskSpec(HashableBaseModel):
     # We've called this model_config but that clashes with model_config of pydantic v2
     inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: Sequence[ChatMessage]
-    out_file_path: Path
     formatter_name: str
 
     @abstractmethod
@@ -84,7 +83,7 @@ class TaskSpec(BaseTaskSpec):
 
     def get_data_example_obj(self) -> DataExampleBase:
         DataExample = task_name_to_data_example(self.task_name)
-        return self.read_data_example_or_raise(DataExample)
+        return DataExample(**self.data_example)
 
     @property
     def n_options_given(self) -> int:

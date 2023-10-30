@@ -150,12 +150,13 @@ class CachedCaller(ModelCaller):
             return self.cache[key].response
         else:
             response = self.model_caller.call(messages, config)
+            value = CachedValue(
+                response=response,
+                messages=messages,
+                config=config,
+            )
             with self.save_lock:
-                self.cache[key] = CachedValue(
-                    response=response,
-                    messages=messages,
-                    config=config,
-                )
+                self.cache[key] = value
                 self.__update_counter += 1
                 if self.__update_counter % self.write_every_n == 0:
                     self.save_cache()

@@ -1,19 +1,11 @@
-from pathlib import Path
-from typing import Optional
 
-from slist import Slist
 
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
-from cot_transparency.data_models.io import read_all_for_selections
-from cot_transparency.data_models.models import TaskOutput
-from scripts.intervention_investigation import DottedLine, bar_plot
-from scripts.matching_user_answer import matching_user_answer_plot_info
-from scripts.multi_accuracy import PlotInfo
-from stage_one import COT_TESTING_TASKS, main as stage_one_main
+from stage_one import main as stage_one_main
 
 
 def run_experiments():
-    bbq_cap = int(600 / len(BBQ_TASK_LIST))
+    int(600 / len(BBQ_TASK_LIST))
     # Run temperature 1
     cap = 600
     stage_one_main(

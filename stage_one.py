@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Literal, Optional, Sequence, Type
 
 import fire
+
 from slist import Slist
 
 from cot_transparency.apis.openai.set_key import set_keys_from_env
@@ -216,20 +217,16 @@ def get_list_of_examples(
     return data  # type: ignore
 
 
-def main(
+def create_stage_one_task_specs(
     tasks: Sequence[str] = [],
     dataset: Optional[str] = None,
     models: Sequence[str] = ["gpt-3.5-turbo", "gpt-4"],
-    formatters: Sequence[str] = [
-        ZeroShotCOTSycophancyFormatter.name(),
-        ZeroShotCOTUnbiasedFormatter.name(),
-    ],
+    formatters: Sequence[str] = [ZeroShotCOTSycophancyFormatter.name(), ZeroShotCOTUnbiasedFormatter.name()],
     # Pass in a list of interventions to run, indicate None to run no intervention as well
     interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
     example_cap: Optional[int] = 1000000,
-    save_file_every: int = 50,
     batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
@@ -240,8 +237,7 @@ def main(
     num_retries: int = 10,
     max_tokens: Optional[int] = None,
     n_responses_per_request: Optional[int] = None,
-    retry_answers_with_none: bool = False,
-):
+) -> Sequence[TaskSpec]:
     if dataset is not None:
         # we are using a dataset
         assert len(tasks) == 0, "You have defined a dataset and a task, you can only define one"
@@ -268,10 +264,7 @@ def main(
     exp_dir = get_exp_dir_name(exp_dir, experiment_suffix, sub_dir="stage_one")
 
     task_settings: list[TaskSetting] = create_task_settings(
-        tasks=tasks,
-        models=models,
-        formatters=validated_formatters,
-        interventions=validated_interventions,
+        tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
     )
 
     tasks_to_run: list[TaskSpec] = []
@@ -355,6 +348,50 @@ def main(
                     intervention_name=setting.intervention.name() if setting.intervention else None,
                 )
                 tasks_to_run.append(task_spec)
+
+    return tasks_to_run
+
+
+def main(
+    tasks: Sequence[str] = [],
+    dataset: Optional[str] = None,
+    models: Sequence[str] = ["gpt-3.5-turbo", "gpt-4"],
+    formatters: Sequence[str] = [
+        ZeroShotCOTSycophancyFormatter.name(),
+        ZeroShotCOTUnbiasedFormatter.name(),
+    ],
+    # Pass in a list of interventions to run, indicate None to run no intervention as well
+    interventions: Sequence[str | None] = [],
+    exp_dir: Optional[str] = None,
+    experiment_suffix: str = "",
+    example_cap: Optional[int] = 1000000,
+    save_file_every: int = 50,
+    batch: int = 20,
+    repeats_per_question: int = 1,
+    temperature: Optional[float] = None,
+    raise_after_retries: bool = True,
+    raise_on: Literal["all", "any"] = "all",
+    num_retries: int = 10,
+    max_tokens: Optional[int] = None,
+    n_responses_per_request: Optional[int] = None,
+    retry_answers_with_none: bool = False,
+):
+    tasks_to_run = create_stage_one_task_specs(
+        tasks=tasks,
+        dataset=dataset,
+        models=models,
+        formatters=formatters,
+        interventions=interventions,
+        exp_dir=exp_dir,
+        experiment_suffix=experiment_suffix,
+        example_cap=example_cap,
+        batch=batch,
+        repeats_per_question=repeats_per_question,
+        temperature=temperature,
+        raise_after_retries=raise_after_retries,
+        max_tokens=max_tokens,
+        n_responses_per_request=n_responses_per_request,
+    )
 
     run_with_caching(
         save_every=save_file_every,

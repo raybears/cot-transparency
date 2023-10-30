@@ -1,14 +1,14 @@
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Sequence, overload, Union
 
 from pydantic import BaseModel
 from retry import retry
 from tqdm import tqdm
 
-from cot_transparency.apis import call_model_api
-from cot_transparency.apis.base import InferenceResponse
+from cot_transparency.apis import UniversalCaller
+from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.apis.rate_limiting import exit_event
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.io import (
@@ -66,11 +66,9 @@ def run_with_caching_stage_two(
 
 
 def run_task_spec_without_filtering(
-    task: TaskSpec,
-    config: OpenaiInferenceConfig,
-    formatter: type[PromptFormatter],
+    task: TaskSpec, config: OpenaiInferenceConfig, formatter: type[PromptFormatter], caller: ModelCaller
 ) -> list[ModelOutput]:
-    raw_responses: InferenceResponse = call_model_api(task.messages, config)
+    raw_responses: InferenceResponse = caller.call(task.messages, config)
 
     def parse_model_output_for_response(
         raw_response: str,
@@ -90,6 +88,7 @@ def __call_or_raise(
     task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
+    caller: ModelCaller,
     raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
     if isinstance(task, StageTwoTaskSpec):
@@ -97,7 +96,7 @@ def __call_or_raise(
     else:
         stage_one_task_spec = task
 
-    raw_responses: InferenceResponse = call_model_api(task.messages, config)
+    raw_responses: InferenceResponse = caller.call(task.messages, config)
 
     def get_model_output_for_response(
         raw_response: str,
@@ -150,11 +149,16 @@ def call_model_and_raise_if_not_suitable(
     task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
+    caller: ModelCaller,
     retries: int = 20,
     raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
     responses = retry(exceptions=AtLeastOneFailed, tries=retries)(__call_or_raise)(
-        task=task, config=config, formatter=formatter, raise_on=raise_on
+        task=task,
+        config=config,
+        formatter=formatter,
+        raise_on=raise_on,
+        caller=caller,
     )
     return responses
 
@@ -163,6 +167,7 @@ def call_model_and_catch(
     task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
+    caller: ModelCaller,
     retries: int = 20,
     raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
@@ -173,23 +178,46 @@ def call_model_and_catch(
             formatter=formatter,
             retries=retries,
             raise_on=raise_on,
+            caller=caller,
         )
     except AtLeastOneFailed as e:
         return e.model_outputs
 
 
+# TODO: Just have a separate function for stage 2? Otherwise readability is bad
+@overload
+def task_function(
+    task: TaskSpec,
+    raise_after_retries: bool,
+    caller: ModelCaller = ...,
+    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    num_retries: int = 10,
+) -> Sequence[TaskOutput]:
+    ...
+
+
+@overload
+def task_function(
+    task: StageTwoTaskSpec,
+    raise_after_retries: bool,
+    caller: ModelCaller = ...,
+    raise_on: Union[Literal["all"], Literal["any"]] = "any",
+    num_retries: int = 10,
+) -> Sequence[StageTwoTaskOutput]:
+    ...
+
+
 def task_function(
     task: TaskSpec | StageTwoTaskSpec,
     raise_after_retries: bool,
+    caller: ModelCaller = UniversalCaller(),
     raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
-) -> list[TaskOutput] | list[StageTwoTaskOutput]:
+) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
 
     responses = run_task_spec_without_filtering(
-        task=task,
-        config=task.inference_config,
-        formatter=formatter,
+        task=task, config=task.inference_config, formatter=formatter, caller=caller
     )
 
     if isinstance(task, StageTwoTaskSpec):
@@ -221,8 +249,7 @@ def task_function(
 def run_with_caching(
     save_every: int,
     batch: int,
-    task_to_run: list[TaskSpec] | list[StageTwoTaskSpec],
-    no_filtering: bool = False,
+    task_to_run: Sequence[TaskSpec] | Sequence[StageTwoTaskSpec],
     raise_after_retries: bool = False,
     raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
@@ -316,11 +343,7 @@ def run_tasks_multi_threaded(
     for task in tasks_to_run:
         future_instance_outputs.append(
             executor.submit(
-                task_function,
-                task,
-                raise_after_retries=raise_after_retries,
-                raise_on=raise_on,
-                num_retries=num_retries,
+                lambda: task_function(task=task, raise_after_retries=True, raise_on=raise_on, num_retries=num_retries)
             )
         )
 
