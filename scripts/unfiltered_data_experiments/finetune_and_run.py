@@ -13,6 +13,6 @@ if __name__ == "__main__":
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.super_dataset,
+        formatter_options=FormatterOptions.all_biased,
         model_output_verified=ModelOutputVerified.unfiltered,
     )
