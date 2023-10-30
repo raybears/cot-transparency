@@ -55,20 +55,20 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
 
     def get_auc(group: pd.DataFrame) -> float:
         assert group["original_cot_trace_length"].nunique() == 1
-        # james: this seems wrong? Like all the areas are originally 1, but they get normalized to <= 1?
         proportion_of_cot = group[x] / max(group[x])
-        # this sums to 1, but we need to renormalise to make it start from 0 and end at 1 to have a proper AUC
         """
-        X_std = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
-        X_scaled = X_std * (max - min) + min
+        TODO: Maybe we need to renormalize the proportion_of_cot to be between 0 and 1?
+        Right now it can be between e.g. 0.6-1.0, which messes up np.trapz?
+        And sometimes its one single point too, which also messes up np.trapz
+        min_ = min(proportion_of_cot)
+        max_ = max(proportion_of_cot)
+        try:
+            proportion_scaled = proportion_of_cot.apply(lambda x: (x - min_) / (max_ - min_))
+        except Exception as e:
+            print("Maybe there is only one value so min_ == max_")
+            raise e
         """
-        # min_ = min(proportion_of_cot)
-        # max_ = max(proportion_of_cot)
-        # try:
-        #     proportion_scaled = proportion_of_cot.apply(lambda x: (x - min_) / (max_ - min_))
-        # except Exception as e:
-        #     print("here")
-        #     raise e
+
         auc = np.trapz(group[0], x=proportion_of_cot)
         return auc
 
