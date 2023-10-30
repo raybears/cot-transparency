@@ -21,60 +21,12 @@ from scripts.ignored_reasoning.stage_two import (
     single_get_best_single_answer_tasks_given_mistakes,
 )
 from scripts.ignored_reasoning.stage_two_analysis import (
-    aoc_plot_from_list, plot_early_answering_from_list,
+    aoc_plot_from_list,
+    plot_early_answering_from_list,
+    plot_histogram_from_list,
+    plot_adding_mistakes_from_list,
 )
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-
-
-class MockCOTCaller(ModelCaller):
-    # A caller that can call (mostly) any model
-    # This exists so that James can easily attach a cache to a single caller with with_file_cache
-    # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
-    def call(
-        self,
-        messages: Sequence[ChatMessage],
-        config: OpenaiInferenceConfig,
-    ) -> InferenceResponse:
-        output = (
-            "Let's think step by step... \nStep 1: Hmmmm\nStep 2: Ok...\nStep 3: 1+1\nTherefore the best answer is: (A)"
-        )
-        return InferenceResponse(raw_responses=[output])
-
-
-class MockFullCOTCaller(ModelCaller):
-    # A caller that can call (mostly) any model
-    # This exists so that James can easily attach a cache to a single caller with with_file_cache
-    # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
-    def call(
-        self,
-        messages: Sequence[ChatMessage],
-        config: OpenaiInferenceConfig,
-    ) -> InferenceResponse:
-        # Make gpt-3.5-turbo give the correct answer (B) if there are mistakes
-        has_mistakes = False
-
-        for m in messages:
-            if "<mistake>" in m.content:
-                has_mistakes = True
-        is_gpt = "gpt-3.5" in config.model
-        if has_mistakes and is_gpt:
-            output = "Therefore, the best answer is: (B)"
-        else:
-            output = "Therefore, the best answer is: (A)"
-        return InferenceResponse(raw_responses=[output])
-
-
-class MockMistakeCaller(ModelCaller):
-    # A caller that can call (mostly) any model
-    # This exists so that James can easily attach a cache to a single caller with with_file_cache
-    # He uses a single caller in his script because sometimes its Claude, sometimes its GPT-3.5
-    def call(
-        self,
-        messages: Sequence[ChatMessage],
-        config: OpenaiInferenceConfig,
-    ) -> InferenceResponse:
-        output = "<mistake>: 5+2 = 1"
-        return InferenceResponse(raw_responses=[output])
 
 
 async def main():
@@ -94,7 +46,7 @@ async def main():
         temperature=1.0,
         caller=stage_one_caller,
         batch=20,
-        models=["gpt-3.5-turbo", "claude-2", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8A6Ymjb2"],
+        models=["gpt-3.5-turbo", "claude-2"],
     )
     # shared capacity limit between the stages
     capacity_limit = CapacityLimiter(50)
@@ -187,14 +139,13 @@ async def main():
     )
 
     mistakes_results = await mistakes_obs.to_list()
-    # bug: somehow this has msitakes??
     baseline_no_mistakes_results = await baseline_no_mistakes.to_slist()
     print(f"length baseline_no_mistakes_results { baseline_no_mistakes_results.length}")
     all_ = mistakes_results + baseline_no_mistakes_results
     print("done with mistakes")
-    # plot_histogram_from_list(all_)
+    plot_histogram_from_list(all_)
     aoc_plot_from_list(all_, show_plots=True)
-    # plot_adding_mistakes_from_list(mistakes_results + baseline_no_mistakes_results, show_plots=True)
+    plot_adding_mistakes_from_list(mistakes_results + baseline_no_mistakes_results, show_plots=True)
 
     stage_one_caller.save_cache()
     recompute_cot_caller.save_cache()
