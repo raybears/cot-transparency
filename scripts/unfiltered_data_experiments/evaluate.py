@@ -12,9 +12,10 @@ def run_experiments():
         exp_dir="experiments/bbq_29_oct",
         models=[
             "gpt-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8EuTHC6p",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8EuYjaxi",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8A6Ymjb2",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8EuTHC6p",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8EuYjaxi",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8A6Ymjb2",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FG2Mx8"
         ],
         formatters=[
             "ZeroShotCOTUnbiasedFormatter",
@@ -29,9 +30,10 @@ def run_experiments():
         exp_dir="experiments/bbq_29_oct",
         models=[
             "gpt-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8EuTHC6p",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8EuYjaxi",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8A6Ymjb2",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FG2Mx8"
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8EuTHC6p",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8EuYjaxi",
+            # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8A6Ymjb2",
         ],
         formatters=[
             "ZeroShotCOTUnbiasedFormatter",
