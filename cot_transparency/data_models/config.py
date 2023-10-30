@@ -12,14 +12,6 @@ def is_openai_finetuned(model_name: str) -> bool:
     return "ft:gpt" in model_name or ":ft" in model_name
 
 
-class Unset:
-    ...
-
-
-# Sentinel value for unset values
-_UNSET = Unset()
-
-
 class OpenaiInferenceConfig(HashableBaseModel):
     # Config for openai
     model: str
@@ -30,28 +22,6 @@ class OpenaiInferenceConfig(HashableBaseModel):
     presence_penalty: float = 0.0
     n: int = 1
     stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
-
-    def copy_update(
-        self,
-        model: str | Unset = _UNSET,
-        temperature: float | Unset = _UNSET,
-        top_p: None | float | Unset = _UNSET,
-        max_tokens: int | Unset = _UNSET,
-        n: int | Unset = _UNSET,
-        stop: None | str | list[str] | Unset = _UNSET,
-    ) -> "OpenaiInferenceConfig":
-        """
-        Returns a copy of the config with the updated values
-        _UNSET values are not updated. _UNSET is used to distinguish between None and not being passed in
-        """
-        return OpenaiInferenceConfig(
-            model=model if not isinstance(model, Unset) else self.model,
-            temperature=temperature if not isinstance(temperature, Unset) else self.temperature,
-            top_p=top_p if not isinstance(top_p, Unset) else self.top_p,
-            max_tokens=max_tokens if not isinstance(max_tokens, Unset) else self.max_tokens,
-            n=n if not isinstance(n, Unset) else self.n,
-            stop=stop if not isinstance(stop, Unset) else self.stop,
-        )
 
     def model_hash(self) -> str:
         """
