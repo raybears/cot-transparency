@@ -30,8 +30,10 @@ def stage_one_stream(
     n_responses_per_request: Optional[int] = None,
     caller: ModelCaller = UniversalCaller(),
 ) -> Observable[TaskOutput]:
-    """A versino of stage_one.py, but streaming
-    Note that this doesn't manage any cache for you"""
+    """A version of stage_one.py, but streaming
+    Note that this doesn't manage any cache for you,
+    so maybe you want to attach a cache to the ModellCaller with with_file_cache
+    """
     tasks_to_run = create_stage_one_task_specs(
         tasks=tasks,
         dataset=dataset,

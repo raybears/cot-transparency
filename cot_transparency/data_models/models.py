@@ -2,10 +2,9 @@
 
 from abc import abstractmethod
 from pathlib import Path
-from typing import Optional, Any, Type
-from typing import Sequence
+from typing import Any, Optional, Sequence, Type
 
-from pydantic import BaseModel, Field, AliasChoices, ConfigDict
+from pydantic import AliasChoices, BaseModel, Field
 
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
@@ -115,7 +114,6 @@ class TaskOutput(BaseTaskOuput):
     task_spec: TaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0
-    model_config = ConfigDict(frozen=True)
 
     @property
     def bias_on_wrong_answer(self) -> bool:

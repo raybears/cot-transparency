@@ -102,7 +102,6 @@ TASK_LIST = {
     ],
     "mmlu": mmlu.MMLU_SUPERCATEGORIES,
     "karina": ["karina_hallucination"],
-    "sannity_check": ["truthful_qa_fake_answer_a"],
 }
 
 
@@ -181,8 +180,6 @@ def get_list_of_examples(
             data = arc.arc_challenge_test()
         elif task == "truthful_qa":
             data = truthful_qa.eval()
-        elif task == "truthful_qa_fake_answer_a":
-            data = truthful_qa.eval().map(lambda x: x.model_copy(update={"correct_ans_letter": "A"}))
         elif task == "logiqa":
             data = logiqa.eval()
         elif task == "mmlu":
