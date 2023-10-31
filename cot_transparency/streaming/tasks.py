@@ -10,7 +10,7 @@ from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import BaseTaskOuput, BaseTaskSpec, ModelOutput
 
 
-from typing import Any, Sequence
+from typing import Any, Self, Sequence
 
 from cot_transparency.formatters.base_class import StageOneFormatter, Type
 from cot_transparency.formatters.name_mapping import name_to_formatter
@@ -48,6 +48,15 @@ class StreamingTaskSpec(BaseTaskSpec):
         n_options = len(data_example_obj.get_options(include_none_of_the_above=formatter_type.has_none_of_the_above))
         return n_options
 
+    def update_messages(self, messages: Sequence[ChatMessage]) -> Self:
+        return StreamingTaskSpec(
+            messages=messages,
+            formatter_name=self.formatter_name,
+            task_name=self.task_name,
+            data_example=self.data_example,
+            inference_config=self.inference_config,
+        )
+
 
 class StreamingTaskOutput(BaseTaskOuput):
     task_spec: StreamingTaskSpec
@@ -55,6 +64,12 @@ class StreamingTaskOutput(BaseTaskOuput):
 
     def get_task_spec(self) -> StreamingTaskSpec:
         return self.task_spec
+
+    def update_messages(self, messages: Sequence[ChatMessage]) -> Self:
+        return StreamingTaskOutput(
+            task_spec=self.task_spec.update_messages(messages),
+            inference_output=self.inference_output,
+        )
 
 
 def data_to_task_spec(

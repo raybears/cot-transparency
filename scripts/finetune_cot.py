@@ -20,7 +20,7 @@ from cot_transparency.data_models.data.biased_question_unbiased_cot import (
 )
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.models import BaseTaskOuput, TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
@@ -37,8 +37,10 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
     get_training_cots_claude_2,
     get_training_cots_gpt_35,
+    get_training_cots_gpt_35_gs,
     get_training_non_cots_claude_2,
     get_training_non_cots_gpt_35,
+    get_training_non_cots_gpt_35_gs,
     task_output_to_finetune_sample,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
@@ -128,18 +130,18 @@ def augment_non_cots_big_brain(
     return new
 
 
-def augment_non_cot_task(item: TaskOutput) -> TaskOutput:
-    new_messages = RandomNonCOTPromptAugmentor.augment(messages=item.task_spec.messages)
-    return item.copy_update(task_spec=item.task_spec.copy_update(messages=new_messages))
+def augment_non_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
+    new_messages = RandomNonCOTPromptAugmentor.augment(messages=item.get_task_spec().messages)
+    return item.update_messages(messages=new_messages)
 
 
-def augment_cot_task(item: TaskOutput) -> TaskOutput:
-    new_messages = RandomCOTPromptAugmentor.augment(messages=item.task_spec.messages)
-    return item.copy_update(task_spec=item.task_spec.copy_update(messages=new_messages))
+def augment_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
+    new_messages = RandomCOTPromptAugmentor.augment(messages=item.get_task_spec().messages)
+    return item.update_messages(messages=new_messages)
 
 
 def fine_tune_with_naive_cots(n: int):
-    cots: Slist[TaskOutput] = get_training_cots_gpt_35().shuffle(seed="42").take(n)
+    cots: Slist[BaseTaskOuput] = Slist(get_training_cots_gpt_35()).shuffle(seed="42").take(n)
     print(f"Number of cots: {len(cots)}")
     messages = [FinetuneSample.from_task_output(task) for task in cots]
     params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
@@ -279,7 +281,7 @@ def replace_unbiased_cot_prompt_with_formatters(
     return output
 
 
-def transform_into_post_hoc_reasoning(task: TaskOutput) -> TaskOutput:
+def transform_into_post_hoc_reasoning(task: BaseTaskOuput) -> BaseTaskOuput:
     new = task.model_copy(deep=True)
     previous_answer = task.inference_output.parsed_response
     assert previous_answer
@@ -305,13 +307,13 @@ class FormatterWithPossibleIntervention:
 
 
 def replace_unbiased_prompt_with_formatters(
-    task: TaskOutput,
+    task: BaseTaskOuput,
     use_formatters: Iterable[FormatterWithPossibleIntervention],
-) -> Slist[TaskOutput]:
-    output = Slist[TaskOutput]()
+) -> Slist[BaseTaskOuput]:
+    output = Slist[BaseTaskOuput]()
     for fwpi in use_formatters:
         new = task
-        data_example: DataExampleBase = task.task_spec.get_data_example_obj()
+        data_example: DataExampleBase = task.get_task_spec().get_data_example_obj()
         intervention = fwpi.intervention
         new_messages = (
             fwpi.formatter.format_example(data_example)
@@ -319,20 +321,12 @@ def replace_unbiased_prompt_with_formatters(
             else intervention.intervene(
                 question=data_example,
                 formatter=fwpi.formatter,
-                model=task.task_spec.inference_config.model,
+                model=task.get_task_spec().inference_config.model,
             )
         )
-        new = new.copy_update(task_spec=new.task_spec.copy_update(messages=new_messages))
+        new = new.update_messages(new_messages)
         output.append(new)
     return output
-
-
-def clean_unbiased_non_cot_raw_response(task: TaskOutput) -> TaskOutput:
-    # Because the model sometimes adds more statements after the answer, and we want to remove it
-    assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name()
-    new = task.model_copy(deep=True)
-    new.inference_output.raw_response = task.task_spec.ground_truth + ")"
-    return new
 
 
 class DataFromOptions(str, Enum):
@@ -445,10 +439,10 @@ class FormatSampler(ABC):
     @abstractmethod
     def sample(
         self,
-        tasks: Sequence[TaskOutput],
+        tasks: Sequence[BaseTaskOuput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[TaskOutput]:
+    ) -> Slist[BaseTaskOuput]:
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
@@ -461,10 +455,10 @@ class NFormatsPerQuestionSampler(FormatSampler):
 
     def sample(
         self,
-        tasks: Sequence[TaskOutput],
+        tasks: Sequence[BaseTaskOuput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[TaskOutput]:
+    ) -> Slist[BaseTaskOuput]:
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
@@ -478,7 +472,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
         print("using n_unique_cots", n_unique_cots)
         tasks = tasks.take(n_unique_cots)
 
-        output: Slist[TaskOutput] = Slist()
+        output: Slist[BaseTaskOuput] = Slist()
         formatter_counts = Counter()
         for task in tasks:
             rng = random.Random(task.uid())
@@ -500,10 +494,10 @@ class NFormatsPerQuestionSampler(FormatSampler):
 class RandomSampler(FormatSampler):
     def sample(
         self,
-        tasks: Sequence[TaskOutput],
+        tasks: Sequence[BaseTaskOuput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[TaskOutput]:
+    ) -> Slist[BaseTaskOuput]:
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
@@ -556,12 +550,11 @@ def fine_tune_with_bias_augmentation(
             non_cot_data = get_training_non_cots_claude_2(model_output_verified)
             cot_data = get_training_cots_claude_2(model_output_verified)
         case DataFromOptions.gpt_35_turbo_gs:
-            pass
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified)
 
-            
-
-    non_cot_data_shuffled = non_cot_data.shuffle(seed="42")
-    cot_data_shuffled = cot_data.shuffle(seed="42")
+    non_cot_data_shuffled = Slist(non_cot_data).shuffle(seed="42")
+    cot_data_shuffled = Slist(cot_data).shuffle(seed="42")
     formatter_options_result = match_formatter_options(formatter_options)
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
@@ -575,7 +568,6 @@ def fine_tune_with_bias_augmentation(
     print(f"Number of non cots: {len(non_cot_data_shuffled)}")
     non_cot_samples = (
         sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit)
-        .map(clean_unbiased_non_cot_raw_response)
         .map(lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x)
         .map(task_output_to_finetune_sample)
     )

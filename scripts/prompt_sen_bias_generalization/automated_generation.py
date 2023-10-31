@@ -231,9 +231,9 @@ def make_training_data(
 
         outputs = read_jsonl_file_into_basemodel(results_path, StreamingTaskOutput)
         cots = outputs.filter(lambda x: x.task_spec.formatter_name == GoldStandardWithCotFormatter.name())
-        write_jsonl_file_from_basemodel(Path(f"{exp_dir}/gold_standard_cots.jsonl"), cots)
+        write_jsonl_file_from_basemodel(Path("data/training_cots/gpt35_gold_standard_cots.jsonl"), cots)
         non_cots = outputs.filter(lambda x: x.task_spec.formatter_name == GoldStandardNoCotFormatter.name())
-        write_jsonl_file_from_basemodel(Path(f"{exp_dir}/gold_standard_no_cots.jsonl"), non_cots)
+        write_jsonl_file_from_basemodel(Path("data/training_non_cots/gpt35_gold_standard_cots.jsonl"), non_cots)
 
     asyncio.run(
         get_gold_standard_cots(
