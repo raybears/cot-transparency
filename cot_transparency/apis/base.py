@@ -86,7 +86,8 @@ class ModelCaller(ABC):
         """
         if isinstance(cache_path, str):
             cache_path = Path(cache_path)
-        return make_file_cache(self, cache_path, write_every_n=write_every_n)
+
+        return CachedCaller(wrapped_caller=self, cache_path=cache_path, write_every_n=write_every_n)
 
 
 def file_cache_key(messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> str:
@@ -164,11 +165,3 @@ class CachedCaller(ModelCaller):
 
     def __del__(self):
         self.save_cache()
-
-
-def make_file_cache(model_caller: ModelCaller, cache_path: Path, write_every_n: int) -> CachedCaller:
-    """
-    Add a file cache to a model caller
-    """
-
-    return CachedCaller(wrapped_caller=model_caller, cache_path=cache_path, write_every_n=write_every_n)
