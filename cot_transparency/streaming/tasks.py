@@ -1,7 +1,7 @@
 """
 This file basically an evolution of tasks.py but simplified and intended to be used with grugstream.
 """
-from cot_transparency.apis.base import CachedPerModelCaller, ModelCaller
+from cot_transparency.apis.base import ModelCaller
 from slist import Slist
 from cot_transparency.copy_utils.unset_sentinel import _UNSET, Unset
 from cot_transparency.data_models.config import OpenaiInferenceConfig

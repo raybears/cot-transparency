@@ -338,7 +338,6 @@ def train_and_run(n_samples: int = 10000):
         tasks=COT_TESTING_TASKS,
         batch_size=50,
         eval_temp=0.0,
-        evaluation_cache="cache/{model}",
     )
 
 

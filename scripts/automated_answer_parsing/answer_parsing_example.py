@@ -5,7 +5,7 @@ from grugstream import Observable
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import CachedPerModelCaller, ModelCaller
+from cot_transparency.apis.base import CachedPerModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ModelOutput
