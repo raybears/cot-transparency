@@ -122,12 +122,11 @@ async def run_pipeline(
     models_to_evaluate: Sequence[str] = [],
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatters],
 ):
-    generation_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/generation_cache.jsonl", write_every_n=1)
+    cache_dir = f"{exp_dir}/cache"
 
-    inter_file = PassThroughWriter[StreamingTaskOutput](f"{exp_dir}/generated_prompts.jsonl")
-    paraphrased_file = PassThroughWriter[ParaphrasingOutput](f"{exp_dir}/paraphrased_prompts.jsonl")
+    generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=1)
 
-    answer_parsing_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/answer_parsing_cache.jsonl")
+    answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/answer_parsing_cache")
     answer_parsing_config = config_from_default(model="claude-v1")
 
     data_examples = get_examples_for_tasks(tasks, example_cap)
@@ -146,15 +145,13 @@ async def run_pipeline(
         .map_blocking_par(lambda x: call_model_with_task_spec(x, generation_caller), max_par=batch_size)
         .flatten_list()
         .tqdm(tqdm_bar=tqdm(total=n_items * len(paraphrasing_formatters), desc="Generating prompts"))
-        .map(inter_file.write)
         .map(parse_responses)
-        .map(paraphrased_file.write)
     )
     if models_to_evaluate:
         models_to_be_tested = Slist(models_to_evaluate).map(
             lambda x: config_from_default(model=x, temperature=eval_temp)
         )
-        testing_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/evaluation_cache.jsonl")
+        testing_caller = UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/evaluation_cache")
 
         pipeline = (
             pipeline.map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
@@ -337,12 +334,11 @@ def train_and_run(n_samples: int = 10000):
         project_name="consistency-training",
     )
     run(
-        exp_dir=f"experiments/automated_prompt_variant_generation/finetuned_{n_samples}",
         models=[model],
-        example_cap=200,
         tasks=COT_TESTING_TASKS,
         batch_size=50,
         eval_temp=0.0,
+        evaluation_cache="cache/{model}",
     )
 
 

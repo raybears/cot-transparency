@@ -1,8 +1,9 @@
 """
 This file basically an evolution of tasks.py but simplified and intended to be used with grugstream.
 """
-from cot_transparency.apis.base import ModelCaller
+from cot_transparency.apis.base import CachedPerModelCaller, ModelCaller
 from slist import Slist
+from cot_transparency.copy_utils.unset_sentinel import _UNSET, Unset
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.example_base import DataExampleBase
@@ -48,9 +49,13 @@ class StreamingTaskSpec(BaseTaskSpec):
         n_options = len(data_example_obj.get_options(include_none_of_the_above=formatter_type.has_none_of_the_above))
         return n_options
 
-    def update_messages(self, messages: Sequence[ChatMessage]) -> Self:
+    def copy_update(
+        self,
+        *,
+        messages: Sequence[ChatMessage] | Unset = _UNSET,
+    ) -> Self:
         return StreamingTaskSpec(
-            messages=messages,
+            messages=messages if not isinstance(messages, Unset) else self.messages,
             formatter_name=self.formatter_name,
             task_name=self.task_name,
             data_example=self.data_example,
@@ -67,7 +72,7 @@ class StreamingTaskOutput(BaseTaskOuput):
 
     def update_messages(self, messages: Sequence[ChatMessage]) -> Self:
         return StreamingTaskOutput(
-            task_spec=self.task_spec.update_messages(messages),
+            task_spec=self.task_spec.copy_update(messages=messages),
             inference_output=self.inference_output,
         )
 
