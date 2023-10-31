@@ -55,7 +55,7 @@ def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tupl
     ret = Slist()
     for t in tasks:
         examples = get_list_of_examples(t)
-        print(f"Found {len(examples)} examples for task: {t}")
+        # print(f"Found {len(examples)} examples for task: {t}")
         task_with_name = examples.map(lambda x: (t, x)).shuffle(str(42)).take(example_cap)
         ret.extend(task_with_name)
     return ret
@@ -143,7 +143,7 @@ async def run_pipeline(
         )
         .flatten_iterable()
         .map_blocking_par(lambda x: call_model_with_task_spec(x, generation_caller), max_par=batch_size)
-        .tqdm(tqdm_bar=tqdm(total=n_items, desc="Generating prompts"))
+        .tqdm(tqdm_bar=tqdm(total=n_items * len(paraphrasing_formatters), desc="Generating prompts"))
         .map(inter_file.write)
         .map(parse_responses)
         .map(paraphrased_file.write)
@@ -161,7 +161,7 @@ async def run_pipeline(
             .map_blocking_par(
                 lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=10
             )
-            .tqdm(tqdm_bar=tqdm(total=n_items * 10, desc="Evaluating models"))
+            .tqdm(tqdm_bar=tqdm(total=n_items * 10 * len(models_to_evaluate), desc="Evaluating models"))
         )
 
     results_path = Path(f"{exp_dir}/results.jsonl")
@@ -237,7 +237,12 @@ def make_training_data(
 
 def run(
     exp_dir="experiments/automated_prompt_variant_generation/v1",
-    models: Sequence[str] = ["gpt-3.5-turbo"],
+    models: Sequence[str] = [
+        "gpt-3.5-turbo",
+        "ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W",  # super dataset 100k
+        "ft:gpt-3.5-turbo-0613:far-ai::8Czg32py",  # super dataset 50k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CxBtbeH",  # super dataset 10k
+    ],
     example_cap: int = 200,
     tasks: Sequence[str] = COT_TESTING_TASKS,
     batch_size: int = 50,
