@@ -1,7 +1,8 @@
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Mapping, Sequence
 
+from matplotlib import pyplot as plt
 from pydantic import BaseModel
 from slist import Slist
 
@@ -9,6 +10,8 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
+import pandas as pd
+import seaborn
 
 
 class ChangedAnswer(BaseModel):
@@ -51,11 +54,38 @@ def compute_percentage_changed(results: Slist[TaskOutput]) -> Slist[ChangedAnswe
     return computed
 
 
-def percentage_changed_per_model(results: Slist[TaskOutput]) -> Slist[tuple[str, Slist[ChangedAnswer]]]:
+class GroupResult(BaseModel):
+    model: str
+    changed_answers: Slist[ChangedAnswer]
+
+
+def percentage_changed_per_model(results: Slist[TaskOutput]) -> Slist[GroupResult]:
     # group by model
     grouped = results.group_by(lambda x: x.task_spec.inference_config.model)
     print("Total number of models", len(grouped))
-    return grouped.map_2(lambda model, values: (model, compute_percentage_changed(values)))
+    return grouped.map_2(
+        lambda model, values: GroupResult(model=model, changed_answers=compute_percentage_changed(values))
+    )
+
+
+def seaborn_bar_plot(results: Slist[GroupResult], name_mapping: Mapping[str, str], order: Sequence[str] = []) -> None:
+    _dicts = []
+    for group_result in results:
+        for changed_answer in group_result.changed_answers:
+            _dicts.append(
+                {
+                    "model": name_mapping.get(group_result.model, group_result.model),
+                    "same_answer": not changed_answer.changed_answer,
+                }
+            )
+    order_mapped = [name_mapping.get(model, model) for model in order]
+    # x-axis is model
+    # y-axis is percentage same
+    df = pd.DataFrame(_dicts)
+    ax = seaborn.barplot(x="model", y="same_answer", data=df, order=order_mapped)
+    # change the y-axis to be "Percentage of questions with same answer with vs without COT"
+    ax.set(ylabel="% Same Answer With and Without CoT ")
+    plt.show()
 
 
 async def main():
@@ -68,24 +98,40 @@ async def main():
     # blessed ft:gpt-3.5-turbo-0613:academicsnyuperez::7yyd6GaT
     # hunar trained ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs
     # super dataset 100k ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W
+    models = [
+        "gpt-3.5-turbo",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",  # 98% cot
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
+    ]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
-        tasks=["mmlu", "aqua", "truthful_qa", "logiqa"],
+        tasks=["aqua"],
         example_cap=600,
+        num_retries=1,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
         batch=20,
-        models=[
-            "gpt-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",  # 98% cot
-        ],
+        models=models,
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
-    percentage_changed_per_model(results)
-
     stage_one_caller.save_cache()
+    percentage_changed = percentage_changed_per_model(results)
+    seaborn_bar_plot(
+        percentage_changed,
+        name_mapping={
+            "gpt-3.5-turbo": "gpt-3.5-turbo",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs": "Trained to follow mistakes",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan": "Trained with biased contexts (ours), 98% COT, 100k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo":"Trained with unbiased contexts (control), 98% COT, 100k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR": "Trained with unbiased contexts (control), 98% COT, 1k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "Trained with biased contexts (ours), 98% COT, 10k samples",
+        },
+        order=models,
+    )
 
 
 if __name__ == "__main__":

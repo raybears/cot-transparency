@@ -81,7 +81,7 @@ model_metas = Slist(
 
 
 def plot_accuracies():
-    models = ["gpt-3.5-turbo"] + [m.model for m in model_metas]
+    models = ["gpt-3.5-turbo", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF"] + [m.model for m in model_metas]
     data = read_all_for_selections(
         models=models,
         formatters=["ZeroShotCOTUnbiasedFormatter"],
@@ -115,6 +115,7 @@ def plot_accuracies():
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T": "10,000 biased context training samples",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ah1ZpV4": "50,000 biased context training samples",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC": "100,000 biased context training samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "100,000 unfiltered biased context",
         },
     )
 
@@ -123,7 +124,7 @@ def main():
     models = [m.model for m in model_metas]
     stage_one_main(
         exp_dir="experiments/finetune_3",
-        models=["gpt-3.5-turbo"] + models,
+        models=["gpt-3.5-turbo", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF"] + models,
         formatters=["ZeroShotUnbiasedFormatter", "ZeroShotCOTUnbiasedFormatter"],
         dataset="cot_testing",
         example_cap=400,
@@ -133,5 +134,5 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
     plot_accuracies()
-    # main()
