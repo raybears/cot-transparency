@@ -101,14 +101,16 @@ async def main():
     models = [
         "gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",  # 98% cot
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",  # 98% cot
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
     ]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
-        tasks=["aqua"],
+        tasks=["aqua", "mmlu", "truthful_qa", "logiqa"],
         example_cap=600,
         num_retries=1,
         raise_after_retries=False,
@@ -126,8 +128,9 @@ async def main():
             "gpt-3.5-turbo": "gpt-3.5-turbo",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs": "Trained to follow mistakes",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan": "Trained with biased contexts (ours), 98% COT, 100k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo":"Trained with unbiased contexts (control), 98% COT, 100k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo": "Trained with unbiased contexts (control), 98% COT, 100k samples",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR": "Trained with unbiased contexts (control), 98% COT, 1k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF": "Trained with biased contexts (ours), 98% COT, 1k samples",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "Trained with biased contexts (ours), 98% COT, 10k samples",
         },
         order=models,
