@@ -108,14 +108,15 @@ def seaborn_bar_plot_length(
         _dicts.append(
             {
                 "model": name_mapping.get(model, model),
-                "Median COT length": length,
+                "COT length": length,
             }
         )
     order_mapped = [name_mapping.get(model, model) for model in order]
     # x-axis is model
     # y-axis is length
     df = pd.DataFrame(_dicts)
-    ax = seaborn.barplot(x="model", y="Median COT length", data=df, order=order_mapped)
+    ax = seaborn.barplot(x="model", y="COT length", data=df, estimator=np.average,order=order_mapped)
+
     # change the y-axis to be "Median COT length"
     ax.set(ylabel="Median COT length")
 
@@ -174,12 +175,13 @@ async def main():
     seaborn_bar_plot_length(
         results,
         name_mapping=name_mapping,
+        order=models,
     )
-    # seaborn_bar_plot(
-    #     percentage_changed,
-    #     name_mapping=name_mapping,
-    #     order=models,
-    # )
+    seaborn_bar_plot(
+        percentage_changed,
+        name_mapping=name_mapping,
+        order=models,
+    )
 
 
 if __name__ == "__main__":
