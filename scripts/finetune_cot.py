@@ -134,20 +134,14 @@ def augment_non_cots_big_brain(
 
 
 def augment_non_cot_task(item: TaskOutput) -> TaskOutput:
-    new_item = item.model_copy(deep=True)
+    new_messages = RandomNonCOTPromptAugmentor.augment(OpenAIChatPrompt(messages=item.task_spec.messages)).messages
 
-    new_item.task_spec.messages = RandomNonCOTPromptAugmentor.augment(
-        OpenAIChatPrompt(messages=item.task_spec.messages)
-    ).messages
-    return new_item
+    return item.copy_update(task_spec=item.task_spec.copy_update(messages=new_messages))
 
 
 def augment_cot_task(item: TaskOutput) -> TaskOutput:
-    new_item = item.model_copy(deep=True)
-    new_item.task_spec.messages = RandomCOTPromptAugmentor.augment(
-        OpenAIChatPrompt(messages=item.task_spec.messages)
-    ).messages
-    return new_item
+    new_messages = RandomCOTPromptAugmentor.augment(OpenAIChatPrompt(messages=item.task_spec.messages)).messages
+    return item.copy_update(task_spec=item.task_spec.copy_update(messages=new_messages))
 
 
 def fine_tune_with_naive_cots(n: int):
@@ -322,16 +316,19 @@ def replace_unbiased_prompt_with_formatters(
 ) -> Slist[TaskOutput]:
     output = Slist[TaskOutput]()
     for fwpi in use_formatters:
-        new = task.model_copy(deep=True)
+        new = task
         data_example: DataExampleBase = task.task_spec.get_data_example_obj()
-        if fwpi.intervention is None:
-            new.task_spec.messages = fwpi.formatter.format_example(data_example)
-        else:
-            new.task_spec.messages = fwpi.intervention.intervene(
+        intervention = fwpi.intervention
+        new_messages = (
+            fwpi.formatter.format_example(data_example)
+            if intervention is None
+            else intervention.intervene(
                 question=data_example,
                 formatter=fwpi.formatter,
                 model=task.task_spec.inference_config.model,
             )
+        )
+        new = new.copy_update(task_spec=new.task_spec.copy_update(messages=new_messages))
         output.append(new)
     return output
 
@@ -634,7 +631,7 @@ class RandomSampler(FormatSampler):
             .flatten_list()
             .take(n)
         )
-        assert len(tasks) == n
+        assert len(tasks) == n, f"len(tasks)={len(tasks)}, n={n}"
         return tasks
 
     def __repr__(self) -> str:
