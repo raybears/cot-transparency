@@ -346,6 +346,9 @@ class StageTwoTaskOutput(BaseTaskOuput):
         )
         return s1
 
+    def get_task_spec(self) -> BaseTaskSpec:
+        return self.task_spec
+
 
 class ExperimentJsonFormat(BaseModel):
     # e.g. 1000 examples will have 1000 entries

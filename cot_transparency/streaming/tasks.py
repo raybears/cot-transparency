@@ -81,7 +81,7 @@ def data_to_task_spec(
 def call_model_with_task_spec(task_spec: StreamingTaskSpec, caller: ModelCaller) -> Sequence[StreamingTaskOutput]:
     """
     Basic building block to call a model with a task spec. Note this returns a sequence because the config in task_spec
-    may specify n > 1 in which case we will get multiple responses for a single request. Call .flatten_iterable() if 
+    may specify n > 1 in which case we will get multiple responses for a single request. Call .flatten_iterable() if
     using grugstream after this step to flatten the sequence into a single iterable.
     """
 
