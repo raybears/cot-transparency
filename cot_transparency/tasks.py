@@ -66,6 +66,27 @@ def run_with_caching_stage_two(
     return output
 
 
+def run_task_spec_without_filtering(
+    task: TaskSpec, config: OpenaiInferenceConfig, formatter: type[PromptFormatter], caller: ModelCaller
+) -> list[ModelOutput]:
+    """To generate data without filtering / retrying for parseable responses
+    TODO: Fix task_function so that task_function actually allows this?"""
+    raw_responses: InferenceResponse = caller.call(task.messages, config)
+
+    def parse_model_output_for_response(
+        raw_response: str,
+    ) -> ModelOutput:
+        parsed_response: str | None = formatter.parse_answer(
+            raw_response,
+            model=config.model,
+            question=task.get_data_example_obj(),
+        )
+
+        return ModelOutput(raw_response=raw_response, parsed_response=parsed_response)
+
+    return [parse_model_output_for_response(r) for r in raw_responses.raw_responses]
+
+
 def __call_or_raise(
     task: TaskSpec | StageTwoTaskSpec,
     config: OpenaiInferenceConfig,

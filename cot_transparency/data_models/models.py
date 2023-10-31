@@ -6,6 +6,7 @@ from typing import Any, Optional, Sequence, Type
 
 from pydantic import AliasChoices, BaseModel, Field
 
+from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.example_base import (
@@ -55,6 +56,37 @@ class TaskSpec(BaseTaskSpec):
     # Note that this is empty for older experiments
     # This can't be the abstract class DataExampleBase because you can't instantiate it
     data_example: dict[str, Any] = {}
+
+    def copy_update(
+        self,
+        task_name: str | Unset = _UNSET,
+        messages: Sequence[ChatMessage] | Unset = _UNSET,
+        out_file_path: Path | Unset = _UNSET,
+        ground_truth: MultipleChoiceAnswer | Unset = _UNSET,
+        formatter_name: str | Unset = _UNSET,
+        intervention_name: str | Unset = _UNSET,
+        repeat_idx: int | Unset = _UNSET,
+        task_hash: str | Unset = _UNSET,
+        biased_ans: MultipleChoiceAnswer | Unset = _UNSET,
+        data_example: dict[str, Any] | Unset = _UNSET,
+    ) -> "TaskSpec":
+        """
+        Returns a copy of the config with the updated values
+        Note that this does not update the task_hash, so make sure you really know what you are doing!!!
+        """
+        return TaskSpec(
+            task_name=task_name if not isinstance(task_name, Unset) else self.task_name,
+            messages=messages if not isinstance(messages, Unset) else self.messages,
+            out_file_path=out_file_path if not isinstance(out_file_path, Unset) else self.out_file_path,
+            ground_truth=ground_truth if not isinstance(ground_truth, Unset) else self.ground_truth,
+            formatter_name=formatter_name if not isinstance(formatter_name, Unset) else self.formatter_name,
+            intervention_name=intervention_name if not isinstance(intervention_name, Unset) else self.intervention_name,
+            repeat_idx=repeat_idx if not isinstance(repeat_idx, Unset) else self.repeat_idx,
+            task_hash=task_hash if not isinstance(task_hash, Unset) else self.task_hash,
+            biased_ans=biased_ans if not isinstance(biased_ans, Unset) else self.biased_ans,
+            data_example=data_example if not isinstance(data_example, Unset) else self.data_example,
+            inference_config=self.inference_config,
+        )
 
     def read_data_example_or_raise(self, data_type: Type[GenericDataExample]) -> GenericDataExample:
         return data_type(**self.data_example)
@@ -113,6 +145,18 @@ class TaskOutput(BaseTaskOuput):
     task_spec: TaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0
+
+    def copy_update(
+        self,
+        task_spec: TaskSpec | Unset = _UNSET,
+        inference_output: ModelOutput | Unset = _UNSET,
+        response_idx: int | Unset = _UNSET,
+    ) -> "TaskOutput":
+        return TaskOutput(
+            task_spec=task_spec if not isinstance(task_spec, Unset) else self.task_spec,
+            inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
+            response_idx=response_idx if not isinstance(response_idx, Unset) else self.response_idx,
+        )
 
     @property
     def bias_on_wrong_answer(self) -> bool:

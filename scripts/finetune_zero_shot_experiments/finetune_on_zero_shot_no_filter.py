@@ -19,7 +19,7 @@ if __name__ == "__main__":
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
         formatter_options=FormatterOptions.zero_shot,
-        model_output_verified=ModelOutputVerified.no_filter,
+        model_output_verified=ModelOutputVerified.correct_and_wrong,
         ask_to_validate_training=False,
     )
     # test on TRAINING_COT_FORMATTERS_FEW_SHOT

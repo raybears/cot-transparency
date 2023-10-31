@@ -79,9 +79,9 @@ async def main():
         models=[
             "gpt-3.5-turbo",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::89hifzfA",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",  # 98% cot
         ],
-    ).tqdm()
+    )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
     percentage_changed_per_model(results)
 
