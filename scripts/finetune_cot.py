@@ -1,6 +1,7 @@
 import dataclasses
 import json
 import math
+from pathlib import Path
 import random
 from abc import ABC, abstractmethod
 from collections import Counter
@@ -48,6 +49,8 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
+from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskParaphrasedQuestionFormatter
 from cot_transparency.formatters.prompt_sensitivity.interventions import (
     AddBestAnswerIsNonCot,
     AddVerbalizeAndStepByStepAssistantPref,
@@ -58,9 +61,11 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TRAINING_NO_COT_PROMPT_VARIANTS_7,
     TRAINING_NO_COT_PROMPT_VARIANTS_ALL,
 )
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from scripts.cot_variants import sample_cot_variant
 from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.non_cot_variants import non_sample_cot_variant
+from cot_transparency.data_models.streaming import ParaphrasingOutput
 from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS,
     TRAINING_COT_FORMATTERS_FEW_SHOT,
@@ -132,12 +137,12 @@ def augment_non_cots_big_brain(
 
 def augment_non_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
     new_messages = RandomNonCOTPromptAugmentor.augment(messages=item.get_task_spec().messages)
-    return item.update_messages(messages=new_messages)
+    return item.update_messages_in_task_spec(messages=new_messages)
 
 
 def augment_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
     new_messages = RandomCOTPromptAugmentor.augment(messages=item.get_task_spec().messages)
-    return item.update_messages(messages=new_messages)
+    return item.update_messages_in_task_spec(messages=new_messages)
 
 
 def fine_tune_with_naive_cots(n: int):
@@ -324,7 +329,7 @@ def replace_unbiased_prompt_with_formatters(
                 model=task.get_task_spec().inference_config.model,
             )
         )
-        new = new.update_messages(new_messages)
+        new = new.update_messages_in_task_spec(new_messages)
         output.append(new)
     return output
 
@@ -346,6 +351,7 @@ class FormatterOptions(str, Enum):
     prompt_variants_set1 = "prompt_variants_set1"
     prompt_variants_all = "prompt_variants_all"
     super_dataset = "super_dataset"
+    ask_paraphrased = "ask_paraphrased"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -428,6 +434,9 @@ def match_formatter_options(
                     lambda x: FormatterWithPossibleIntervention(formatter=x)
                 )
             )
+        case FormatterOptions.ask_paraphrased:
+            cot_formatters = []
+            non_cot_formatters = []
 
     return FormatterOptionsResult(
         biased_formatters=sorted(list(set(cot_formatters))),
@@ -514,6 +523,61 @@ class RandomSampler(FormatSampler):
         return "RandomSampler()"
 
 
+class ParaphrasingSampler(FormatSampler):
+    """
+    This is a sort of dummy sampler so that we can get the paraphrased questions
+    """
+
+    def __init__(self, n_formats_per_question: int):
+        # load the paraphrasings
+        paraphrasings = read_jsonl_file_into_basemodel(
+            Path("data/training_paraphrasings/gpt4_paraphrasings.jsonl"), ParaphrasingOutput
+        )
+        self.mapping: dict[str, ParaphrasingOutput] = {}
+        for paraphrasing in paraphrasings:
+            key = self._get_key(paraphrasing)
+            self.mapping[key] = paraphrasing
+        self.n_formats_per_question = n_formats_per_question
+
+    def _get_key(self, task: BaseTaskOuput) -> str:
+        return (
+            task.get_task_spec().get_task_hash()
+            + "isCot="
+            + str(name_to_formatter(task.get_task_spec().formatter_name).is_cot)
+        )
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOuput],
+        formatters: Sequence[FormatterWithPossibleIntervention],
+        n: int,
+    ) -> Slist[BaseTaskOuput]:
+        tasks = Slist(tasks)
+
+        ret = Slist()
+        for task in tasks:
+            key = self._get_key(task)
+            paraphrasing = self.mapping[key]
+            paraphrased_questions = Slist(paraphrasing.paraphrased_questions)
+            to_use = paraphrased_questions.shuffle(seed=task.uid()).take(self.n_formats_per_question)
+            for paraphrased_question in to_use:
+                first_message = ChatMessage(content=paraphrased_question.paraphrased, role=MessageRole.user)
+                new_messages = list(task.get_task_spec().messages)
+                new_messages[0] = first_message
+                # if new_messages[-1].content == "The best answer is: (":
+                #     # so we can benefit from the augmentation to 50/50 sticking this at the start of the assistant reponse
+                #     new_messages[-1] = ChatMessage(
+                #         content=new_messages[-1].content, role=MessageRole.assistant_if_completion
+                #     )
+
+                new_task = task.update_messages_in_task_spec(messages=new_messages)
+                ret.append(new_task)
+
+        ret = ret.take(n)
+        assert len(ret) == n
+        return ret
+
+
 def fine_tune_with_bias_augmentation(
     n_epochs: int,
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
@@ -561,18 +625,18 @@ def fine_tune_with_bias_augmentation(
     cot_formatters = formatter_options_result.biased_formatters
 
     eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
-    assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
+    # assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
     eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
-    assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
+    # assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     # Non Cots
     print(f"Number of non cots: {len(non_cot_data_shuffled)}")
 
     # split of val samples
-    non_cot_val_samples = int(n_val_samples * (1 - cot_percentage))
+    n_non_cot_val_samples = int(n_val_samples * (1 - cot_percentage))
     non_cot_data_shuffled, non_cot_data_val = (
-        non_cot_data_shuffled[:-non_cot_val_samples],
-        non_cot_data_shuffled[-non_cot_val_samples:],
+        non_cot_data_shuffled[:-n_non_cot_val_samples],
+        non_cot_data_shuffled[-n_non_cot_val_samples:],
     )
 
     non_cot_samples = get_non_cot_samples(
@@ -582,19 +646,21 @@ def fine_tune_with_bias_augmentation(
         sampler,
         permute_verbalize_instructions,
     )
+    print(f"Number of non cots after limiting: {len(non_cot_samples)}")
     non_cot_val_samples = get_non_cot_samples(
         non_cot_data_val,
         eligible_non_cot_formatters,
-        n_val_samples,
+        n_non_cot_val_samples,
         sampler,
         permute_verbalize_instructions,
     )
+    print(f"Number of validation non cots after limiting: {len(non_cot_val_samples)}")
 
     # CoTs
     print(f"Number of cots: {len(cot_data_shuffled)}")
     # split of val samples
-    cot_val_samples = int(n_val_samples * cot_percentage)
-    cot_data_shuffled, cot_data_val = cot_data_shuffled[:-cot_val_samples], cot_data_shuffled[-cot_val_samples:]
+    n_cot_val_samples = int(n_val_samples * cot_percentage)
+    cot_data_shuffled, cot_data_val = cot_data_shuffled[:-n_cot_val_samples], cot_data_shuffled[-n_cot_val_samples:]
 
     cot_samples = get_cot_samples(
         cot_data_shuffled,
@@ -604,14 +670,16 @@ def fine_tune_with_bias_augmentation(
         post_hoc,
         permute_verbalize_instructions,
     )
+    print(f"Number of cots after limiting: {len(cot_samples)}")
     cot_val_samples = get_cot_samples(
         cot_data_val,
         eligible_cot_formatters,
-        n_val_samples,
+        n_cot_val_samples,
         sampler,
         post_hoc,
         permute_verbalize_instructions,
     )
+    print(f"Number of validation cots after limiting: {len(cot_val_samples)}")
 
     total_task_samples = non_cot_samples + cot_samples
     val_instruct_samples = int(n_val_samples * instruct_sample_proportion)
@@ -678,7 +746,6 @@ def get_non_cot_samples(
     assert (
         len(non_cot_samples) == limit
     ), f"We do not have enough non cots, only {len(non_cot_samples)}, required {limit}"
-    print(f"Number of non cots after limiting: {len(non_cot_samples)}")
     return non_cot_samples
 
 
@@ -697,7 +764,6 @@ def get_cot_samples(
         .map(task_output_to_finetune_sample)
     )
     assert len(cot_samples) == limit, f"We do not have enough cots, only {len(cot_samples)}"
-    print(f"Number of cots after limiting: {len(cot_samples)}")
     return cot_samples
 
 

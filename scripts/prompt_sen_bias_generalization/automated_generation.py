@@ -14,9 +14,12 @@ from tqdm import tqdm
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ModelOutput
 from cot_transparency.data_models.pd_utils import BaseExtractor, convert_slist_to_df
+from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
+from cot_transparency.data_models.streaming import ParaphrasingOutput
+from cot_transparency.data_models.streaming import ParaphrasedQuestion
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AskParaphrasedQuestionFormatter,
     GenerateParaphrasingsFormatters,
@@ -25,28 +28,18 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
     GoldStandardWithCotFormatter,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
-from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
+from cot_transparency.streaming.tasks import StreamingTaskOutput
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import call_model_with_task_spec
-from scripts.finetune_cot import fine_tune_with_bias_augmentation
+from scripts.finetune_cot import (
+    DataFromOptions,
+    FormatterOptions,
+    ParaphrasingSampler,
+    fine_tune_with_bias_augmentation,
+)
 from scripts.utils.plots import catplot
 from stage_one import COT_TESTING_TASKS, COT_TRAINING_TASKS, get_list_of_examples
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
-
-
-class ParaphrasedQuestion(BaseModel):
-    paraphrased: str
-    tags: Sequence[str]
-
-
-class ParaphrasingOutput(StreamingTaskOutput):
-    task_spec: StreamingTaskSpec
-    inference_output: ModelOutput
-    paraphrased_questions: Sequence[ParaphrasedQuestion]
-
-
-class ParaphrasedTaskSpec(StreamingTaskSpec):
-    paraphrased_question: ParaphrasedQuestion
 
 
 def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tuple[str, DataExampleBase]]:
@@ -171,6 +164,7 @@ async def run_pipeline(
         results_path.unlink()
     await pipeline.to_file(results_path, mode="a", serialize=lambda x: x.model_dump_json())
     print("Done ✅")
+    return results_path
 
 
 def make_training_data(
@@ -184,7 +178,7 @@ def make_training_data(
     batch_size=50,
 ):
     # This generates the different paraphrasings of the questions
-    asyncio.run(
+    results_path = asyncio.run(
         run_pipeline(
             exp_dir=exp_dir,
             example_cap=example_cap,
@@ -194,6 +188,8 @@ def make_training_data(
             paraphrasing_formatters=paraphrasing_formatters,
         )
     )
+    paraphrased_questions = read_jsonl_file_into_basemodel(results_path, ParaphrasingOutput)
+    write_jsonl_file_from_basemodel(Path("data/training_paraphrasings/gpt4_paraphrasings.jsonl"), paraphrased_questions)
 
     # but we also want to generate the gold standard completions that we will use to train the model
     # dont need to use any paraphrasings here
@@ -312,7 +308,7 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     outputs = read_jsonl_file_into_basemodel(experiment_path, StreamingTaskOutput)
 
     # calculate the entropy
-    with_entropy = outputs.group_by(lambda x: (x.task_spec.task_hash, x.task_spec.inference_config)).map(
+    with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash, x.task_spec.inference_config)).map(
         lambda x: x.map_values(entropy_and_uniform_entropy)
     )
 
@@ -332,6 +328,11 @@ def train_and_run(n_samples: int = 10000):
         post_hoc=False,
         cot_percentage=0.50,
         project_name="consistency-training",
+        formatter_options=FormatterOptions.ask_paraphrased,
+        sampler=ParaphrasingSampler(n_formats_per_question=4),
+        permute_verbalize_instructions=False,
+        data_from_options=DataFromOptions.gpt_35_turbo_gs,
+        model_output_verified=ModelOutputVerified.unfiltered,
     )
     run(
         models=[model],
@@ -342,4 +343,4 @@ def train_and_run(n_samples: int = 10000):
 
 
 if __name__ == "__main__":
-    fire.Fire({"run": run, "plot": plot, "make_training_data": make_training_data})
+    fire.Fire({"run": run, "plot": plot, "make_training_data": make_training_data, "train_and_run": train_and_run})

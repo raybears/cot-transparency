@@ -278,7 +278,7 @@ def run_finetune_from_file(
         val_buffer = create_openai_buffer(val_samples)
         val_file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
             file=val_buffer,
-            purpose="validation",
+            purpose="fine-tune",
             user_provided_filename=str(val_file_path),
         )
         val_file_id = val_file_upload_resp["id"]

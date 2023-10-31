@@ -31,8 +31,7 @@ class StreamingTaskSpec(BaseTaskSpec):
         DataExample = task_name_to_data_example(self.task_name)
         return DataExample(**self.data_example)
 
-    @property
-    def task_hash(self) -> str:
+    def get_task_hash(self) -> str:
         return self.get_data_example_obj().hash()
 
     @property
@@ -70,7 +69,7 @@ class StreamingTaskOutput(BaseTaskOuput):
     def get_task_spec(self) -> StreamingTaskSpec:
         return self.task_spec
 
-    def update_messages(self, messages: Sequence[ChatMessage]) -> Self:
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
         return StreamingTaskOutput(
             task_spec=self.task_spec.copy_update(messages=messages),
             inference_output=self.inference_output,

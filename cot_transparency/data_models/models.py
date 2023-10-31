@@ -54,6 +54,10 @@ class BaseTaskSpec(HashableBaseModel):
     ) -> "BaseTaskSpec":
         raise NotImplementedError
 
+    @abstractmethod
+    def get_task_hash(self) -> str:
+        raise NotImplementedError
+
 
 class TaskSpec(BaseTaskSpec):
     # This is a dataclass because a PromptFormatter isn't serializable
@@ -150,6 +154,8 @@ class TaskSpec(BaseTaskSpec):
     def get_task_name(self) -> str:
         return self.task_name
 
+    def get_task_hash(self) -> str:
+        return self.task_hash
 
 class BaseTaskOuput(HashableBaseModel, ABC):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
@@ -161,7 +167,7 @@ class BaseTaskOuput(HashableBaseModel, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_messages(self, messages: Sequence[ChatMessage]) -> Self:
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
         raise NotImplementedError
 
     def uid(self) -> str:
@@ -187,7 +193,7 @@ class TaskOutput(BaseTaskOuput):
             response_idx=response_idx if not isinstance(response_idx, Unset) else self.response_idx,
         )
 
-    def update_messages(self, messages: Sequence[ChatMessage]) -> Self:
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
         return self.copy_update(task_spec=self.task_spec.copy_update(messages=messages))
 
     def get_task_spec(self) -> TaskSpec:
@@ -392,7 +398,7 @@ class StageTwoTaskOutput(BaseTaskOuput):
     def get_task_spec(self) -> BaseTaskSpec:
         return self.task_spec
 
-    def update_messages(self, messages: Sequence[ChatMessage]) -> Self:
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
         return StageTwoTaskOutput(
             task_spec=self.task_spec.copy_update(messages=messages),
             inference_output=self.inference_output,
