@@ -130,7 +130,6 @@ def augment_non_cots_big_brain(
 
 def augment_non_cot_task(item: TaskOutput) -> TaskOutput:
     new_messages = RandomNonCOTPromptAugmentor.augment(messages=item.task_spec.messages)
-
     return item.copy_update(task_spec=item.task_spec.copy_update(messages=new_messages))
 
 
@@ -440,120 +439,6 @@ def match_formatter_options(
         biased_formatters=sorted(list(set(cot_formatters))),
         unbiased_formatters=sorted(list(set(non_cot_formatters))),
     )
-
-
-def fine_tune_with_bias_augmentation_no_repeat(
-    n_epochs: int,
-    data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
-    model_output_verified: ModelOutputVerified = ModelOutputVerified.correct,
-    exclude_formatters: Sequence[type[StageOneFormatter]] = [],
-    # if FormatterOptions.control_only_unbiased, then we only use unbiased contexts for training
-    formatter_options: FormatterOptions = FormatterOptions.all_biased,
-    project_name: str = "consistency-training",
-    model: str = "gpt-3.5-turbo",
-    n_samples: int = 72000,
-    instruct_sample_proportion: float = 0.1,
-    post_hoc: bool = False,
-    cot_percentage=0.5,
-    # cli waits for user input to validate the training
-    ask_to_validate_training: bool = True,
-) -> str:
-    """
-    We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
-    """
-    cot_limit = int(cot_percentage * n_samples)
-    non_cot_percentage = 1 - cot_percentage
-    non_cot_limit = int(non_cot_percentage * n_samples)
-    excluded_formatters_names = {f.name() for f in exclude_formatters}
-
-    match data_from_options:
-        case DataFromOptions.gpt_35_turbo:
-            non_cot_data = get_training_non_cots_gpt_35(model_output_verified)
-            cot_data = get_training_cots_gpt_35(model_output_verified)
-        case DataFromOptions.claude_2:
-            non_cot_data = get_training_non_cots_claude_2(model_output_verified)
-            cot_data = get_training_cots_claude_2(model_output_verified)
-
-    non_cot_data_shuffled = non_cot_data.shuffle(seed="42")
-    cot_data_shuffled = cot_data.shuffle(seed="42")
-    formatter_options_result = match_formatter_options(formatter_options)
-
-    non_cot_formatters = formatter_options_result.unbiased_formatters
-    cot_formatters = formatter_options_result.biased_formatters
-
-    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
-    assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
-    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
-    assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
-
-    print(f"Number of non cots: {len(non_cot_data)}")
-    non_cot_limited = (
-        non_cot_data_shuffled.map(
-            lambda task: replace_unbiased_prompt_with_formatters(
-                task=task,
-                use_formatters=eligible_non_cot_formatters,
-            )
-            .shuffle()
-            .first_or_raise()
-        )
-        .map(clean_unbiased_non_cot_raw_response)
-        .take(non_cot_limit)
-    )
-    assert (
-        len(non_cot_limited) == non_cot_limit
-    ), f"We do not have enough non cots, only {len(non_cot_limited)}, required {non_cot_limit}"
-    print(f"Number of non cots after limiting: {len(non_cot_limited)}")
-
-    print(f"Number of cots: {len(cot_data)}")
-    cot_limited = (
-        cot_data_shuffled.map(
-            lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=eligible_cot_formatters)
-            .shuffle()
-            .first_or_raise()
-        )
-        .map(transform_into_post_hoc_reasoning if post_hoc else identity)
-        .take(cot_limit)
-    )
-    assert len(cot_limited) == cot_limit, f"We do not have enough cots, only {len(cot_limited)}"
-    print(f"Number of cots after limiting: {len(cot_limited)}")
-    non_cot_samples = non_cot_limited.map(augment_non_cot_task).map(task_output_to_finetune_sample)
-    cot_samples = cot_limited.map(augment_cot_task).map(task_output_to_finetune_sample)
-    total_task_samples = non_cot_samples + cot_samples
-    n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
-    alpaca_samples = get_alpaca_training(n_instruct_samples)
-    samples = (total_task_samples + alpaca_samples).shuffle("42")
-    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
-    control_only_unbiased = formatter_options == FormatterOptions.control_only_unbiased
-    more_config = {
-        "instruct_sample_proportion": instruct_sample_proportion,
-        "n_cots": len(cot_samples),
-        "n_non_cots": len(non_cot_samples),
-        "n_instruct_samples": len(alpaca_samples),
-        "excluded_formatters": list(excluded_formatters_names),
-        "eligible_non_cot_formatters": [sorted(eligible_non_cot_formatters.map(lambda x: x.name()))],
-        "eligible_cot_formatters": [sorted(eligible_cot_formatters.map(lambda x: x.name()))],
-        "formatter_options": formatter_options.value,
-        "data_from": data_from_options.value,
-        "post_hoc": post_hoc,
-        "cot_percentage": cot_percentage,
-        "control_only_unbiased": control_only_unbiased,
-        "model_output_verified": model_output_verified.value,
-    }
-    cot_percentage_percentage = int(cot_percentage * 100)
-    non_cot_percentage_percentage = int(non_cot_percentage * 100)
-    bias_type_str = formatter_options.value + " bias formatters"
-    notes = f"NO REPEATED FORMATTERS {bias_type_str} {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots, {model_output_verified.value}"
-    if post_hoc:
-        notes = "post hoc " + notes
-    _id = run_finetune_with_wandb(
-        params=params,
-        samples=samples,
-        notes=notes,
-        more_config=more_config,
-        project_name=project_name,
-        ask_to_validate_training=ask_to_validate_training,
-    )
-    return _id
 
 
 class FormatSampler(ABC):

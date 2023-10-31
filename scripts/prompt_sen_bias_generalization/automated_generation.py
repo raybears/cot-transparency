@@ -24,7 +24,7 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
     GoldStandardNoCotFormatter,
     GoldStandardWithCotFormatter,
 )
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import call_model_with_task_spec
@@ -40,7 +40,7 @@ class ParaphrasedQuestion(BaseModel):
 
 class ParaphrasingOutput(StreamingTaskOutput):
     task_spec: StreamingTaskSpec
-    inference_outputs: Sequence[ModelOutput]
+    inference_output: ModelOutput
     paraphrased_questions: Sequence[ParaphrasedQuestion]
 
 
@@ -62,13 +62,13 @@ def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tupl
 
 
 def parse_responses(output: StreamingTaskOutput) -> ParaphrasingOutput:
-    model_responses = Slist(output.inference_outputs).map(lambda x: x.raw_response)
-    outputs = model_responses.map(GenerateParaphrasingsFormatters.get_paraphrased_questions).flatten_list()
+    model_response = output.inference_output.raw_response
+    outputs = GenerateParaphrasingsFormatters.get_paraphrased_questions(model_response)
     paraphrased_questions = Slist(outputs).map(lambda x: ParaphrasedQuestion(paraphrased=x[0], tags=x[1]))
 
     return ParaphrasingOutput(
         task_spec=output.task_spec,
-        inference_outputs=output.inference_outputs,
+        inference_output=output.inference_output,
         paraphrased_questions=paraphrased_questions,
     )
 
@@ -143,6 +143,7 @@ async def run_pipeline(
         )
         .flatten_iterable()
         .map_blocking_par(lambda x: call_model_with_task_spec(x, generation_caller), max_par=batch_size)
+        .flatten_list()
         .tqdm(tqdm_bar=tqdm(total=n_items * len(paraphrasing_formatters), desc="Generating prompts"))
         .map(inter_file.write)
         .map(parse_responses)
@@ -158,6 +159,8 @@ async def run_pipeline(
             pipeline.map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
             .flatten_iterable()
             .map_blocking_par(lambda x: call_model_with_task_spec(x, testing_caller), max_par=batch_size)
+            .tqdm(tqdm_bar=tqdm(total=n_items * 10 * len(models_to_evaluate), desc="Asking parahrased questions"))
+            .flatten_list()
             .map_blocking_par(
                 lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=10
             )
@@ -216,14 +219,21 @@ def make_training_data(
             )
             .flatten_iterable()
             .map_blocking_par(lambda x: call_model_with_task_spec(x, model_caller), max_par=batch_size)
-            .tqdm(tqdm_bar=tqdm(total=len(data_examples), desc="Generating Gold Standard Completions"))
+            .flatten_iterable()
+            .tqdm(tqdm_bar=tqdm(total=len(data_examples) * 2, desc="Generating Gold Standard Completions"))
         )
 
-        results_path = Path(f"{exp_dir}/gold_standard_cots.jsonl")
+        results_path = Path(f"{exp_dir}/gold_standard_completions.jsonl")
         # delete the file if it exists
         if results_path.exists():
             results_path.unlink()
         await pipeline.to_file(results_path, mode="a", serialize=lambda x: x.model_dump_json())
+
+        outputs = read_jsonl_file_into_basemodel(results_path, StreamingTaskOutput)
+        cots = outputs.filter(lambda x: x.task_spec.formatter_name == GoldStandardWithCotFormatter.name())
+        write_jsonl_file_from_basemodel(Path(f"{exp_dir}/gold_standard_cots.jsonl"), cots)
+        non_cots = outputs.filter(lambda x: x.task_spec.formatter_name == GoldStandardNoCotFormatter.name())
+        write_jsonl_file_from_basemodel(Path(f"{exp_dir}/gold_standard_no_cots.jsonl"), non_cots)
 
     asyncio.run(
         get_gold_standard_cots(
@@ -266,7 +276,7 @@ class Entropy(BaseModel):
 
 
 def entropy_and_uniform_entropy(outputs: Slist[StreamingTaskOutput]) -> Entropy:
-    inference_outputs = outputs.map(lambda x: Slist(x.inference_outputs)).flatten_list()
+    inference_outputs = outputs.map(lambda x: x.inference_output)
     parsed_responses = inference_outputs.map(lambda x: x.parsed_response)
     counts = Counter(parsed_responses)
     print(counts)
