@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 from typing import Optional, Mapping, Sequence
 
+import numpy as np
 from matplotlib import pyplot as plt
 from pydantic import BaseModel
 from slist import Slist
@@ -68,6 +69,14 @@ def percentage_changed_per_model(results: Slist[TaskOutput]) -> Slist[GroupResul
     )
 
 
+def print_average_length(results: Slist[TaskOutput]) -> None:
+    # group by model
+    grouped = results.group_by(lambda x: x.task_spec.inference_config.model)
+    for model, values in grouped:
+        average_length = values.map(lambda x: len(x.inference_output.raw_response)).average_or_raise()
+        print(f"Average length for {model} is {average_length}")
+
+
 def seaborn_bar_plot(results: Slist[GroupResult], name_mapping: Mapping[str, str], order: Sequence[str] = []) -> None:
     _dicts = []
     for group_result in results:
@@ -85,6 +94,31 @@ def seaborn_bar_plot(results: Slist[GroupResult], name_mapping: Mapping[str, str
     ax = seaborn.barplot(x="model", y="same_answer", data=df, order=order_mapped)
     # change the y-axis to be "Percentage of questions with same answer with vs without COT"
     ax.set(ylabel="% Same Answer With and Without CoT ")
+    plt.show()
+
+
+def seaborn_bar_plot_length(
+    results: Slist[TaskOutput], name_mapping: Mapping[str, str], order: Sequence[str] = []
+) -> None:
+    only_cot = results.filter(lambda x: x.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name())
+    _dicts = []
+    for task in only_cot:
+        length = len(task.inference_output.raw_response)
+        model = task.task_spec.inference_config.model
+        _dicts.append(
+            {
+                "model": name_mapping.get(model, model),
+                "Median COT length": length,
+            }
+        )
+    order_mapped = [name_mapping.get(model, model) for model in order]
+    # x-axis is model
+    # y-axis is length
+    df = pd.DataFrame(_dicts)
+    ax = seaborn.barplot(x="model", y="Median COT length", data=df, order=order_mapped)
+    # change the y-axis to be "Median COT length"
+    ax.set(ylabel="Median COT length")
+
     plt.show()
 
 
@@ -125,22 +159,27 @@ async def main():
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
     stage_one_caller.save_cache()
     percentage_changed = percentage_changed_per_model(results)
-    seaborn_bar_plot(
-        percentage_changed,
-        name_mapping={
-            "gpt-3.5-turbo": "gpt-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs": "Trained to follow mistakes",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo": "Trained with unbiased contexts (control)\n 98% COT, 100k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FfN5MGW": "Trained with unbiased contexts (control)\n 98% COT, 10k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR": "Trained with unbiased contexts (control)\n 98% COT, 1k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan": "Trained with biased contexts (ours)\n 98% COT, 100k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF": "Trained with biased contexts (ours)\n 98% COT, 1k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "Trained with biased contexts (ours)\n 98% COT, 10k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg": "Trained with biased contexts (ours)\n 50% COT, 10k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW": "Trained with biased contexts (ours)\n 2% COT, 10k samples",
-        },
-        order=models,
+    name_mapping = {
+        "gpt-3.5-turbo": "gpt-3.5-turbo",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs": "Trained to follow mistakes",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo": "Trained with unbiased contexts (control)\n 98% COT, 100k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FfN5MGW": "Trained with unbiased contexts (control)\n 98% COT, 10k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR": "Trained with unbiased contexts (control)\n 98% COT, 1k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan": "Trained with biased contexts (ours)\n 98% COT, 100k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF": "Trained with biased contexts (ours)\n 98% COT, 1k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "Trained with biased contexts (ours)\n 98% COT, 10k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg": "Trained with biased contexts (ours)\n 50% COT, 10k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW": "Trained with biased contexts (ours)\n 2% COT, 10k samples",
+    }
+    seaborn_bar_plot_length(
+        results,
+        name_mapping=name_mapping,
     )
+    # seaborn_bar_plot(
+    #     percentage_changed,
+    #     name_mapping=name_mapping,
+    #     order=models,
+    # )
 
 
 if __name__ == "__main__":
