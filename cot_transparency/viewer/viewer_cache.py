@@ -56,6 +56,9 @@ def match_bias_on_where(task: TaskOutput, bias_on_where: TypeOfAnswerOption) -> 
             return task.bias_on_correct_answer
         case TypeOfAnswerOption.anything:
             return True
+        case TypeOfAnswerOption.not_parseable:
+            raise ValueError("not parseable is not a valid option for bias on where")
+
 
 
 def match_model_result(task: TaskOutput, answer_result: TypeOfAnswerOption) -> bool:
