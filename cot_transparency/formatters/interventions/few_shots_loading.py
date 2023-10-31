@@ -72,7 +72,7 @@ class ModelOutputVerified(str, Enum):
 @lru_cache
 def get_training_cots_gpt_35(
     kind: ModelOutputVerified = ModelOutputVerified.correct,
-) -> Sequence[BaseTaskOuput]:
+) -> Sequence[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -97,7 +97,7 @@ def get_training_cots_gpt_35(
 @lru_cache
 def get_training_non_cots_gpt_35(
     kind: ModelOutputVerified = ModelOutputVerified.correct,
-) -> Sequence[BaseTaskOuput]:
+) -> Sequence[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -122,7 +122,7 @@ def get_training_non_cots_gpt_35(
 
 def get_training_cots_gpt_35_gs(
     kind: ModelOutputVerified = ModelOutputVerified.unfiltered,
-) -> Sequence[BaseTaskOuput]:
+) -> Sequence[StreamingTaskOutput]:
     match kind:
         case ModelOutputVerified.unfiltered:
             json_tasks = read_jsonl_file_into_basemodel(
@@ -137,7 +137,7 @@ def get_training_cots_gpt_35_gs(
 
 def get_training_non_cots_gpt_35_gs(
     kind: ModelOutputVerified = ModelOutputVerified.unfiltered,
-) -> Sequence[BaseTaskOuput]:
+) -> Sequence[StreamingTaskOutput]:
     match kind:
         case ModelOutputVerified.unfiltered:
             json_tasks = read_jsonl_file_into_basemodel(
@@ -152,7 +152,7 @@ def get_training_non_cots_gpt_35_gs(
 
 def get_training_cots_claude_2(
     kind: ModelOutputVerified = ModelOutputVerified.correct,
-) -> Sequence[BaseTaskOuput]:
+) -> Sequence[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -171,7 +171,7 @@ def get_training_cots_claude_2(
 
 def get_training_non_cots_claude_2(
     kind: ModelOutputVerified = ModelOutputVerified.correct,
-) -> Sequence[BaseTaskOuput]:
+) -> Sequence[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(

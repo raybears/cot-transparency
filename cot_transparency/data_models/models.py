@@ -50,9 +50,7 @@ class BaseTaskSpec(HashableBaseModel):
     def copy_update(
         self,
         *,
-        task_name: str | Unset = _UNSET,
         messages: Sequence[ChatMessage] | Unset = _UNSET,
-        formatter_name: str | Unset = _UNSET,
     ) -> "BaseTaskSpec":
         raise NotImplementedError
 
@@ -347,9 +345,25 @@ class StageTwoTaskSpec(BaseTaskSpec):
         )
         return s1
 
+    # take all the class variables or Unset
+    def copy_update(
+        self,
+        *,
+        messages: Sequence[ChatMessage] | Unset = _UNSET,
+    ):
+        return StageTwoTaskSpec(
+            stage_one_output=self.stage_one_output,
+            inference_config=self.inference_config,
+            messages=messages if not isinstance(messages, Unset) else self.messages,
+            out_file_path=self.out_file_path,
+            formatter_name=self.formatter_name,
+            trace_info=self.trace_info,
+            n_steps_in_cot_trace=self.n_steps_in_cot_trace,
+        )
+
 
 class StageTwoTaskOutput(BaseTaskOuput):
-    task_spec: StageTwoTaskSpec  # type: ignore[reportIncompatibleVariableOverride]
+    task_spec: StageTwoTaskSpec
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0
 
@@ -377,6 +391,13 @@ class StageTwoTaskOutput(BaseTaskOuput):
 
     def get_task_spec(self) -> BaseTaskSpec:
         return self.task_spec
+
+    def update_messages(self, messages: Sequence[ChatMessage]) -> Self:
+        return StageTwoTaskOutput(
+            task_spec=self.task_spec.copy_update(messages=messages),
+            inference_output=self.inference_output,
+            response_idx=self.response_idx,
+        )
 
 
 class ExperimentJsonFormat(BaseModel):

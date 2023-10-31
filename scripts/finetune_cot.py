@@ -141,7 +141,7 @@ def augment_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
 
 
 def fine_tune_with_naive_cots(n: int):
-    cots: Slist[BaseTaskOuput] = Slist(get_training_cots_gpt_35()).shuffle(seed="42").take(n)
+    cots = Slist(get_training_cots_gpt_35()).shuffle(seed="42").take(n)
     print(f"Number of cots: {len(cots)}")
     messages = [FinetuneSample.from_task_output(task) for task in cots]
     params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
@@ -261,22 +261,22 @@ def replace_unbiased_cot_prompt_with_biased(
 
 
 def replace_unbiased_cot_prompt_with_formatters(
-    task: TaskOutput,
+    task: BaseTaskOuput,
     use_formatters: Iterable[type[StageOneFormatter]],
     intervention: type[Intervention] | None = None,
-) -> Slist[TaskOutput]:
-    output = Slist[TaskOutput]()
+) -> Slist[BaseTaskOuput]:
+    output = Slist[BaseTaskOuput]()
     for formatter in use_formatters:
         new = task.model_copy(deep=True)
 
         assert (
-            task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
-        ), f"Got {task.task_spec.formatter_name}"
-        data_example: DataExampleBase = task.task_spec.get_data_example_obj()
+            task.get_task_spec().formatter_name == ZeroShotCOTUnbiasedFormatter.name()
+        ), f"Got {task.get_task_spec().formatter_name}"
+        data_example: DataExampleBase = task.get_task_spec().get_data_example_obj()
         if intervention is not None:
-            new.task_spec.messages = intervention.intervene(question=data_example, formatter=formatter)
+            new.get_task_spec().messages = intervention.intervene(question=data_example, formatter=formatter)
         else:
-            new.task_spec.messages = formatter.format_example(data_example)
+            new.get_task_spec().messages = formatter.format_example(data_example)
         output.append(new)
     return output
 
@@ -542,6 +542,8 @@ def fine_tune_with_bias_augmentation(
     non_cot_percentage = 1 - cot_percentage
     non_cot_limit = int(non_cot_percentage * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
+    non_cot_data: Sequence[BaseTaskOuput]
+    cot_data: Sequence[BaseTaskOuput]
     match data_from_options:
         case DataFromOptions.gpt_35_turbo:
             non_cot_data = get_training_non_cots_gpt_35(model_output_verified)
