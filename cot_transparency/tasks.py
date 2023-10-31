@@ -329,7 +329,6 @@ def run_with_caching(
                     print("Retrying task with None answer")
                     to_do.append(item)
 
-    random.Random(42).shuffle(to_do)
     run_tasks_multi_threaded(
         save_file_every=save_every,
         batch=batch,

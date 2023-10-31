@@ -1,6 +1,7 @@
 from typing import Sequence, Optional, Literal
 
 from grugstream import Observable
+from slist import Slist
 from tqdm import tqdm
 
 from cot_transparency.apis import ModelCaller, UniversalCaller

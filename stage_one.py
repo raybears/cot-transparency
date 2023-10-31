@@ -263,7 +263,7 @@ def create_stage_one_task_specs(
         tasks=tasks, models=models, formatters=validated_formatters, interventions=validated_interventions
     )
 
-    tasks_to_run: list[TaskSpec] = []
+    tasks_to_run: Slist[TaskSpec] = Slist([])
     print("Number of settings to run:", len(task_settings))
     for setting in task_settings:
         task = setting.task
@@ -344,7 +344,8 @@ def create_stage_one_task_specs(
                 )
                 tasks_to_run.append(task_spec)
 
-    return tasks_to_run
+    # So that when we run, we distribute the tasks across models / tasks
+    return tasks_to_run.shuffle(seed="42")
 
 
 def main(

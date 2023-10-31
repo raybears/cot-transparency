@@ -1,4 +1,5 @@
 import asyncio
+from enum import Enum
 from pathlib import Path
 from typing import Optional, Mapping, Sequence
 
@@ -54,35 +55,52 @@ def compute_percentage_changed(results: Slist[TaskOutput]) -> Slist[ChangedAnswe
     return computed
 
 
-class GroupResult(BaseModel):
+class TrainedOn(str, Enum):
+    CONTROL = "gpt-3.5-turbo + Unbiased contexts training (control)"
+    INTERVENTION = "gpt-3.5-turbo + Biased contexts training (ours)"
+
+
+class ModelMeta(BaseModel):
     model: str
+    trained_samples: int
+    trained_on: TrainedOn
+
+
+class GroupResult(BaseModel):
+    meta: ModelMeta
     changed_answers: Slist[ChangedAnswer]
 
 
-def percentage_changed_per_model(results: Slist[TaskOutput]) -> Slist[GroupResult]:
+def percentage_changed_per_model(
+    results: Slist[TaskOutput], meta_lookup: Mapping[str, ModelMeta]
+) -> Slist[GroupResult]:
     # group by model
     grouped = results.group_by(lambda x: x.task_spec.inference_config.model)
     print("Total number of models", len(grouped))
     return grouped.map_2(
-        lambda model, values: GroupResult(model=model, changed_answers=compute_percentage_changed(values))
+        lambda model, values: GroupResult(meta=meta_lookup[model], changed_answers=compute_percentage_changed(values))
     )
 
 
-def seaborn_bar_plot(results: Slist[GroupResult], name_mapping: Mapping[str, str], order: Sequence[str] = []) -> None:
+def seaborn_line_plot(results: Slist[GroupResult]) -> None:
+    # Hue is trained on value
     _dicts = []
     for group_result in results:
         for changed_answer in group_result.changed_answers:
             _dicts.append(
                 {
-                    "model": name_mapping.get(group_result.model, group_result.model),
+                    "model": group_result.model_meta.trained_on,
                     "same_answer": not changed_answer.changed_answer,
+                    "trained_samples": group_result.model_meta.trained_samples,
+                    "trained_on": group_result.model_meta.trained_on.value,
                 }
             )
-    order_mapped = [name_mapping.get(model, model) for model in order]
-    # x-axis is model
+
+    # x-axis is trained_samples
     # y-axis is percentage same
+    # hue is trained on value
     df = pd.DataFrame(_dicts)
-    ax = seaborn.barplot(x="model", y="same_answer", data=df, order=order_mapped)
+    ax = seaborn.lineplot(x="trained_samples", y="same_answer", hue="trained_on", data=df)
     # change the y-axis to be "Percentage of questions with same answer with vs without COT"
     ax.set(ylabel="% Same Answer With and Without CoT ")
     plt.show()
@@ -98,16 +116,44 @@ async def main():
     # blessed ft:gpt-3.5-turbo-0613:academicsnyuperez::7yyd6GaT
     # hunar trained ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs
     # super dataset 100k ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W
-    models = [
-        "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",  # 98% cot
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
-    ]
+
+    model_metas = Slist(
+        [
+            ModelMeta(
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
+                trained_samples=1_000,
+                trained_on=TrainedOn.CONTROL,
+            ),
+            ModelMeta(
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FfN5MGW",
+                trained_samples=10_000,
+                trained_on=TrainedOn.CONTROL,
+            ),
+            ModelMeta(
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo",
+                trained_samples=100_000,
+                trained_on=TrainedOn.CONTROL,
+            ),
+            # interventions
+            ModelMeta(
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF",
+                trained_samples=1_000,
+                trained_on=TrainedOn.INTERVENTION,
+            ),
+            ModelMeta(
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
+                trained_samples=10_000,
+                trained_on=TrainedOn.INTERVENTION,
+            ),
+            ModelMeta(
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",
+                trained_samples=100_000,
+                trained_on=TrainedOn.INTERVENTION,
+            ),
+        ]
+    )
+    meta_lookup: Mapping[str, ModelMeta] = {m.model: m for m in model_metas}
+    models = [m.model for m in model_metas]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
         tasks=["aqua", "mmlu", "truthful_qa", "logiqa"],
@@ -121,20 +167,9 @@ async def main():
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
     stage_one_caller.save_cache()
-    percentage_changed = percentage_changed_per_model(results)
-    seaborn_bar_plot(
+    percentage_changed = percentage_changed_per_model(results, meta_lookup)
+    seaborn_line_plot(
         percentage_changed,
-        name_mapping={
-            "gpt-3.5-turbo": "gpt-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs": "Trained to follow mistakes",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo": "Trained with unbiased contexts (control), 98% COT, 100k samples",
-            "TODO": "Trained with unbiased contexts (control), 98% COT, 10k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR": "Trained with unbiased contexts (control), 98% COT, 1k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan": "Trained with biased contexts (ours), 98% COT, 100k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF": "Trained with biased contexts (ours), 98% COT, 1k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "Trained with biased contexts (ours), 98% COT, 10k samples",
-        },
-        order=models,
     )
 
 
