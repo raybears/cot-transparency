@@ -27,7 +27,6 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
     ZeroShotUnbiasedFormatter,
-    ZeroShotUnbiasedWithNoneFormatter,
 )
 from cot_transparency.formatters.instructions import VERBALIZE_INSTRUCTION
 from cot_transparency.formatters.interventions.big_brain_few_shots_loading import (
@@ -339,9 +338,7 @@ def replace_unbiased_prompt_with_formatters(
 
 def clean_unbiased_non_cot_raw_response(task: TaskOutput) -> TaskOutput:
     # Because the model sometimes adds more statements after the answer, and we want to remove it
-    assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name() or task.task_spec.formatter_name == (
-        ZeroShotUnbiasedWithNoneFormatter.name()
-    )
+    assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name()
     new = task.model_copy(deep=True)
     new.inference_output.raw_response = task.task_spec.ground_truth + ")"
     return new
@@ -635,7 +632,7 @@ class RandomSampler(FormatSampler):
         tasks = (
             tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters))
             .flatten_list()
-            .take(n)
+            .repeat_until_size_or_raise(n)
         )
         assert len(tasks) == n
         return tasks
@@ -691,10 +688,9 @@ def fine_tune_with_bias_augmentation(
 
     # Non Cots
     print(f"Number of non cots: {len(non_cot_data_shuffled)}")
-    need_to_clean = not (model_output_verified.unfiltered or model_output_verified.unfiltered_added_none)
     non_cot_samples = (
         sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit)
-        .map(clean_unbiased_non_cot_raw_response if not need_to_clean else identity)
+        .map(clean_unbiased_non_cot_raw_response)
         .map(augment_non_cot_task)
         .map(task_output_to_finetune_sample)
     )
