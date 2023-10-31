@@ -78,7 +78,7 @@ def convert_loaded_dict_to_df(loaded_dict: dict[Path, ExperimentJsonFormat]) -> 
         return formatter.is_biased
 
     df["is_biased"] = df.formatter_name.map(is_biased)
-    return df
+    return df  # type: ignore
 
 
 def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
