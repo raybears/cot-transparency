@@ -59,6 +59,10 @@ class TrainedOn(str, Enum):
     CONTROL = "gpt-3.5-turbo + Unbiased contexts training (control)"
     INTERVENTION = "gpt-3.5-turbo + Biased contexts training (ours)"
 
+    @staticmethod
+    def all_values() -> Sequence[str]:
+        return [v.value for v in TrainedOn]
+
 
 class ModelMeta(BaseModel):
     model: str
@@ -87,14 +91,24 @@ def seaborn_line_plot(results: Slist[GroupResult]) -> None:
     _dicts = []
     for group_result in results:
         for changed_answer in group_result.changed_answers:
-            _dicts.append(
-                {
-                    "model": group_result.model_meta.trained_on,
+            if group_result.meta.model != "gpt-3.5-turbo":
+                to_append = {
+                    "model": group_result.meta.trained_on,
                     "same_answer": not changed_answer.changed_answer,
-                    "trained_samples": group_result.model_meta.trained_samples,
-                    "trained_on": group_result.model_meta.trained_on.value,
+                    "trained_samples": group_result.meta.trained_samples,
+                    "trained_on": group_result.meta.trained_on.value,
                 }
-            )
+                _dicts.append(to_append)
+            else:
+                # Hack the starting point
+                for value in TrainedOn.all_values():
+                    to_append = {
+                        "model": group_result.meta.trained_on,
+                        "same_answer": not changed_answer.changed_answer,
+                        "trained_samples": 1,
+                        "trained_on": value,
+                    }
+                    _dicts.append(to_append)
 
     # x-axis is trained_samples
     # y-axis is percentage same
@@ -103,6 +117,11 @@ def seaborn_line_plot(results: Slist[GroupResult]) -> None:
     ax = seaborn.lineplot(x="trained_samples", y="same_answer", hue="trained_on", data=df)
     # change the y-axis to be "Percentage of questions with same answer with vs without COT"
     ax.set(ylabel="% Same Answer With and Without CoT ")
+    # set log scale
+    ax.set(xscale="log")
+
+    # set y axis 0 to 1
+    ax.set(ylim=(0, 1))
     plt.show()
 
 
@@ -119,6 +138,11 @@ async def main():
 
     model_metas = Slist(
         [
+            # ModelMeta(
+            #     model="gpt-3.5-turbo",
+            #     trained_samples=0,
+            #     trained_on=TrainedOn.CONTROL,
+            # ),
             ModelMeta(
                 model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
                 trained_samples=1_000,

@@ -100,9 +100,12 @@ async def main():
     # super dataset 100k ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W
     models = [
         "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FfN5MGW",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",  # 98% cot
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
@@ -127,12 +130,14 @@ async def main():
         name_mapping={
             "gpt-3.5-turbo": "gpt-3.5-turbo",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs": "Trained to follow mistakes",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo": "Trained with unbiased contexts (control), 98% COT, 100k samples",
-            "TODO": "Trained with unbiased contexts (control), 98% COT, 10k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR": "Trained with unbiased contexts (control), 98% COT, 1k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan": "Trained with biased contexts (ours), 98% COT, 100k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF": "Trained with biased contexts (ours), 98% COT, 1k samples",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "Trained with biased contexts (ours), 98% COT, 10k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo": "Trained with unbiased contexts (control)\n 98% COT, 100k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FfN5MGW": "Trained with unbiased contexts (control)\n 98% COT, 10k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR": "Trained with unbiased contexts (control)\n 98% COT, 1k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan": "Trained with biased contexts (ours)\n 98% COT, 100k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF": "Trained with biased contexts (ours)\n 98% COT, 1k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "Trained with biased contexts (ours)\n 98% COT, 10k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg": "Trained with biased contexts (ours)\n 50% COT, 10k samples",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW": "Trained with biased contexts (ours)\n 2% COT, 10k samples",
         },
         order=models,
     )
