@@ -499,7 +499,6 @@ def fine_tune_with_bias_augmentation_no_repeat(
             .shuffle()
             .first_or_raise()
         )
-        .map(clean_unbiased_non_cot_raw_response)
         .take(non_cot_limit)
     )
     assert (

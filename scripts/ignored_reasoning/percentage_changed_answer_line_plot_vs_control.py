@@ -58,6 +58,7 @@ def compute_percentage_changed(results: Slist[TaskOutput]) -> Slist[ChangedAnswe
 class TrainedOn(str, Enum):
     CONTROL = "gpt-3.5-turbo + Unbiased contexts training (control)"
     INTERVENTION = "gpt-3.5-turbo + Biased contexts training (ours)"
+    CORRECT = "gpt-3.5-turbo + Always correct biased contexts training (ours)"
 
     @staticmethod
     def all_values() -> Sequence[str]:
@@ -172,6 +173,17 @@ async def main():
             ModelMeta(
                 model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",
                 trained_samples=100_000,
+                trained_on=TrainedOn.INTERVENTION,
+            ),
+            # Always correct
+            ModelMeta(
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FmmhY94",
+                trained_samples=1_000,
+                trained_on=TrainedOn.INTERVENTION,
+            ),
+            ModelMeta(
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fn77EVN",
+                trained_samples=10_000,
                 trained_on=TrainedOn.INTERVENTION,
             ),
         ]
