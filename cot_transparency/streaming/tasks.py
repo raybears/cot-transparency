@@ -6,9 +6,8 @@ from slist import Slist
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.messages import ChatMessage
-from cot_transparency.data_models.models import BaseTaskSpec, ModelOutput
+from cot_transparency.data_models.models import BaseTaskOuput, BaseTaskSpec, ModelOutput
 
 
 from typing import Any, Sequence
@@ -50,9 +49,12 @@ class StreamingTaskSpec(BaseTaskSpec):
         return n_options
 
 
-class StreamingTaskOutput(HashableBaseModel):
+class StreamingTaskOutput(BaseTaskOuput):
     task_spec: StreamingTaskSpec
-    inference_outputs: Sequence[ModelOutput]
+    inference_output: ModelOutput
+
+    def get_task_spec(self) -> StreamingTaskSpec:
+        return self.task_spec
 
 
 def data_to_task_spec(
@@ -76,7 +78,13 @@ def data_to_task_spec(
     return specs
 
 
-def call_model_with_task_spec(task_spec: StreamingTaskSpec, caller: ModelCaller) -> StreamingTaskOutput:
+def call_model_with_task_spec(task_spec: StreamingTaskSpec, caller: ModelCaller) -> Sequence[StreamingTaskOutput]:
+    """
+    Basic building block to call a model with a task spec. Note this returns a sequence because the config in task_spec
+    may specify n > 1 in which case we will get multiple responses for a single request. Call .flatten_iterable() if 
+    using grugstream after this step to flatten the sequence into a single iterable.
+    """
+
     responses = Slist(caller.call(messages=task_spec.messages, config=task_spec.inference_config).raw_responses)
     formatter_class = name_to_formatter(task_spec.formatter_name)
     data_example = task_spec.get_data_example_obj()
@@ -86,4 +94,4 @@ def call_model_with_task_spec(task_spec: StreamingTaskSpec, caller: ModelCaller)
             parsed_response=formatter_class.parse_answer(i, data_example, model=task_spec.inference_config.model),
         )
     )
-    return StreamingTaskOutput(task_spec=task_spec, inference_outputs=outputs)
+    return outputs.map(lambda x: StreamingTaskOutput(task_spec=task_spec, inference_output=x))
