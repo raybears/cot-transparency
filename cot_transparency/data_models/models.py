@@ -1,6 +1,6 @@
 """Contains models for all objects that are loaded / saved to experiment jsons"""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Optional, Sequence, Type
 
@@ -135,9 +135,14 @@ class TaskSpec(BaseTaskSpec):
         return self.task_name
 
 
-class BaseTaskOuput(BaseModel):
-    task_spec: BaseTaskSpec
+class BaseTaskOuput(BaseModel, ABC):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
+    # we dong not specify task_spec here because of invariance of variables so we instead specify
+    # the get_task_spec() interface which can obey covariance properly
+
+    @abstractmethod
+    def get_task_spec(self) -> BaseTaskSpec:
+        raise NotImplementedError
 
 
 class TaskOutput(BaseTaskOuput):
@@ -157,6 +162,9 @@ class TaskOutput(BaseTaskOuput):
             inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
             response_idx=response_idx if not isinstance(response_idx, Unset) else self.response_idx,
         )
+
+    def get_task_spec(self) -> TaskSpec:
+        return self.task_spec
 
     @property
     def bias_on_wrong_answer(self) -> bool:
