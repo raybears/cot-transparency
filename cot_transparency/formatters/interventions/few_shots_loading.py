@@ -16,8 +16,9 @@ from cot_transparency.data_models.messages import (
     MessageRole,
     StrictChatMessage,
 )
-from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.models import BaseTaskOuput, TaskOutput
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.streaming.tasks import StreamingTaskOutput
 
 
 # Data previously generated with cot-transparency/scripts/dump_correct_cot_data.py
@@ -96,7 +97,7 @@ def get_training_cots_gpt_35(
 @lru_cache
 def get_training_non_cots_gpt_35(
     kind: ModelOutputVerified = ModelOutputVerified.correct,
-) -> Slist[TaskOutput]:
+) -> Slist[BaseTaskOuput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -117,6 +118,18 @@ def get_training_non_cots_gpt_35(
             )
 
     return jsons_tasks
+
+
+def get_training_data_gpt_35_gs(
+    kind: ModelOutputVerified = ModelOutputVerified.unfiltered,
+):
+    match kind:
+        case ModelOutputVerified.unfiltered:
+            json_tasks: Slist[StreamingTaskOutput]
+            pass
+        # anything else is not supported
+        case _:
+            raise ValueError(f"Unsupported kind {kind}")
 
 
 def get_training_cots_claude_2(

@@ -339,6 +339,8 @@ def clean_unbiased_non_cot_raw_response(task: TaskOutput) -> TaskOutput:
 class DataFromOptions(str, Enum):
     gpt_35_turbo = "gpt-3.5-turbo"
     claude_2 = "claude-2"
+    # gold standard formatter, doesn't specify  that the model should answer with "The best answer is: "
+    gpt_35_turbo_gs = "gpt-3.5-turbo-gs"
 
 
 class FormatterOptions(str, Enum):
@@ -668,6 +670,11 @@ def fine_tune_with_bias_augmentation(
         case DataFromOptions.claude_2:
             non_cot_data = get_training_non_cots_claude_2(model_output_verified)
             cot_data = get_training_cots_claude_2(model_output_verified)
+        case DataFromOptions.gpt_35_turbo_gs:
+            pass
+
+            
+
     non_cot_data_shuffled = non_cot_data.shuffle(seed="42")
     cot_data_shuffled = cot_data.shuffle(seed="42")
     formatter_options_result = match_formatter_options(formatter_options)
