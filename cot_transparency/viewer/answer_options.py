@@ -9,6 +9,7 @@ class TypeOfAnswerOption(str, Enum):
     wrong_answer = "wrong_answer"
     correct_answer = "correct_answer"
     anything = "anything"
+    not_parseable = "not parseable"
 
     def pretty(self) -> str:
         return self.replace("_", " ").title()
@@ -38,6 +39,7 @@ def select_left_model_result_option() -> TypeOfAnswerOption:
                 TypeOfAnswerOption.wrong_answer,
                 TypeOfAnswerOption.correct_answer,
                 TypeOfAnswerOption.anything,
+                TypeOfAnswerOption.not_parseable,
             ],
             index=0,
             format_func=lambda x: x.pretty(),

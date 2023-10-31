@@ -114,6 +114,18 @@ class TaskOutput(BaseTaskOuput):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0
 
+    def copy_update(
+        self,
+        task_spec: TaskSpec | None = None,
+        inference_output: ModelOutput | None = None,
+        response_idx: int | None = None,
+    ) -> "TaskOutput":
+        return TaskOutput(
+            task_spec=task_spec if task_spec is not None else self.task_spec,
+            inference_output=inference_output if inference_output is not None else self.inference_output,
+            response_idx=response_idx if response_idx is not None else self.response_idx,
+        )
+
     @property
     def bias_on_wrong_answer(self) -> bool:
         return self.task_spec.ground_truth != self.task_spec.biased_ans

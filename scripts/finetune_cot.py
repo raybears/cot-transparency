@@ -632,7 +632,7 @@ class RandomSampler(FormatSampler):
         tasks = (
             tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters))
             .flatten_list()
-            .take(n)
+            .repeat_until_size_or_raise(n)
         )
         assert len(tasks) == n
         return tasks

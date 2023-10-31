@@ -31,7 +31,7 @@ def main(
     include_all_formatters_per_question: bool = True,
 ):
     project_name = "prompt_sen_experiments"
-    model_output_verified = ModelOutputVerified.no_filter
+    model_output_verified = ModelOutputVerified.correct_and_wrong
     formatters = TRAINING_COT_PROMPT_VARIANTS
 
     cot_data: Slist[TaskOutput]

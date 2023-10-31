@@ -1,6 +1,7 @@
 from typing import Sequence, Optional, Literal
 
 from grugstream import Observable
+from tqdm import tqdm
 
 from cot_transparency.apis import ModelCaller, UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
@@ -29,6 +30,7 @@ def stage_one_stream(
     max_tokens: Optional[int] = None,
     n_responses_per_request: Optional[int] = None,
     caller: ModelCaller = UniversalCaller(),
+    add_tqdm: bool = True,
 ) -> Observable[TaskOutput]:
     """A version of stage_one.py, but streaming
     Note that this doesn't manage any cache for you,
@@ -51,7 +53,7 @@ def stage_one_stream(
         n_responses_per_request=n_responses_per_request,
     )
 
-    return (
+    obs = (
         Observable.from_iterable(tasks_to_run)
         .map_blocking_par(
             lambda task_spec: task_function(
@@ -65,3 +67,6 @@ def stage_one_stream(
         )
         .flatten_list()
     )
+    if add_tqdm:
+        obs = obs.tqdm(tqdm_bar=tqdm(total=len(tasks_to_run)))
+    return obs
