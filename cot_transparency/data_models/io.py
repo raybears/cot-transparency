@@ -82,8 +82,6 @@ class ExpLoader:
 def save_loaded_dict(loaded_dict: LoadedJsonType):
     for file_out, loaded in loaded_dict.items():
         # create the directory if it doesn't exist
-
-        print(f"Saving loaded dict with {len(loaded.outputs)} items")
         file_out.parent.mkdir(parents=True, exist_ok=True)
         _json = loaded.model_dump_json(indent=2)
 

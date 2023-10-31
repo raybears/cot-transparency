@@ -20,12 +20,12 @@ def task_output_to_row(task: TaskOutput) -> TaskRow:
 
 
 if __name__ == "__main__":
-    items: Slist[TaskRow] = get_training_cots_gpt_35(ModelOutputVerified.no_filter).map(task_output_to_row)
+    items: Slist[TaskRow] = get_training_cots_gpt_35(ModelOutputVerified.correct_and_wrong).map(task_output_to_row)
     df = pd.DataFrame([item.dict() for item in items])
     # Two bars of different colors
     seaborn.countplot(x="is_correct", data=df, palette=["red", "blue"])
     # Set False to be red, True to be blue
-    plt.xticks([False, True], ["False", "True"])
+    plt.xticks([False, True], ["False", "True"])  # type: ignore
     # Change the colors
     # Rename x to "Has correct answer in COT"
     plt.xlabel("Has correct answer in COT")
