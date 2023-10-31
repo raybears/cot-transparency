@@ -532,6 +532,7 @@ def fine_tune_with_bias_augmentation(
     sampler: FormatSampler = RandomSampler(),
     prepend_notes: str = "",
     permute_verbalize_instructions: bool = True,
+    n_val_samples: int = 1000,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -542,8 +543,6 @@ def fine_tune_with_bias_augmentation(
     non_cot_percentage = 1 - cot_percentage
     non_cot_limit = int(non_cot_percentage * n_samples)
     excluded_formatters_names = {f.name() for f in exclude_formatters}
-    non_cot_data: Sequence[BaseTaskOuput]
-    cot_data: Sequence[BaseTaskOuput]
     match data_from_options:
         case DataFromOptions.gpt_35_turbo:
             non_cot_data = get_training_non_cots_gpt_35(model_output_verified)
@@ -555,7 +554,7 @@ def fine_tune_with_bias_augmentation(
             non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified)
             cot_data = get_training_cots_gpt_35_gs(model_output_verified)
 
-    non_cot_data_shuffled = Slist(non_cot_data).shuffle(seed="42")
+    non_cot_data_shuffled: Sequence[BaseTaskOuput] = Slist(non_cot_data).shuffle(seed="42")
     cot_data_shuffled = Slist(cot_data).shuffle(seed="42")
     formatter_options_result = match_formatter_options(formatter_options)
     non_cot_formatters = formatter_options_result.unbiased_formatters
@@ -568,32 +567,61 @@ def fine_tune_with_bias_augmentation(
 
     # Non Cots
     print(f"Number of non cots: {len(non_cot_data_shuffled)}")
-    non_cot_samples = (
-        sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit)
-        .map(lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x)
-        .map(task_output_to_finetune_sample)
+
+    # split of val samples
+    non_cot_val_samples = int(n_val_samples * (1 - cot_percentage))
+    non_cot_data_shuffled, non_cot_data_val = (
+        non_cot_data_shuffled[:-non_cot_val_samples],
+        non_cot_data_shuffled[-non_cot_val_samples:],
     )
 
-    assert (
-        len(non_cot_samples) == non_cot_limit
-    ), f"We do not have enough non cots, only {len(non_cot_samples)}, required {non_cot_limit}"
-    print(f"Number of non cots after limiting: {len(non_cot_samples)}")
+    non_cot_samples = get_non_cot_samples(
+        non_cot_data_shuffled,
+        eligible_non_cot_formatters,
+        non_cot_limit,
+        sampler,
+        permute_verbalize_instructions,
+    )
+    non_cot_val_samples = get_non_cot_samples(
+        non_cot_data_val,
+        eligible_non_cot_formatters,
+        n_val_samples,
+        sampler,
+        permute_verbalize_instructions,
+    )
 
     # CoTs
     print(f"Number of cots: {len(cot_data_shuffled)}")
-    cot_samples = (
-        sampler.sample(cot_data_shuffled, eligible_cot_formatters, cot_limit)
-        .map(transform_into_post_hoc_reasoning if post_hoc else identity)
-        .map(lambda x: augment_cot_task(x) if permute_verbalize_instructions else x)
-        .map(task_output_to_finetune_sample)
+    # split of val samples
+    cot_val_samples = int(n_val_samples * cot_percentage)
+    cot_data_shuffled, cot_data_val = cot_data_shuffled[:-cot_val_samples], cot_data_shuffled[-cot_val_samples:]
+
+    cot_samples = get_cot_samples(
+        cot_data_shuffled,
+        eligible_cot_formatters,
+        cot_limit,
+        sampler,
+        post_hoc,
+        permute_verbalize_instructions,
     )
-    assert len(cot_samples) == cot_limit, f"We do not have enough cots, only {len(cot_samples)}"
-    print(f"Number of cots after limiting: {len(cot_samples)}")
+    cot_val_samples = get_cot_samples(
+        cot_data_val,
+        eligible_cot_formatters,
+        n_val_samples,
+        sampler,
+        post_hoc,
+        permute_verbalize_instructions,
+    )
 
     total_task_samples = non_cot_samples + cot_samples
+    val_instruct_samples = int(n_val_samples * instruct_sample_proportion)
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
-    alpaca_samples = get_alpaca_training(n_instruct_samples)
+    alpaca_samples = get_alpaca_training(n_instruct_samples + val_instruct_samples)
+    alpaca_samples, alpaca_val_samples = alpaca_samples[:-val_instruct_samples], alpaca_samples[-val_instruct_samples:]
+
     samples = (total_task_samples + alpaca_samples).shuffle("42")
+    val_samples = (non_cot_val_samples + cot_val_samples + alpaca_val_samples).shuffle("42")
+
     params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
     control_only_unbiased = formatter_options == FormatterOptions.control_only_unbiased
 
@@ -602,6 +630,9 @@ def fine_tune_with_bias_augmentation(
         "n_cots": len(cot_samples),
         "n_non_cots": len(non_cot_samples),
         "n_instruct_samples": len(alpaca_samples),
+        "n_val_cots": len(cot_val_samples),
+        "n_val_non_cots": len(non_cot_val_samples),
+        "n_val_samples": len(val_samples),
         "excluded_formatters": list(excluded_formatters_names),
         "eligible_non_cot_formatters": [sorted(eligible_non_cot_formatters.map(lambda x: x.name()))],
         "eligible_cot_formatters": [sorted(eligible_cot_formatters.map(lambda x: x.name()))],
@@ -626,8 +657,48 @@ def fine_tune_with_bias_augmentation(
         more_config=more_config,
         project_name=project_name,
         ask_to_validate_training=ask_to_validate_training,
+        val_samples=val_samples,
     )
     return _id
+
+
+def get_non_cot_samples(
+    shuffled_data: Sequence[BaseTaskOuput],
+    eligible_formatters: Slist[FormatterWithPossibleIntervention],
+    limit: int,
+    sampler: FormatSampler,
+    permute_verbalize_instructions: bool,
+) -> Slist[FinetuneSample]:
+    non_cot_samples = (
+        sampler.sample(shuffled_data, eligible_formatters, limit)
+        .map(lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x)
+        .map(task_output_to_finetune_sample)
+    )
+
+    assert (
+        len(non_cot_samples) == limit
+    ), f"We do not have enough non cots, only {len(non_cot_samples)}, required {limit}"
+    print(f"Number of non cots after limiting: {len(non_cot_samples)}")
+    return non_cot_samples
+
+
+def get_cot_samples(
+    shuffled_data: Sequence[BaseTaskOuput],
+    eligible_cot_formatters: Slist[FormatterWithPossibleIntervention],
+    limit: int,
+    sampler: FormatSampler,
+    post_hoc: bool,
+    permute_verbalize_instructions: bool,
+) -> Slist[FinetuneSample]:
+    cot_samples = (
+        sampler.sample(shuffled_data, eligible_cot_formatters, limit)
+        .map(transform_into_post_hoc_reasoning if post_hoc else identity)
+        .map(lambda x: augment_cot_task(x) if permute_verbalize_instructions else x)
+        .map(task_output_to_finetune_sample)
+    )
+    assert len(cot_samples) == limit, f"We do not have enough cots, only {len(cot_samples)}"
+    print(f"Number of cots after limiting: {len(cot_samples)}")
+    return cot_samples
 
 
 def fine_tune_with_dumb_brain_balanced(

@@ -28,6 +28,7 @@ from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemode
 from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import call_model_with_task_spec
+from scripts.finetune_cot import fine_tune_with_bias_augmentation
 from scripts.utils.plots import catplot
 from stage_one import COT_TESTING_TASKS, COT_TRAINING_TASKS, get_list_of_examples
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
@@ -245,8 +246,10 @@ def make_training_data(
     )
 
 
+EXP_DIR = "experiments/automated_prompt_variant_generation/v1"
+
 def run(
-    exp_dir="experiments/automated_prompt_variant_generation/v1",
+    exp_dir=EXP_DIR,
     models: Sequence[str] = [
         "gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W",  # super dataset 100k
@@ -321,6 +324,25 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     catplot(data=df, x="model_with_temp", y="entropy", add_line_at=avg_entropy)
 
     plt.show()
+
+
+def train_and_run(n_samples: int = 10000):
+    model = fine_tune_with_bias_augmentation(
+        model="gpt-3.5-turbo",
+        n_epochs=1,
+        n_samples=n_samples,
+        post_hoc=False,
+        cot_percentage=0.50,
+        project_name="consistency-training",
+    )
+    run(
+        exp_dir=f"experiments/automated_prompt_variant_generation/finetuned_{n_samples}",
+        models=[model],
+        example_cap=200,
+        tasks=COT_TESTING_TASKS,
+        batch_size=50,
+        eval_temp=0.0,
+    )
 
 
 if __name__ == "__main__":
