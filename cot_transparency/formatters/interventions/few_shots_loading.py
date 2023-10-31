@@ -61,7 +61,10 @@ class ModelOutputVerified(str, Enum):
     # Whether the outputs of the model aligns with the ground truth
     correct = "correct"
     wrong = "wrong"
+    # This only allows parseable outputs from the model
     correct_and_wrong = "correct and wrong"
+    # This allows unparseable outputs from the model e.g. when the model outputs "I don't know"
+    # even when it is not in the options
     unfiltered = "unfiltered"
 
 

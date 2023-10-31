@@ -8,7 +8,6 @@ class HashableBaseModel(BaseModel):
         as_json = self.model_dump_json()
         return deterministic_hash(as_json)
 
-    #
-    # class Config:
-    #     # this is needed for the hashable base model
-    #     frozen = True
+    class Config:
+        # this is needed for the hashable base model
+        frozen = True

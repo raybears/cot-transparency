@@ -352,7 +352,6 @@ def run_tasks_multi_threaded(
     loaded_dict: LoadedJsonType,
     tasks_to_run: Sequence[TaskSpec] | Sequence[StageTwoTaskSpec],
     raise_after_retries: bool,
-    no_filtering: bool = False,
     raise_on: Literal["all"] | Literal["any"] = "any",
     num_retries: int = 10,
 ) -> None:
