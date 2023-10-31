@@ -25,7 +25,7 @@ if __name__ == "__main__":
     # Two bars of different colors
     seaborn.countplot(x="is_correct", data=df, palette=["red", "blue"])
     # Set False to be red, True to be blue
-    plt.xticks([False, True], ["False", "True"])
+    plt.xticks([False, True], ["False", "True"])  # type: ignore
     # Change the colors
     # Rename x to "Has correct answer in COT"
     plt.xlabel("Has correct answer in COT")
