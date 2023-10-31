@@ -3,6 +3,7 @@ from typing import Optional, Union
 
 from pydantic import conlist
 
+from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
 from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.util import deterministic_hash
 
@@ -10,14 +11,6 @@ from cot_transparency.util import deterministic_hash
 def is_openai_finetuned(model_name: str) -> bool:
     # example name is ft:gpt-3.5-turbo-0613:academicsnyuperez::7rFFFeZQ
     return "ft:gpt" in model_name or ":ft" in model_name
-
-
-class Unset:
-    ...
-
-
-# Sentinel value for unset values
-_UNSET = Unset()
 
 
 class OpenaiInferenceConfig(HashableBaseModel):
