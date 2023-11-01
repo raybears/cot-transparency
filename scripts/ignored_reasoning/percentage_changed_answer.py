@@ -115,7 +115,7 @@ def seaborn_bar_plot_length(
     # x-axis is model
     # y-axis is length
     df = pd.DataFrame(_dicts)
-    ax = seaborn.barplot(x="model", y="COT length", data=df, estimator=np.average, order=order_mapped)
+    ax = seaborn.barplot(x="model", y="COT length", data=df, estimator=np.average, order=order_mapped)  # type: ignore
 
     # change the y-axis to be "Median COT length"
     ax.set(ylabel="Median COT length")
@@ -160,7 +160,6 @@ async def main():
         "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FqqxEJy",  # control 10k correct
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fn77EVN",  # ours 10k correct
-
     ]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],

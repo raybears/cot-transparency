@@ -620,9 +620,8 @@ def fine_tune_with_bias_augmentation(
 
     # Non Cots
     print(f"Number of non cots: {len(non_cot_data_shuffled)}")
-    non_cot_tasks = (
-        sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit)
-        .map(lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x)
+    non_cot_tasks = sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit).map(
+        lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x
     )
 
     non_cot_hashes: set[str] = {task.task_spec.task_hash for task in non_cot_tasks}

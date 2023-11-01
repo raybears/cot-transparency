@@ -1,19 +1,15 @@
 import asyncio
-from enum import Enum
 from pathlib import Path
 
-from pydantic import BaseModel
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.multi_accuracy import PlotInfo
-from stage_one import TASK_LIST, main as stage_one_main
 
 
 async def plot_accuracies():

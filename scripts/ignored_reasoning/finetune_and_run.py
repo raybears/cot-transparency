@@ -7,7 +7,8 @@ from scripts.finetune_cot import (
 )
 
 if __name__ == "__main__":
-    import  openai
+    import openai
+
     # FAR
     openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # 98%
