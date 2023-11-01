@@ -1,10 +1,12 @@
 from collections.abc import Sequence
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import BaseModel
 from slist import Slist
 
 from cot_transparency.apis.base import FileCacheRow
+from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
 from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
@@ -143,3 +145,8 @@ def make_tree(everything: Slist[TaskOutput]) -> TreeCache:
         )
     )
     return TreeCache(items_list=grouped.to_dict())
+
+
+@lru_cache(maxsize=32)
+def cached_read_finetune(path: str) -> Slist[FinetuneSample]:
+    return read_jsonl_file_into_basemodel(Path(path), FinetuneSample)

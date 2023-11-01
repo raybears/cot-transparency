@@ -1,6 +1,5 @@
 import argparse
 import time
-from pathlib import Path
 from typing import Optional
 
 import streamlit as st
@@ -8,8 +7,8 @@ import streamlit.components.v1 as components
 from slist import Slist
 
 from cot_transparency.apis.openai.finetune import FinetuneSample
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.viewer.util import display_messages
+from cot_transparency.viewer.viewer_cache import cached_read_finetune
 
 # set to wide
 st.set_page_config(layout="wide")
@@ -36,7 +35,7 @@ Slist.__hash__ = __hash__  # type: ignore
 
 # Ask the user to enter experiment_dir
 jsonl_file = st.text_input("Enter jsonl file", jsonl_file)
-everything: Slist[FinetuneSample] = read_jsonl_file_into_basemodel(Path(jsonl_file), FinetuneSample)
+everything: Slist[FinetuneSample] = cached_read_finetune(jsonl_file)
 
 st.markdown(f"Loaded {len(everything)} tasks")
 # Calculate what mdoels / tasks are available
