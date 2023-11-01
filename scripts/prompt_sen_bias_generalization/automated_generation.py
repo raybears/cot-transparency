@@ -8,15 +8,18 @@ import fire
 from grugstream import Observable
 from matplotlib import pyplot as plt
 from pydantic import BaseModel
-from slist import Slist
+from slist import Slist, Group
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ModelOutput
 from cot_transparency.data_models.pd_utils import BaseExtractor, convert_slist_to_df
+from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
+from cot_transparency.data_models.streaming import ParaphrasingOutput
+from cot_transparency.data_models.streaming import ParaphrasedQuestion
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AskParaphrasedQuestionFormatter,
     GenerateParaphrasingsFormatters,
@@ -25,27 +28,19 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
     GoldStandardWithCotFormatter,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
-from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
+from cot_transparency.streaming.tasks import StreamingTaskOutput
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import call_model_with_task_spec
+from scripts.finetune_cot import (
+    DataFromOptions,
+    FormatterOptions,
+    NFormatsPerQuestionSampler,
+    ParaphrasingSampler,
+    fine_tune_with_bias_augmentation,
+)
 from scripts.utils.plots import catplot
 from stage_one import COT_TESTING_TASKS, COT_TRAINING_TASKS, get_list_of_examples
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
-
-
-class ParaphrasedQuestion(BaseModel):
-    paraphrased: str
-    tags: Sequence[str]
-
-
-class ParaphrasingOutput(StreamingTaskOutput):
-    task_spec: StreamingTaskSpec
-    inference_output: ModelOutput
-    paraphrased_questions: Sequence[ParaphrasedQuestion]
-
-
-class ParaphrasedTaskSpec(StreamingTaskSpec):
-    paraphrased_question: ParaphrasedQuestion
 
 
 def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tuple[str, DataExampleBase]]:
@@ -55,7 +50,7 @@ def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tupl
     ret = Slist()
     for t in tasks:
         examples = get_list_of_examples(t)
-        print(f"Found {len(examples)} examples for task: {t}")
+        # print(f"Found {len(examples)} examples for task: {t}")
         task_with_name = examples.map(lambda x: (t, x)).shuffle(str(42)).take(example_cap)
         ret.extend(task_with_name)
     return ret
@@ -121,12 +116,11 @@ async def run_pipeline(
     models_to_evaluate: Sequence[str] = [],
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatters],
 ):
-    generation_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/generation_cache.jsonl", write_every_n=1)
+    cache_dir = f"{exp_dir}/cache"
 
-    inter_file = PassThroughWriter[StreamingTaskOutput](f"{exp_dir}/generated_prompts.jsonl")
-    paraphrased_file = PassThroughWriter[ParaphrasingOutput](f"{exp_dir}/paraphrased_prompts.jsonl")
+    generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=1)
 
-    answer_parsing_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/answer_parsing_cache.jsonl")
+    answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/answer_parsing_cache")
     answer_parsing_config = config_from_default(model="claude-v1")
 
     data_examples = get_examples_for_tasks(tasks, example_cap)
@@ -145,26 +139,24 @@ async def run_pipeline(
         .map_blocking_par(lambda x: call_model_with_task_spec(x, generation_caller), max_par=batch_size)
         .flatten_list()
         .tqdm(tqdm_bar=tqdm(total=n_items * len(paraphrasing_formatters), desc="Generating prompts"))
-        .map(inter_file.write)
         .map(parse_responses)
-        .map(paraphrased_file.write)
     )
     if models_to_evaluate:
         models_to_be_tested = Slist(models_to_evaluate).map(
             lambda x: config_from_default(model=x, temperature=eval_temp)
         )
-        testing_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/evaluation_cache.jsonl")
+        testing_caller = UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/evaluation_cache")
 
         pipeline = (
             pipeline.map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
             .flatten_iterable()
             .map_blocking_par(lambda x: call_model_with_task_spec(x, testing_caller), max_par=batch_size)
-            .tqdm(tqdm_bar=tqdm(total=n_items * 10 * len(paraphrasing_formatters), desc="Asking parahrased questions"))
+            .tqdm(tqdm_bar=tqdm(total=n_items * 10 * len(models_to_evaluate), desc="Asking parahrased questions"))
             .flatten_list()
             .map_blocking_par(
                 lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=10
             )
-            .tqdm(tqdm_bar=tqdm(total=n_items * 10 * len(paraphrasing_formatters), desc="Parsing answers"))
+            .tqdm(tqdm_bar=tqdm(total=n_items * 10 * len(models_to_evaluate), desc="Evaluating models"))
         )
 
     results_path = Path(f"{exp_dir}/results.jsonl")
@@ -173,6 +165,7 @@ async def run_pipeline(
         results_path.unlink()
     await pipeline.to_file(results_path, mode="a", serialize=lambda x: x.model_dump_json())
     print("Done ✅")
+    return results_path
 
 
 def make_training_data(
@@ -186,7 +179,7 @@ def make_training_data(
     batch_size=50,
 ):
     # This generates the different paraphrasings of the questions
-    asyncio.run(
+    results_path = asyncio.run(
         run_pipeline(
             exp_dir=exp_dir,
             example_cap=example_cap,
@@ -196,6 +189,8 @@ def make_training_data(
             paraphrasing_formatters=paraphrasing_formatters,
         )
     )
+    paraphrased_questions = read_jsonl_file_into_basemodel(results_path, ParaphrasingOutput)
+    write_jsonl_file_from_basemodel(Path("data/training_paraphrasings/gpt4_paraphrasings.jsonl"), paraphrased_questions)
 
     # but we also want to generate the gold standard completions that we will use to train the model
     # dont need to use any paraphrasings here
@@ -231,9 +226,9 @@ def make_training_data(
 
         outputs = read_jsonl_file_into_basemodel(results_path, StreamingTaskOutput)
         cots = outputs.filter(lambda x: x.task_spec.formatter_name == GoldStandardWithCotFormatter.name())
-        write_jsonl_file_from_basemodel(Path(f"{exp_dir}/gold_standard_cots.jsonl"), cots)
+        write_jsonl_file_from_basemodel(Path("data/training_cots/gpt35_gold_standard_cots.jsonl"), cots)
         non_cots = outputs.filter(lambda x: x.task_spec.formatter_name == GoldStandardNoCotFormatter.name())
-        write_jsonl_file_from_basemodel(Path(f"{exp_dir}/gold_standard_no_cots.jsonl"), non_cots)
+        write_jsonl_file_from_basemodel(Path("data/training_non_cots/gpt35_gold_standard_cots.jsonl"), non_cots)
 
     asyncio.run(
         get_gold_standard_cots(
@@ -245,9 +240,17 @@ def make_training_data(
     )
 
 
+EXP_DIR = "experiments/automated_prompt_variant_generation/v1"
+
+
 def run(
-    exp_dir="experiments/automated_prompt_variant_generation/v1",
-    models: Sequence[str] = ["gpt-3.5-turbo"],
+    exp_dir=EXP_DIR,
+    models: Sequence[str] = [
+        "gpt-3.5-turbo",
+        "ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W",  # super dataset 100k
+        "ft:gpt-3.5-turbo-0613:far-ai::8Czg32py",  # super dataset 50k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CxBtbeH",  # super dataset 10k
+    ],
     example_cap: int = 200,
     tasks: Sequence[str] = COT_TESTING_TASKS,
     batch_size: int = 50,
@@ -287,7 +290,7 @@ def entropy_and_uniform_entropy(outputs: Slist[StreamingTaskOutput]) -> Entropy:
     return Entropy(entropy=entropy, uniform_entropy=uniform_entropy)
 
 
-grouped_outputs = tuple[tuple[str, OpenaiInferenceConfig], Entropy]
+grouped_outputs = Group[tuple[str, OpenaiInferenceConfig], Entropy]
 
 
 class Extractor(BaseExtractor[grouped_outputs]):
@@ -306,7 +309,7 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     outputs = read_jsonl_file_into_basemodel(experiment_path, StreamingTaskOutput)
 
     # calculate the entropy
-    with_entropy = outputs.group_by(lambda x: (x.task_spec.task_hash, x.task_spec.inference_config)).map(
+    with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash(), x.task_spec.inference_config)).map(
         lambda x: x.map_values(entropy_and_uniform_entropy)
     )
 
@@ -318,5 +321,35 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     plt.show()
 
 
+def train_and_run(n_samples: int = 10000, n_formats_per_question: int = 2, unbiased: bool = False):
+    if unbiased:
+        assert n_formats_per_question == 1, "Only makes sense to have one format per question for unbiased"
+        sampler = NFormatsPerQuestionSampler(n_formats_per_question=1)
+        formatter_options = FormatterOptions.gs_unbiased
+    else:
+        sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question)
+        formatter_options = FormatterOptions.ask_paraphrased
+
+    model = fine_tune_with_bias_augmentation(
+        model="gpt-3.5-turbo",
+        n_epochs=1,
+        n_samples=n_samples,
+        post_hoc=False,
+        cot_percentage=0.50,
+        project_name="consistency-training",
+        formatter_options=formatter_options,
+        sampler=sampler,
+        permute_verbalize_instructions=False,
+        data_from_options=DataFromOptions.gpt_35_turbo_gs,
+        model_output_verified=ModelOutputVerified.unfiltered,
+    )
+    run(
+        models=[model],
+        tasks=COT_TESTING_TASKS,
+        batch_size=50,
+        eval_temp=0.0,
+    )
+
+
 if __name__ == "__main__":
-    fire.Fire({"run": run, "plot": plot, "make_training_data": make_training_data})
+    fire.Fire({"run": run, "plot": plot, "make_training_data": make_training_data, "train_and_run": train_and_run})

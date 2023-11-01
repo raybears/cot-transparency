@@ -56,6 +56,8 @@ Please give me {n} paraphrasing covering a variety of styles."""  # noqa: E501
 
 
 class GenerateParaphrasingsNoCotFormatters(StageOneFormatter):
+    is_cot = False
+
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         """

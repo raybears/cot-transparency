@@ -16,8 +16,9 @@ from cot_transparency.data_models.messages import (
     MessageRole,
     StrictChatMessage,
 )
-from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.models import BaseTaskOuput, TaskOutput
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.streaming.tasks import StreamingTaskOutput
 
 
 # Data previously generated with cot-transparency/scripts/dump_correct_cot_data.py
@@ -71,7 +72,7 @@ class ModelOutputVerified(str, Enum):
 @lru_cache
 def get_training_cots_gpt_35(
     kind: ModelOutputVerified = ModelOutputVerified.correct,
-) -> Slist[TaskOutput]:
+) -> Sequence[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -96,7 +97,7 @@ def get_training_cots_gpt_35(
 @lru_cache
 def get_training_non_cots_gpt_35(
     kind: ModelOutputVerified = ModelOutputVerified.correct,
-) -> Slist[TaskOutput]:
+) -> Sequence[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -119,9 +120,39 @@ def get_training_non_cots_gpt_35(
     return jsons_tasks
 
 
+def get_training_cots_gpt_35_gs(
+    kind: ModelOutputVerified = ModelOutputVerified.unfiltered,
+) -> Sequence[StreamingTaskOutput]:
+    match kind:
+        case ModelOutputVerified.unfiltered:
+            json_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_cots/gpt35_gold_standard_cots.jsonl"), StreamingTaskOutput
+            )
+        # anything else is not supported
+        case _:
+            raise ValueError(f"Unsupported kind {kind}")
+
+    return json_tasks
+
+
+def get_training_non_cots_gpt_35_gs(
+    kind: ModelOutputVerified = ModelOutputVerified.unfiltered,
+) -> Sequence[StreamingTaskOutput]:
+    match kind:
+        case ModelOutputVerified.unfiltered:
+            json_tasks = read_jsonl_file_into_basemodel(
+                Path("data/training_non_cots/gpt35_gold_standard_cots.jsonl"), StreamingTaskOutput
+            )
+        # anything else is not supported
+        case _:
+            raise ValueError(f"Unsupported kind {kind}")
+
+    return json_tasks
+
+
 def get_training_cots_claude_2(
     kind: ModelOutputVerified = ModelOutputVerified.correct,
-) -> Slist[TaskOutput]:
+) -> Sequence[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -140,7 +171,7 @@ def get_training_cots_claude_2(
 
 def get_training_non_cots_claude_2(
     kind: ModelOutputVerified = ModelOutputVerified.correct,
-) -> Slist[TaskOutput]:
+) -> Sequence[TaskOutput]:
     match kind:
         case ModelOutputVerified.correct:
             jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
@@ -160,10 +191,10 @@ def get_training_non_cots_claude_2(
 
 
 def task_output_to_finetune_sample(
-    task: TaskOutput,
-    seed_func: Callable[[TaskOutput], str] = lambda x: x.task_spec.task_hash,
+    task: BaseTaskOuput,
+    seed_func: Callable[[BaseTaskOuput], str] = lambda x: x.model_hash(),
 ) -> FinetuneSample:
-    prompt_messages: Sequence[ChatMessage] = task.task_spec.messages
+    prompt_messages: Sequence[ChatMessage] = task.get_task_spec().messages
     new_messages = list(prompt_messages) + [
         ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)
     ]
