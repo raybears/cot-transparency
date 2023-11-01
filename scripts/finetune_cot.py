@@ -50,7 +50,6 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.name_mapping import name_to_formatter
-from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskParaphrasedQuestionFormatter
 from cot_transparency.formatters.prompt_sensitivity.interventions import (
     AddBestAnswerIsNonCot,
     AddVerbalizeAndStepByStepAssistantPref,
@@ -574,7 +573,9 @@ class ParaphrasingSampler(FormatSampler):
                 ret.append(new_task)
 
         ret = ret.take(n)
-        assert len(ret) == n
+        if len(ret) < n:
+            breakpoint()
+        assert len(ret) == n, "Not enough paraphrased questions"
         return ret
 
 
@@ -619,7 +620,8 @@ def fine_tune_with_bias_augmentation(
             cot_data = get_training_cots_gpt_35_gs(model_output_verified)
 
     non_cot_data_shuffled: Sequence[BaseTaskOuput] = Slist(non_cot_data).shuffle(seed="42")
-    cot_data_shuffled = Slist(cot_data).shuffle(seed="42")
+    # use a different seed for cots and non cots in case the data is in the same order
+    cot_data_shuffled = Slist(cot_data).shuffle(seed="1")  
     formatter_options_result = match_formatter_options(formatter_options)
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
@@ -634,9 +636,10 @@ def fine_tune_with_bias_augmentation(
 
     # split of val samples
     n_non_cot_val_samples = int(n_val_samples * (1 - cot_percentage))
+    to_take = n_non_cot_val_samples + 20 # add a few in case some of the questions don't have paraphrasings
     non_cot_data_shuffled, non_cot_data_val = (
-        non_cot_data_shuffled[:-n_non_cot_val_samples],
-        non_cot_data_shuffled[-n_non_cot_val_samples:],
+        non_cot_data_shuffled[:-to_take],
+        non_cot_data_shuffled[-to_take:],
     )
 
     non_cot_samples = get_non_cot_samples(
@@ -660,7 +663,8 @@ def fine_tune_with_bias_augmentation(
     print(f"Number of cots: {len(cot_data_shuffled)}")
     # split of val samples
     n_cot_val_samples = int(n_val_samples * cot_percentage)
-    cot_data_shuffled, cot_data_val = cot_data_shuffled[:-n_cot_val_samples], cot_data_shuffled[-n_cot_val_samples:]
+    to_take = n_cot_val_samples + 20 # add a few in case some of the questions don't have paraphrasings
+    cot_data_shuffled, cot_data_val = cot_data_shuffled[:-to_take], cot_data_shuffled[-to_take:]
 
     cot_samples = get_cot_samples(
         cot_data_shuffled,

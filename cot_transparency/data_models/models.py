@@ -157,6 +157,7 @@ class TaskSpec(BaseTaskSpec):
     def get_task_hash(self) -> str:
         return self.task_hash
 
+
 class BaseTaskOuput(HashableBaseModel, ABC):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     # we do not specify task_spec here because of invariance of variables so we instead specify

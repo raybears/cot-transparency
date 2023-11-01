@@ -8,7 +8,7 @@ import fire
 from grugstream import Observable
 from matplotlib import pyplot as plt
 from pydantic import BaseModel
-from slist import Slist
+from slist import Slist, Group
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
@@ -289,7 +289,7 @@ def entropy_and_uniform_entropy(outputs: Slist[StreamingTaskOutput]) -> Entropy:
     return Entropy(entropy=entropy, uniform_entropy=uniform_entropy)
 
 
-grouped_outputs = tuple[tuple[str, OpenaiInferenceConfig], Entropy]
+grouped_outputs = tuple[Group[str, OpenaiInferenceConfig], Entropy]
 
 
 class Extractor(BaseExtractor[grouped_outputs]):
@@ -320,7 +320,7 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     plt.show()
 
 
-def train_and_run(n_samples: int = 10000):
+def train_and_run(n_samples: int = 10000, n_formats_per_question: int = 2):
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
@@ -329,7 +329,7 @@ def train_and_run(n_samples: int = 10000):
         cot_percentage=0.50,
         project_name="consistency-training",
         formatter_options=FormatterOptions.ask_paraphrased,
-        sampler=ParaphrasingSampler(n_formats_per_question=4),
+        sampler=ParaphrasingSampler(n_formats_per_question=n_formats_per_question),
         permute_verbalize_instructions=False,
         data_from_options=DataFromOptions.gpt_35_turbo_gs,
         model_output_verified=ModelOutputVerified.unfiltered,
