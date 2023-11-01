@@ -1,12 +1,17 @@
 from collections.abc import Sequence
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import BaseModel
 from slist import Slist
 
+from cot_transparency.apis.base import FileCacheRow
+from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
 from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.viewer.answer_options import TypeOfAnswerOption
+from cot_transparency.viewer.util import file_cache_row_to_task_output
 
 
 # NOTE: These caches have to be here rather than the main streamlit file to work!
@@ -22,6 +27,15 @@ def cached_read_whole_s2_exp_dir(exp_dir: str) -> Slist[StageTwoTaskOutput]:
     # everything you click a button, streamlit reruns the whole script
     # so we need to cache the results of read_whole_exp_dir
     return read_whole_exp_dir_s2(exp_dir=exp_dir)
+
+
+@lru_cache(maxsize=32)
+def cached_read_model_caller_jsonl_file(file_path: str) -> Slist[TaskOutput]:
+    return (
+        read_jsonl_file_into_basemodel(file_path, basemodel=FileCacheRow)
+        .map(file_cache_row_to_task_output)
+        .flatten_list()
+    )
 
 
 class TreeCacheKey(BaseModel):
@@ -131,3 +145,8 @@ def make_tree(everything: Slist[TaskOutput]) -> TreeCache:
         )
     )
     return TreeCache(items_list=grouped.to_dict())
+
+
+@lru_cache(maxsize=32)
+def cached_read_finetune(path: str) -> Slist[FinetuneSample]:
+    return read_jsonl_file_into_basemodel(Path(path), FinetuneSample)

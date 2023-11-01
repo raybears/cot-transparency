@@ -50,7 +50,7 @@ class IsCoTExtractor(BaseExtractor[BaseTaskOuput]):
     column_names = ["is_cot"]
 
     def extract(self, output: BaseTaskOuput) -> Sequence[bool]:
-        formatter = name_to_formatter(output.task_spec.formatter_name)
+        formatter = name_to_formatter(output.get_task_spec().formatter_name)
         return [formatter.is_cot]
 
 

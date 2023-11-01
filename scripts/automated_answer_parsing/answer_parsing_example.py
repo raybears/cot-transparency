@@ -19,8 +19,8 @@ from stage_one import get_list_of_examples
 
 class OutputWithParsed(StreamingTaskOutput):
     task_spec: StreamingTaskSpec
-    inference_outputs: Sequence[ModelOutput]
-    parsing_steps: Sequence[StreamingTaskOutput | None]
+    inference_output: ModelOutput
+    parsing_steps: StreamingTaskOutput | None
 
 
 def answer_finding_step(
@@ -31,16 +31,13 @@ def answer_finding_step(
     ask it to find the answer in the response.
     """
     # if the previous step did find the answer, then we don't need to do anything
-    ret = []  # immutable so we can't modify the previous output, so make a new one
-    parsing_steps = []
-    for output in prev_output.inference_outputs:
-        if output.parsed_response is not None:
-            # we found the answer in the previous step
-            # so we don't need to do anything
-            ret.append(output)
-            parsing_steps.append(None)
-            continue
-
+    output = prev_output.inference_output
+    if output.parsed_response is not None:
+        # we found the answer in the previous step
+        # so we don't need to do anything
+        ret = output
+        parsing_steps = None
+    else:
         model_response = output.raw_response
 
         # unpack the results from the previous step
@@ -58,15 +55,16 @@ def answer_finding_step(
             task_name=prev_output.task_spec.task_name,
         )
         output_of_parsing = call_model_with_task_spec(task_spec, caller)
-        parsed_answers = Slist(output_of_parsing.inference_outputs).map(lambda x: x.parsed_response)
-        found_answer = parsed_answers.mode_or_raise()
+        assert len(output_of_parsing) == 1, "Expected only one output from the answer parsing model"
+        output_of_parsing = output_of_parsing[0]
+        found_answer = output_of_parsing.inference_output.parsed_response
+
         # modify the previous output to include the parsed answer
         new_output_with_parsed = ModelOutput(raw_response=model_response, parsed_response=found_answer)
-        ret.append(new_output_with_parsed)
-        parsing_steps.append(output_of_parsing)
+        ret = new_output_with_parsed
+        parsing_steps = output_of_parsing
 
-    assert len(ret) == len(prev_output.inference_outputs)
-    return OutputWithParsed(task_spec=prev_output.task_spec, inference_outputs=ret, parsing_steps=parsing_steps)
+    return OutputWithParsed(task_spec=prev_output.task_spec, inference_output=ret, parsing_steps=parsing_steps)
 
 
 def get_examples_for_tasks(tasks: Sequence[str] | str) -> Slist[tuple[str, DataExampleBase]]:
@@ -101,6 +99,7 @@ async def main(exp_dir="experiments/er_testing2"):
         )
         .flatten_iterable()
         .map_blocking_par(lambda x: call_model_with_task_spec(x, caller))
+        .flatten_iterable()
         .map_blocking_par(lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config))
         .tqdm(None)
     )

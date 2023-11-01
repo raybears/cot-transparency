@@ -9,8 +9,6 @@ from enum import Enum
 
 from slist import Slist, identity
 
-from cot_transparency.apis.base import Prompt
-from cot_transparency.apis.openai import OpenAIChatPrompt
 from cot_transparency.apis.openai.finetune import (
     FineTuneHyperParams,
     FineTuneParams,
@@ -74,27 +72,26 @@ from scripts.training_formatters import (
 class Augmentor:
     @staticmethod
     @abstractmethod
-    def augment(prompt: Prompt) -> Prompt:
-        prompt.model_copy(deep=True)
-        return prompt
+    def augment(messages: Sequence[ChatMessage]) -> Sequence[ChatMessage]:
+        return list(messages)
 
 
-class RandomCOTPromptAugmentor:
+class RandomCOTPromptAugmentor(Augmentor):
     @staticmethod
-    def augment(prompt: Prompt) -> OpenAIChatPrompt:
+    def augment(messages: Sequence[ChatMessage]) -> Sequence[ChatMessage]:
         new = []
-        for message in prompt.messages:
+        for message in messages:
             content: str = message.content
             if VERBALIZE_INSTRUCTION in content:
                 content = content.replace(VERBALIZE_INSTRUCTION, sample_cot_variant(content))
             new.append(ChatMessage(role=message.role, content=content))
-        return OpenAIChatPrompt(messages=new)
+        return new
 
 
-class RandomNonCOTPromptAugmentor:
+class RandomNonCOTPromptAugmentor(Augmentor):
     @staticmethod
-    def augment(prompt: Prompt) -> OpenAIChatPrompt:
-        messages = Slist(prompt.messages)
+    def augment(messages: Sequence[ChatMessage]) -> Sequence[ChatMessage]:
+        messages = Slist(messages)
         # ref to the first user message
         first_user_idx: int = messages.find_one_idx_or_raise(lambda x: x.role == MessageRole.user)
         content = messages[first_user_idx].content
@@ -102,7 +99,7 @@ class RandomNonCOTPromptAugmentor:
         sampled_no_cot_instruction: str = content + "\n" + non_sample_cot_variant(seed=content)
         messages[first_user_idx] = ChatMessage(role=MessageRole.user, content=sampled_no_cot_instruction)
 
-        return OpenAIChatPrompt(messages=messages)
+        return messages
 
 
 def augment_cots_big_brain(
@@ -111,9 +108,9 @@ def augment_cots_big_brain(
     new = Slist[BiasedQuestionUnbiasedCOT]()
     for item in items:
         new_item = item.model_copy()
-        new_item.biased_question = RandomCOTPromptAugmentor.augment(Prompt(messages=item.biased_question)).messages
+        new_item.biased_question = RandomCOTPromptAugmentor.augment(messages=item.biased_question)
         # make sure the unbiased context is also augmented
-        new_item.unbiased_question = RandomCOTPromptAugmentor.augment(Prompt(messages=item.unbiased_question)).messages
+        new_item.unbiased_question = RandomCOTPromptAugmentor.augment(messages=item.unbiased_question)
         new.append(new_item)
     return new
 
@@ -124,47 +121,21 @@ def augment_non_cots_big_brain(
     new = Slist[BiasedQuestionUnbiasedCOT]()
     for item in items:
         new_item = item.model_copy()
-        new_item.biased_question = RandomNonCOTPromptAugmentor.augment(Prompt(messages=item.biased_question)).messages
+        new_item.biased_question = RandomNonCOTPromptAugmentor.augment(messages=item.biased_question)
         # make sure the unbiased context is also augmented
-        new_item.unbiased_question = RandomNonCOTPromptAugmentor.augment(
-            Prompt(messages=item.unbiased_question)
-        ).messages
+        new_item.unbiased_question = RandomNonCOTPromptAugmentor.augment(messages=item.unbiased_question)
         new.append(new_item)
     return new
 
 
 def augment_non_cot_task(item: TaskOutput) -> TaskOutput:
-    new_messages = RandomNonCOTPromptAugmentor.augment(OpenAIChatPrompt(messages=item.task_spec.messages)).messages
-
+    new_messages = RandomNonCOTPromptAugmentor.augment(messages=item.task_spec.messages)
     return item.copy_update(task_spec=item.task_spec.copy_update(messages=new_messages))
 
 
 def augment_cot_task(item: TaskOutput) -> TaskOutput:
-    new_messages = RandomCOTPromptAugmentor.augment(OpenAIChatPrompt(messages=item.task_spec.messages)).messages
+    new_messages = RandomCOTPromptAugmentor.augment(messages=item.task_spec.messages)
     return item.copy_update(task_spec=item.task_spec.copy_update(messages=new_messages))
-
-
-def fine_tune_with_naive_cots(n: int):
-    cots: Slist[TaskOutput] = get_training_cots_gpt_35().shuffle(seed="42").take(n)
-    print(f"Number of cots: {len(cots)}")
-    messages = [FinetuneSample.from_task_output(task) for task in cots]
-    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
-    _id = run_finetune_with_wandb(params=params, samples=messages)
-
-
-def distinct_at_front_shuffle(items: Slist[TaskOutput], limit: int) -> Slist[TaskOutput]:
-    """Shuffles the items, but puts the distinct task hash items at the front"""
-    already_seen: set[str] = set()
-    distinct_items = Slist[TaskOutput]()
-    non_distinct_items = Slist[TaskOutput]()
-    for item in items:
-        if item.task_spec.task_hash not in already_seen:
-            distinct_items.append(item)
-            already_seen.add(item.task_spec.task_hash)
-        else:
-            non_distinct_items.append(item)
-    print(f"Number of distinct questions: {len(distinct_items)}")
-    return (distinct_items.shuffle(seed="42") + non_distinct_items.shuffle(seed="42")).take(limit)
 
 
 def distinct_at_front_shfufle_big_brain(
@@ -233,35 +204,6 @@ def fine_tune_with_big_brain(
         more_config=more_config,
     )
     return _id
-
-
-def sample_from_cot_biases(
-    exclude_formatters: Sequence[type[StageOneFormatter]],
-) -> type[StageOneFormatter]:
-    cot_biases = Slist(TRAINING_COT_FORMATTERS)
-    return (
-        cot_biases.filter(lambda x: x not in exclude_formatters if exclude_formatters else True)
-        .shuffle()
-        .first_or_raise()
-    )
-
-
-def sample_from_non_cot_biases(
-    exclude_formatters: Sequence[type[StageOneFormatter]], seed: str
-) -> type[StageOneFormatter]:
-    non_cot_biases = Slist(TRAINING_NO_COT_FORMATTERS)
-    return non_cot_biases.filter(lambda x: x not in exclude_formatters).shuffle(seed=seed).first_or_raise()
-
-
-def replace_unbiased_cot_prompt_with_biased(
-    task: TaskOutput, exclude_formatters: Sequence[type[StageOneFormatter]]
-) -> TaskOutput:
-    new = task.model_copy(deep=True)
-    assert task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
-    sampled_formatter = sample_from_cot_biases(exclude_formatters)
-    data_example: DataExampleBase = task.task_spec.get_data_example_obj()
-    new.task_spec.messages = sampled_formatter.format_example(data_example)
-    return new
 
 
 def replace_unbiased_cot_prompt_with_formatters(
@@ -646,6 +588,7 @@ def fine_tune_with_bias_augmentation(
     ask_to_validate_training: bool = True,
     sampler: FormatSampler = RandomSampler(),
     prepend_notes: str = "",
+    permute_verbalize_instructions: bool = True,
     no_overlap_cot_non_cot: bool = False,
 ) -> str:
     """
@@ -677,8 +620,9 @@ def fine_tune_with_bias_augmentation(
 
     # Non Cots
     print(f"Number of non cots: {len(non_cot_data_shuffled)}")
-    non_cot_tasks = sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit).map(
-        augment_non_cot_task
+    non_cot_tasks = (
+        sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit)
+        .map(lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x)
     )
 
     non_cot_hashes: set[str] = {task.task_spec.task_hash for task in non_cot_tasks}
@@ -703,7 +647,7 @@ def fine_tune_with_bias_augmentation(
     cot_samples = (
         sampler.sample(cots_no_overlap, eligible_cot_formatters, cot_limit)
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
-        .map(augment_cot_task)
+        .map(lambda x: augment_cot_task(x) if permute_verbalize_instructions else x)
         .map(task_output_to_finetune_sample)
     )
 
