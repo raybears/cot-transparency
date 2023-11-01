@@ -610,13 +610,10 @@ def fine_tune_with_bias_augmentation(
         n_cot_val_samples + 20
     )
 
-    non_cot_tasks = sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit).map(
-        lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x
-    )
-
+    non_cot_tasks = non_cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes)
     # remove the val samples from the non cot data
     non_cot_samples = get_non_cot_samples(
-        non_cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes),
+        non_cot_tasks,
         eligible_non_cot_formatters,
         non_cot_limit,
         sampler,
@@ -889,12 +886,10 @@ if __name__ == "__main__":
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
-        exclude_formatters=[
-            WrongFewShotIgnoreMistakesBiasedFormatter,
-            WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-        ],
-        n_samples=10000,
+        n_samples=100,
         post_hoc=False,
         cot_percentage=0.50,
         project_name="consistency-training",
+        no_overlap_cot_non_cot=True,
+        sampler=NFormatsPerQuestionSampler(2),
     )
