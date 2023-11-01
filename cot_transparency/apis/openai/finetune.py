@@ -314,8 +314,8 @@ def run_finetune_from_file(
 
 def run_finetune(
     params: FineTuneParams,
-    samples: list[FinetuneSample],
-    val_samples: Optional[list[FinetuneSample]] = None,
+    samples: Sequence[FinetuneSample],
+    val_samples: Sequence[FinetuneSample] = [],
     syncer: Optional[WandbSyncer] = None,
     ask_to_validate_training: bool = True,
 ) -> str:
@@ -330,7 +330,7 @@ def run_finetune(
     # write to file
     write_jsonl_file_from_basemodel(path=write_jsonl_path, basemodels=samples)
 
-    if val_samples is not None:
+    if val_samples:
         val_file_name = Path(f"./data/uploaded_finetuning_files/{params.model}-{now_time}-val.jsonl")
         write_jsonl_file_from_basemodel(path=val_file_name, basemodels=val_samples)
     else:
@@ -344,8 +344,8 @@ def run_finetune(
 
 def run_finetune_with_wandb(
     params: FineTuneParams,
-    samples: list[FinetuneSample],
-    val_samples: Optional[list[FinetuneSample]] = None,
+    samples: Sequence[FinetuneSample],
+    val_samples: Sequence[FinetuneSample] = [],
     project_name: str = "consistency-training",
     notes: Optional[str] = None,
     more_config: Mapping[str, Any] = {},
