@@ -104,13 +104,14 @@ doc.addEventListener('keydown', function(e) {
 left = st.columns(1)
 
 i = 0
-st.markdown(f"Showing {len(everything)} finetuning samples ")
+
 filtered = search(
     items=everything,
     completion_search=completion_search,
     prompt_search=prompt_search,
 )
-show_item_idx = st.session_state.count % len(everything) if len(everything) > 0 else 0
-first = everything[show_item_idx] if len(everything) > 0 else None
+st.markdown(f"Showing {len(filtered)} finetuning samples ")
+show_item_idx = st.session_state.count % len(filtered) if len(filtered) > 0 else 0
+first = filtered[show_item_idx] if len(filtered) > 0 else None
 if first is not None:
     display_messages([i.to_chat_message() for i in first.messages])
