@@ -141,6 +141,10 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z": "Trained with biased contexts (ours)\n 50% COT, 10k samples\n correct only",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j": "Trained with biased contexts (ours)\n 2% COT, 10k samples\n correct only",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0": "Trained with biased contexts (ours)\n 98% COT, 10k samples\n correct only",
+    "ft:gpt-3.5-turbo-0613:far-ai::8G1QYyMD": "Trained with biased contexts (ours)\n 2% COT, 10k samples\n unfiltered",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB": "Trained with biased contexts (ours)\n 50% COT, 10k samples\n unfiltered",
+    "ft:gpt-3.5-turbo-0613:far-ai::8G1YsULJ": "Trained with biased contexts (ours)\n 98% COT, 10k samples\n unfiltered",
+    "ft:gpt-3.5-turbo-0613:far-ai::8G4AfzJQ": "Trained with unbiased contexts (control)\n 98% COT, 10k samples\n correct only",
 }
 
 
@@ -156,10 +160,10 @@ async def main():
     # super dataset 100k ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W
     models = [
         "gpt-3.5-turbo",
-        ### START 2%, 50%, 98% COT
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
+        ### START 2%, 50%, 98% COT UNFILTER
+        # "ft:gpt-3.5-turbo-0613:far-ai::8G1QYyMD",  # 2%
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB",  # 50%
+        # "ft:gpt-3.5-turbo-0613:far-ai::8G1YsULJ",  # 98%
         ### END
         ### START Hunar's, Control, Ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
@@ -168,9 +172,11 @@ async def main():
         ## START compare to unfiltered
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB", # ours 50-50 10k unfiltered
         ### START 2%, 50%, 98% COT CORRECT
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j",  # 2 %
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # 50%
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j",  # 2 %
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # 50%
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0",  # 98%
+        # "ft:gpt-3.5-turbo-0613:far-ai::8G3Avv2Y", # 98% rerun
+        "ft:gpt-3.5-turbo-0613:far-ai::8G4AfzJQ",  # control 98% 10k correct
     ]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],

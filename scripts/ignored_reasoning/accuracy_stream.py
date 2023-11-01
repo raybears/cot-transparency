@@ -20,13 +20,20 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu", # control 50-50 10k correct
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1CkN92",  # control 50-50 10k unfiltered
         ### START 2%, 50%, 98% COT CORRECT
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j",  # 2 %
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # 50%
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0",  # 98%
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j",  # 2 %
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # 50%
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0",  # 98%
         ### END
+        ## START compare to unfiltered
+        # "ft:gpt-3.5-turbo-0613:far-ai::8G1QYyMD",  # 2%
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB",  # 50%
+        # "ft:gpt-3.5-turbo-0613:far-ai::8G1YsULJ",  # 98%
+        ## END
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0",  # 98%
+        # "ft:gpt-3.5-turbo-0613:far-ai::8G3Avv2Y", # 98% rerun
+        "ft:gpt-3.5-turbo-0613:far-ai::8G4AfzJQ",  # control 98% 10k correct
         ## START 2%, 50%, 98% COT CORRECT CONTROL
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu", # 50%
-        
         ### START Hunar's, Control, Ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FqqxEJy",  # control 10k correct
@@ -39,7 +46,7 @@ async def plot_accuracies():
         ### Start correct % scaling
         # "ft:gpt-3.5-turbo-0613:far-ai::8G1pRP5X",  # 100 samples correct
         # "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",  # 1000 samples correct
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # 10000 samples correct
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # 10000 samples correct
     ]
     stage_one_path = Path("experiments/changed_answer/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
