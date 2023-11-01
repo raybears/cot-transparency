@@ -575,7 +575,9 @@ class NFormatsPerQuestionSampler(FormatSampler):
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
         if self.n_formats_per_question > len(formatters):
-            print("Warning: n_formats_per_question > len(formatters), using all formatters")
+            print(
+                f"Warning: n_formats_per_question={self.n_formats_per_question} > len(formatters):{len(formatters)}: , using all formatters"
+            )
 
         n_formats_per_question = min(self.n_formats_per_question, len(formatters))
 
@@ -594,7 +596,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
             output.extend(replaced)
 
         output = output.take(n)
-        assert len(output) == n
+        assert len(output) == n, f"len(output)={len(output)}, n={n}"
         print(f"Formatter counts:\n{json.dumps(formatter_counts, indent=2)}")
 
         return output
