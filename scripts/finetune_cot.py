@@ -148,29 +148,6 @@ def augment_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
     return item.update_messages_in_task_spec(messages=new_messages)
 
 
-def fine_tune_with_naive_cots(n: int):
-    cots = Slist(get_training_cots_gpt_35()).shuffle(seed="42").take(n)
-    print(f"Number of cots: {len(cots)}")
-    messages = [FinetuneSample.from_task_output(task) for task in cots]
-    params = FineTuneParams(model="gpt-3.5-turbo", hyperparameters=FineTuneHyperParams(n_epochs=1))
-    _id = run_finetune_with_wandb(params=params, samples=messages)
-
-
-def distinct_at_front_shuffle(items: Slist[TaskOutput], limit: int) -> Slist[TaskOutput]:
-    """Shuffles the items, but puts the distinct task hash items at the front"""
-    already_seen: set[str] = set()
-    distinct_items = Slist[TaskOutput]()
-    non_distinct_items = Slist[TaskOutput]()
-    for item in items:
-        if item.task_spec.task_hash not in already_seen:
-            distinct_items.append(item)
-            already_seen.add(item.task_spec.task_hash)
-        else:
-            non_distinct_items.append(item)
-    print(f"Number of distinct questions: {len(distinct_items)}")
-    return (distinct_items.shuffle(seed="42") + non_distinct_items.shuffle(seed="42")).take(limit)
-
-
 def distinct_at_front_shfufle_big_brain(
     items: Slist[BiasedQuestionUnbiasedCOT],
 ) -> Slist[BiasedQuestionUnbiasedCOT]:
@@ -237,35 +214,6 @@ def fine_tune_with_big_brain(
         more_config=more_config,
     )
     return _id
-
-
-def sample_from_cot_biases(
-    exclude_formatters: Sequence[type[StageOneFormatter]],
-) -> type[StageOneFormatter]:
-    cot_biases = Slist(TRAINING_COT_FORMATTERS)
-    return (
-        cot_biases.filter(lambda x: x not in exclude_formatters if exclude_formatters else True)
-        .shuffle()
-        .first_or_raise()
-    )
-
-
-def sample_from_non_cot_biases(
-    exclude_formatters: Sequence[type[StageOneFormatter]], seed: str
-) -> type[StageOneFormatter]:
-    non_cot_biases = Slist(TRAINING_NO_COT_FORMATTERS)
-    return non_cot_biases.filter(lambda x: x not in exclude_formatters).shuffle(seed=seed).first_or_raise()
-
-
-def replace_unbiased_cot_prompt_with_biased(
-    task: TaskOutput, exclude_formatters: Sequence[type[StageOneFormatter]]
-) -> TaskOutput:
-    new = task.model_copy(deep=True)
-    assert task.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
-    sampled_formatter = sample_from_cot_biases(exclude_formatters)
-    data_example: DataExampleBase = task.task_spec.get_data_example_obj()
-    new.task_spec.messages = sampled_formatter.format_example(data_example)
-    return new
 
 
 def replace_unbiased_cot_prompt_with_formatters(
@@ -516,13 +464,16 @@ class RandomSampler(FormatSampler):
         n: int,
     ) -> Slist[BaseTaskOuput]:
         """
-        Takes a sequnce of outputs and returns a sequence of outputs of length n
+        Takes a sequence of outputs and returns a sequence of outputs of length n
         """
         tasks = Slist(tasks)
         tasks = (
             tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters))
             .flatten_list()
-            .repeat_until_size_or_raise(n)
+            # IMPORTANT: we shuffle the tasks before taking n
+            # Otherwise, we will always have a small amount of unique questions
+            .shuffle(seed="42")
+            .take(n)
         )
         assert len(tasks) == n, f"len(tasks)={len(tasks)}, n={n}"
         return tasks
