@@ -50,6 +50,10 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    GoldStandardNoCotFormatter,
+    GoldStandardWithCotFormatter,
+)
 from cot_transparency.formatters.prompt_sensitivity.interventions import (
     AddBestAnswerIsNonCot,
     AddVerbalizeAndStepByStepAssistantPref,
@@ -351,6 +355,7 @@ class FormatterOptions(str, Enum):
     prompt_variants_all = "prompt_variants_all"
     super_dataset = "super_dataset"
     ask_paraphrased = "ask_paraphrased"
+    gs_unbiased = "gs_unbiased"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -436,6 +441,10 @@ def match_formatter_options(
         case FormatterOptions.ask_paraphrased:
             cot_formatters = []
             non_cot_formatters = []
+
+        case FormatterOptions.gs_unbiased:
+            cot_formatters = [FormatterWithPossibleIntervention(formatter=GoldStandardWithCotFormatter)]
+            non_cot_formatters = [FormatterWithPossibleIntervention(formatter=GoldStandardNoCotFormatter)]
 
     return FormatterOptionsResult(
         biased_formatters=sorted(list(set(cot_formatters))),
@@ -621,7 +630,7 @@ def fine_tune_with_bias_augmentation(
 
     non_cot_data_shuffled: Sequence[BaseTaskOuput] = Slist(non_cot_data).shuffle(seed="42")
     # use a different seed for cots and non cots in case the data is in the same order
-    cot_data_shuffled = Slist(cot_data).shuffle(seed="1")  
+    cot_data_shuffled = Slist(cot_data).shuffle(seed="1")
     formatter_options_result = match_formatter_options(formatter_options)
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters
@@ -636,14 +645,17 @@ def fine_tune_with_bias_augmentation(
 
     # split of val samples
     n_non_cot_val_samples = int(n_val_samples * (1 - cot_percentage))
-    to_take = n_non_cot_val_samples + 20 # add a few in case some of the questions don't have paraphrasings
-    non_cot_data_shuffled, non_cot_data_val = (
-        non_cot_data_shuffled[:-to_take],
-        non_cot_data_shuffled[-to_take:],
+    n_cot_val_samples = int(n_val_samples * cot_percentage)
+
+    val_task_hashes: set[str] = set()
+    non_cot_data_val = non_cot_data_shuffled.take(n_non_cot_val_samples + 20)
+    non_cot_data_val.map(lambda x: val_task_hashes.add(x.get_task_spec().get_task_hash()))
+    cot_data_val = cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes).take(
+        n_cot_val_samples + 20
     )
 
     non_cot_samples = get_non_cot_samples(
-        non_cot_data_shuffled,
+        non_cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes),
         eligible_non_cot_formatters,
         non_cot_limit,
         sampler,
@@ -662,12 +674,8 @@ def fine_tune_with_bias_augmentation(
     # CoTs
     print(f"Number of cots: {len(cot_data_shuffled)}")
     # split of val samples
-    n_cot_val_samples = int(n_val_samples * cot_percentage)
-    to_take = n_cot_val_samples + 20 # add a few in case some of the questions don't have paraphrasings
-    cot_data_shuffled, cot_data_val = cot_data_shuffled[:-to_take], cot_data_shuffled[-to_take:]
-
     cot_samples = get_cot_samples(
-        cot_data_shuffled,
+        cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes),
         eligible_cot_formatters,
         cot_limit,
         sampler,

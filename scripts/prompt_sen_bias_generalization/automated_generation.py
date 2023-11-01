@@ -34,6 +34,7 @@ from cot_transparency.streaming.tasks import call_model_with_task_spec
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
+    NFormatsPerQuestionSampler,
     ParaphrasingSampler,
     fine_tune_with_bias_augmentation,
 )
@@ -320,7 +321,15 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     plt.show()
 
 
-def train_and_run(n_samples: int = 10000, n_formats_per_question: int = 2):
+def train_and_run(n_samples: int = 10000, n_formats_per_question: int = 2, unbiased: bool = False):
+    if unbiased:
+        assert n_formats_per_question == 1, "Only makes sense to have one format per question for unbiased"
+        sampler = NFormatsPerQuestionSampler(n_formats_per_question=1)
+        formatter_options = FormatterOptions.gs_unbiased
+    else:
+        sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question)
+        formatter_options = FormatterOptions.ask_paraphrased
+
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
@@ -328,8 +337,8 @@ def train_and_run(n_samples: int = 10000, n_formats_per_question: int = 2):
         post_hoc=False,
         cot_percentage=0.50,
         project_name="consistency-training",
-        formatter_options=FormatterOptions.ask_paraphrased,
-        sampler=ParaphrasingSampler(n_formats_per_question=n_formats_per_question),
+        formatter_options=formatter_options,
+        sampler=sampler,
         permute_verbalize_instructions=False,
         data_from_options=DataFromOptions.gpt_35_turbo_gs,
         model_output_verified=ModelOutputVerified.unfiltered,
