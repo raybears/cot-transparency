@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Optional, Sequence, Type
+from typing import Any, Optional, Self, Sequence, Type
 
 from pydantic import AliasChoices, BaseModel, Field
 
@@ -39,6 +39,25 @@ class BaseTaskSpec(HashableBaseModel):
     def get_task_name(self) -> str:
         raise NotImplementedError
 
+    def uid(self) -> str:
+        return self.model_hash()
+
+    @abstractmethod
+    def get_data_example_obj(self) -> DataExampleBase:
+        raise NotImplementedError
+
+    @abstractmethod
+    def copy_update(
+        self,
+        *,
+        messages: Sequence[ChatMessage] | Unset = _UNSET,
+    ) -> "BaseTaskSpec":
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_task_hash(self) -> str:
+        raise NotImplementedError
+
 
 class TaskSpec(BaseTaskSpec):
     # This is a dataclass because a PromptFormatter isn't serializable
@@ -59,6 +78,7 @@ class TaskSpec(BaseTaskSpec):
 
     def copy_update(
         self,
+        *,
         task_name: str | Unset = _UNSET,
         messages: Sequence[ChatMessage] | Unset = _UNSET,
         out_file_path: Path | Unset = _UNSET,
@@ -134,15 +154,25 @@ class TaskSpec(BaseTaskSpec):
     def get_task_name(self) -> str:
         return self.task_name
 
+    def get_task_hash(self) -> str:
+        return self.task_hash
 
-class BaseTaskOuput(BaseModel, ABC):
+
+class BaseTaskOuput(HashableBaseModel, ABC):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
-    # we dong not specify task_spec here because of invariance of variables so we instead specify
+    # we do not specify task_spec here because of invariance of variables so we instead specify
     # the get_task_spec() interface which can obey covariance properly
 
     @abstractmethod
     def get_task_spec(self) -> BaseTaskSpec:
         raise NotImplementedError
+
+    @abstractmethod
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
+        raise NotImplementedError
+
+    def uid(self) -> str:
+        return self.model_hash()
 
 
 class TaskOutput(BaseTaskOuput):
@@ -153,6 +183,7 @@ class TaskOutput(BaseTaskOuput):
 
     def copy_update(
         self,
+        *,
         task_spec: TaskSpec | Unset = _UNSET,
         inference_output: ModelOutput | Unset = _UNSET,
         response_idx: int | Unset = _UNSET,
@@ -162,6 +193,9 @@ class TaskOutput(BaseTaskOuput):
             inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
             response_idx=response_idx if not isinstance(response_idx, Unset) else self.response_idx,
         )
+
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
+        return self.copy_update(task_spec=self.task_spec.copy_update(messages=messages))
 
     def get_task_spec(self) -> TaskSpec:
         return self.task_spec
@@ -318,9 +352,25 @@ class StageTwoTaskSpec(BaseTaskSpec):
         )
         return s1
 
+    # take all the class variables or Unset
+    def copy_update(
+        self,
+        *,
+        messages: Sequence[ChatMessage] | Unset = _UNSET,
+    ):
+        return StageTwoTaskSpec(
+            stage_one_output=self.stage_one_output,
+            inference_config=self.inference_config,
+            messages=messages if not isinstance(messages, Unset) else self.messages,
+            out_file_path=self.out_file_path,
+            formatter_name=self.formatter_name,
+            trace_info=self.trace_info,
+            n_steps_in_cot_trace=self.n_steps_in_cot_trace,
+        )
+
 
 class StageTwoTaskOutput(BaseTaskOuput):
-    task_spec: StageTwoTaskSpec  # type: ignore[reportIncompatibleVariableOverride]
+    task_spec: StageTwoTaskSpec
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0
 
@@ -348,6 +398,13 @@ class StageTwoTaskOutput(BaseTaskOuput):
 
     def get_task_spec(self) -> BaseTaskSpec:
         return self.task_spec
+
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
+        return StageTwoTaskOutput(
+            task_spec=self.task_spec.copy_update(messages=messages),
+            inference_output=self.inference_output,
+            response_idx=self.response_idx,
+        )
 
 
 class ExperimentJsonFormat(BaseModel):

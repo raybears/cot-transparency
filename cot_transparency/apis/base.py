@@ -89,6 +89,13 @@ class ModelCaller(ABC):
 
         return CachedCaller(wrapped_caller=self, cache_path=cache_path, write_every_n=write_every_n)
 
+    def with_model_specific_file_cache(self, cache_dir: Path | str, write_every_n: int = 20) -> "CachedPerModelCaller":
+        if isinstance(cache_dir, str):
+            cache_dir = Path(cache_dir)
+        assert not (cache_dir.is_file() or cache_dir.suffix == ".jsonl"), "Cache dir must be a directory"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return CachedPerModelCaller(wrapped_caller=self, cache_dir=cache_dir, write_every_n=write_every_n)
+
 
 def file_cache_key(messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> str:
     str_messages = ",".join([str(msg) for msg in messages]) + config.model_hash()
@@ -165,3 +172,40 @@ class CachedCaller(ModelCaller):
 
     def __del__(self):
         self.save_cache()
+
+
+class CachedPerModelCaller(ModelCaller):
+    """
+    This class will create a seperate cache (and corresponding file) for each model that is called
+    useful if you want to run multiple models in parallel without having to worry about cache conflicts
+    """
+
+    def __init__(self, wrapped_caller: ModelCaller, cache_dir: Path, write_every_n: int):
+        self.model_caller = wrapped_caller
+        self.cache_dir = cache_dir
+        self.cache_callers: dict[str, CachedCaller] = {}
+        self.write_every_n = write_every_n
+
+    def call(
+        self,
+        messages: Sequence[ChatMessage],
+        config: OpenaiInferenceConfig,
+    ) -> InferenceResponse:
+        return self.get_specific_caller(config.model).call(messages, config)
+
+    def get_specific_caller(
+        self,
+        cache_name: str,
+    ) -> CachedCaller:
+        """
+        This returns a CachedCaller that will save into self.cache_dir/cache_name.jsonl.
+        """
+
+        if cache_name not in self.cache_callers:
+            cache_path = self.cache_dir / f"{cache_name}.jsonl"
+            self.cache_callers[cache_name] = CachedCaller(
+                wrapped_caller=self.model_caller,
+                cache_path=cache_path,
+                write_every_n=self.write_every_n,
+            )
+        return self.cache_callers[cache_name]
