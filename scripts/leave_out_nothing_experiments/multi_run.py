@@ -4,7 +4,8 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
-    fine_tune_with_bias_augmentation_no_repeat,
+    fine_tune_with_bias_augmentation,
+    NFormatsPerQuestionSampler,
 )
 
 if __name__ == "__main__":
@@ -14,7 +15,7 @@ if __name__ == "__main__":
             FormatterOptions.all_biased,
             FormatterOptions.control_only_unbiased,
         ]:
-            fine_tune_with_bias_augmentation_no_repeat(
+            fine_tune_with_bias_augmentation(
                 model="gpt-3.5-turbo",
                 n_epochs=1,
                 n_samples=n,
@@ -24,4 +25,5 @@ if __name__ == "__main__":
                 formatter_options=param,
                 model_output_verified=ModelOutputVerified.correct,
                 ask_to_validate_training=False,
+                sampler=NFormatsPerQuestionSampler(1),
             )
