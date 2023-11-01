@@ -290,7 +290,7 @@ def entropy_and_uniform_entropy(outputs: Slist[StreamingTaskOutput]) -> Entropy:
     return Entropy(entropy=entropy, uniform_entropy=uniform_entropy)
 
 
-grouped_outputs = tuple[Group[str, OpenaiInferenceConfig], Entropy]
+grouped_outputs = Group[tuple[str, OpenaiInferenceConfig], Entropy]
 
 
 class Extractor(BaseExtractor[grouped_outputs]):
@@ -309,7 +309,7 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     outputs = read_jsonl_file_into_basemodel(experiment_path, StreamingTaskOutput)
 
     # calculate the entropy
-    with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash, x.task_spec.inference_config)).map(
+    with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash(), x.task_spec.inference_config)).map(
         lambda x: x.map_values(entropy_and_uniform_entropy)
     )
 
