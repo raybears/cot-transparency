@@ -22,7 +22,7 @@ from cot_transparency.data_models.messages import (
     StrictChatMessage,
     StrictMessageRole,
 )
-from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.models import BaseTaskOuput
 from cot_transparency.json_utils.read_write import (
     read_jsonl_file_into_basemodel,
     write_jsonl_file_from_basemodel,
@@ -58,8 +58,8 @@ class FinetuneSample(BaseModel):
     messages: list[StrictChatMessage]
 
     @staticmethod
-    def from_task_output(task: TaskOutput) -> "FinetuneSample":
-        prompt_messages = task.task_spec.messages
+    def from_task_output(task: BaseTaskOuput) -> "FinetuneSample":
+        prompt_messages = task.get_task_spec().messages
         joined = join_assistant_preferred_to_completion(
             messages=prompt_messages, completion=task.inference_output.raw_response
         )
@@ -163,10 +163,10 @@ class WandbSyncer:
         )
         return WandbSyncer(run=run)
 
-    def upload_training_file(self, artifact_path: Path) -> None:
+    def upload_training_file(self, artifact_path: Path, name="training_file") -> None:
         print(f"Uploading training file to wandb. {artifact_path}")
         artifact = wandb.Artifact(
-            name="training_file",
+            name=name,
             type="training_file",
             description="Training file for finetuning",
         )
@@ -188,6 +188,10 @@ class WandbSyncer:
     def update_openai_file_id(self, openai_file_id: str) -> None:
         print(f"Updating openai file id in wandb {openai_file_id}")
         self.run.config.update({"openai_file_id": openai_file_id})
+
+    def update_openai_val_file_id(self, openai_val_file_id: str) -> None:
+        print(f"Updating openai val file id in wandb {openai_val_file_id}")
+        self.run.config.update({"openai_val_file_id": openai_val_file_id})
 
     def update_finetune_job_id(self, finetune_job_id: str) -> None:
         print(f"Updating finetune job id in wandb {finetune_job_id}")
@@ -222,11 +226,14 @@ class WandbSyncer:
     exceptions=(RateLimitError, APIConnectionError),
     delay=60,  # Try again in 60 seconds
 )
-def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParams) -> FinetuneJob:
+def queue_finetune(
+    file_id: str, model: str, hyperparameters: FineTuneHyperParams, val_file_id: str | None = None
+) -> FinetuneJob:
     # Keep retrying until we can queue the finetune job
     # pick an org at random
     finetune_job_resp = openai.FineTuningJob.create(
         training_file=file_id,
+        validation_file=val_file_id,
         model=model,
         hyperparameters=hyperparameters.model_dump(),
     )
@@ -236,34 +243,60 @@ def queue_finetune(file_id: str, model: str, hyperparameters: FineTuneHyperParam
     return parsed_job_resp
 
 
+def create_openai_buffer(samples: list[FinetuneSample]) -> io.StringIO:
+    buffer = io.StringIO()
+    for item in samples:
+        buffer.write(item.model_dump_json() + "\n")
+    buffer.seek(0)
+    return buffer
+
+
 def run_finetune_from_file(
     params: FineTuneParams,
     file_path: Path,
     syncer: Optional[WandbSyncer] = None,
+    val_file_path: Optional[Path] = None,
 ):
     samples = read_jsonl_file_into_basemodel(file_path, FinetuneSample)
 
     if syncer:
         syncer.update_parameters(params=params)
         syncer.upload_training_file(file_path)
+        if val_file_path:
+            syncer.upload_training_file(val_file_path, name="validation_file")
         syncer.update_n_samples(n_samples=len(samples))
-    # write to buffer cos openai wants a buffer
-    buffer = io.StringIO()
-    for item in samples:
-        buffer.write(item.model_dump_json() + "\n")
-    buffer.seek(0)
+
+    train_buffer = create_openai_buffer(samples)
     file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
-        file=buffer,
+        file=train_buffer,
         purpose="fine-tune",
         user_provided_filename=str(file_path),
     )
     file_id = file_upload_resp["id"]
+    if val_file_path:
+        val_samples = read_jsonl_file_into_basemodel(val_file_path, FinetuneSample)
+        val_buffer = create_openai_buffer(val_samples)
+        val_file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
+            file=val_buffer,
+            purpose="fine-tune",
+            user_provided_filename=str(val_file_path),
+        )
+        val_file_id = val_file_upload_resp["id"]
+        if syncer:
+            syncer.update_openai_val_file_id(openai_val_file_id=val_file_id)
+    else:
+        val_file_id = None
+
     if syncer:
         syncer.update_openai_file_id(openai_file_id=file_id)
+
     print(f"Starting file upload. {file_id}")
     wait_until_uploaded_file_id_is_ready(file_id=file_id)
+    wait_until_uploaded_file_id_is_ready(file_id=val_file_id) if val_file_id else None
     print(f"Uploaded file to openai. {file_upload_resp}")
-    finetune_job_resp = queue_finetune(file_id=file_id, model=params.model, hyperparameters=params.hyperparameters)
+    finetune_job_resp = queue_finetune(
+        file_id=file_id, model=params.model, hyperparameters=params.hyperparameters, val_file_id=val_file_id
+    )
     print(f"Started finetune job. {finetune_job_resp}")
 
     if syncer:
@@ -281,7 +314,8 @@ def run_finetune_from_file(
 
 def run_finetune(
     params: FineTuneParams,
-    samples: list[FinetuneSample],
+    samples: Sequence[FinetuneSample],
+    val_samples: Sequence[FinetuneSample] = [],
     syncer: Optional[WandbSyncer] = None,
     ask_to_validate_training: bool = True,
 ) -> str:
@@ -295,15 +329,23 @@ def run_finetune(
     write_jsonl_path.parent.mkdir(parents=True, exist_ok=True)
     # write to file
     write_jsonl_file_from_basemodel(path=write_jsonl_path, basemodels=samples)
+
+    if val_samples:
+        val_file_name = Path(f"./data/uploaded_finetuning_files/{params.model}-{now_time}-val.jsonl")
+        write_jsonl_file_from_basemodel(path=val_file_name, basemodels=val_samples)
+    else:
+        val_file_name = None
+
     if ask_to_validate_training:
         confirm_to_continue(write_jsonl_path)
 
-    return run_finetune_from_file(params=params, file_path=write_jsonl_path, syncer=syncer)
+    return run_finetune_from_file(params=params, file_path=write_jsonl_path, syncer=syncer, val_file_path=val_file_name)
 
 
 def run_finetune_with_wandb(
     params: FineTuneParams,
-    samples: list[FinetuneSample],
+    samples: Sequence[FinetuneSample],
+    val_samples: Sequence[FinetuneSample] = [],
     project_name: str = "consistency-training",
     notes: Optional[str] = None,
     more_config: Mapping[str, Any] = {},
@@ -315,6 +357,7 @@ def run_finetune_with_wandb(
     return run_finetune(
         params=params,
         samples=samples,
+        val_samples=val_samples,
         syncer=WandbSyncer.create(project_name=project_name, notes=notes),
         ask_to_validate_training=ask_to_validate_training,
     )

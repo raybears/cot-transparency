@@ -5,7 +5,7 @@ from grugstream import Observable
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import ModelCaller
+from cot_transparency.apis.base import CachedPerModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import ModelOutput
@@ -24,7 +24,7 @@ class OutputWithParsed(StreamingTaskOutput):
 
 
 def answer_finding_step(
-    prev_output: StreamingTaskOutput, caller: ModelCaller, config: OpenaiInferenceConfig
+    prev_output: StreamingTaskOutput, caller: CachedPerModelCaller, config: OpenaiInferenceConfig
 ) -> OutputWithParsed:
     """
     For any outputs that were not find in the previous step, pass the raw response to another model model and
@@ -54,7 +54,12 @@ def answer_finding_step(
             inference_config=config,
             task_name=prev_output.task_spec.task_name,
         )
-        output_of_parsing = call_model_with_task_spec(task_spec, caller)
+
+        # we do this so that we get a seperate cache for each model that generated the answer
+        # so we can run this script in parallel without running into cache conflicts between processes
+        cache_name = f"{prev_output.get_task_spec().inference_config.model}_{config.model}"
+        specific_caller = caller.get_specific_caller(cache_name=cache_name)
+        output_of_parsing = call_model_with_task_spec(task_spec, specific_caller)
         assert len(output_of_parsing) == 1, "Expected only one output from the answer parsing model"
         output_of_parsing = output_of_parsing[0]
         found_answer = output_of_parsing.inference_output.parsed_response
@@ -83,7 +88,7 @@ def get_examples_for_tasks(tasks: Sequence[str] | str) -> Slist[tuple[str, DataE
 
 async def main(exp_dir="experiments/er_testing2"):
     caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache.jsonl")
-    answer_parsing_caller = UniversalCaller().with_file_cache(f"{exp_dir}/answer_parsing_cache.jsonl")
+    answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(f"{exp_dir}/answer_parsing_cache")
     answer_parsing_config = config_from_default(model="claude-v1")
 
     tasks = get_examples_for_tasks("mmlu").take(180)
