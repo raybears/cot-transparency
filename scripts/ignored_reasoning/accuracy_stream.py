@@ -15,13 +15,18 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB", # ours 50-50 10k unfiltered
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu", # control 50-50 10k correct
-        ### START 2%, 50%, 98% COT
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB",  # ours 50-50 10k unfiltered
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # ours 50-50 10k correct
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu", # control 50-50 10k correct
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1CkN92",  # control 50-50 10k unfiltered
+        ### START 2%, 50%, 98% COT CORRECT
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j",  # 2 %
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # 50%
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0",  # 98%
         ### END
+        ## START 2%, 50%, 98% COT CORRECT CONTROL
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu", # 50%
+        
         ### START Hunar's, Control, Ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FqqxEJy",  # control 10k correct
@@ -31,9 +36,13 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FoGcmzv",  # 2-98 10k unfiltered
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FoCDyL4",  # 50-50 10k unfiltered
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fpr0LvZ",  # #98-2 10k unfiltered
+        ### Start correct % scaling
+        # "ft:gpt-3.5-turbo-0613:far-ai::8G1pRP5X",  # 100 samples correct
+        # "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",  # 1000 samples correct
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # 10000 samples correct
     ]
     stage_one_path = Path("experiments/changed_answer/stage_one.jsonl")
-    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path)
+    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
         tasks=["aqua", "mmlu", "truthful_qa", "logiqa"],
@@ -42,7 +51,7 @@ async def plot_accuracies():
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
-        batch=20,
+        batch=40,
         models=models,
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()

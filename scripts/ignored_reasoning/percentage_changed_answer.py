@@ -136,6 +136,11 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW": "Trained with biased contexts (ours)\n 2% COT, 10k samples",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FqqxEJy": "Trained with unbiased contexts (control) \n 98% COT, 10k samples\n correct only",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fn77EVN": "Trained with biased contexts (ours) \n 98% COT, 10k samples\n correct only",
+    # control 50-50 10k correct
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu": "Trained with unbiased contexts (control)\n 50% COT, 10k samples\n correct only",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z": "Trained with biased contexts (ours)\n 50% COT, 10k samples\n correct only",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j": "Trained with biased contexts (ours)\n 2% COT, 10k samples\n correct only",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0": "Trained with biased contexts (ours)\n 98% COT, 10k samples\n correct only",
 }
 
 
@@ -157,9 +162,15 @@ async def main():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
         ### END
         ### START Hunar's, Control, Ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FqqxEJy",  # control 10k correct
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fn77EVN",  # ours 10k correct
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu",  # control 50-50 10k correct
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # ours 50-50 10k correct
+        ## START compare to unfiltered
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB", # ours 50-50 10k unfiltered
+        ### START 2%, 50%, 98% COT CORRECT
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j",  # 2 %
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",  # 50%
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0",  # 98%
     ]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
@@ -176,11 +187,11 @@ async def main():
     stage_one_caller.save_cache()
     percentage_changed = percentage_changed_per_model(results)
 
-    seaborn_bar_plot_length(
-        results,
-        name_mapping=PERCENTAGE_CHANGE_NAME_MAP,
-        order=models,
-    )
+    # seaborn_bar_plot_length(
+    #     results,
+    #     name_mapping=PERCENTAGE_CHANGE_NAME_MAP,
+    #     order=models,
+    # )
     seaborn_bar_plot(
         percentage_changed,
         name_mapping=PERCENTAGE_CHANGE_NAME_MAP,

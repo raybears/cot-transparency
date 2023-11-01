@@ -535,17 +535,17 @@ def fine_tune_with_bias_augmentation(
     )
     if no_overlap_cot_non_cot:
         print(f"Number of cots after removing overlap: {len(cots_no_overlap)}")
-    cot_samples = (
+    cot_tasks = (
         sampler.sample(cots_no_overlap, eligible_cot_formatters, cot_limit)
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
         .map(lambda x: augment_cot_task(x) if permute_verbalize_instructions else x)
-        .map(task_output_to_finetune_sample)
     )
+    cot_samples = cot_tasks.map(task_output_to_finetune_sample)
 
     assert len(cot_samples) == cot_limit, f"We do not have enough cots, only {len(cot_samples)}, required {cot_limit}"
     print(f"Number of cots after limiting: {len(cot_samples)}")
 
-    cot_hashes: set[str] = {task.task_spec.task_hash for task in cot_samples}
+    cot_hashes: set[str] = {task.task_spec.task_hash for task in cot_tasks}
     if no_overlap_cot_non_cot:
         assert non_cot_hashes.isdisjoint(cot_hashes), "cot and non cot hashes are not disjoint, this is a bug"
 
