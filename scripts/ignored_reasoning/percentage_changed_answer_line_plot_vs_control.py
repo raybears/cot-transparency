@@ -56,7 +56,7 @@ def compute_percentage_changed(results: Slist[TaskOutput]) -> Slist[ChangedAnswe
 
 
 class TrainedOn(str, Enum):
-    CONTROL = "gpt-3.5-turbo + Unbiased contexts training (control)"
+    CONTROL = "gpt-3.5-turbo + Uniltered Unbiased contexts training (control)"
     INTERVENTION = "gpt-3.5-turbo + Biased contexts training (ours)"
     CORRECT = "gpt-3.5-turbo + Always correct biased contexts training (ours)"
 
@@ -145,46 +145,51 @@ async def main():
             #     trained_on=TrainedOn.CONTROL,
             # ),
             ModelMeta(
-                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FojzEiB",
                 trained_samples=1_000,
                 trained_on=TrainedOn.CONTROL,
             ),
             ModelMeta(
-                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FfN5MGW",
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FqqxEJy",
                 trained_samples=10_000,
                 trained_on=TrainedOn.CONTROL,
             ),
             ModelMeta(
-                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo",
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FrnCrPz",
                 trained_samples=100_000,
                 trained_on=TrainedOn.CONTROL,
             ),
             # interventions
-            ModelMeta(
-                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF",
-                trained_samples=1_000,
-                trained_on=TrainedOn.INTERVENTION,
-            ),
-            ModelMeta(
-                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
-                trained_samples=10_000,
-                trained_on=TrainedOn.INTERVENTION,
-            ),
-            ModelMeta(
-                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",
-                trained_samples=100_000,
-                trained_on=TrainedOn.INTERVENTION,
-            ),
-            # Always correct
+            # ModelMeta(
+            #     model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF",
+            #     trained_samples=1_000,
+            #     trained_on=TrainedOn.INTERVENTION,
+            # ),
+            # ModelMeta(
+            #     model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
+            #     trained_samples=10_000,
+            #     trained_on=TrainedOn.INTERVENTION,
+            # ),
+            # ModelMeta(
+            #     model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",
+            #     trained_samples=100_000,
+            #     trained_on=TrainedOn.INTERVENTION,
+            # ),
+            # Always correct intervention
             ModelMeta(
                 model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FmmhY94",
                 trained_samples=1_000,
-                trained_on=TrainedOn.INTERVENTION,
+                trained_on=TrainedOn.CORRECT,
             ),
             ModelMeta(
                 model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fn77EVN",
                 trained_samples=10_000,
-                trained_on=TrainedOn.INTERVENTION,
+                trained_on=TrainedOn.CORRECT,
+            ),
+            ModelMeta(
+                model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FtHKVl8",
+                trained_samples=100_000,
+                trained_on=TrainedOn.CORRECT,
             ),
         ]
     )
@@ -198,7 +203,7 @@ async def main():
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
-        batch=20,
+        batch=40,
         models=models,
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()

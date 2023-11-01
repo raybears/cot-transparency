@@ -115,7 +115,7 @@ def seaborn_bar_plot_length(
     # x-axis is model
     # y-axis is length
     df = pd.DataFrame(_dicts)
-    ax = seaborn.barplot(x="model", y="COT length", data=df, estimator=np.average,order=order_mapped)
+    ax = seaborn.barplot(x="model", y="COT length", data=df, estimator=np.average, order=order_mapped)
 
     # change the y-axis to be "Median COT length"
     ax.set(ylabel="Median COT length")
@@ -124,17 +124,21 @@ def seaborn_bar_plot_length(
 
 
 PERCENTAGE_CHANGE_NAME_MAP = {
-        "gpt-3.5-turbo": "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs": "Trained to follow mistakes",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo": "Trained with unbiased contexts (control)\n 98% COT, 100k samples",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FfN5MGW": "Trained with unbiased contexts (control)\n 98% COT, 10k samples",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR": "Trained with unbiased contexts (control)\n 98% COT, 1k samples",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan": "Trained with biased contexts (ours)\n 98% COT, 100k samples",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF": "Trained with biased contexts (ours)\n 98% COT, 1k samples",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "Trained with biased contexts (ours)\n 98% COT, 10k samples",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg": "Trained with biased contexts (ours)\n 50% COT, 10k samples",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW": "Trained with biased contexts (ours)\n 2% COT, 10k samples",
-    }
+    "gpt-3.5-turbo": "gpt-3.5-turbo",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs": "Trained to follow mistakes",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo": "Trained with unbiased contexts (control)\n 98% COT, 100k samples",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FfN5MGW": "Trained with unbiased contexts (control)\n 98% COT, 10k samples",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR": "Trained with unbiased contexts (control)\n 98% COT, 1k samples",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan": "Trained with biased contexts (ours)\n 98% COT, 100k samples",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ff8h3yF": "Trained with biased contexts (ours)\n 98% COT, 1k samples",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF": "Trained with biased contexts (ours)\n 98% COT, 10k samples",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg": "Trained with biased contexts (ours)\n 50% COT, 10k samples",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW": "Trained with biased contexts (ours)\n 2% COT, 10k samples",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FqqxEJy": "Trained with unbiased contexts (control) \n 98% COT, 10k samples\n correct only",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fn77EVN": "Trained with biased contexts (ours) \n 98% COT, 10k samples\n correct only",
+}
+
+
 async def main():
     stage_one_path = Path("experiments/changed_answer/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path)
@@ -147,16 +151,16 @@ async def main():
     # super dataset 100k ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W
     models = [
         "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FfN5MGW",
+        ### START 2%, 50%, 98% COT
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FenfJNo",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FWFloan",  # 98% cot
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FeFMAOR",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FciULKF",
+        ### END
+        ### START Hunar's, Control, Ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez:qma-me-75-25:8AdFi5Hs",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FqqxEJy",  # control 10k correct
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fn77EVN",  # ours 10k correct
+
     ]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
@@ -166,7 +170,7 @@ async def main():
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
-        batch=20,
+        batch=40,
         models=models,
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()

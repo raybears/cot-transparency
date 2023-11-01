@@ -333,14 +333,6 @@ def replace_unbiased_prompt_with_formatters(
     return output
 
 
-def clean_unbiased_non_cot_raw_response(task: TaskOutput) -> TaskOutput:
-    # Because the model sometimes adds more statements after the answer, and we want to remove it
-    assert task.task_spec.formatter_name == ZeroShotUnbiasedFormatter.name()
-    new = task.model_copy(deep=True)
-    new.inference_output.raw_response = task.task_spec.ground_truth + ")"
-    return new
-
-
 class DataFromOptions(str, Enum):
     gpt_35_turbo = "gpt-3.5-turbo"
     claude_2 = "claude-2"
@@ -490,17 +482,14 @@ def fine_tune_with_bias_augmentation_no_repeat(
     assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     print(f"Number of non cots: {len(non_cot_data)}")
-    non_cot_limited = (
-        non_cot_data_shuffled.map(
-            lambda task: replace_unbiased_prompt_with_formatters(
-                task=task,
-                use_formatters=eligible_non_cot_formatters,
-            )
-            .shuffle()
-            .first_or_raise()
+    non_cot_limited = non_cot_data_shuffled.map(
+        lambda task: replace_unbiased_prompt_with_formatters(
+            task=task,
+            use_formatters=eligible_non_cot_formatters,
         )
-        .take(non_cot_limit)
-    )
+        .shuffle()
+        .first_or_raise()
+    ).take(non_cot_limit)
     assert (
         len(non_cot_limited) == non_cot_limit
     ), f"We do not have enough non cots, only {len(non_cot_limited)}, required {non_cot_limit}"
@@ -628,7 +617,8 @@ class RandomSampler(FormatSampler):
         tasks = (
             tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters))
             .flatten_list()
-            .repeat_until_size_or_raise(n)
+            .shuffle("42")
+            .take(n)
         )
         assert len(tasks) == n, f"len(tasks)={len(tasks)}, n={n}"
         return tasks
@@ -654,6 +644,7 @@ def fine_tune_with_bias_augmentation(
     ask_to_validate_training: bool = True,
     sampler: FormatSampler = RandomSampler(),
     prepend_notes: str = "",
+    no_overlap_cot_non_cot: bool = False,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -684,12 +675,14 @@ def fine_tune_with_bias_augmentation(
 
     # Non Cots
     print(f"Number of non cots: {len(non_cot_data_shuffled)}")
-    non_cot_samples = (
-        sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit)
-        .map(clean_unbiased_non_cot_raw_response)
-        .map(augment_non_cot_task)
-        .map(task_output_to_finetune_sample)
+    non_cot_tasks = sampler.sample(non_cot_data_shuffled, eligible_non_cot_formatters, non_cot_limit).map(
+        augment_non_cot_task
     )
+
+    non_cot_hashes: set[str] = {task.task_spec.task_hash for task in non_cot_tasks}
+    print(f"Unique non cot hashes: {len(non_cot_hashes)}")
+
+    non_cot_samples = non_cot_tasks.map(task_output_to_finetune_sample)
 
     assert (
         len(non_cot_samples) == non_cot_limit
@@ -698,13 +691,21 @@ def fine_tune_with_bias_augmentation(
 
     # CoTs
     print(f"Number of cots: {len(cot_data_shuffled)}")
+    cots_no_overlap = (
+        cot_data_shuffled.filter(lambda task: task.task_spec.task_hash not in non_cot_hashes)
+        if no_overlap_cot_non_cot
+        else cot_data_shuffled
+    )
+    if no_overlap_cot_non_cot:
+        print(f"Number of cots after removing overlap: {len(cots_no_overlap)}")
     cot_samples = (
-        sampler.sample(cot_data_shuffled, eligible_cot_formatters, cot_limit)
+        sampler.sample(cots_no_overlap, eligible_cot_formatters, cot_limit)
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
         .map(augment_cot_task)
         .map(task_output_to_finetune_sample)
     )
-    assert len(cot_samples) == cot_limit, f"We do not have enough cots, only {len(cot_samples)}"
+
+    assert len(cot_samples) == cot_limit, f"We do not have enough cots, only {len(cot_samples)}, required {cot_limit}"
     print(f"Number of cots after limiting: {len(cot_samples)}")
 
     total_task_samples = non_cot_samples + cot_samples
