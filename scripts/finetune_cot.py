@@ -451,13 +451,16 @@ class RandomSampler(FormatSampler):
         n: int,
     ) -> Slist[TaskOutput]:
         """
-        Takes a sequnce of outputs and returns a sequence of outputs of length n
+        Takes a sequence of outputs and returns a sequence of outputs of length n
         """
         tasks = Slist(tasks)
         tasks = (
             tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters))
             .flatten_list()
-            .repeat_until_size_or_raise(n)
+            # IMPORTANT: we shuffle the tasks before taking n
+            # Otherwise, we will always have a small amount of unique questions
+            .shuffle(seed="42")
+            .take(n)
         )
         assert len(tasks) == n, f"len(tasks)={len(tasks)}, n={n}"
         return tasks
