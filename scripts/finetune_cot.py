@@ -21,7 +21,7 @@ from cot_transparency.data_models.data.biased_question_unbiased_cot import (
 )
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.data_models.models import BaseTaskOuput, TaskOutput
+from cot_transparency.data_models.models import BaseTaskOuput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
