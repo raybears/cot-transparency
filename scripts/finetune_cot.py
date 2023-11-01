@@ -886,10 +886,12 @@ if __name__ == "__main__":
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
-        n_samples=100,
+        exclude_formatters=[
+            WrongFewShotIgnoreMistakesBiasedFormatter,
+            WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+        ],
+        n_samples=10000,
         post_hoc=False,
         cot_percentage=0.50,
         project_name="consistency-training",
-        no_overlap_cot_non_cot=True,
-        sampler=NFormatsPerQuestionSampler(2),
     )
