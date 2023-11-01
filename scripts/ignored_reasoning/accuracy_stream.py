@@ -15,6 +15,8 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB", # ours 50-50 10k unfiltered
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu", # control 50-50 10k correct
         ### START 2%, 50%, 98% COT
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgGQFZg",
@@ -26,9 +28,9 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fn77EVN",  # ours 10k correct
         ### END
         ### Start unfiltered % scaling
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FoGcmzv",  # 2-98 10k unfiltered
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FoCDyL4",  # 50-50 10k unfiltered
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fpr0LvZ",  # #98-2 10k unfiltered
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FoGcmzv",  # 2-98 10k unfiltered
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FoCDyL4",  # 50-50 10k unfiltered
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fpr0LvZ",  # #98-2 10k unfiltered
     ]
     stage_one_path = Path("experiments/changed_answer/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path)

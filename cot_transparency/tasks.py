@@ -229,24 +229,11 @@ def task_function(
 ) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
 
-    responses = (
-        call_model_and_raise_if_not_suitable(
-            task=task,
-            config=task.inference_config,
-            formatter=formatter,
-            retries=num_retries,
-            raise_on=raise_on,
-            caller=caller,
-        )
-        if raise_after_retries
-        else call_model_and_catch(
-            task=task,
-            config=task.inference_config,
-            formatter=formatter,
-            retries=num_retries,
-            raise_on=raise_on,
-            caller=caller,
-        )
+    responses = run_task_spec_without_filtering(
+        task=task,
+        config=task.inference_config,
+        formatter=formatter,
+        caller=caller,
     )
 
     if isinstance(task, StageTwoTaskSpec):
