@@ -428,9 +428,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
         if self.n_formats_per_question > len(formatters):
-            print(
-                f"Warning: n_formats_per_question={self.n_formats_per_question} > len(formatters):{len(formatters)}: , using all formatters"
-            )
+            print("Warning: n_formats_per_question > len(formatters), using all formatters")
 
         n_formats_per_question = min(self.n_formats_per_question, len(formatters))
 
@@ -449,7 +447,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
             output.extend(replaced)
 
         output = output.take(n)
-        assert len(output) == n, f"len(output)={len(output)}, n={n}"
+        assert len(output) == n
         print(f"Formatter counts:\n{json.dumps(formatter_counts, indent=2)}")
 
         return output
@@ -558,10 +556,7 @@ def fine_tune_with_bias_augmentation(
     ask_to_validate_training: bool = True,
     sampler: FormatSampler = RandomSampler(),
     prepend_notes: str = "",
-    # If true, we permute the verbalize instructions to have multiple variations
     permute_verbalize_instructions: bool = True,
-    # Ensures that the cot and non cot questions do not overlap
-    no_overlap_cot_non_cot: bool = False,
     n_val_samples: int = 1000,
 ) -> str:
     """
@@ -584,7 +579,7 @@ def fine_tune_with_bias_augmentation(
             non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified)
             cot_data = get_training_cots_gpt_35_gs(model_output_verified)
 
-    non_cot_data_shuffled = Slist(non_cot_data).shuffle(seed="42")
+    non_cot_data_shuffled: Sequence[BaseTaskOuput] = Slist(non_cot_data).shuffle(seed="42")
     # use a different seed for cots and non cots in case the data is in the same order
     cot_data_shuffled = Slist(cot_data).shuffle(seed="1")
     formatter_options_result = match_formatter_options(formatter_options)
@@ -605,24 +600,18 @@ def fine_tune_with_bias_augmentation(
 
     val_task_hashes: set[str] = set()
     non_cot_data_val = non_cot_data_shuffled.take(n_non_cot_val_samples + 20)
-    non_cot_data_val.for_each(lambda x: val_task_hashes.add(x.get_task_spec().get_task_hash()))
+    non_cot_data_val.map(lambda x: val_task_hashes.add(x.get_task_spec().get_task_hash()))
     cot_data_val = cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes).take(
         n_cot_val_samples + 20
     )
 
-    non_cot_tasks = non_cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes)
-    # remove the val samples from the non cot data
     non_cot_samples = get_non_cot_samples(
-        non_cot_tasks,
+        non_cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes),
         eligible_non_cot_formatters,
         non_cot_limit,
         sampler,
         permute_verbalize_instructions,
     )
-
-    non_cot_hashes: set[str] = {task.get_task_spec().get_task_hash() for task in non_cot_tasks}
-    print(f"Unique non cot hashes: {len(non_cot_hashes)}")
-
     print(f"Number of non cots after limiting: {len(non_cot_samples)}")
     non_cot_val_samples = get_non_cot_samples(
         non_cot_data_val,
@@ -635,22 +624,15 @@ def fine_tune_with_bias_augmentation(
 
     # CoTs
     print(f"Number of cots: {len(cot_data_shuffled)}")
-    # Make sure cot_samples doesn't contain any of the val samples
-    # And if no_overlap_cot_non_cot, make sure cot_samples doesn't contain any of the non_cot_samples
-    val_and_non_cot_hashes = val_task_hashes.union(non_cot_hashes) if no_overlap_cot_non_cot else val_task_hashes
-    cot_tasks = cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_and_non_cot_hashes)
-    cot_samples: Slist[FinetuneSample] = get_cot_samples(
-        cot_tasks,
+    # split of val samples
+    cot_samples = get_cot_samples(
+        cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes),
         eligible_cot_formatters,
         cot_limit,
         sampler,
         post_hoc,
         permute_verbalize_instructions,
     )
-    if no_overlap_cot_non_cot:
-        print(f"Number of cots after removing overlap: {len(cot_samples)}")
-
-    assert len(cot_samples) == cot_limit, f"We do not have enough cots, only {len(cot_samples)}, required {cot_limit}"
     print(f"Number of cots after limiting: {len(cot_samples)}")
     cot_val_samples = get_cot_samples(
         cot_data_val,
@@ -661,10 +643,6 @@ def fine_tune_with_bias_augmentation(
         permute_verbalize_instructions,
     )
     print(f"Number of validation cots after limiting: {len(cot_val_samples)}")
-
-    cot_hashes: set[str] = {task.get_task_spec().get_task_hash() for task in cot_tasks}
-    if no_overlap_cot_non_cot:
-        assert non_cot_hashes.isdisjoint(cot_hashes), "cot and non cot hashes are not disjoint, this is a bug"
 
     total_task_samples = non_cot_samples + cot_samples
     val_instruct_samples = int(n_val_samples * instruct_sample_proportion)
@@ -682,8 +660,6 @@ def fine_tune_with_bias_augmentation(
         "instruct_sample_proportion": instruct_sample_proportion,
         "n_cots": len(cot_samples),
         "n_non_cots": len(non_cot_samples),
-        "n_unique_cot_questions": len(cot_hashes),
-        "n_unique_non_cot_questions": len(non_cot_hashes),
         "n_instruct_samples": len(alpaca_samples),
         "n_val_cots": len(cot_val_samples),
         "n_val_non_cots": len(non_cot_val_samples),
@@ -698,8 +674,6 @@ def fine_tune_with_bias_augmentation(
         "control_only_unbiased": control_only_unbiased,
         "model_output_verified": model_output_verified.value,
         "sampling_strategy": sampler,
-        "permute_verbalize_instructions": permute_verbalize_instructions,
-        "no_overlap_cot_non_cot": no_overlap_cot_non_cot,
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)

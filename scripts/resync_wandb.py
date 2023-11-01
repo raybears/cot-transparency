@@ -32,7 +32,7 @@ def get_all_runs_with_missing_finetune_model(project: str) -> list[Any]:
 
 
 if __name__ == "__main__":
-    for project_dir in ["consistency-training"]:
+    for project_dir in ["consistency-training", "prompt_sen_experiments"]:
         runs = get_all_runs_with_missing_finetune_model(project_dir)
         print(f"Found {len(runs)} runs with missing finetune_model_id")
         for run in runs:

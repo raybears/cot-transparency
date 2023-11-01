@@ -1,3 +1,4 @@
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
@@ -117,7 +118,7 @@ def __call_or_raise(
                 f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer:"
                 f"\n\n'{raw_response}'\n\n'last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
             )
-            # logger.warning(msg)
+            logger.warning(msg)
             model_output = ModelOutput(raw_response=raw_response, parsed_response=None)
             return AnswerNotFound(msg, model_output)
 
@@ -229,11 +230,24 @@ def task_function(
 ) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
 
-    responses = run_task_spec_without_filtering(
-        task=task,
-        config=task.inference_config,
-        formatter=formatter,
-        caller=caller,
+    responses = (
+        call_model_and_raise_if_not_suitable(
+            task=task,
+            config=task.inference_config,
+            formatter=formatter,
+            retries=num_retries,
+            raise_on=raise_on,
+            caller=caller,
+        )
+        if raise_after_retries
+        else call_model_and_catch(
+            task=task,
+            config=task.inference_config,
+            formatter=formatter,
+            retries=num_retries,
+            raise_on=raise_on,
+            caller=caller,
+        )
     )
 
     if isinstance(task, StageTwoTaskSpec):
@@ -315,6 +329,7 @@ def run_with_caching(
                     print("Retrying task with None answer")
                     to_do.append(item)
 
+    random.Random(42).shuffle(to_do)
     run_tasks_multi_threaded(
         save_file_every=save_every,
         batch=batch,
