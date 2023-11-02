@@ -200,6 +200,7 @@ class CachedPerModelCaller(ModelCaller):
     ) -> CachedCaller:
         """
         This returns a CachedCaller that will save into self.cache_dir/cache_name.jsonl.
+        A reference to this caller is stored in self.cache_callers
         """
 
         with self.lock:
