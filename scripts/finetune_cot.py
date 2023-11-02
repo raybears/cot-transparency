@@ -453,12 +453,15 @@ def fine_tune_with_bias_augmentation(
     cot_percentage=0.5,
     # cli waits for user input to validate the training
     ask_to_validate_training: bool = True,
-    sampler: FormatSampler = RandomSampler(),
+    # For now we recommend using NFormatsPerQuestionSampler=2, rather than RandomSampler
+    sampler: FormatSampler = NFormatsPerQuestionSampler(n_formats_per_question=2),
     prepend_notes: str = "",
     # If true, we permute the verbalize instructions to have multiple variations
     permute_verbalize_instructions: bool = True,
     # Ensures that the cot and non cot questions do not overlap
-    no_overlap_cot_non_cot: bool = False,
+    # This is useful so the chance of overlaps between the cot and non cot questions does not
+    # change when we change the size of the training data
+    no_overlap_cot_non_cot: bool = True,
     n_val_samples: int = 1000,
 ) -> str:
     """
