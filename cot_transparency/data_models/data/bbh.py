@@ -43,7 +43,7 @@ class MilesBBHRawData(DataExampleBase):
         return q.split("Answer")[0].strip()
 
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         # get the index equal to one of multiple_choice_scores
         ground_truth_idx = self.multiple_choice_scores.index(1)
         letter: MultipleChoiceAnswer = ascii_uppercase[ground_truth_idx]  # type: ignore

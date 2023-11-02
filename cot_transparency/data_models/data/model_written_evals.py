@@ -27,7 +27,7 @@ class ModelWrittenEvalsExample(DataExampleBase):
         return raise_if_not_multiple_choice_answer(ans)
 
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         # Note that these questions don't really have a real "true" answer
         # We just use an answer that does not match the user's opinion
         # Some questions have multiple choices, so we just pick the first one

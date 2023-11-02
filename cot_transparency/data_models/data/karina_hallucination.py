@@ -18,7 +18,7 @@ class KarinaHallucination(DataExampleBase):
     obscurity: str
 
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         """Please implement this method to return the ground truth answer"""
         should_put_true_first = random.Random(self.extracted_queries).random() > 0.5
         if should_put_true_first:

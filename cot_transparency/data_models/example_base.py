@@ -5,6 +5,7 @@ from string import ascii_uppercase
 from typing import Literal, Self, TypeVar, final
 
 from pydantic import BaseModel, ConfigDict
+from slist import Slist
 
 from cot_transparency.util import deterministic_hash
 
@@ -125,12 +126,18 @@ class OptionLayout(str, Enum):
     SENTENCE = "comma"
 
 
+class RandomizeOption(str, Enum):
+    YES = "yes"
+    NO = "no"
+
+
 class DataFormatSpec(BaseModel):
     choice_variant: ChoiceVariant = ChoiceVariant.LETTERS
     question_variant: QuestionPrefix = QuestionPrefix.NONE
     join_variant: JoinStr = JoinStr.ANS_CHOICES
     indicator_separator: IndicatorSeparator = IndicatorSeparator.PAREN
     option_layout: OptionLayout = OptionLayout.NEWLINE
+    randomize_order: RandomizeOption = RandomizeOption.NO
     model_config = ConfigDict(frozen=True)
 
     def __str__(self):
@@ -192,9 +199,17 @@ class DataExampleBase(BaseModel, ABC):
 
     @property
     @abstractmethod
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         """Please implement this method to return the ground truth answer"""
         raise NotImplementedError
+
+    @property
+    def ground_truth(self) -> MultipleChoiceAnswer:
+        # Call this method to get the ground truth
+        # We may shuffle the options so we need to call this method
+        # rather than the _ground_truth method
+        ground_truth_index = self.ground_truth_idx()
+        return ascii_uppercase[ground_truth_index]  # type: ignore
 
     @property
     def ground_truth_indicator(self) -> str:
@@ -210,6 +225,9 @@ class DataExampleBase(BaseModel, ABC):
         if include_none_of_the_above:
             if "none" not in " ".join(options).lower():
                 options.append("None of the above")
+
+        if self.data_format.randomize_order == RandomizeOption.YES:
+            options = Slist(options).shuffle(seed=self._get_question())
         return options
 
     @abstractmethod
@@ -218,17 +236,21 @@ class DataExampleBase(BaseModel, ABC):
         raise NotImplementedError
 
     def ground_truth_idx(self) -> int:
-        return ascii_uppercase.index(self.ground_truth)
+        if self.data_format.randomize_order == RandomizeOption.NO:
+            return ascii_uppercase.index(self._ground_truth)
+        elif self.data_format.randomize_order == RandomizeOption.YES:
+            options = self.get_options()
+            return options.index(self.ground_truth_text)
 
     @property
     def ground_truth_text(self) -> str:
         """The text itself, not the indicator"""
-        options = self._get_options()
+        non_shuffled_options = self._get_options()
         try:
-            return options[self.ground_truth_idx()]
+            non_shuffled_index = ascii_uppercase.index(self._ground_truth)
+            return non_shuffled_options[non_shuffled_index]
         except IndexError:
-            print(f"ground truth idx: {self.ground_truth_idx()}")
-            print(f"options: {options}")
+            print(f"options: {non_shuffled_options}")
             raise
 
     def _get_options_with_indicator(self, options: list[str]) -> str:

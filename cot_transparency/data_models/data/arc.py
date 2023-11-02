@@ -44,7 +44,7 @@ class ArcExample(DataExampleBase):
         return outputs
 
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         label = self.maybe_convert_label(self.answerKey)
         return label
 

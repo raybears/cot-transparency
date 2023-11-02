@@ -45,7 +45,7 @@ class JohnMath(DataExampleBase):
         return answer_list
 
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         found_answer: int = self.deterministic_randomized_options().find_one_idx_or_raise(
             lambda x: x.option == self.correct_answer
         )

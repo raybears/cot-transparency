@@ -28,7 +28,7 @@ class BBQExample(DataExampleBase):
         return self.context + self.question
 
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         label: MultipleChoiceAnswer = ascii_uppercase[int(self.label)]  # type: ignore
         return label
 
