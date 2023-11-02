@@ -310,6 +310,10 @@ class FormatSampler(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def __repr__(self) -> str:
+        raise NotImplementedError
+
 
 class NFormatsPerQuestionSampler(FormatSampler):
     def __init__(self, n_formats_per_question: int):
@@ -436,6 +440,9 @@ class ParaphrasingSampler(FormatSampler):
             breakpoint()
         assert len(ret) == n, "Not enough paraphrased questions"
         return ret
+
+    def __repr__(self) -> str:
+        return f"ParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
 
 
 def fine_tune_with_bias_augmentation(
