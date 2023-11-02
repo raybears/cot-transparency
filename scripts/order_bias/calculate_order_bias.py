@@ -5,11 +5,12 @@ from grugstream import Observable
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.data_models.data.mmlu import MMLU_SUPERCATEGORIES
 from cot_transparency.data_models.example_base import IndicatorAndOption
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import (
-    ZeroShotCOTUnbiasedShuffleFormatter, )
+    ZeroShotUnbiasedShuffledFormatter,
+    ZeroShotCOTUnbiasedShuffleFormatter,
+)
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 
 
@@ -58,21 +59,9 @@ def expected_proportion_first(task: TaskOutput) -> float:
     return 1 / len(options)
 
 
-async def main():
-    stage_one_path = Path("experiments/mmlu_shuffled.jsonl")
-    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=300)
-    stage_one_obs: Observable[TaskOutput] = stage_one_stream(
-        formatters=[ZeroShotCOTUnbiasedShuffleFormatter.name()],
-        tasks=MMLU_SUPERCATEGORIES,
-        example_cap=200,
-        num_retries=1,
-        raise_after_retries=False,
-        temperature=1.0,
-        caller=stage_one_caller,
-        batch=40,
-        models=["ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF"],
-    )
-    results: Slist[TaskOutput] = await stage_one_obs.to_slist()
+def print_results(results: Slist[TaskOutput]) -> None:
+    print(f"=======Model: {results[0].task_spec.inference_config.model}=======")
+    print(f"Number of samples: {len(results)}")
     # print overall accuracy
     accuracy = results.map(calc_accuracy).average_or_raise()
     print(f"Accuracy: {accuracy}")
@@ -96,6 +85,45 @@ async def main():
         results.map(correct_answer_on_where).filter(lambda x: x == Choice.last).length / results.length
     )
     print(f"Frequency of ground truth being last option: {frequency_last_ground_truth}")
+
+
+def group_by_model_print_results(results: Slist[TaskOutput]) -> None:
+    results.group_by(lambda x: x.task_spec.inference_config.model).for_each(lambda group: print_results(group.values))
+
+
+async def main():
+    stage_one_path = Path("experiments/mmlu_shuffled.jsonl")
+    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=200)
+    stage_one_obs: Observable[TaskOutput] = stage_one_stream(
+        formatters=[ZeroShotUnbiasedShuffledFormatter.name(), ZeroShotCOTUnbiasedShuffleFormatter.name()],
+        # tasks=["hellaswag"],
+        tasks=["logiqa_train"],
+        # tasks=["aqua_train"],
+        example_cap=5000,
+        num_retries=1,
+        raise_after_retries=False,
+        temperature=0.0,
+        caller=stage_one_caller,
+        batch=20,
+        # models=[],
+        # models=["gpt-3.5-turbo", "ft:gpt-3.5-turbo-0613:far-ai::8G3Avv2Y"],
+        # 10k ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z
+        # 10k control ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu
+        # 20k ft:gpt-3.5-turbo-0613:far-ai::8G5rA7JJ
+        models=[
+            "gpt-3.5-turbo",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G6CGWPY",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",
+            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu",
+        ],
+    )
+    results: Slist[TaskOutput] = await stage_one_obs.to_slist()
+    results = results.filter(
+        # filter not Nones
+        lambda x: x.inference_output.parsed_response
+        is not None
+    )
+    group_by_model_print_results(results)
 
 
 if __name__ == "__main__":

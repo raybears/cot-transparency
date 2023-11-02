@@ -54,3 +54,10 @@ def eval() -> List[LogicQaExample]:
     with open(data_path) as f:
         data = f.read().split("\n\n")[1:]  # first split is empty string so skip it
         return Slist(_process_line(block) for block in data)
+
+
+def train() -> List[LogicQaExample]:
+    data_path = Path("./data/logiqa/Train.txt")
+    with open(data_path) as f:
+        data = f.read().split("\n\n")[1:]  # first split is empty string so skip it
+        return Slist(_process_line(block) for block in data)

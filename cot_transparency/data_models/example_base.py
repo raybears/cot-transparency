@@ -236,11 +236,12 @@ class DataExampleBase(BaseModel, ABC):
         raise NotImplementedError
 
     def ground_truth_idx(self) -> int:
-        if self.data_format.randomize_order == RandomizeOption.NO:
-            return ascii_uppercase.index(self._ground_truth)
-        elif self.data_format.randomize_order == RandomizeOption.YES:
-            options = self.get_options()
-            return options.index(self.ground_truth_text)
+        match self.data_format.randomize_order:
+            case RandomizeOption.NO:
+                return ascii_uppercase.index(self._ground_truth)
+            case RandomizeOption.YES:
+                options = self.get_options()
+                return options.index(self.ground_truth_text)
 
     @property
     def ground_truth_text(self) -> str:

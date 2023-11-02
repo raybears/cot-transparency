@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Optional, Mapping, Sequence
 
 import numpy as np
+import pandas as pd
+import seaborn
 from matplotlib import pyplot as plt
 from pydantic import BaseModel
 from slist import Slist
@@ -11,8 +13,6 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-import pandas as pd
-import seaborn
 
 
 class ChangedAnswer(BaseModel):
@@ -180,8 +180,9 @@ async def main():
     ]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
-        tasks=["aqua", "mmlu", "truthful_qa", "logiqa"],
-        example_cap=600,
+        # tasks=["aqua", "mmlu", "truthful_qa", "logiqa"],
+        tasks=["truthful_qa"],
+        example_cap=00,
         num_retries=1,
         raise_after_retries=False,
         temperature=1.0,
