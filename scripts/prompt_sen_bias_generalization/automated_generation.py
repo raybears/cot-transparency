@@ -7,9 +7,11 @@ import fire
 
 from grugstream import Observable
 from matplotlib import pyplot as plt
+import pandas as pd
 from pydantic import BaseModel
 from slist import Slist, Group
 from tqdm import tqdm
+import seaborn as sns
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
@@ -38,9 +40,12 @@ from scripts.finetune_cot import (
     ParaphrasingSampler,
     fine_tune_with_bias_augmentation,
 )
+from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
+from scripts.prompt_sen_bias_generalization.bias_scaling_curves import get_name_of_run
+from scripts.prompt_sen_bias_generalization.combinations import paraphrasing_scaling_curves
 from scripts.utils.plots import catplot
 from stage_one import COT_TESTING_TASKS, COT_TRAINING_TASKS, get_list_of_examples
-from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
+from scripts.automated_answer_parsing.answer_parsing_example import OutputWithParsed, answer_finding_step
 
 
 def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tuple[str, DataExampleBase]]:
@@ -115,7 +120,7 @@ async def run_pipeline(
     eval_temp: float,
     models_to_evaluate: Sequence[str] = [],
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatters],
-):
+) -> Path:
     cache_dir = f"{exp_dir}/cache"
 
     generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=1)
@@ -164,7 +169,6 @@ async def run_pipeline(
     if results_path.exists():
         results_path.unlink()
     await pipeline.to_file(results_path, mode="a", serialize=lambda x: x.model_dump_json())
-    print("Done ✅")
     return results_path
 
 
@@ -255,8 +259,8 @@ def run(
     tasks: Sequence[str] = COT_TESTING_TASKS,
     batch_size: int = 50,
     eval_temp: float = 0.0,
-):
-    asyncio.run(
+) -> Path:
+    results_path = asyncio.run(
         run_pipeline(
             exp_dir=exp_dir,
             models_to_evaluate=models,
@@ -266,6 +270,8 @@ def run(
             tasks=tasks,
         )
     )
+    print("Done ✅")
+    return results_path
 
 
 class Entropy(BaseModel):
@@ -273,8 +279,8 @@ class Entropy(BaseModel):
     uniform_entropy: float
 
 
-def entropy_and_uniform_entropy(outputs: Slist[StreamingTaskOutput]) -> Entropy:
-    inference_outputs = outputs.map(lambda x: x.inference_output)
+def entropy_and_uniform_entropy(outputs: Sequence[StreamingTaskOutput]) -> Entropy:
+    inference_outputs = Slist(outputs).map(lambda x: x.inference_output)
     parsed_responses = inference_outputs.map(lambda x: x.parsed_response)
     counts = Counter(parsed_responses)
     print(counts)
@@ -283,7 +289,7 @@ def entropy_and_uniform_entropy(outputs: Slist[StreamingTaskOutput]) -> Entropy:
 
     # also return the entropy as if the model was uniform
     # get the number of options from the question
-    num_options = outputs.map(lambda x: x.task_spec.n_options_given)
+    num_options = Slist(outputs).map(lambda x: x.task_spec.n_options_given)
     assert len(num_options.distinct()) == 1
     uniform_prob = 1 / num_options[0]
     uniform_entropy = -sum([uniform_prob * math.log(uniform_prob, 2) for _ in range(num_options[0])])
@@ -321,6 +327,71 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     plt.show()
 
 
+def add_point_at_1(df: pd.DataFrame, defined_meta: Sequence[ModelTrainMeta], baseline_model: str = "gpt-3.5-turbo"):
+    unique_trained_on = df["Trained on COTS from"].unique()
+    baseline = df[df.model == baseline_model]
+
+    for unique in unique_trained_on:
+        if len(df[(df["Samples"] == 1) & (df["Trained on COTS from"] == unique)]) == 0:
+            new_rows = baseline.copy()
+            new_rows["Trained on COTS from"] = unique
+            df = pd.concat((df, new_rows))  # type: ignore
+    return df
+
+
+def lineplot_util(df_p: pd.DataFrame, title: str):
+    avg_entropy = df_p.uniform_entropy.mean()
+    print("avg entropy", avg_entropy)
+    _, ax = plt.subplots(figsize=(6, 6))
+    ax = sns.lineplot(
+        df_p,
+        x="Samples",
+        y="entropy",
+        hue="Trained on COTS from",
+        err_style="bars",
+        ax=ax,
+    )
+    ax.axhline(avg_entropy, ls="--", color="red")
+    ax.set_ylabel("Entropy")
+    ax.set_xscale("log")
+    ax.set_title(title)
+    ax.set_ylim(0, None)
+    # set legend below plot
+    # ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.2), ncol=1)
+    plt.tight_layout()
+
+
+def plot_scaling_curves(
+    exp_dir=EXP_DIR,
+    model_meta: Sequence[ModelTrainMeta] = paraphrasing_scaling_curves(),
+):
+    model_name_to_meta = Slist(model_meta).map(lambda x: (x.name, x)).to_dict()
+    models = Slist(model_meta).map(lambda x: x.name)
+    results_path = f"{exp_dir}/results.jsonl"
+
+    results_path = run(
+        exp_dir=exp_dir,
+        models=models,
+        tasks=COT_TESTING_TASKS,
+        batch_size=20,
+        eval_temp=0.0,
+    )
+
+    outputs = read_jsonl_file_into_basemodel(results_path, OutputWithParsed)
+    with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash(), x.task_spec.inference_config)).map(
+        lambda x: x.map_values(entropy_and_uniform_entropy)
+    )
+
+    df = convert_slist_to_df(with_entropy, [Extractor()])
+    df["Trained on COTS from"] = df.model.map(lambda x: get_name_of_run(model_name_to_meta[x]))
+    df["Samples"] = df.model.map(lambda x: model_name_to_meta[x].trained_samples)
+    df = add_point_at_1(df, model_meta)
+
+    lineplot_util(df, title="Entropy across paraphrased questions")
+
+    plt.show()
+
+
 def train_and_run(n_samples: int = 10000, n_formats_per_question: int = 2, unbiased: bool = False):
     if unbiased:
         assert n_formats_per_question == 1, "Only makes sense to have one format per question for unbiased"
@@ -352,4 +423,12 @@ def train_and_run(n_samples: int = 10000, n_formats_per_question: int = 2, unbia
 
 
 if __name__ == "__main__":
-    fire.Fire({"run": run, "plot": plot, "make_training_data": make_training_data, "train_and_run": train_and_run})
+    fire.Fire(
+        {
+            "run": run,
+            "plot": plot,
+            "make_training_data": make_training_data,
+            "train_and_run": train_and_run,
+            "plot_scaling_curves": plot_scaling_curves,
+        }
+    )
