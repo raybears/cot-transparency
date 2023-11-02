@@ -4,11 +4,15 @@ import fire
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from git import Sequence
 from matplotlib import pyplot as plt
 
 from analysis import TASK_MAP, accuracy_for_df, get_general_metrics
 from cot_transparency.data_models.io import ExpLoader
-from cot_transparency.data_models.models import StageTwoExperimentJsonFormat, TaskOutput
+from cot_transparency.data_models.models import (
+    StageTwoTaskOutput,
+)
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.transparency.trace_manipulation import get_cot_steps
 
 # Used to produce human readable names on plots
@@ -52,6 +56,19 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
     def get_auc(group: pd.DataFrame) -> float:
         assert group["original_cot_trace_length"].nunique() == 1
         proportion_of_cot = group[x] / max(group[x])
+        """
+        TODO: Maybe we need to renormalize the proportion_of_cot to be between 0 and 1?
+        Right now it can be between e.g. 0.6-1.0, which messes up np.trapz?
+        And sometimes its one single point too, which also messes up np.trapz
+        min_ = min(proportion_of_cot)
+        max_ = max(proportion_of_cot)
+        try:
+            proportion_scaled = proportion_of_cot.apply(lambda x: (x - min_) / (max_ - min_))
+        except Exception as e:
+            print("Maybe there is only one value so min_ == max_")
+            raise e
+        """
+
         auc = np.trapz(group[0], x=proportion_of_cot)
         return auc
 
@@ -76,11 +93,9 @@ def get_aoc(df: pd.DataFrame, x="cot_trace_length") -> pd.DataFrame:
     return areas
 
 
-def convert_stage2_experiment_to_dataframe(
-    exp: StageTwoExperimentJsonFormat,
-) -> pd.DataFrame:
+def convert_stage2_experiment_to_dataframe(exp: Sequence[StageTwoTaskOutput]) -> pd.DataFrame:
     out = []
-    for task_output in exp.outputs:
+    for task_output in exp:
         d_with_config = get_general_metrics(task_output)
         d_with_config["model"] = task_output.task_spec.inference_config.model
         d_with_config["task_name"] = task_output.task_spec.stage_one_output.task_spec.task_name
@@ -115,9 +130,19 @@ def get_data_frame_from_exp_dir(exp_dir: str) -> pd.DataFrame:
     loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
     dfs = []
     for exp in loaded_dict.values():
-        df = convert_stage2_experiment_to_dataframe(exp)
+        df = convert_stage2_experiment_to_dataframe(exp.outputs)
         dfs.append(df)
     df = pd.concat(dfs)
+    df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
+    # filter out the NOT_FOUND rows
+    n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
+    print(f"Number of NOT_FOUND rows: {n_not_found}")
+    df = df[df.parsed_response != "NOT_FOUND"]
+    return df  # type: ignore
+
+
+def get_data_frame_from_exp_dir_items(items: Sequence[StageTwoTaskOutput]) -> pd.DataFrame:
+    df = convert_stage2_experiment_to_dataframe(items)
     df["is_correct"] = (df.parsed_response == df.ground_truth).astype(int)
     # filter out the NOT_FOUND rows
     n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
@@ -130,6 +155,31 @@ def plot_historgram_of_lengths(
     exp_dir: str,
 ):
     df = get_data_frame_from_exp_dir(exp_dir)
+
+    hue = "task_name"
+    x = "CoT Length"
+    col = "model"
+    y = "Counts"
+
+    # rename "original_cot_trace_length" to "CoT Length"
+    df = df.rename(columns={"original_cot_trace_length": x})
+
+    # for histogram we want the counts of the original_cot_trace_length
+    # filter on the unique stage_one_hash
+    counts = df.groupby([hue, col, x]).stage_one_hash.nunique().reset_index()
+    counts = counts.rename(columns={"stage_one_hash": y})
+
+    # facet plot of the proportion of the trace, break down by original_cot_trace_length
+    g = sns.FacetGrid(counts, col=col, col_wrap=2, legend_out=True)
+    g.map_dataframe(sns.barplot, x=x, y=y, hue=hue)
+    g.add_legend()
+    plt.show()
+
+
+def plot_histogram_from_list(
+    items: Sequence[StageTwoTaskOutput],
+):
+    df = get_data_frame_from_exp_dir_items(items)
 
     hue = "task_name"
     x = "CoT Length"
@@ -270,7 +320,35 @@ def plot_early_answering(
     col: str = "original_cot_trace_length",
     hue: str = "model",
 ):
-    df = get_data_frame_from_exp_dir(exp_dir)
+    items: list[StageTwoTaskOutput] = []
+    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
+    for vals in loaded_dict.values():
+        outputs = vals.outputs
+        items.extend(outputs)
+
+    return plot_early_answering_from_list(
+        items=items,
+        show_plots=show_plots,
+        inconsistent_only=inconsistent_only,
+        aggregate_over_tasks=aggregate_over_tasks,
+        model_filter=model_filter,
+        length_filter=length_filter,
+        col=col,
+        hue=hue,
+    )
+
+
+def plot_early_answering_from_list(
+    items: Sequence[StageTwoTaskOutput],
+    show_plots: bool = False,
+    inconsistent_only: bool = False,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    length_filter: Optional[list[int]] = None,
+    col: str = "original_cot_trace_length",
+    hue: str = "model",
+):
+    df = get_data_frame_from_exp_dir_items(items=items)
     # drop formatters that have Mistake in the name
     df = df[~df.has_mistake]
     df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)  # type: ignore
@@ -303,7 +381,35 @@ def plot_adding_mistakes(
     col: str = "original_cot_trace_length",
     hue: str = "model",
 ):
-    df = get_data_frame_from_exp_dir(exp_dir)
+    items: list[StageTwoTaskOutput] = []
+    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
+    for vals in loaded_dict.values():
+        outputs = vals.outputs
+        items.extend(outputs)
+
+    return plot_adding_mistakes_from_list(
+        items=items,
+        show_plots=show_plots,
+        inconsistent_only=inconsistent_only,
+        aggregate_over_tasks=aggregate_over_tasks,
+        model_filter=model_filter,
+        length_filter=length_filter,
+        col=col,
+        hue=hue,
+    )
+
+
+def plot_adding_mistakes_from_list(
+    items: Sequence[StageTwoTaskOutput],
+    show_plots: bool = False,
+    inconsistent_only: bool = False,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    length_filter: Optional[list[int]] = None,
+    col: str = "original_cot_trace_length",
+    hue: str = "model",
+):
+    df = convert_stage2_experiment_to_dataframe(items)
     df = df[~df.was_truncated]
 
     df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)  # type: ignore
@@ -333,7 +439,33 @@ def aoc_plot(
     length_filter: Optional[list[int]] = None,
     hue: str = "stage_one_formatter_name",
 ):
-    df = get_data_frame_from_exp_dir(exp_dir)
+    items: list[StageTwoTaskOutput] = []
+    loaded_dict = ExpLoader.stage_two(exp_dir, final_only=True)
+    for vals in loaded_dict.values():
+        outputs = vals.outputs
+        items.extend(outputs)
+
+    return aoc_plot_from_list(
+        items=items,
+        show_plots=show_plots,
+        inconsistent_only=inconsistent_only,
+        aggregate_over_tasks=aggregate_over_tasks,
+        model_filter=model_filter,
+        length_filter=length_filter,
+        hue=hue,
+    )
+
+
+def aoc_plot_from_list(
+    items: Sequence[StageTwoTaskOutput],
+    show_plots: bool = False,
+    inconsistent_only: bool = False,
+    aggregate_over_tasks: bool = False,
+    model_filter: Optional[str] = None,
+    length_filter: Optional[list[int]] = None,
+    hue: str = "stage_one_formatter_name",
+):
+    df = get_data_frame_from_exp_dir_items(items)
     df = df_filters(df, inconsistent_only, aggregate_over_tasks, model_filter, length_filter)
 
     # Mistakes AoC

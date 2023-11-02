@@ -1,8 +1,10 @@
 import random
 from pathlib import Path
-from typing import List, Literal, Optional, Type
+from typing import List, Literal, NewType, Optional, Type
 
 import fire
+from git import Sequence
+from cot_transparency.apis.base import ModelCaller
 
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.data_models.config import CONFIG_MAP
@@ -30,7 +32,7 @@ from cot_transparency.formatters.transparency.util import (
     FullCOTFormatter,
     StageTwoFormatter,
 )
-from cot_transparency.tasks import run_with_caching_stage_two
+from cot_transparency.tasks import run_with_caching_stage_two, task_function
 from cot_transparency.util import get_exp_dir_name
 from stage_one import get_valid_stage1_formatters
 
@@ -112,68 +114,88 @@ def get_early_answering_tasks(
     return outputs
 
 
+def create_mistake_task_spec_for_stage_one(
+    stage_one_output: TaskOutput,
+    exp_dir: str,
+    mistake_adding_model: str,
+    mistake_adding_temperature: float,
+    n_mistake_insertion_points: int,
+) -> list[StageTwoTaskSpec]:
+    DataExample = task_name_to_data_example(stage_one_output.task_spec.task_name)
+    data_example = stage_one_output.task_spec.read_data_example_or_raise(DataExample)
+    original_question: str = data_example.get_parsed_input()
+
+    cot_steps = get_cot_steps(stage_one_output.first_raw_response)
+    cot_steps = filter_cot_by_possible_ends(cot_steps)
+
+    rng = random.Random(original_question)
+    # we don't want to insert mistakes at the first step, because then there is no sentence to make a mistake in
+    # as the first one is blank cot
+    if len(cot_steps) == 0:
+        print("WARNING - skipping task as len(cot_steps) == 0")
+        return []
+
+    sample_idxs = [
+        0,
+        len(cot_steps) - 1,
+    ]  # we always do the first and last one to get good aoc numbers
+    if len(cot_steps) > 2:
+        mistake_idxs = rng.sample(
+            range(1, len(cot_steps) - 1),
+            min(n_mistake_insertion_points, len(cot_steps) - 2),
+        )
+        sample_idxs.extend(mistake_idxs)
+    sample_idxs = sorted(list(set(sample_idxs)))
+
+    config = CONFIG_MAP[mistake_adding_model].copy()
+    config.max_tokens = 100
+    config.temperature = mistake_adding_temperature
+    config.stop = ["\n", "```"]
+
+    original_model_that_generated_cot = stage_one_output.task_spec.inference_config.model
+    path = Path(
+        f"{exp_dir}/mistakes_stage1/s1-{stage_one_output.task_spec.formatter_name}/cot-{original_model_that_generated_cot}/{stage_one_output.task_spec.task_name}/"
+        f"/mistake-{config.model}/{FewShotGenerateMistakeFormatter.name()}.json"
+    )
+    out: list[StageTwoTaskSpec] = []
+    for i in sample_idxs:
+        messages = FewShotGenerateMistakeFormatter.format_example(
+            original_question=original_question, sentence=cot_steps[i]
+        )
+        task_spec = StageTwoTaskSpec(
+            stage_one_output=stage_one_output,
+            inference_config=config,
+            formatter_name=FewShotGenerateMistakeFormatter.name(),
+            messages=messages,
+            out_file_path=path,
+            trace_info=TraceInfo(original_cot=cot_steps, mistake_inserted_idx=i),
+        )
+        out.append(task_spec)
+    return out
+
+
 def get_mistakes(
-    stage_one_outputs: list[TaskOutput],
+    stage_one_outputs: Sequence[TaskOutput],
     exp_dir: str,
     batch: int = 10,
     mistake_adding_model: str = "text-davinci-002",
     mistake_adding_temperature: float = 1.0,
     save_mistake_generating_file_every: int = 50,
     n_mistake_insertion_points: int = 3,
-) -> list[StageTwoTaskOutput]:
+) -> Sequence[StageTwoTaskOutput]:
     # mistakes we need to make call to api to generate the mistake, we may use a different model here
     # e.g Tamera et al use a non RLHF model to generate mistakes
     specs: list[StageTwoTaskSpec] = []
     for stage_one_output in stage_one_outputs:
-        DataExample = task_name_to_data_example(stage_one_output.task_spec.task_name)
-        data_example = stage_one_output.task_spec.read_data_example_or_raise(DataExample)
-        original_question: str = data_example.get_parsed_input()
-
-        cot_steps = get_cot_steps(stage_one_output.first_raw_response)
-        cot_steps = filter_cot_by_possible_ends(cot_steps)
-
-        rng = random.Random(original_question)
-        # we don't want to insert mistakes at the first step, because then there is no sentence to make a mistake in
-        # as the first one is blank cot
-        if len(cot_steps) == 0:
-            print("WARNING - skipping task as len(cot_steps) == 0")
-            continue
-
-        sample_idxs = [
-            0,
-            len(cot_steps) - 1,
-        ]  # we always do the first and last one to get good aoc numbers
-        if len(cot_steps) > 2:
-            mistake_idxs = rng.sample(
-                range(1, len(cot_steps) - 1),
-                min(n_mistake_insertion_points, len(cot_steps) - 2),
-            )
-            sample_idxs.extend(mistake_idxs)
-        sample_idxs = sorted(list(set(sample_idxs)))
-
-        config = CONFIG_MAP[mistake_adding_model].copy()
-        config.max_tokens = 100
-        config.temperature = mistake_adding_temperature
-        config.stop = ["\n", "```"]
-
-        original_model_that_generated_cot = stage_one_output.task_spec.inference_config.model
-        path = Path(
-            f"{exp_dir}/mistakes_stage1/s1-{stage_one_output.task_spec.formatter_name}/cot-{original_model_that_generated_cot}/{stage_one_output.task_spec.task_name}/"
-            f"/mistake-{config.model}/{FewShotGenerateMistakeFormatter.name()}.json"
-        )
-        for i in sample_idxs:
-            messages = FewShotGenerateMistakeFormatter.format_example(
-                original_question=original_question, sentence=cot_steps[i]
-            )
-            task_spec = StageTwoTaskSpec(
+        specs.extend(
+            create_mistake_task_spec_for_stage_one(
                 stage_one_output=stage_one_output,
-                inference_config=config,
-                formatter_name=FewShotGenerateMistakeFormatter.name(),
-                messages=messages,
-                out_file_path=path,
-                trace_info=TraceInfo(original_cot=cot_steps, mistake_inserted_idx=i),
+                exp_dir=exp_dir,
+                mistake_adding_model=mistake_adding_model,
+                mistake_adding_temperature=mistake_adding_temperature,
+                n_mistake_insertion_points=n_mistake_insertion_points,
             )
-            specs.append(task_spec)
+        )
 
     print(f"1. Generating mistakes using {mistake_adding_model}")
     print("n specs", len(specs))
@@ -194,6 +216,10 @@ def get_mistakes(
 
     outputs = run_with_caching_stage_two(save_mistake_generating_file_every, batch, specs)
 
+    return filter_mistakes_output(outputs)
+
+
+def filter_mistakes_output(outputs: Sequence[StageTwoTaskOutput]) -> list[StageTwoTaskOutput]:
     # Discard outputs where there was no output
     filtered_outputs = [output for output in outputs if output.first_parsed_response is not None]
     n_discarded = len(outputs) - len(filtered_outputs)
@@ -204,17 +230,75 @@ def get_mistakes(
     filtered_outputs = [i for i in outputs if "NO_REASONING" not in i.first_parsed_response]  # type: ignore
     n_discarded = len(outputs) - len(filtered_outputs)
     print(f"Discarding {n_discarded} outputs where the mistake model didn't deem there to be a reasoning step")
-    outputs = filtered_outputs
+    return filtered_outputs
 
-    return outputs
+
+# A Newtype so that you won't get confused with all the different types
+RecomputeTaskSpec = NewType("RecomputeTaskSpec", StageTwoTaskSpec)
+
+
+def mistakes_into_completed_cot_spec(
+    mistake: StageTwoTaskOutput,
+    exp_dir: str,
+) -> Optional[RecomputeTaskSpec]:
+    generated_mistake = mistake
+    if generated_mistake.first_parsed_response is None or "NO_REASONING" in generated_mistake.first_parsed_response:
+        print("WARNING - skipping task as NO_REASONING found in the trace passed to the mistake generator")
+        return None
+    else:
+        stage_one_output = generated_mistake.task_spec.stage_one_output
+        config = stage_one_output.task_spec.inference_config.copy()
+
+        path = Path(
+            f"{exp_dir}/mistakes_stage2/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{CompletePartialCOT.name()}.json"
+        )
+
+        trace_info: TraceInfo | None = generated_mistake.task_spec.trace_info
+        assert trace_info is not None
+        trace_info = trace_info.model_copy()
+        trace_info.sentence_with_mistake = generated_mistake.first_parsed_response
+
+        partial_cot_trace = trace_info.get_trace_upto_mistake()
+
+        messages = CompletePartialCOT.format_example(
+            stage_one_output.task_spec.messages, partial_cot_trace, config.model
+        )
+
+        task_spec = StageTwoTaskSpec(
+            stage_one_output=stage_one_output,
+            inference_config=config,
+            formatter_name=CompletePartialCOT.name(),
+            messages=messages,
+            out_file_path=path,
+            trace_info=trace_info,
+        )
+
+        return RecomputeTaskSpec(task_spec)
+
+
+def execute_recomputation(task_spec: RecomputeTaskSpec, caller: ModelCaller) -> Sequence[StageTwoTaskOutput]:
+    trace_info = task_spec.trace_info
+    assert trace_info
+    # if the mistake was the last step in the reasoning trace, then we don't need to complete the COT
+    # so just make a task output with no response
+    if trace_info.mistake_inserted_idx == len(trace_info.original_cot) - 1:
+        output = StageTwoTaskOutput(
+            task_spec=task_spec,
+            inference_output=ModelOutput(raw_response="", parsed_response=""),
+        )
+        return [output for _ in range(task_spec.inference_config.n)]
+    else:
+        # We need to complete the COT
+        return task_function(task=task_spec, raise_after_retries=False, caller=caller)
 
 
 def recomplete_cot_with_inserted_mistake(
-    generated_mistakes: list[StageTwoTaskOutput],
+    generated_mistakes: Sequence[StageTwoTaskOutput],
     exp_dir: str,
     save_completing_with_mistakes_every: int = 50,
     batch: int = 10,
 ) -> List[StageTwoTaskOutput]:
+    """Note: This is an old function that isn't used anymore by the stage_two_stream.py script"""
     mistakes_inserted_at_last_position: list[StageTwoTaskOutput] = []
     specs: list[StageTwoTaskSpec] = []
 
@@ -266,6 +350,52 @@ def recomplete_cot_with_inserted_mistake(
     return outputs + mistakes_inserted_at_last_position
 
 
+def single_get_best_single_answer_tasks_given_mistakes(
+    cot_with_mistakes_outputs: StageTwoTaskOutput,
+    exp_dir: str,
+    temperature: Optional[float] = None,
+) -> Optional[StageTwoTaskSpec]:
+    output = cot_with_mistakes_outputs
+    stage_one_output = output.task_spec.stage_one_output
+    config = stage_one_output.task_spec.inference_config.copy()
+    config.max_tokens = 30  # code-davinci-002 doesn't return answer unless we set this to greater than 1
+    if temperature is not None:
+        config.temperature = temperature
+
+    parsed_response: str | None = output.first_parsed_response
+    if parsed_response is None:
+        print("WARNING - skipping task as parsed_response is None")
+        return None
+
+    if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
+        Formatter = FullCOTCompletionFormatter
+    else:
+        Formatter = FullCOTFormatter
+
+    path = Path(
+        f"{exp_dir}/mistakes_final/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json"
+    )
+    trace_info = output.task_spec.trace_info
+    assert trace_info is not None
+    trace_info.regenerated_cot_post_mistake = parsed_response
+    cot_trace_with_mistake = trace_info.get_complete_modified_cot()
+
+    final_task = StageTwoTaskSpec(
+        stage_one_output=output.task_spec.stage_one_output,
+        inference_config=config,
+        formatter_name=Formatter.name(),
+        messages=Formatter.format_example(
+            stage_one_output.task_spec.messages,
+            cot_trace_with_mistake,
+            config.model,
+        ),
+        out_file_path=path,
+        n_steps_in_cot_trace=len(get_cot_steps(cot_trace_with_mistake)),
+        trace_info=trace_info,
+    )
+    return final_task
+
+
 def get_best_single_answer_tasks_given_mistakes(
     cots_with_mistakes_outputs: list[StageTwoTaskOutput],
     exp_dir: str,
@@ -273,44 +403,11 @@ def get_best_single_answer_tasks_given_mistakes(
 ) -> list[StageTwoTaskSpec]:
     specs: List[StageTwoTaskSpec] = []
     for output in cots_with_mistakes_outputs:
-        stage_one_output = output.task_spec.stage_one_output
-        config = stage_one_output.task_spec.inference_config.copy()
-        config.max_tokens = 30  # code-davinci-002 doesn't return answer unless we set this to greater than 1
-        if temperature is not None:
-            config.temperature = temperature
-
-        parsed_response: str | None = output.first_parsed_response
-        if parsed_response is None:
-            print("WARNING - skipping task as parsed_response is None")
-            continue
-
-        if stage_one_output.task_spec.formatter_name == FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter.name():
-            Formatter = FullCOTCompletionFormatter
-        else:
-            Formatter = FullCOTFormatter
-
-        path = Path(
-            f"{exp_dir}/mistakes_final/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json"
+        final_task = single_get_best_single_answer_tasks_given_mistakes(
+            cot_with_mistakes_outputs=output, exp_dir=exp_dir, temperature=temperature
         )
-        trace_info = output.task_spec.trace_info
-        assert trace_info is not None
-        trace_info.regenerated_cot_post_mistake = parsed_response
-        cot_trace_with_mistake = trace_info.get_complete_modified_cot()
-
-        final_task = StageTwoTaskSpec(
-            stage_one_output=output.task_spec.stage_one_output,
-            inference_config=config,
-            formatter_name=Formatter.name(),
-            messages=Formatter.format_example(
-                stage_one_output.task_spec.messages,
-                cot_trace_with_mistake,
-                config.model,
-            ),
-            out_file_path=path,
-            n_steps_in_cot_trace=len(get_cot_steps(cot_trace_with_mistake)),
-            trace_info=trace_info,
-        )
-        specs.append(final_task)
+        if final_task:
+            specs.append(final_task)
     return specs
 
 
