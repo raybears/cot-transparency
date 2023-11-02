@@ -29,9 +29,9 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB",  # 50%
         # "ft:gpt-3.5-turbo-0613:far-ai::8G1YsULJ",  # 98%
         ## END
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0",  # 98%
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G2UrNn0",  # 98%
         # "ft:gpt-3.5-turbo-0613:far-ai::8G3Avv2Y", # 98% rerun
-        "ft:gpt-3.5-turbo-0613:far-ai::8G4AfzJQ",  # control 98% 10k correct
+        # "ft:gpt-3.5-turbo-0613:far-ai::8G4AfzJQ",  # control 98% 10k correct
         ## START 2%, 50%, 98% COT CORRECT CONTROL
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu", # 50%
         ### START Hunar's, Control, Ours
