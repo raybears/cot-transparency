@@ -185,6 +185,7 @@ class CachedPerModelCaller(ModelCaller):
         self.cache_dir = cache_dir
         self.cache_callers: dict[str, CachedCaller] = {}
         self.write_every_n = write_every_n
+        self.lock = Lock()
 
     def call(
         self,
@@ -201,11 +202,12 @@ class CachedPerModelCaller(ModelCaller):
         This returns a CachedCaller that will save into self.cache_dir/cache_name.jsonl.
         """
 
-        if cache_name not in self.cache_callers:
-            cache_path = self.cache_dir / f"{cache_name}.jsonl"
-            self.cache_callers[cache_name] = CachedCaller(
-                wrapped_caller=self.model_caller,
-                cache_path=cache_path,
-                write_every_n=self.write_every_n,
-            )
+        with self.lock:
+            if cache_name not in self.cache_callers:
+                cache_path = self.cache_dir / f"{cache_name}.jsonl"
+                self.cache_callers[cache_name] = CachedCaller(
+                    wrapped_caller=self.model_caller,
+                    cache_path=cache_path,
+                    write_every_n=self.write_every_n,
+                )
         return self.cache_callers[cache_name]
