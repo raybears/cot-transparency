@@ -203,6 +203,7 @@ class DataExampleBase(BaseModel, ABC):
         """Please implement this method to return the ground truth answer"""
         raise NotImplementedError
 
+    @final
     @property
     def ground_truth(self) -> MultipleChoiceAnswer:
         # Call this method to get the ground truth
@@ -211,6 +212,7 @@ class DataExampleBase(BaseModel, ABC):
         ground_truth_index = self.ground_truth_idx()
         return ascii_uppercase[ground_truth_index]  # type: ignore
 
+    @final
     @property
     def ground_truth_indicator(self) -> str:
         return self.data_format.choice_variant.answers_list[self.ground_truth_idx()]
@@ -220,6 +222,7 @@ class DataExampleBase(BaseModel, ABC):
         """Please implement this method to return a list of options, without any letters"""
         raise NotImplementedError
 
+    @final
     def get_options(self, include_none_of_the_above: bool = False) -> list[str]:
         options = self._get_options()
         if include_none_of_the_above:
@@ -235,6 +238,7 @@ class DataExampleBase(BaseModel, ABC):
         """Please implement this method to return the question, without any options"""
         raise NotImplementedError
 
+    @final
     def ground_truth_idx(self) -> int:
         match self.data_format.randomize_order:
             case RandomizeOption.NO:
@@ -243,6 +247,7 @@ class DataExampleBase(BaseModel, ABC):
                 options = self.get_options()
                 return options.index(self.ground_truth_text)
 
+    @final
     @property
     def ground_truth_text(self) -> str:
         """The text itself, not the indicator"""
@@ -254,6 +259,7 @@ class DataExampleBase(BaseModel, ABC):
             print(f"options: {non_shuffled_options}")
             raise
 
+    @final
     def _get_options_with_indicator(self, options: list[str]) -> str:
         output = []
         for idx, option in enumerate(options):
@@ -269,6 +275,7 @@ class DataExampleBase(BaseModel, ABC):
             case OptionLayout.SENTENCE:
                 return ", ".join(output)
 
+    @final
     def get_lettered_options(self) -> list[IndicatorAndOption]:
         options = self._get_options()
         choice_variant = self.data_format.choice_variant
@@ -285,6 +292,7 @@ class DataExampleBase(BaseModel, ABC):
         biased_ans_letter: MultipleChoiceAnswer = ascii_uppercase[biased_ans_idx]  # type: ignore
         return biased_ans_letter
 
+    @final
     @property
     def biased_ans_text(self) -> str:
         """The text itself, not the indicator"""
@@ -296,6 +304,7 @@ class DataExampleBase(BaseModel, ABC):
     def bias_idx(self) -> int:
         return ascii_uppercase.index(self.biased_ans)
 
+    @final
     @property
     def biased_ans_variant(self) -> str:
         """returns the biased answer in the format of the ChoiceVariant"""

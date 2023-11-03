@@ -9,7 +9,6 @@ from cot_transparency.data_models.example_base import IndicatorAndOption
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotUnbiasedShuffledFormatter,
-    ZeroShotCOTUnbiasedShuffleFormatter,
 )
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 
@@ -95,10 +94,8 @@ async def main():
     stage_one_path = Path("experiments/mmlu_shuffled.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=200)
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
-        formatters=[ZeroShotUnbiasedShuffledFormatter.name(), ZeroShotCOTUnbiasedShuffleFormatter.name()],
-        # tasks=["hellaswag"],
+        formatters=[ZeroShotUnbiasedShuffledFormatter.name()],
         tasks=["logiqa_train"],
-        # tasks=["aqua_train"],
         example_cap=5000,
         num_retries=1,
         raise_after_retries=False,
@@ -112,7 +109,6 @@ async def main():
         # 20k ft:gpt-3.5-turbo-0613:far-ai::8G5rA7JJ
         models=[
             "gpt-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G6CGWPY",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu",
         ],
