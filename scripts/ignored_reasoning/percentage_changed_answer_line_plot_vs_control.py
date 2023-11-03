@@ -199,7 +199,7 @@ async def main():
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
         tasks=["aqua", "mmlu", "truthful_qa", "logiqa"],
         example_cap=600,
-        num_retries=1,
+        num_tries=1,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,

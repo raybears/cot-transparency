@@ -55,7 +55,7 @@ def run(examples_per_task: int = 100):
         raise_after_retries=False,
         raise_on="all",
         repeats_per_question=1,
-        num_retries=1,
+        num_tries=1,
         n_responses_per_request=1,
         max_tokens=3000,
     )

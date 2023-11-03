@@ -54,14 +54,14 @@ def run_with_caching_stage_two(
     save_every: int,
     batch: int,
     task_to_run: list[StageTwoTaskSpec],
-    num_retries: int = 10,
+    num_tries: int = 10,
 ) -> list[StageTwoTaskOutput]:
     output: list[StageTwoTaskOutput] = run_with_caching(
         save_every,
         batch,
         task_to_run,
         raise_after_retries=False,
-        num_retries=num_retries,
+        num_tries=num_tries,
     )  # type: ignore
     return output
 
@@ -153,10 +153,10 @@ def call_model_and_raise_if_not_suitable(
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
     caller: ModelCaller,
-    retries: int = 20,
+    tries: int = 20,
     raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
-    responses = retry(exceptions=AtLeastOneFailed, tries=retries)(__call_or_raise)(
+    responses = retry(exceptions=AtLeastOneFailed, tries=tries)(__call_or_raise)(
         task=task,
         config=config,
         formatter=formatter,
@@ -171,7 +171,7 @@ def call_model_and_catch(
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
     caller: ModelCaller,
-    retries: int = 20,
+    tries: int = 20,
     raise_on: Literal["all"] | Literal["any"] = "any",
 ) -> list[ModelOutput]:
     try:
@@ -179,7 +179,7 @@ def call_model_and_catch(
             task=task,
             config=config,
             formatter=formatter,
-            retries=retries,
+            tries=tries,
             raise_on=raise_on,
             caller=caller,
         )
@@ -194,7 +194,7 @@ def task_function(
     raise_after_retries: bool,
     caller: ModelCaller = ...,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
-    num_retries: int = 10,
+    num_tries: int = 10,
 ) -> Sequence[TaskOutput]:
     ...
 
@@ -205,7 +205,7 @@ def task_function(
     raise_after_retries: bool,
     caller: ModelCaller = ...,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
-    num_retries: int = 10,
+    num_tries: int = 10,
 ) -> Sequence[StageTwoTaskOutput]:
     ...
 
@@ -216,7 +216,7 @@ def task_function(
     raise_after_retries: bool,
     caller: ModelCaller = UniversalCaller(),
     raise_on: Literal["all"] | Literal["any"] = "any",
-    num_retries: int = 10,
+    num_tries: int = 10,
 ) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
     ...
 
@@ -226,7 +226,7 @@ def task_function(
     raise_after_retries: bool,
     caller: ModelCaller = UniversalCaller(),
     raise_on: Literal["all"] | Literal["any"] = "any",
-    num_retries: int = 10,
+    num_tries: int = 10,
 ) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
 
@@ -235,7 +235,7 @@ def task_function(
             task=task,
             config=task.inference_config,
             formatter=formatter,
-            retries=num_retries,
+            tries=num_tries,
             raise_on=raise_on,
             caller=caller,
         )
@@ -244,7 +244,7 @@ def task_function(
             task=task,
             config=task.inference_config,
             formatter=formatter,
-            retries=num_retries,
+            tries=num_tries,
             raise_on=raise_on,
             caller=caller,
         )
@@ -282,7 +282,7 @@ def run_with_caching(
     task_to_run: Sequence[TaskSpec] | Sequence[StageTwoTaskSpec],
     raise_after_retries: bool = False,
     raise_on: Literal["all"] | Literal["any"] = "any",
-    num_retries: int = 10,
+    num_tries: int = 10,
     retry_answers_with_none: bool = False,
 ):
     """
@@ -337,7 +337,7 @@ def run_with_caching(
         tasks_to_run=to_do,
         raise_after_retries=raise_after_retries,
         raise_on=raise_on,
-        num_retries=num_retries,
+        num_tries=num_tries,
     )
 
     outputs: list[TaskOutput | StageTwoTaskOutput] = []
@@ -353,7 +353,7 @@ def run_tasks_multi_threaded(
     tasks_to_run: Sequence[TaskSpec] | Sequence[StageTwoTaskSpec],
     raise_after_retries: bool,
     raise_on: Literal["all"] | Literal["any"] = "any",
-    num_retries: int = 10,
+    num_tries: int = 10,
 ) -> None:
     if len(tasks_to_run) == 0:
         print("No tasks to run, experiment is already done.")
@@ -381,7 +381,7 @@ def run_tasks_multi_threaded(
                     task=task,
                     raise_after_retries=raise_after_retries,
                     raise_on=raise_on,
-                    num_retries=num_retries,
+                    num_tries=num_tries,
                     caller=UniversalCaller(),
                 )
             )

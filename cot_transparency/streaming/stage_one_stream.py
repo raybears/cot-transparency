@@ -26,7 +26,7 @@ def stage_one_stream(
     temperature: Optional[float] = None,
     raise_after_retries: bool = True,
     raise_on: Literal["all", "any"] = "all",
-    num_retries: int = 10,
+    num_tries: int = 10,
     max_tokens: Optional[int] = None,
     n_responses_per_request: Optional[int] = None,
     caller: ModelCaller = UniversalCaller(),
@@ -61,7 +61,7 @@ def stage_one_stream(
                 raise_after_retries=raise_after_retries,
                 raise_on=raise_on,
                 caller=caller,
-                num_retries=num_retries,
+                num_tries=num_tries,
             ),
             max_par=batch,
         )

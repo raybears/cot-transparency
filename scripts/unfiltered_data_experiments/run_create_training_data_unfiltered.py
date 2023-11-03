@@ -16,7 +16,7 @@ if __name__ == "__main__":
         exp_dir=exp_dir_gpt_35,
         batch=40,
         raise_after_retries=False,
-        num_retries=0,
+        num_tries=1,
         # High max tokens so that it does not get truncated
         max_tokens=2000,
     )

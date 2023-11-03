@@ -366,7 +366,7 @@ def main(
     temperature: Optional[float] = None,
     raise_after_retries: bool = True,
     raise_on: Literal["all", "any"] = "all",
-    num_retries: int = 10,
+    num_tries: int = 10,
     max_tokens: Optional[int] = None,
     n_responses_per_request: Optional[int] = None,
     retry_answers_with_none: bool = False,
@@ -394,7 +394,7 @@ def main(
         task_to_run=tasks_to_run,
         raise_after_retries=raise_after_retries,
         raise_on=raise_on,
-        num_retries=num_retries,
+        num_tries=num_tries,
         retry_answers_with_none=retry_answers_with_none,
     )
 
