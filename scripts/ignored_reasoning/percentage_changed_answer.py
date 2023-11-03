@@ -180,9 +180,8 @@ async def main():
     ]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
-        # tasks=["aqua", "mmlu", "truthful_qa", "logiqa"],
-        tasks=["truthful_qa"],
-        example_cap=00,
+        tasks=["aqua", "mmlu", "truthful_qa", "logiqa"],
+        example_cap=600,
         num_retries=1,
         raise_after_retries=False,
         temperature=1.0,
