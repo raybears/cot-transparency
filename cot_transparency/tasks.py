@@ -229,6 +229,8 @@ def task_function(
     num_tries: int = 10,
 ) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
+    if num_tries < 1:
+        raise ValueError("num_tries must be at least 1 otherwise we will never try to run the task")
 
     responses = (
         call_model_and_raise_if_not_suitable(
