@@ -8,7 +8,7 @@ from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage
-from cot_transparency.data_models.models import BaseTaskOuput, BaseTaskSpec, ModelOutput
+from cot_transparency.data_models.models import BaseTaskOutput, BaseTaskSpec, ModelOutput
 
 
 from typing import Any, Self, Sequence
@@ -62,7 +62,7 @@ class StreamingTaskSpec(BaseTaskSpec):
         )
 
 
-class StreamingTaskOutput(BaseTaskOuput):
+class StreamingTaskOutput(BaseTaskOutput):
     task_spec: StreamingTaskSpec
     inference_output: ModelOutput
 

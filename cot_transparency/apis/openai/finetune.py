@@ -22,7 +22,7 @@ from cot_transparency.data_models.messages import (
     StrictChatMessage,
     StrictMessageRole,
 )
-from cot_transparency.data_models.models import BaseTaskOuput
+from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.json_utils.read_write import (
     read_jsonl_file_into_basemodel,
     write_jsonl_file_from_basemodel,
@@ -58,7 +58,7 @@ class FinetuneSample(BaseModel):
     messages: list[StrictChatMessage]
 
     @staticmethod
-    def from_task_output(task: BaseTaskOuput) -> "FinetuneSample":
+    def from_task_output(task: BaseTaskOutput) -> "FinetuneSample":
         prompt_messages = task.get_task_spec().messages
         joined = join_assistant_preferred_to_completion(
             messages=prompt_messages, completion=task.inference_output.raw_response

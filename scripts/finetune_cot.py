@@ -18,7 +18,7 @@ from cot_transparency.apis.openai.finetune import (
 )
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.data_models.models import BaseTaskOuput
+from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.data_models.streaming import ParaphrasingOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
@@ -103,22 +103,22 @@ class RandomNonCOTPromptAugmentor(Augmentor):
         return messages
 
 
-def augment_non_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
+def augment_non_cot_task(item: BaseTaskOutput) -> BaseTaskOutput:
     new_messages = RandomNonCOTPromptAugmentor.augment(messages=item.get_task_spec().messages)
     return item.update_messages_in_task_spec(messages=new_messages)
 
 
-def augment_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
+def augment_cot_task(item: BaseTaskOutput) -> BaseTaskOutput:
     new_messages = RandomCOTPromptAugmentor.augment(messages=item.get_task_spec().messages)
     return item.update_messages_in_task_spec(messages=new_messages)
 
 
 def replace_unbiased_cot_prompt_with_formatters(
-    task: BaseTaskOuput,
+    task: BaseTaskOutput,
     use_formatters: Iterable[type[StageOneFormatter]],
     intervention: type[Intervention] | None = None,
-) -> Slist[BaseTaskOuput]:
-    output = Slist[BaseTaskOuput]()
+) -> Slist[BaseTaskOutput]:
+    output = Slist[BaseTaskOutput]()
     for formatter in use_formatters:
         new = task.model_copy(deep=True)
 
@@ -134,7 +134,7 @@ def replace_unbiased_cot_prompt_with_formatters(
     return output
 
 
-def transform_into_post_hoc_reasoning(task: BaseTaskOuput) -> BaseTaskOuput:
+def transform_into_post_hoc_reasoning(task: BaseTaskOutput) -> BaseTaskOutput:
     new = task.model_copy(deep=True)
     previous_answer = task.inference_output.parsed_response
     assert previous_answer
@@ -160,10 +160,10 @@ class FormatterWithPossibleIntervention:
 
 
 def replace_unbiased_prompt_with_formatters(
-    task: BaseTaskOuput,
+    task: BaseTaskOutput,
     use_formatters: Iterable[FormatterWithPossibleIntervention],
-) -> Slist[BaseTaskOuput]:
-    output = Slist[BaseTaskOuput]()
+) -> Slist[BaseTaskOutput]:
+    output = Slist[BaseTaskOutput]()
     for fwpi in use_formatters:
         new = task
         data_example: DataExampleBase = task.get_task_spec().get_data_example_obj()
@@ -301,10 +301,10 @@ class FormatSampler(ABC):
     @abstractmethod
     def sample(
         self,
-        tasks: Sequence[BaseTaskOuput],
+        tasks: Sequence[BaseTaskOutput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[BaseTaskOuput]:
+    ) -> Slist[BaseTaskOutput]:
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
@@ -321,10 +321,10 @@ class NFormatsPerQuestionSampler(FormatSampler):
 
     def sample(
         self,
-        tasks: Sequence[BaseTaskOuput],
+        tasks: Sequence[BaseTaskOutput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[BaseTaskOuput]:
+    ) -> Slist[BaseTaskOutput]:
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
@@ -340,7 +340,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
         print("using n_unique_cots", n_unique_cots)
         tasks = tasks.take(n_unique_cots)
 
-        output: Slist[BaseTaskOuput] = Slist()
+        output: Slist[BaseTaskOutput] = Slist()
         formatter_counts = Counter()
         for task in tasks:
             rng = random.Random(task.uid())
@@ -362,10 +362,10 @@ class NFormatsPerQuestionSampler(FormatSampler):
 class RandomSampler(FormatSampler):
     def sample(
         self,
-        tasks: Sequence[BaseTaskOuput],
+        tasks: Sequence[BaseTaskOutput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[BaseTaskOuput]:
+    ) -> Slist[BaseTaskOutput]:
         """
         Takes a sequence of outputs and returns a sequence of outputs of length n
         """
@@ -401,7 +401,7 @@ class ParaphrasingSampler(FormatSampler):
             self.mapping[key] = paraphrasing
         self.n_formats_per_question = n_formats_per_question
 
-    def _get_key(self, task: BaseTaskOuput) -> str:
+    def _get_key(self, task: BaseTaskOutput) -> str:
         return (
             task.get_task_spec().get_task_hash()
             + "isCot="
@@ -410,10 +410,10 @@ class ParaphrasingSampler(FormatSampler):
 
     def sample(
         self,
-        tasks: Sequence[BaseTaskOuput],
+        tasks: Sequence[BaseTaskOutput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[BaseTaskOuput]:
+    ) -> Slist[BaseTaskOutput]:
         tasks = Slist(tasks)
 
         ret = Slist()
@@ -627,7 +627,7 @@ def fine_tune_with_bias_augmentation(
 
 
 def get_non_cot_samples(
-    shuffled_data: Sequence[BaseTaskOuput],
+    shuffled_data: Sequence[BaseTaskOutput],
     eligible_formatters: Slist[FormatterWithPossibleIntervention],
     limit: int,
     sampler: FormatSampler,
@@ -646,7 +646,7 @@ def get_non_cot_samples(
 
 
 def get_cot_samples(
-    shuffled_data: Sequence[BaseTaskOuput],
+    shuffled_data: Sequence[BaseTaskOutput],
     eligible_cot_formatters: Slist[FormatterWithPossibleIntervention],
     limit: int,
     sampler: FormatSampler,

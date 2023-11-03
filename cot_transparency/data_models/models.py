@@ -158,7 +158,7 @@ class TaskSpec(BaseTaskSpec):
         return self.task_hash
 
 
-class BaseTaskOuput(HashableBaseModel, ABC):
+class BaseTaskOutput(HashableBaseModel, ABC):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     # we do not specify task_spec here because of invariance of variables so we instead specify
     # the get_task_spec() interface which can obey covariance properly
@@ -175,7 +175,7 @@ class BaseTaskOuput(HashableBaseModel, ABC):
         return self.model_hash()
 
 
-class TaskOutput(BaseTaskOuput):
+class TaskOutput(BaseTaskOutput):
     # This is one single experiment
     task_spec: TaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
@@ -369,7 +369,7 @@ class StageTwoTaskSpec(BaseTaskSpec):
         )
 
 
-class StageTwoTaskOutput(BaseTaskOuput):
+class StageTwoTaskOutput(BaseTaskOutput):
     task_spec: StageTwoTaskSpec
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0

@@ -3,7 +3,7 @@ from typing import Generic, Sequence, TypeVar
 
 import pandas as pd
 
-from cot_transparency.data_models.models import BaseTaskOuput, TaskOutput
+from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
 from cot_transparency.formatters import name_to_formatter
 
 T_co = TypeVar("T_co")
@@ -46,10 +46,10 @@ def convert_slist_to_df(
     return pd.DataFrame.from_records(rows, columns=columns_names)
 
 
-class IsCoTExtractor(BaseExtractor[BaseTaskOuput]):
+class IsCoTExtractor(BaseExtractor[BaseTaskOutput]):
     column_names = ["is_cot"]
 
-    def extract(self, output: BaseTaskOuput) -> Sequence[bool]:
+    def extract(self, output: BaseTaskOutput) -> Sequence[bool]:
         formatter = name_to_formatter(output.get_task_spec().formatter_name)
         return [formatter.is_cot]
 
