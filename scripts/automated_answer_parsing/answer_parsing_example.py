@@ -1,5 +1,5 @@
 import asyncio
-from typing import Sequence
+from typing import Sequence, TypeVar
 
 from grugstream import Observable
 from slist import Slist
@@ -8,24 +8,18 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.base import CachedPerModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.example_base import DataExampleBase
-from cot_transparency.data_models.models import ModelOutput
+from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.formatters.auto_answer_parsing import GetAnswerGivenFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.streaming.tasks import StreamingTaskOutput, StreamingTaskSpec
+from cot_transparency.streaming.tasks import StreamingTaskSpec
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import call_model_with_task_spec
-from stage_one import get_list_of_examples
+from cot_transparency.data_models.data import get_list_of_examples
+
+A = TypeVar("A", bound=BaseTaskOutput)
 
 
-class OutputWithParsed(StreamingTaskOutput):
-    task_spec: StreamingTaskSpec
-    inference_output: ModelOutput
-    parsing_steps: StreamingTaskOutput | None
-
-
-def answer_finding_step(
-    prev_output: StreamingTaskOutput, caller: CachedPerModelCaller, config: OpenaiInferenceConfig
-) -> OutputWithParsed:
+def answer_finding_step(prev_output: A, caller: CachedPerModelCaller, config: OpenaiInferenceConfig) -> A:
     """
     For any outputs that were not find in the previous step, pass the raw response to another model model and
     ask it to find the answer in the response.
@@ -35,8 +29,7 @@ def answer_finding_step(
     if output.parsed_response is not None:
         # we found the answer in the previous step
         # so we don't need to do anything
-        ret = output
-        parsing_steps = None
+        found_answer = None
     else:
         model_response = output.raw_response
 
@@ -44,15 +37,15 @@ def answer_finding_step(
         answer_finding_formatter = GetAnswerGivenFormatter
         messages = answer_finding_formatter.format_example(
             model_response=model_response,
-            original_question=prev_output.task_spec.get_data_example_obj(),
+            original_question=prev_output.get_task_spec().get_data_example_obj(),
             model=config.model,
         )
         task_spec = StreamingTaskSpec(
             messages=messages,
             formatter_name=answer_finding_formatter.name(),
-            data_example=prev_output.task_spec.data_example,
+            data_example=prev_output.get_task_spec().get_data_example_obj().model_dump(),
             inference_config=config,
-            task_name=prev_output.task_spec.task_name,
+            task_name=prev_output.get_task_spec().get_task_name(),
         )
 
         # we do this so that we get a seperate cache for each model that generated the answer
@@ -64,12 +57,7 @@ def answer_finding_step(
         output_of_parsing = output_of_parsing[0]
         found_answer = output_of_parsing.inference_output.parsed_response
 
-        # modify the previous output to include the parsed answer
-        new_output_with_parsed = ModelOutput(raw_response=model_response, parsed_response=found_answer)
-        ret = new_output_with_parsed
-        parsing_steps = output_of_parsing
-
-    return OutputWithParsed(task_spec=prev_output.task_spec, inference_output=ret, parsing_steps=parsing_steps)
+    return prev_output.update_parsed_response(found_answer)
 
 
 def get_examples_for_tasks(tasks: Sequence[str] | str) -> Slist[tuple[str, DataExampleBase]]:

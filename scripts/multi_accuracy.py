@@ -17,7 +17,7 @@ from cot_transparency.formatters.verbalize.biased_few_shots import (
     BiasAndExplanation,
     parse_out_bias_explanation,
 )
-from stage_one import TASK_LIST
+from cot_transparency.data_models.data import TASK_LIST
 
 
 class AccuracyOutput(BaseModel):

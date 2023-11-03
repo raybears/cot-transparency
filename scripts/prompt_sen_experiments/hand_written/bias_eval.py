@@ -4,6 +4,7 @@ from typing import Type
 
 import fire
 from matplotlib import pyplot as plt
+from cot_transparency.data_models.data import TASK_LIST
 
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
@@ -24,7 +25,7 @@ from scripts.training_formatters import (
 )
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-from stage_one import TASK_LIST, main
+from stage_one import main
 
 MODELS = [
     "gpt-3.5-turbo",

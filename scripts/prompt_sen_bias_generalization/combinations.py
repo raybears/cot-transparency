@@ -404,13 +404,13 @@ def paraphrasing_scaling_curves() -> Slist[ModelTrainMeta]:
                 train_formatters=FormatterOptions.gs_unbiased,
                 sampling_strategy=NFormatsPerQuestionSampler(1),
             ),
-            # ModelTrainMeta(
-            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G6CGWPY",
-            #     trained_samples=1000,
-            #     filter_strategy=FilterStrategy.no_filter,
-            #     train_formatters=FormatterOptions.gs_unbiased,
-            #     sampling_strategy=NFormatsPerQuestionSampler(1),
-            # ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G6CGWPY",
+                trained_samples=1000,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.gs_unbiased,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5HsCmO",
                 trained_samples=10000,
@@ -542,6 +542,202 @@ def paraphrasing_scaling_curves() -> Slist[ModelTrainMeta]:
             #     filter_strategy=FilterStrategy.correct_answer,
             #     train_formatters=FormatterOptions.super_dataset,
             # ),
+        ]
+    )
+
+    not_gpt = all_meta.filter(lambda x: x.name != "gpt-3.5-turbo")
+    distinct_models = not_gpt.distinct_by(lambda i: i.name)
+    duplicates = [k for k, v in Counter([i.name for i in all_meta]).items() if v > 1]
+    assert len(distinct_models) == len(not_gpt), f"There are duplicate models in the list, {[duplicates]}"
+
+    return all_meta
+
+
+def paraphrasing_vs_artisinal() -> Slist[ModelTrainMeta]:
+    all_meta = Slist(
+        [
+            ModelTrainMeta(
+                name="gpt-3.5-turbo",
+                trained_samples=1,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.ask_paraphrased,
+                sampling_strategy=NFormatsPerQuestionSampler(5),
+            ),
+            # unbiased
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5PpKbh",
+                trained_samples=100,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.gs_unbiased,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G6CGWPY",
+                trained_samples=1000,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.gs_unbiased,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5HsCmO",
+                trained_samples=10000,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.gs_unbiased,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5dLApy",
+            #     trained_samples=20000,
+            #     filter_strategy=FilterStrategy.no_filter,
+            #     train_formatters=FormatterOptions.gs_unbiased,
+            #     sampling_strategy=NFormatsPerQuestionSampler(1),
+            # ),
+            # prompt variant models, trained with 4 formats per question
+            # 5 formats per question
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FtVZVMC",
+            #     trained_samples=100,
+            #     filter_strategy=FilterStrategy.no_filter,
+            #     train_formatters=FormatterOptions.ask_paraphrased,
+            #     sampling_strategy=NFormatsPerQuestionSampler(5),
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fu9HbxW",
+            #     trained_samples=10000,
+            #     filter_strategy=FilterStrategy.no_filter,
+            #     train_formatters=FormatterOptions.ask_paraphrased,
+            #     sampling_strategy=NFormatsPerQuestionSampler(5),
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G3X5IXB",
+            #     trained_samples=10000,
+            #     filter_strategy=FilterStrategy.no_filter,
+            #     train_formatters=FormatterOptions.ask_paraphrased,
+            #     sampling_strategy=NFormatsPerQuestionSampler(5),
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G4TVDax",
+            #     trained_samples=48000,
+            #     filter_strategy=FilterStrategy.no_filter,
+            #     train_formatters=FormatterOptions.ask_paraphrased,
+            #     sampling_strategy=NFormatsPerQuestionSampler(5),
+            # ),
+            # 2 formats per question
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FtFd8sk",
+                trained_samples=100,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.ask_paraphrased,
+                sampling_strategy=NFormatsPerQuestionSampler(2),
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FtrLOJx",
+                trained_samples=1000,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.ask_paraphrased,
+                sampling_strategy=NFormatsPerQuestionSampler(2),
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5caiZn",
+                trained_samples=48000,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.ask_paraphrased,
+                sampling_strategy=NFormatsPerQuestionSampler(2),
+            ),
+            # 1 format per question
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FtNiOoX",
+                trained_samples=100,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.ask_paraphrased,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G3HTGwM",
+                trained_samples=1000,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.ask_paraphrased,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8G4HPw1I",
+                trained_samples=10000,
+                filter_strategy=FilterStrategy.no_filter,
+                train_formatters=FormatterOptions.ask_paraphrased,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
+            # # super dataset
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:far-ai::8CwFcohP",
+            #     trained_samples=100,
+            #     filter_strategy=FilterStrategy.correct_answer,
+            #     train_formatters=FormatterOptions.super_dataset,
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8DKZhqwF",
+            #     trained_samples=500,
+            #     filter_strategy=FilterStrategy.correct_answer,
+            #     train_formatters=FormatterOptions.super_dataset,
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:far-ai::8CwqAHpd",
+            #     trained_samples=1000,
+            #     filter_strategy=FilterStrategy.correct_answer,
+            #     train_formatters=FormatterOptions.super_dataset,
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8CxBtbeH",
+            #     trained_samples=10000,
+            #     filter_strategy=FilterStrategy.correct_answer,
+            #     train_formatters=FormatterOptions.super_dataset,
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:far-ai::8Czg32py",
+            #     trained_samples=50000,
+            #     filter_strategy=FilterStrategy.correct_answer,
+            #     train_formatters=FormatterOptions.super_dataset,
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:far-ai::8DQNvRke",
+            #     trained_samples=75000,
+            #     filter_strategy=FilterStrategy.correct_answer,
+            #     train_formatters=FormatterOptions.super_dataset,
+            # ),
+            # ModelTrainMeta(
+            #     name="ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W",
+            #     trained_samples=100000,
+            #     filter_strategy=FilterStrategy.correct_answer,
+            #     train_formatters=FormatterOptions.super_dataset,
+            # ),
+            # prompt variant models, trained with 1 format per question
+            ModelTrainMeta(
+                name="gpt-3.5-turbo",
+                trained_samples=1,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_set1,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:far-ai::8CaEBBuv",
+                trained_samples=100,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_set1,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:far-ai::8CwPS37r",
+                trained_samples=10000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_set1,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
+            ModelTrainMeta(
+                name="ft:gpt-3.5-turbo-0613:far-ai::8Cb9tUZO",
+                trained_samples=20000,
+                filter_strategy=FilterStrategy.correct_answer,
+                train_formatters=FormatterOptions.prompt_variants_set1,
+                sampling_strategy=NFormatsPerQuestionSampler(1),
+            ),
         ]
     )
 

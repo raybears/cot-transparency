@@ -19,7 +19,7 @@ from cot_transparency.formatters.name_mapping import name_to_stage1_formatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import COT_FORMATTERS
 from scripts.prompt_sen_experiments.plots import get_modal_agreement_score
-from stage_one import COT_TRAINING_TASKS
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 
 
 class OutputUID(BaseExtractor[TaskOutput]):

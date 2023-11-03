@@ -171,6 +171,18 @@ class BaseTaskOutput(HashableBaseModel, ABC):
     def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
         raise NotImplementedError
 
+    @abstractmethod
+    def copy_update(
+        self,
+        *,
+        inference_output: ModelOutput | Unset = _UNSET,
+    ) -> Self:
+        raise NotImplementedError
+
+    def update_parsed_response(self, parsed_response: str | None) -> Self:
+        new_output = ModelOutput(raw_response=self.inference_output.raw_response, parsed_response=parsed_response)
+        return self.copy_update(inference_output=new_output)
+
     def uid(self) -> str:
         return self.model_hash()
 
@@ -403,6 +415,17 @@ class StageTwoTaskOutput(BaseTaskOutput):
         return StageTwoTaskOutput(
             task_spec=self.task_spec.copy_update(messages=messages),
             inference_output=self.inference_output,
+            response_idx=self.response_idx,
+        )
+
+    def copy_update(
+        self,
+        *,
+        inference_output: ModelOutput | Unset = _UNSET,
+    ) -> Self:
+        return StageTwoTaskOutput(
+            task_spec=self.task_spec,
+            inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
             response_idx=self.response_idx,
         )
 

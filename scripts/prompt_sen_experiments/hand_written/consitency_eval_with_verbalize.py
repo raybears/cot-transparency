@@ -1,6 +1,7 @@
 from typing import Optional, Sequence
 
 import fire
+from cot_transparency.data_models.data import PROMPT_SEN_TESTING_TASKS
 
 from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TESTING_FORMATS_REDUCED,
@@ -10,7 +11,7 @@ from scripts.automated_answer_parsing.extract_final_answer_with_model import (
 )
 from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import COT_FORMATTERS
 from scripts.prompt_sen_experiments.plots import NoneFilteringStrategy, prompt_metrics
-from stage_one import PROMPT_SEN_TESTING_TASKS, main
+from stage_one import main
 
 EXP_DIR = "experiments/prompt_sen_experiments/v3_handwritten_formats/temp0_cot_v3_new_formats_no_answer_parsing_with_verbalize_and_step_by_step"
 ANSWER_FINDING_DIR = (

@@ -15,7 +15,7 @@ import seaborn as sns
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
-from cot_transparency.data_models.example_base import DataExampleBase
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.data_models.pd_utils import BaseExtractor, convert_slist_to_df
 from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
 from cot_transparency.data_models.streaming import ParaphrasingOutput
@@ -33,6 +33,7 @@ from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemode
 from cot_transparency.streaming.tasks import StreamingTaskOutput
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import call_model_with_task_spec
+from cot_transparency.streaming.tasks import get_examples_for_tasks
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
@@ -44,21 +45,8 @@ from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMet
 from scripts.prompt_sen_bias_generalization.bias_scaling_curves import get_name_of_run
 from scripts.prompt_sen_bias_generalization.combinations import paraphrasing_scaling_curves
 from scripts.utils.plots import catplot
-from stage_one import COT_TESTING_TASKS, COT_TRAINING_TASKS, get_list_of_examples
-from scripts.automated_answer_parsing.answer_parsing_example import OutputWithParsed, answer_finding_step
-
-
-def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tuple[str, DataExampleBase]]:
-    """
-    Returns a list of tuples of (task_name, example_obj)
-    """
-    ret = Slist()
-    for t in tasks:
-        examples = get_list_of_examples(t)
-        # print(f"Found {len(examples)} examples for task: {t}")
-        task_with_name = examples.map(lambda x: (t, x)).shuffle(str(42)).take(example_cap)
-        ret.extend(task_with_name)
-    return ret
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
+from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 
 
 def parse_responses(output: StreamingTaskOutput) -> ParaphrasingOutput:
@@ -123,9 +111,11 @@ async def run_pipeline(
 ) -> Path:
     cache_dir = f"{exp_dir}/cache"
 
-    generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=1)
+    generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=200)
 
-    answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/answer_parsing_cache")
+    answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
+        f"{cache_dir}/answer_parsing_cache", write_every_n=200
+    )
     answer_parsing_config = config_from_default(model="claude-v1")
 
     data_examples = get_examples_for_tasks(tasks, example_cap)
@@ -150,7 +140,9 @@ async def run_pipeline(
         models_to_be_tested = Slist(models_to_evaluate).map(
             lambda x: config_from_default(model=x, temperature=eval_temp)
         )
-        testing_caller = UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/evaluation_cache")
+        testing_caller = UniversalCaller().with_model_specific_file_cache(
+            f"{cache_dir}/evaluation_cache", write_every_n=200
+        )
 
         pipeline = (
             pipeline.map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
@@ -205,7 +197,9 @@ def make_training_data(
         tasks: Sequence[str],
         batch_size: int,
     ):
-        model_caller = UniversalCaller().with_file_cache(f"{exp_dir}/cache/cot_generation_cache.jsonl", write_every_n=1)
+        model_caller = UniversalCaller().with_file_cache(
+            f"{exp_dir}/cache/cot_generation_cache.jsonl", write_every_n=20
+        )
         data_examples = get_examples_for_tasks(tasks, example_cap)
         pipeline = (
             Observable.from_iterable(data_examples)
@@ -377,7 +371,7 @@ def plot_scaling_curves(
         eval_temp=0.0,
     )
 
-    outputs = read_jsonl_file_into_basemodel(results_path, OutputWithParsed)
+    outputs = read_jsonl_file_into_basemodel(results_path, StreamingTaskOutput)
     with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash(), x.task_spec.inference_config)).map(
         lambda x: x.map_values(entropy_and_uniform_entropy)
     )

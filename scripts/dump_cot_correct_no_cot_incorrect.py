@@ -11,7 +11,7 @@ from cot_transparency.json_utils.read_write import (
     write_csv_file_from_basemodel,
     write_jsonl_file_from_basemodel,
 )
-from stage_one import COT_TESTING_TASKS
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 
 # ruff: noqa: E501
 

@@ -1,3 +1,4 @@
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
@@ -8,7 +9,7 @@ from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map impor
 from scripts.finetune_cot import FormatterOptions, fine_tune_with_bias_augmentation
 from scripts.prompt_sensitivity_plotly import prompt_metrics_plotly
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-from stage_one import COT_TESTING_TASKS, main
+from stage_one import main
 
 
 def finetune_intervention() -> str:

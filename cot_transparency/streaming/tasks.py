@@ -15,6 +15,7 @@ from typing import Any, Self, Sequence
 
 from cot_transparency.formatters.base_class import StageOneFormatter, Type
 from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.data_models.data import get_list_of_examples
 
 
 class StreamingTaskSpec(BaseTaskSpec):
@@ -75,6 +76,16 @@ class StreamingTaskOutput(BaseTaskOutput):
             inference_output=self.inference_output,
         )
 
+    def copy_update(
+        self,
+        *,
+        inference_output: ModelOutput | Unset = _UNSET,
+    ) -> Self:
+        return StreamingTaskOutput(
+            task_spec=self.task_spec,
+            inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
+        )
+
 
 def data_to_task_spec(
     task_name: str,
@@ -114,3 +125,16 @@ def call_model_with_task_spec(task_spec: StreamingTaskSpec, caller: ModelCaller)
         )
     )
     return outputs.map(lambda x: StreamingTaskOutput(task_spec=task_spec, inference_output=x))
+
+
+def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tuple[str, DataExampleBase]]:
+    """
+    Returns a list of tuples of (task_name, example_obj)
+    """
+    ret = Slist()
+    for t in tasks:
+        examples = get_list_of_examples(t)
+        # print(f"Found {len(examples)} examples for task: {t}")
+        task_with_name = examples.map(lambda x: (t, x)).shuffle(str(42)).take(example_cap)
+        ret.extend(task_with_name)
+    return ret

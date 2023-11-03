@@ -3,12 +3,13 @@ from pathlib import Path
 
 from pydantic import BaseModel
 from slist import Slist
+from cot_transparency.data_models.data import TASK_LIST
 
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.multi_accuracy import PlotInfo
-from stage_one import TASK_LIST, main as stage_one_main
+from stage_one import main as stage_one_main
 
 
 class TrainedOn(str, Enum):

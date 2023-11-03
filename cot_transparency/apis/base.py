@@ -113,7 +113,7 @@ class FileCacheRow(BaseModel):
     response: CachedValue
 
 
-def load_file_cache(cache_path: Path) -> dict[str, CachedValue]:
+def load_file_cache(cache_path: Path, silent: bool = False) -> dict[str, CachedValue]:
     """
     Load a file cache from a path
     """
@@ -122,7 +122,8 @@ def load_file_cache(cache_path: Path) -> dict[str, CachedValue]:
             path=cache_path,
             basemodel=FileCacheRow,
         )
-        print(f"Loaded {len(rows)} rows from cache file {cache_path.as_posix()}")
+        if not silent:
+            print(f"Loaded {len(rows)} rows from cache file {cache_path.as_posix()}")
         return {row.key: row.response for row in rows}
     else:
         return {}
@@ -137,10 +138,10 @@ def save_file_cache(cache_path: Path, cache: dict[str, CachedValue]) -> None:
 
 
 class CachedCaller(ModelCaller):
-    def __init__(self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int):
+    def __init__(self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int, silent_loading: bool = False):
         self.model_caller = wrapped_caller
         self.cache_path = cache_path
-        self.cache: dict[str, CachedValue] = load_file_cache(cache_path)
+        self.cache: dict[str, CachedValue] = load_file_cache(cache_path, silent=silent_loading)
         self.write_every_n = write_every_n
         self.__update_counter = 0
         self.save_lock = Lock()
@@ -210,5 +211,6 @@ class CachedPerModelCaller(ModelCaller):
                     wrapped_caller=self.model_caller,
                     cache_path=cache_path,
                     write_every_n=self.write_every_n,
+                    silent_loading=True,
                 )
         return self.cache_callers[cache_name]

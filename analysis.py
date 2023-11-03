@@ -19,7 +19,7 @@ from cot_transparency.formatters.interventions.valid_interventions import (
 from scripts.multi_accuracy import plot_accuracy_for_exp
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-from stage_one import TASK_LIST
+from cot_transparency.data_models.data import TASK_LIST
 
 TASK_MAP = {}
 for dataset, task_list in TASK_LIST.items():

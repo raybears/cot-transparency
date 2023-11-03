@@ -7,6 +7,7 @@ import pandas as pd
 import seaborn as sns
 from pydantic import BaseModel
 from slist import Slist
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
@@ -25,7 +26,7 @@ from scripts.matching_user_answer import (
     random_chance_matching_answer_plot_dots,
 )
 from scripts.multi_accuracy import PlotInfo
-from stage_one import COT_TESTING_TASKS, main
+from stage_one import main
 
 
 class PostHocOptions(str, Enum):

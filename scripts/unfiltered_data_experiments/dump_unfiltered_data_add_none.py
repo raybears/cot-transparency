@@ -10,7 +10,7 @@ from cot_transparency.formatters.core.unbiased import (
     ZeroShotUnbiasedWithNoneFormatter,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
-from stage_one import COT_TRAINING_TASKS
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 
 # ruff: noqa: E501
 

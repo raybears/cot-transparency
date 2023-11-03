@@ -2,13 +2,14 @@ from pathlib import Path
 from typing import Optional
 
 from slist import Slist, Group
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
 from scripts.intervention_investigation import DottedLine, bar_plot
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-from stage_one import COT_TESTING_TASKS, main as stage_one_main
+from stage_one import main as stage_one_main
 
 
 def run_experiments():
