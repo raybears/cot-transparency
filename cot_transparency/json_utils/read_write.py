@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import tempfile
+from types import TracebackType
 from typing import Optional, Sequence, Type, TypeVar
 
 import pandas as pd
@@ -54,7 +55,12 @@ class AtomicFile:
         self.temp_file = tempfile.NamedTemporaryFile("w", dir=self.dir_name, delete=False)
         return self.temp_file
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         # Close the file if it's open
         self.temp_file.close()
 
