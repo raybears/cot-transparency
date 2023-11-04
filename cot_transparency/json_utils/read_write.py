@@ -1,11 +1,11 @@
+import os
 from pathlib import Path
+import tempfile
 from typing import Optional, Sequence, Type, TypeVar
 
 import pandas as pd
 from pydantic import BaseModel
 from slist import Slist
-
-from cot_transparency.util import safe_file_write
 
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
 
@@ -45,12 +45,40 @@ def read_jsonl_file_into_basemodel_ignore_errors(
         ).flatten_option()
 
 
+class AtomicFile:
+    def __init__(self, filename: str | Path):
+        self.filename = Path(filename)
+        self.dir_name = self.filename.parent
+
+    def __enter__(self):
+        self.temp_file = tempfile.NamedTemporaryFile("w", dir=self.dir_name, delete=False)
+        return self.temp_file
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Close the file if it's open
+        self.temp_file.close()
+
+        try:
+            # if all went well we can rename the temp file
+            if exc_type is None:
+                os.replace(self.temp_file.name, self.filename)
+            else:
+                os.remove(self.temp_file.name)
+        except Exception as e:
+            raise e
+        finally:
+            # Cleanup, in case the removal did not happen
+            if os.path.exists(self.temp_file.name):
+                os.remove(self.temp_file.name)
+
+
 def write_jsonl_file_from_basemodel(path: Path | str, basemodels: Sequence[BaseModel]) -> None:
     if isinstance(path, str):
         path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    data = "\n".join(basemodel.model_dump_json() for basemodel in basemodels)
-    safe_file_write(filename=path, data=data)
+    with AtomicFile(path) as f:
+        for basemodel in basemodels:
+            f.write(basemodel.model_dump_json() + "\n")
 
 
 def write_csv_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel]) -> None:
@@ -62,3 +90,8 @@ def write_csv_file_from_basemodel(path: Path, basemodels: Sequence[BaseModel]) -
 def read_base_model_from_csv(path: Path, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
     df = pd.read_csv(path)
     return Slist(basemodel(**row) for _, row in df.iterrows())
+
+
+def safe_file_write(filename: str | Path, data: str):
+    with AtomicFile(filename) as f:
+        f.write(data)

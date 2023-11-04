@@ -12,7 +12,7 @@ from cot_transparency.data_models.models import (
     StageTwoTaskOutput,
     TaskOutput,
 )
-from cot_transparency.util import safe_file_write
+from cot_transparency.json_utils.read_write import safe_file_write
 
 LoadedJsonType = Union[dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]]
 
