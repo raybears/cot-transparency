@@ -34,6 +34,7 @@ class BaseTaskSpec(HashableBaseModel):
     inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: Sequence[ChatMessage]
     formatter_name: str
+    intervention_name: Optional[str] = None
 
     @abstractmethod
     def get_task_name(self) -> str:
@@ -56,6 +57,9 @@ class BaseTaskSpec(HashableBaseModel):
 
     @abstractmethod
     def get_task_hash(self) -> str:
+        """
+        Return the task hash of the data example that generated this task 
+        """
         raise NotImplementedError
 
 
