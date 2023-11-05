@@ -29,7 +29,7 @@ def answer_finding_step(prev_output: A, caller: CachedPerModelCaller, config: Op
     if output.parsed_response is not None:
         # we found the answer in the previous step
         # so we don't need to do anything
-        found_answer = None
+        found_answer = output.parsed_response
     else:
         model_response = output.raw_response
 
