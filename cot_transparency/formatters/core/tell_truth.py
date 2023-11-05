@@ -2,7 +2,7 @@ from typing import Optional, Sequence
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import (
     COT_ASSISTANT_PROMPT,

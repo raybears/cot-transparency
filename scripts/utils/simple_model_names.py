@@ -45,4 +45,6 @@ MODEL_SIMPLE_NAMES: Mapping[str, str] = {
     "ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf": "# 1100, 50/50 train on prompt variants",
     "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7": "# 11000, 50/50 train on prompt variants",
     "ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c": "# 22000, 50/50 train on prompt variants",
+    "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D": "1k all correct (control)",
+    "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF": "1k super dataset all correct (ours)",
 }

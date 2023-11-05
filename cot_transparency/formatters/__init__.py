@@ -14,6 +14,7 @@ from cot_transparency.formatters.core.sycophancy import (
     ZeroShotSycophancyFormatter,
     ZeroShotSycophancyNoRoleFormatter,
 )
+from cot_transparency.formatters.core.tell_truth import ZeroShotTellTruthCOTFormatter
 from cot_transparency.formatters.core.unbiased import (
     FewShotCOTUnbiasedNoRoleFormatter,
     FewShotUnbiasedNoRoleFormatter,
@@ -67,6 +68,13 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
 )
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.prompt_addition_python.pal_few_shot import PALFewShot
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    GenerateParaphrasingsFormatters,
+    AskParaphrasedQuestionFormatter,
+    GoldStandardNoCotFormatter,
+    GenerateParaphrasingsNoCotFormatters,
+    GoldStandardWithCotFormatter,
+)
 from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import (
     cot_sensitivity_formatters,
     no_cot_sensitivity_formatters,
@@ -101,14 +109,6 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TagFormatter,
     TimeBasedFormatter,
 )
-from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
-    GenerateParaphrasingsFormatters,
-    AskParaphrasedQuestionFormatter,
-    GoldStandardNoCotFormatter,
-    GenerateParaphrasingsNoCotFormatters,
-    GoldStandardWithCotFormatter,
-)
-
 from cot_transparency.formatters.symbol_tuning.bbq_symbol_few_shot import (
     BBQSymbolTuningCOTFewShot,
 )
@@ -171,6 +171,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ZeroShotSycophancyFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         ZeroShotSycophancyNoRoleFormatter.name(): ZeroShotUnbiasedNoRoleFormatter.name(),
         ZeroShotCOTSycophancyNoRoleFormatter.name(): ZeroShotCOTUnbiasedNoRoleFormatter.name(),
+        ZeroShotTellTruthCOTFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         ZeroShotCOTSycophancyToldBiasFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         StanfordBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         StanfordTreatmentFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
