@@ -1,6 +1,7 @@
 """
 This file basically an evolution of tasks.py but simplified and intended to be used with grugstream.
 """
+import typing
 from cot_transparency.apis.base import ModelCaller
 from slist import Slist
 from cot_transparency.copy_utils.unset_sentinel import _UNSET, Unset
@@ -135,6 +136,7 @@ def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tupl
     for t in tasks:
         examples = get_list_of_examples(t)
         # print(f"Found {len(examples)} examples for task: {t}")
-        task_with_name = examples.map(lambda x: (t, x)).shuffle(str(42)).take(example_cap)
+
+        task_with_name = examples.shuffle(typing.cast(str, 42)).map(lambda x: (t, x)).take(example_cap)
         ret.extend(task_with_name)
     return ret
