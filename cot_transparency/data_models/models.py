@@ -58,7 +58,7 @@ class BaseTaskSpec(HashableBaseModel):
     @abstractmethod
     def get_task_hash(self) -> str:
         """
-        Return the task hash of the data example that generated this task 
+        Return the task hash of the data example that generated this task
         """
         raise NotImplementedError
 
