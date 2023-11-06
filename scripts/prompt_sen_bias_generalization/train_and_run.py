@@ -22,7 +22,7 @@ set_openai_org_rand()
 def run_all_evals(model: str):
     asyncio.run(
         run_paraphrasing_eval(
-            models=[model],
+            models_to_evaluate= [model],
             tasks=COT_TESTING_TASKS,
             batch_size=50,
             eval_temp=0.0,
