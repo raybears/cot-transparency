@@ -195,12 +195,26 @@ class CachedPerModelCaller(ModelCaller):
     useful if you want to run multiple models in parallel without having to worry about cache conflicts
     """
 
-    def __init__(self, wrapped_caller: ModelCaller, cache_dir: Path, write_every_n: int):
+    def __init__(self, wrapped_caller: ModelCaller, cache_dir: Path, write_every_n: int, preload: bool = False):
         self.model_caller = wrapped_caller
         self.cache_dir = cache_dir
         self.cache_callers: dict[str, CachedCaller] = {}
         self.write_every_n = write_every_n
         self.lock = Lock()
+        if preload:
+            cache_paths = self.cache_dir.glob("*.jsonl")
+            for path in cache_paths:
+                cache_name = path.stem
+                self._create_caller(cache_path=path, cache_name=cache_name)
+
+    def _create_caller(self, cache_path: Path, cache_name: str) -> CachedCaller:
+        self.cache_callers[cache_name] = CachedCaller(
+            wrapped_caller=self.model_caller,
+            cache_path=cache_path,
+            write_every_n=self.write_every_n,
+            silent_loading=True,
+        )
+        return self.cache_callers[cache_name]
 
     def call(
         self,
@@ -221,10 +235,6 @@ class CachedPerModelCaller(ModelCaller):
         with self.lock:
             if cache_name not in self.cache_callers:
                 cache_path = self.cache_dir / f"{cache_name}.jsonl"
-                self.cache_callers[cache_name] = CachedCaller(
-                    wrapped_caller=self.model_caller,
-                    cache_path=cache_path,
-                    write_every_n=self.write_every_n,
-                    silent_loading=True,
-                )
+                self._create_caller(cache_path=cache_path, cache_name=cache_name)
+
         return self.cache_callers[cache_name]
