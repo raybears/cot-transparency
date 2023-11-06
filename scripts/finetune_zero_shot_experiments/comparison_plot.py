@@ -45,6 +45,11 @@ class ModelTrainMeta:
     sampling_strategy: FormatSampler = RandomSampler()
     data_from: DataFromOptions = DataFromOptions.gpt_35_turbo
 
+    def for_legend(self) -> str:
+        return (
+            f"{self.train_formatters.value}, {self.filter_strategy.value}, {self.sampling_strategy}, {self.data_from}"
+        )
+
 
 @dataclass(frozen=True)
 class ModelNameAndTrainedSamplesAndMetrics:
