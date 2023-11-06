@@ -5,7 +5,7 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
@@ -15,16 +15,21 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo",
+        "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D",  # 1k correct (control)
+        "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",  # 1k correct (ours)
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z"
+
     ]
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
+    task = "repetitive_algebra"
     stage_one_obs = stage_one_stream(
-        formatters=[ZeroShotCOTUnbiasedFormatter.name(), ZeroShotUnbiasedFormatter.name()],
-        tasks=["hindsight_neglect"],
-        example_cap=600,
+        formatters=[ZeroShotCOTUnbiasedFormatter.name()],
+        tasks=[task],
+        example_cap=1000,
         num_tries=1,
         raise_after_retries=False,
-        temperature=1.0,
+        temperature=0.0,
         caller=stage_one_caller,
         batch=40,
         models=models,
@@ -33,7 +38,7 @@ async def plot_accuracies():
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
-    plot_formatter = ZeroShotUnbiasedFormatter
+    plot_formatter = ZeroShotCOTUnbiasedFormatter
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
@@ -47,12 +52,18 @@ async def plot_accuracies():
     ]
 
     prompt_type_str = "COT prompt" if "COT" in plot_formatter.name() else "Non COT prompt"
+    name_override_plotly = PERCENTAGE_CHANGE_NAME_MAP.copy()
+    # change \n to <br> for plotly
+    for key, value in name_override_plotly.items():
+        name_override_plotly[key] = value.replace("\n", "<br>")
+    task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy on hindsight neglect task{prompt_type_str}",
+        title=f"Accuracy on {task_nice_format}<br>{prompt_type_str}",
         dotted_line=None,
         y_axis_title="Accuracy",
-        name_override=PERCENTAGE_CHANGE_NAME_MAP,
+        name_override=name_override_plotly,
+        add_n_to_name=True,
     )
 
 

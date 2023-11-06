@@ -32,6 +32,7 @@ class InverseScalingTask(str, Enum):
     memo_trap = "memo_trap"
     # spurious few shot tasks
     hindsight_neglect = "hindsight_neglect"
+    repetitive_algebra = "repetitive_algebra"
 
     @staticmethod
     def all_tasks() -> list[str]:
@@ -45,6 +46,8 @@ def get_inverse_scaling(task: InverseScalingTask) -> Slist[InverseScalingExample
         path = Path("./data/inverse_scaling/memo-trap_classification.jsonl")
     elif task == InverseScalingTask.hindsight_neglect:
         path = Path("./data/inverse_scaling/hindsight-neglect_classification.jsonl")
+    elif task == InverseScalingTask.repetitive_algebra:
+        path = Path("./data/inverse_scaling/repetitive-algebra_classification.jsonl")
 
     # read the json manually into dicts
     _dicts: Slist[InverseScalingExample] = Slist([])
