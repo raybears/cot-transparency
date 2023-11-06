@@ -106,7 +106,7 @@ def main(
     stage_two_tasks = all_data.map(lambda x: convert_s1_to_s2(x, exp_dir, temperature, model=model, n_tokens=1))
     still_to_run, found_answers = extract_answers_that_we_can(stage_two_tasks)
     save_list_of_outputs_s2(found_answers)
-    run_with_caching_stage_two(save_file_every, batch, still_to_run, num_retries=1)
+    run_with_caching_stage_two(save_file_every, batch, still_to_run, num_tries=1)
 
 
 if __name__ == "__main__":

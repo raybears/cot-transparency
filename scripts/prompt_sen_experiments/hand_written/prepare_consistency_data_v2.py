@@ -7,6 +7,7 @@ import fire
 from slist import Slist
 
 from cot_transparency.apis.openai.finetune import FinetuneSample
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.valid_interventions import (
@@ -16,7 +17,6 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TRAINING_COT_PROMPT_VARIANTS,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
-from stage_one import COT_TRAINING_TASKS
 
 
 def get_task_breakdown(outputs: list[TaskOutput]) -> dict[str, int]:

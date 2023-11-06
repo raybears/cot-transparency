@@ -6,7 +6,7 @@ from cot_transparency.apis.openai.finetune import (
     FineTuneParams,
     run_finetune_with_wandb,
 )
-from cot_transparency.data_models.models import BaseTaskOuput
+from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
     get_training_cots_gpt_35,
@@ -34,7 +34,7 @@ def main(
     model_output_verified = ModelOutputVerified.correct_and_wrong
     formatters = TRAINING_COT_PROMPT_VARIANTS
 
-    cot_data: Slist[BaseTaskOuput]
+    cot_data: Slist[BaseTaskOutput]
     # TODO fix this
     cot_data = Slist(get_training_cots_gpt_35(model_output_verified))  # gold standard formatter
     print(f"loaded {len(cot_data)} cots")
@@ -52,7 +52,7 @@ def main(
 
     augmented = replaced.map(augment_cot_task)
 
-    def get_seed_from_task(task: BaseTaskOuput):
+    def get_seed_from_task(task: BaseTaskOutput):
         return str(task.get_task_spec().messages)
 
     finetuning_samples = (

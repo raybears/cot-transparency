@@ -9,12 +9,12 @@ from typing import Any, Mapping, Optional, Sequence
 import numpy as np
 import openai
 import pandas as pd
+import wandb
 from openai.error import APIConnectionError, RateLimitError
 from pydantic import BaseModel
 from retry import retry
 from wandb.sdk.wandb_run import Run
 
-import wandb
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.data_models.messages import (
     ChatMessage,
@@ -22,7 +22,7 @@ from cot_transparency.data_models.messages import (
     StrictChatMessage,
     StrictMessageRole,
 )
-from cot_transparency.data_models.models import BaseTaskOuput
+from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.json_utils.read_write import (
     read_jsonl_file_into_basemodel,
     write_jsonl_file_from_basemodel,
@@ -58,7 +58,7 @@ class FinetuneSample(BaseModel):
     messages: list[StrictChatMessage]
 
     @staticmethod
-    def from_task_output(task: BaseTaskOuput) -> "FinetuneSample":
+    def from_task_output(task: BaseTaskOutput) -> "FinetuneSample":
         prompt_messages = task.get_task_spec().messages
         joined = join_assistant_preferred_to_completion(
             messages=prompt_messages, completion=task.inference_output.raw_response

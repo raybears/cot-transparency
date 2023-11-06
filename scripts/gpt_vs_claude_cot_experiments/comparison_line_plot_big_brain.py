@@ -8,6 +8,7 @@ import seaborn as sns
 from pydantic import BaseModel
 from slist import Slist
 
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
@@ -15,7 +16,6 @@ from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
 )
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import AccuracyOutput, PlotInfo
-from stage_one import COT_TESTING_TASKS
 
 
 class BigBrainOptions(str, Enum):

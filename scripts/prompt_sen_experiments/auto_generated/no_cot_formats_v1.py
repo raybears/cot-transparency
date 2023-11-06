@@ -2,9 +2,10 @@ from typing import Optional, Sequence
 
 import fire
 
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import TESTING_TASKS
 from scripts.prompt_sen_experiments.plots import prompt_metrics
-from stage_one import COT_TESTING_TASKS, main
+from stage_one import main
 
 if True:
     pass
@@ -59,7 +60,7 @@ def run():
     #     raise_after_retries=False,
     #     raise_on="all",
     #     repeats_per_question=1,
-    #     num_retries=1,
+    #     num_tries=1,
     #     n_responses_per_request=1,
     #     max_tokens=1,
     #     retry_answers_with_none=False,
@@ -78,7 +79,7 @@ def run():
         raise_after_retries=False,
         raise_on="all",
         repeats_per_question=1,
-        num_retries=1,
+        num_tries=1,
         n_responses_per_request=1,
         max_tokens=40,
         retry_answers_with_none=True,

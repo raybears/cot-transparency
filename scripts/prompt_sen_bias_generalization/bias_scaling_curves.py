@@ -6,8 +6,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from git import Sequence
+from grugstream import Observable
 from slist import Slist
+from tqdm import tqdm
 
+from cot_transparency.apis import UniversalCaller
+from cot_transparency.data_models.config import config_from_default
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.pd_utils import (
     BasicExtractor,
@@ -16,11 +21,14 @@ from cot_transparency.data_models.pd_utils import (
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.streaming.tasks import call_model_with_task_spec, data_to_task_spec, get_examples_for_tasks
+from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
 from scripts.prompt_sen_bias_generalization.combinations import (
     bias_vs_prompts,
     n_formats,
     n_questions_comparison,
+    paraphrasing_vs_artisinal,
 )
 from scripts.prompt_sen_experiments.hand_written.bias_eval import (
     AverageOptionsExtractor,
@@ -28,7 +36,7 @@ from scripts.prompt_sen_experiments.hand_written.bias_eval import (
 )
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
 from scripts.training_formatters import TRAINING_COT_FORMATTERS
-from stage_one import COT_TESTING_TASKS, main as stage_one_main
+from stage_one import main as stage_one_main
 
 TEST_FORMATTERS = [f for f in TRAINING_COT_FORMATTERS]
 
@@ -65,6 +73,8 @@ def get_models(group_to_plot: str) -> Slist[ModelTrainMeta]:
         defined_meta = bias_vs_prompts()
     elif group_to_plot == "n_formats":
         defined_meta = n_formats()
+    elif group_to_plot == "paraphrasing_vs_artisinal":
+        defined_meta = paraphrasing_vs_artisinal()
     else:
         raise ValueError(f"Unknown group_to_plot {group_to_plot}")
     return defined_meta
@@ -89,6 +99,44 @@ def run(
         temperature=1.0,
         batch=25,
     )
+
+
+async def run_with_extraction(
+    group_to_plot: str = "n_questions_comparison",
+    exp_dir: str = "experiments/finetune_3_streaming",
+    tasks: Sequence[str] = COT_TESTING_TASKS,
+    biases: Sequence[Type[StageOneFormatter]] = TEST_FORMATTERS,
+    example_cap: int = 400,
+):
+    cache_dir = f"{exp_dir}/cache"
+
+    models = get_models(group_to_plot)
+    model_names = models.map(lambda x: x.name)
+    configs = model_names.map(lambda x: config_from_default(model=x))
+
+    model_caller = UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/evaluation_cache", write_every_n=200)
+    answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
+        f"{cache_dir}/answer_parsing_cache", write_every_n=200
+    )
+    answer_parsing_config = config_from_default(model="claude-v1")
+
+    data = get_examples_for_tasks(tasks, example_cap=example_cap)
+    tasks_to_run = data.map(lambda x: data_to_task_spec(x[0], x[1], biases, configs)).flatten_list()
+
+    obs = (
+        Observable.from_iterable(tasks_to_run)
+        .map_blocking_par(
+            lambda x: call_model_with_task_spec(x, model_caller),
+            max_par=20,
+        )
+        .flatten_list()
+        .tqdm(tqdm_bar=tqdm(total=len(tasks_to_run), desc="Evaluate models"))
+        .map_blocking_par(lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=20)
+    )
+
+    results_file = Path(f"{exp_dir}/results.jsonl")
+
+    await obs.to_file(results_file, mode="w")
 
 
 def plot(
@@ -140,15 +188,15 @@ def plot(
         df_p = df[df.bias_type == bias_type]
         title = "Bias type: " + bias_type
         assert isinstance(df_p, pd.DataFrame)
-        # lineplot_util(df_p, title)
+        lineplot_util(df_p, title)
         # breakpoint()
         # convert model to str, samples to int and matches bias to float
-        df_pt = df_p.copy()
-        df_pt["Samples"] = df_pt["Samples"].astype(int)
-        df_pt["matches_bias"] = df_pt["matches_bias"].astype(float)
-        df_pt["model_name"] = df_pt["Trained on COTS from"].astype(str)
-        g = sns.barplot(data=df_pt, x="Samples", hue="model_name", y="matches_bias")
-        g.set_title(title)
+        # df_pt = df_p.copy()
+        # df_pt["Samples"] = df_pt["Samples"].astype(int)
+        # df_pt["matches_bias"] = df_pt["matches_bias"].astype(float)
+        # df_pt["model_name"] = df_pt["Trained on COTS from"].astype(str)
+        # g = sns.barplot(data=df_pt, x="Samples", hue="model_name", y="matches_bias")
+        # g.set_title(title)
         plt.show()
 
     if plot_breakdown_by_formatter:
@@ -166,4 +214,4 @@ def plot(
 
 
 if __name__ == "__main__":
-    fire.Fire({"run": run, "plot": plot})
+    fire.Fire({"run": run, "plot": plot, "run_with_extraction": run_with_extraction})

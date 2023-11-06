@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 
+from cot_transparency.data_models.data import TASK_LIST
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import (
     ExperimentJsonFormat,
@@ -19,7 +20,6 @@ from cot_transparency.formatters.interventions.valid_interventions import (
 from scripts.multi_accuracy import plot_accuracy_for_exp
 from scripts.utils.plots import catplot
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
-from stage_one import TASK_LIST
 
 TASK_MAP = {}
 for dataset, task_list in TASK_LIST.items():
@@ -173,6 +173,8 @@ def accuracy_for_df(
         tasks=tasks,
         df=df,
     )
+
+    df["model"] = df["model"].map(lambda x: MODEL_SIMPLE_NAMES.get(x, x))
     df.loc[:, "intervention_name"] = df["intervention_name"].fillna("")
     # add "<-" if intervention_name is not null
     df.loc[:, "intervention_name"] = df["intervention_name"].apply(lambda x: "<-" + x if x else x)

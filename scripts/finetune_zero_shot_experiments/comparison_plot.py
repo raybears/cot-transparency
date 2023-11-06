@@ -8,6 +8,7 @@ import pandas as pd
 import seaborn as sns
 from slist import Slist
 
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter
@@ -27,7 +28,7 @@ from scripts.matching_user_answer import (
 )
 from scripts.multi_accuracy import PlotInfo
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
-from stage_one import COT_TESTING_TASKS, main
+from stage_one import main
 
 
 class FilterStrategy(str, Enum):

@@ -3,7 +3,7 @@ from typing import Generic, Sequence, TypeVar
 
 import pandas as pd
 
-from cot_transparency.data_models.models import BaseTaskOuput, TaskOutput
+from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.formatters import name_to_formatter
 
 T_co = TypeVar("T_co")
@@ -46,15 +46,15 @@ def convert_slist_to_df(
     return pd.DataFrame.from_records(rows, columns=columns_names)
 
 
-class IsCoTExtractor(BaseExtractor[BaseTaskOuput]):
+class IsCoTExtractor(BaseExtractor[BaseTaskOutput]):
     column_names = ["is_cot"]
 
-    def extract(self, output: BaseTaskOuput) -> Sequence[bool]:
+    def extract(self, output: BaseTaskOutput) -> Sequence[bool]:
         formatter = name_to_formatter(output.get_task_spec().formatter_name)
         return [formatter.is_cot]
 
 
-class BasicExtractor(BaseExtractor[TaskOutput]):
+class BasicExtractor(BaseExtractor[BaseTaskOutput]):
     column_names = [
         "task_name",
         "task_hash",
@@ -66,25 +66,23 @@ class BasicExtractor(BaseExtractor[TaskOutput]):
         "input_hash",
     ]
 
-    def extract(self, output: TaskOutput) -> Sequence[str | float | None]:
+    def extract(self, output: BaseTaskOutput) -> Sequence[str | float | None]:
         return [
-            output.task_spec.task_name,
-            output.task_spec.task_hash,
-            output.task_spec.inference_config.model,
-            output.task_spec.formatter_name,
-            output.task_spec.intervention_name,
+            output.get_task_spec().get_task_name(),
+            output.get_task_spec().get_task_hash(),
+            output.get_task_spec().inference_config.model,
+            output.get_task_spec().formatter_name,
+            output.get_task_spec().intervention_name,
             output.inference_output.parsed_response,
-            output.task_spec.ground_truth,
-            output.task_spec.uid(),
+            output.get_task_spec().get_data_example_obj().ground_truth,
+            output.get_task_spec().uid(),
         ]
 
 
-class BiasExtractor(BaseExtractor[TaskOutput]):
+class BiasExtractor(BaseExtractor[BaseTaskOutput]):
     column_names = [
         "bias_ans",
     ]
 
-    def extract(self, output: TaskOutput) -> Sequence[str | float | None]:
-        return [
-            output.task_spec.biased_ans,
-        ]
+    def extract(self, output: BaseTaskOutput) -> Sequence[str | float | None]:
+        return [output.get_task_spec().get_data_example_obj().biased_ans]

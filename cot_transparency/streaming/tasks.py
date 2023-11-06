@@ -1,18 +1,19 @@
 """
 This file basically an evolution of tasks.py but simplified and intended to be used with grugstream.
 """
-from cot_transparency.apis.base import ModelCaller
+import typing
+from typing import Any, Self, Sequence
+
 from slist import Slist
+
+from cot_transparency.apis.base import ModelCaller
 from cot_transparency.copy_utils.unset_sentinel import _UNSET, Unset
 from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.data import get_list_of_examples
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage
-from cot_transparency.data_models.models import BaseTaskOuput, BaseTaskSpec, ModelOutput
-
-
-from typing import Any, Self, Sequence
-
+from cot_transparency.data_models.models import BaseTaskOutput, BaseTaskSpec, ModelOutput
 from cot_transparency.formatters.base_class import StageOneFormatter, Type
 from cot_transparency.formatters.name_mapping import name_to_formatter
 
@@ -62,7 +63,7 @@ class StreamingTaskSpec(BaseTaskSpec):
         )
 
 
-class StreamingTaskOutput(BaseTaskOuput):
+class StreamingTaskOutput(BaseTaskOutput):
     task_spec: StreamingTaskSpec
     inference_output: ModelOutput
 
@@ -73,6 +74,16 @@ class StreamingTaskOutput(BaseTaskOuput):
         return StreamingTaskOutput(
             task_spec=self.task_spec.copy_update(messages=messages),
             inference_output=self.inference_output,
+        )
+
+    def copy_update(
+        self,
+        *,
+        inference_output: ModelOutput | Unset = _UNSET,
+    ) -> Self:
+        return StreamingTaskOutput(
+            task_spec=self.task_spec,
+            inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
         )
 
 
@@ -114,3 +125,17 @@ def call_model_with_task_spec(task_spec: StreamingTaskSpec, caller: ModelCaller)
         )
     )
     return outputs.map(lambda x: StreamingTaskOutput(task_spec=task_spec, inference_output=x))
+
+
+def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tuple[str, DataExampleBase]]:
+    """
+    Returns a list of tuples of (task_name, example_obj)
+    """
+    ret = Slist()
+    for t in tasks:
+        examples = get_list_of_examples(t)
+        # print(f"Found {len(examples)} examples for task: {t}")
+
+        task_with_name = examples.shuffle(typing.cast(str, 42)).map(lambda x: (t, x)).take(example_cap)
+        ret.extend(task_with_name)
+    return ret

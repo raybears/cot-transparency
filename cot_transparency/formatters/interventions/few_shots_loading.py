@@ -16,7 +16,7 @@ from cot_transparency.data_models.messages import (
     MessageRole,
     StrictChatMessage,
 )
-from cot_transparency.data_models.models import BaseTaskOuput, TaskOutput
+from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.streaming.tasks import StreamingTaskOutput
 
@@ -191,8 +191,8 @@ def get_training_non_cots_claude_2(
 
 
 def task_output_to_finetune_sample(
-    task: BaseTaskOuput,
-    seed_func: Callable[[BaseTaskOuput], str] = lambda x: x.model_hash(),
+    task: BaseTaskOutput,
+    seed_func: Callable[[BaseTaskOutput], str] = lambda x: x.model_hash(),
 ) -> FinetuneSample:
     prompt_messages: Sequence[ChatMessage] = task.get_task_spec().messages
     new_messages = list(prompt_messages) + [

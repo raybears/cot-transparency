@@ -1,5 +1,4 @@
 import typing
-from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Optional, Sequence, Type
 
@@ -8,35 +7,8 @@ from slist import Slist
 
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.data_models.config import config_from_default
-from cot_transparency.data_models.data import (
-    aqua,
-    arc,
-    bbh,
-    bbq,
-    hellaswag,
-    logiqa,
-    mmlu,
-    openbook,
-    truthful_qa,
-)
-from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
-from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
-from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
-from cot_transparency.data_models.data.john_math import (
-    get_john_math_level_1,
-    get_john_math_level_2,
-    get_john_math_level_3,
-    get_john_math_level_4,
-    get_john_math_level_5,
-)
-from cot_transparency.data_models.data.karina_hallucination import (
-    get_karina_hallucination,
-)
-from cot_transparency.data_models.data.model_written_evals import (
-    get_anthropic_nlp,
-    get_anthropic_phil,
-    get_anthropic_pol,
-)
+from cot_transparency.data_models.data import TASK_LIST
+from cot_transparency.data_models.data import get_list_of_examples
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import TaskSpec
 from cot_transparency.formatters import (
@@ -53,56 +25,8 @@ from cot_transparency.formatters.transparency.s1_baselines import (
     FormattersForTransparency,
 )
 from cot_transparency.formatters.wildcard import match_wildcard_formatters
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
-
-# ok to train on the test set since we test on completely different datasets
-COT_TRAINING_TASKS = BBH_TASK_LIST + [
-    "arc_easy_train",
-    "arc_challenge_train",
-    "arc_easy_test",
-    "arc_challenge_test",
-    "openbook_qa_train",
-]
-COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
-PROMPT_SEN_TESTING_TASKS = [
-    "truthful_qa",
-    "logiqa",
-    "hellaswag",
-    "aqua",
-] + mmlu.MMLU_SUPERCATEGORIES
-
-
-TASK_LIST = {
-    "bbh": BBH_TASK_LIST,
-    "bbh_biased_wrong_cot": BBH_TASK_LIST,
-    "transparency": [
-        "aqua",
-        "arc_easy",
-        "arc_challenge",
-        "truthful_qa",
-        "logiqa",
-        "mmlu",
-        "openbook_qa",
-        "hellaswag",
-    ],
-    "bbq": BBQ_TASK_LIST,
-    "cot_training": COT_TRAINING_TASKS,
-    "cot_testing": COT_TESTING_TASKS,
-    "deceptive_training": ["aqua_train"],
-    "model_written_evals": ["nlp", "phil", "pol"],
-    "john_math": [
-        "john_level_1",
-        "john_level_2",
-        "john_level_3",
-        "john_level_4",
-        "john_level_5",
-    ],
-    "mmlu": mmlu.MMLU_SUPERCATEGORIES,
-    "karina": ["karina_hallucination"],
-    "logiqa_train": ["logiqa_train"],
-}
 
 
 def create_task_settings(
@@ -145,78 +69,6 @@ def validate_tasks(tasks: Sequence[str]) -> Sequence[str]:
         if task not in all_tasks:
             raise ValueError(f"task {task} is not valid. Valid tasks are {all_tasks}")
     return tasks
-
-
-@lru_cache(maxsize=10)
-def get_list_of_examples(
-    task: str,
-    dataset: Optional[str] = None,
-) -> Slist[DataExampleBase]:
-    data = None
-    if dataset == "bbh_biased_wrong_cot":
-        data = read_jsonl_file_into_basemodel(Path("data/bbh_biased_wrong_cot/data.jsonl"), BiasedWrongCOTBBH).filter(
-            lambda x: x.task == task
-        )
-    elif task in TASK_LIST["bbh"]:
-        data = bbh.val(task)
-    elif task in TASK_LIST["bbq"]:
-        data = bbq.val(task)
-    else:
-        if task == "aqua":
-            data = aqua.dev()
-        if task == "aqua_train":
-            data = aqua.train()
-        elif task == "arc_easy":
-            data = arc.arc_easy_dev()
-        elif task == "arc_easy_train":
-            data = arc.arc_easy_train()
-        elif task == "arc_easy_test":
-            data = arc.arc_easy_test()
-        elif task == "arc_challenge":
-            data = arc.arc_challenge_dev()
-        elif task == "arc_challenge_train":
-            data = arc.arc_challenge_train()
-        elif task == "arc_challenge_test":
-            data = arc.arc_challenge_test()
-        elif task == "truthful_qa":
-            data = truthful_qa.eval()
-        elif task == "logiqa":
-            data = logiqa.eval()
-        elif task == "logiqa_train":
-            data = logiqa.train()
-        elif task == "mmlu":
-            questions_per_task = 20
-            data = mmlu.test(questions_per_task=questions_per_task)
-        elif task == "karina_hallucination":
-            data = get_karina_hallucination()
-        elif task in mmlu.MMLU_SUPERCATEGORIES:
-            data = mmlu.test_super_category(task.replace("mmlu_", ""))
-        elif task == "openbook_qa":
-            data = openbook.test()
-        elif task == "openbook_qa_train":
-            data = openbook.openbook_train()
-        elif task == "hellaswag":
-            data = hellaswag.val()
-        elif task == "nlp":
-            data = get_anthropic_nlp()
-        elif task == "phil":
-            data = get_anthropic_phil()
-        elif task == "pol":
-            data = get_anthropic_pol()
-        elif task == "john_level_1":
-            data = get_john_math_level_1()
-        elif task == "john_level_2":
-            data = get_john_math_level_2()
-        elif task == "john_level_3":
-            data = get_john_math_level_3()
-        elif task == "john_level_4":
-            data = get_john_math_level_4()
-        elif task == "john_level_5":
-            data = get_john_math_level_5()
-
-    if data is None:
-        raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
-    return data  # type: ignore
 
 
 def create_stage_one_task_specs(
@@ -368,7 +220,7 @@ def main(
     temperature: Optional[float] = None,
     raise_after_retries: bool = True,
     raise_on: Literal["all", "any"] = "all",
-    num_retries: int = 10,
+    num_tries: int = 10,
     max_tokens: Optional[int] = None,
     n_responses_per_request: Optional[int] = None,
     retry_answers_with_none: bool = False,
@@ -396,7 +248,7 @@ def main(
         task_to_run=tasks_to_run,
         raise_after_retries=raise_after_retries,
         raise_on=raise_on,
-        num_retries=num_retries,
+        num_tries=num_tries,
         retry_answers_with_none=retry_answers_with_none,
     )
 

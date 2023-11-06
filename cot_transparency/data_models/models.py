@@ -34,6 +34,7 @@ class BaseTaskSpec(HashableBaseModel):
     inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: Sequence[ChatMessage]
     formatter_name: str
+    intervention_name: Optional[str] = None
 
     @abstractmethod
     def get_task_name(self) -> str:
@@ -56,6 +57,9 @@ class BaseTaskSpec(HashableBaseModel):
 
     @abstractmethod
     def get_task_hash(self) -> str:
+        """
+        Return the task hash of the data example that generated this task
+        """
         raise NotImplementedError
 
 
@@ -158,7 +162,7 @@ class TaskSpec(BaseTaskSpec):
         return self.task_hash
 
 
-class BaseTaskOuput(HashableBaseModel, ABC):
+class BaseTaskOutput(HashableBaseModel, ABC):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     # we do not specify task_spec here because of invariance of variables so we instead specify
     # the get_task_spec() interface which can obey covariance properly
@@ -171,11 +175,23 @@ class BaseTaskOuput(HashableBaseModel, ABC):
     def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
         raise NotImplementedError
 
+    @abstractmethod
+    def copy_update(
+        self,
+        *,
+        inference_output: ModelOutput | Unset = _UNSET,
+    ) -> Self:
+        raise NotImplementedError
+
+    def update_parsed_response(self, parsed_response: str | None) -> Self:
+        new_output = ModelOutput(raw_response=self.inference_output.raw_response, parsed_response=parsed_response)
+        return self.copy_update(inference_output=new_output)
+
     def uid(self) -> str:
         return self.model_hash()
 
 
-class TaskOutput(BaseTaskOuput):
+class TaskOutput(BaseTaskOutput):
     # This is one single experiment
     task_spec: TaskSpec  # type: ignore[reportIncompatibleVariableOverride]
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
@@ -369,7 +385,7 @@ class StageTwoTaskSpec(BaseTaskSpec):
         )
 
 
-class StageTwoTaskOutput(BaseTaskOuput):
+class StageTwoTaskOutput(BaseTaskOutput):
     task_spec: StageTwoTaskSpec
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0
@@ -403,6 +419,17 @@ class StageTwoTaskOutput(BaseTaskOuput):
         return StageTwoTaskOutput(
             task_spec=self.task_spec.copy_update(messages=messages),
             inference_output=self.inference_output,
+            response_idx=self.response_idx,
+        )
+
+    def copy_update(
+        self,
+        *,
+        inference_output: ModelOutput | Unset = _UNSET,
+    ) -> Self:
+        return StageTwoTaskOutput(
+            task_spec=self.task_spec,
+            inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
             response_idx=self.response_idx,
         )
 

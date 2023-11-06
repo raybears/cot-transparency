@@ -18,7 +18,7 @@ from cot_transparency.apis.openai.finetune import (
 )
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.data_models.models import BaseTaskOuput
+from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.data_models.streaming import ParaphrasingOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
@@ -103,22 +103,22 @@ class RandomNonCOTPromptAugmentor(Augmentor):
         return messages
 
 
-def augment_non_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
+def augment_non_cot_task(item: BaseTaskOutput) -> BaseTaskOutput:
     new_messages = RandomNonCOTPromptAugmentor.augment(messages=item.get_task_spec().messages)
     return item.update_messages_in_task_spec(messages=new_messages)
 
 
-def augment_cot_task(item: BaseTaskOuput) -> BaseTaskOuput:
+def augment_cot_task(item: BaseTaskOutput) -> BaseTaskOutput:
     new_messages = RandomCOTPromptAugmentor.augment(messages=item.get_task_spec().messages)
     return item.update_messages_in_task_spec(messages=new_messages)
 
 
 def replace_unbiased_cot_prompt_with_formatters(
-    task: BaseTaskOuput,
+    task: BaseTaskOutput,
     use_formatters: Iterable[type[StageOneFormatter]],
     intervention: type[Intervention] | None = None,
-) -> Slist[BaseTaskOuput]:
-    output = Slist[BaseTaskOuput]()
+) -> Slist[BaseTaskOutput]:
+    output = Slist[BaseTaskOutput]()
     for formatter in use_formatters:
         new = task.model_copy(deep=True)
 
@@ -134,7 +134,7 @@ def replace_unbiased_cot_prompt_with_formatters(
     return output
 
 
-def transform_into_post_hoc_reasoning(task: BaseTaskOuput) -> BaseTaskOuput:
+def transform_into_post_hoc_reasoning(task: BaseTaskOutput) -> BaseTaskOutput:
     new = task.model_copy(deep=True)
     previous_answer = task.inference_output.parsed_response
     assert previous_answer
@@ -160,10 +160,10 @@ class FormatterWithPossibleIntervention:
 
 
 def replace_unbiased_prompt_with_formatters(
-    task: BaseTaskOuput,
+    task: BaseTaskOutput,
     use_formatters: Iterable[FormatterWithPossibleIntervention],
-) -> Slist[BaseTaskOuput]:
-    output = Slist[BaseTaskOuput]()
+) -> Slist[BaseTaskOutput]:
+    output = Slist[BaseTaskOutput]()
     for fwpi in use_formatters:
         new = task
         data_example: DataExampleBase = task.get_task_spec().get_data_example_obj()
@@ -301,13 +301,17 @@ class FormatSampler(ABC):
     @abstractmethod
     def sample(
         self,
-        tasks: Sequence[BaseTaskOuput],
+        tasks: Sequence[BaseTaskOutput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[BaseTaskOuput]:
+    ) -> Slist[BaseTaskOutput]:
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def __repr__(self) -> str:
         raise NotImplementedError
 
 
@@ -317,10 +321,10 @@ class NFormatsPerQuestionSampler(FormatSampler):
 
     def sample(
         self,
-        tasks: Sequence[BaseTaskOuput],
+        tasks: Sequence[BaseTaskOutput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[BaseTaskOuput]:
+    ) -> Slist[BaseTaskOutput]:
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
@@ -336,7 +340,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
         print("using n_unique_cots", n_unique_cots)
         tasks = tasks.take(n_unique_cots)
 
-        output: Slist[BaseTaskOuput] = Slist()
+        output: Slist[BaseTaskOutput] = Slist()
         formatter_counts = Counter()
         for task in tasks:
             rng = random.Random(task.uid())
@@ -358,10 +362,10 @@ class NFormatsPerQuestionSampler(FormatSampler):
 class RandomSampler(FormatSampler):
     def sample(
         self,
-        tasks: Sequence[BaseTaskOuput],
+        tasks: Sequence[BaseTaskOutput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[BaseTaskOuput]:
+    ) -> Slist[BaseTaskOutput]:
         """
         Takes a sequence of outputs and returns a sequence of outputs of length n
         """
@@ -397,7 +401,7 @@ class ParaphrasingSampler(FormatSampler):
             self.mapping[key] = paraphrasing
         self.n_formats_per_question = n_formats_per_question
 
-    def _get_key(self, task: BaseTaskOuput) -> str:
+    def _get_key(self, task: BaseTaskOutput) -> str:
         return (
             task.get_task_spec().get_task_hash()
             + "isCot="
@@ -406,10 +410,10 @@ class ParaphrasingSampler(FormatSampler):
 
     def sample(
         self,
-        tasks: Sequence[BaseTaskOuput],
+        tasks: Sequence[BaseTaskOutput],
         formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
-    ) -> Slist[BaseTaskOuput]:
+    ) -> Slist[BaseTaskOutput]:
         tasks = Slist(tasks)
 
         ret = Slist()
@@ -436,6 +440,9 @@ class ParaphrasingSampler(FormatSampler):
             breakpoint()
         assert len(ret) == n, "Not enough paraphrased questions"
         return ret
+
+    def __repr__(self) -> str:
+        return f"ParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
 
 
 def fine_tune_with_bias_augmentation(
@@ -512,7 +519,7 @@ def fine_tune_with_bias_augmentation(
 
     non_cot_tasks = non_cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes)
     # remove the val samples from the non cot data
-    non_cot_samples = get_non_cot_samples(
+    non_cot_samples, non_cot_hashes = get_non_cot_samples(
         non_cot_tasks,
         eligible_non_cot_formatters,
         non_cot_limit,
@@ -520,11 +527,10 @@ def fine_tune_with_bias_augmentation(
         permute_verbalize_instructions,
     )
 
-    non_cot_hashes: set[str] = {task.get_task_spec().get_task_hash() for task in non_cot_tasks}
     print(f"Unique non cot hashes: {len(non_cot_hashes)}")
 
     print(f"Number of non cots after limiting: {len(non_cot_samples)}")
-    non_cot_val_samples = get_non_cot_samples(
+    non_cot_val_samples, _ = get_non_cot_samples(
         non_cot_data_val,
         eligible_non_cot_formatters,
         n_non_cot_val_samples,
@@ -539,7 +545,7 @@ def fine_tune_with_bias_augmentation(
     # And if no_overlap_cot_non_cot, make sure cot_samples doesn't contain any of the non_cot_samples
     val_and_non_cot_hashes = val_task_hashes.union(non_cot_hashes) if no_overlap_cot_non_cot else val_task_hashes
     cot_tasks = cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_and_non_cot_hashes)
-    cot_samples: Slist[FinetuneSample] = get_cot_samples(
+    cot_samples, cot_hashes = get_cot_samples(
         cot_tasks,
         eligible_cot_formatters,
         cot_limit,
@@ -552,7 +558,7 @@ def fine_tune_with_bias_augmentation(
 
     assert len(cot_samples) == cot_limit, f"We do not have enough cots, only {len(cot_samples)}, required {cot_limit}"
     print(f"Number of cots after limiting: {len(cot_samples)}")
-    cot_val_samples = get_cot_samples(
+    cot_val_samples, _ = get_cot_samples(
         cot_data_val,
         eligible_cot_formatters,
         n_cot_val_samples,
@@ -562,7 +568,6 @@ def fine_tune_with_bias_augmentation(
     )
     print(f"Number of validation cots after limiting: {len(cot_val_samples)}")
 
-    cot_hashes: set[str] = {task.get_task_spec().get_task_hash() for task in cot_tasks}
     if no_overlap_cot_non_cot:
         assert non_cot_hashes.isdisjoint(cot_hashes), "cot and non cot hashes are not disjoint, this is a bug"
 
@@ -620,40 +625,42 @@ def fine_tune_with_bias_augmentation(
 
 
 def get_non_cot_samples(
-    shuffled_data: Sequence[BaseTaskOuput],
+    shuffled_data: Sequence[BaseTaskOutput],
     eligible_formatters: Slist[FormatterWithPossibleIntervention],
     limit: int,
     sampler: FormatSampler,
     permute_verbalize_instructions: bool,
-) -> Slist[FinetuneSample]:
-    non_cot_samples = (
-        sampler.sample(shuffled_data, eligible_formatters, limit)
-        .map(lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x)
-        .map(task_output_to_finetune_sample)
+) -> tuple[Slist[FinetuneSample], set[str]]:
+    non_cot_samples = sampler.sample(shuffled_data, eligible_formatters, limit).map(
+        lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x
     )
+    hashes = non_cot_samples.map(lambda x: x.get_task_spec().get_task_hash()).to_set()
+    non_cot_samples = non_cot_samples.map(task_output_to_finetune_sample)
 
     assert (
         len(non_cot_samples) == limit
     ), f"We do not have enough non cots, only {len(non_cot_samples)}, required {limit}"
-    return non_cot_samples
+    return non_cot_samples, hashes
 
 
 def get_cot_samples(
-    shuffled_data: Sequence[BaseTaskOuput],
+    shuffled_data: Sequence[BaseTaskOutput],
     eligible_cot_formatters: Slist[FormatterWithPossibleIntervention],
     limit: int,
     sampler: FormatSampler,
     post_hoc: bool,
     permute_verbalize_instructions: bool,
-) -> Slist[FinetuneSample]:
+) -> tuple[Slist[FinetuneSample], set[str]]:
     cot_samples = (
         sampler.sample(shuffled_data, eligible_cot_formatters, limit)
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
         .map(lambda x: augment_cot_task(x) if permute_verbalize_instructions else x)
-        .map(task_output_to_finetune_sample)
     )
+    hashes = cot_samples.map(lambda x: x.get_task_spec().get_task_hash()).to_set()
+    cot_samples = cot_samples.map(task_output_to_finetune_sample)
+
     assert len(cot_samples) == limit, f"We do not have enough cots, only {len(cot_samples)}"
-    return cot_samples
+    return cot_samples, hashes
 
 
 if __name__ == "__main__":

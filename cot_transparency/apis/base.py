@@ -97,11 +97,6 @@ class ModelCaller(ABC):
         return CachedPerModelCaller(wrapped_caller=self, cache_dir=cache_dir, write_every_n=write_every_n)
 
 
-def file_cache_key(messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> str:
-    str_messages = ",".join([str(msg) for msg in messages]) + config.model_hash()
-    return deterministic_hash(str_messages)
-
-
 class CachedValue(BaseModel):
     response: InferenceResponse
     messages: Sequence[ChatMessage]
@@ -113,40 +108,60 @@ class FileCacheRow(BaseModel):
     response: CachedValue
 
 
-def load_file_cache(cache_path: Path) -> dict[str, CachedValue]:
-    """
-    Load a file cache from a path
-    """
-    if cache_path.exists():
-        rows = read_jsonl_file_into_basemodel(
-            path=cache_path,
-            basemodel=FileCacheRow,
-        )
-        print(f"Loaded {len(rows)} rows from cache file {cache_path.as_posix()}")
-        return {row.key: row.response for row in rows}
-    else:
-        return {}
+class APIRequestCache:
+    def __init__(self, cache_path: Path | str):
+        self.cache_path = Path(cache_path)
+        self.data: dict[str, CachedValue] = {}
+        self.load()
+
+    def load(self, silent: bool = False) -> Self:
+        """
+        Load a file cache from a path
+        """
+
+        if self.cache_path.exists():
+            rows = read_jsonl_file_into_basemodel(
+                path=self.cache_path,
+                basemodel=FileCacheRow,
+            )
+            if not silent:
+                print(f"Loaded {len(rows)} rows from cache file {self.cache_path.as_posix()}")
+            self.data = {row.key: row.response for row in rows}
+        return self
+
+    def save(self) -> None:
+        """
+        Save a file cache to a path
+        """
+        rows = [FileCacheRow(key=key, response=response) for key, response in self.data.items()]
+        write_jsonl_file_from_basemodel(self.cache_path, rows)
+
+    def __getitem__(self, key: str) -> CachedValue:
+        return self.data[key]
+
+    def __setitem__(self, key: str, value: CachedValue) -> None:
+        self.data[key] = value
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.data
 
 
-def save_file_cache(cache_path: Path, cache: dict[str, CachedValue]) -> None:
-    """
-    Save a file cache to a path
-    """
-    rows = [FileCacheRow(key=key, response=response) for key, response in cache.items()]
-    write_jsonl_file_from_basemodel(cache_path, rows)
+def file_cache_key(messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> str:
+    str_messages = ",".join([str(msg) for msg in messages]) + config.model_hash()
+    return deterministic_hash(str_messages)
 
 
 class CachedCaller(ModelCaller):
-    def __init__(self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int):
+    def __init__(self, wrapped_caller: ModelCaller, cache_path: Path, write_every_n: int, silent_loading: bool = False):
         self.model_caller = wrapped_caller
         self.cache_path = cache_path
-        self.cache: dict[str, CachedValue] = load_file_cache(cache_path)
+        self.cache: APIRequestCache = APIRequestCache(cache_path)
         self.write_every_n = write_every_n
         self.__update_counter = 0
         self.save_lock = Lock()
 
     def save_cache(self) -> None:
-        save_file_cache(self.cache_path, self.cache)
+        self.cache.save()
 
     def call(
         self,
@@ -185,6 +200,7 @@ class CachedPerModelCaller(ModelCaller):
         self.cache_dir = cache_dir
         self.cache_callers: dict[str, CachedCaller] = {}
         self.write_every_n = write_every_n
+        self.lock = Lock()
 
     def call(
         self,
@@ -199,13 +215,16 @@ class CachedPerModelCaller(ModelCaller):
     ) -> CachedCaller:
         """
         This returns a CachedCaller that will save into self.cache_dir/cache_name.jsonl.
+        A reference to this caller is stored in self.cache_callers
         """
 
-        if cache_name not in self.cache_callers:
-            cache_path = self.cache_dir / f"{cache_name}.jsonl"
-            self.cache_callers[cache_name] = CachedCaller(
-                wrapped_caller=self.model_caller,
-                cache_path=cache_path,
-                write_every_n=self.write_every_n,
-            )
+        with self.lock:
+            if cache_name not in self.cache_callers:
+                cache_path = self.cache_dir / f"{cache_name}.jsonl"
+                self.cache_callers[cache_name] = CachedCaller(
+                    wrapped_caller=self.model_caller,
+                    cache_path=cache_path,
+                    write_every_n=self.write_every_n,
+                    silent_loading=True,
+                )
         return self.cache_callers[cache_name]

@@ -3,6 +3,7 @@ from typing import Optional
 
 from slist import Slist
 
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 from cot_transparency.data_models.data.biased_question_unbiased_cot import (
     BiasedQuestionUnbiasedCOT,
 )
@@ -18,7 +19,7 @@ from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS_WITH_UNBIASED,
     TRAINING_NO_COT_FORMATTERS_WITH_UNBIASED,
 )
-from stage_one import COT_TRAINING_TASKS
+
 
 # ruff: noqa: E501
 

@@ -2,6 +2,7 @@ from typing import Type
 
 from slist import Slist
 
+from cot_transparency.data_models.data import TASK_LIST
 from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
@@ -21,7 +22,6 @@ from scripts.intervention_investigation import (
 )
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-from stage_one import TASK_LIST
 
 
 def accuracy_diff_math(

@@ -1,7 +1,8 @@
 import fire
 
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 from scripts.prompt_sen_experiments.kl.kl_plots import kl_plot
-from stage_one import COT_TRAINING_TASKS, main
+from stage_one import main
 
 if True:
     from analysis import simple_plot
@@ -62,7 +63,7 @@ def run():
         raise_after_retries=False,
         raise_on="all",
         repeats_per_question=1,
-        num_retries=1,
+        num_tries=1,
         n_responses_per_request=1,
         max_tokens=3000,
     )
