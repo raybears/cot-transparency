@@ -2,7 +2,7 @@ import asyncio
 import math
 from collections import Counter
 from pathlib import Path
-from typing import Generic, Sequence, Type, TypeVar
+from typing import Sequence, Type
 
 import fire
 import pandas as pd
