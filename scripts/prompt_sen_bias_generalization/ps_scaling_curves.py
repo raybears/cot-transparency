@@ -37,7 +37,7 @@ from cot_transparency.streaming.tasks import get_examples_for_tasks
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
 from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, Sweeps
-from scripts.prompt_sen_bias_generalization.util import get_name_of_run
+from scripts.prompt_sen_bias_generalization.util import load_per_model_results, save_per_model_results
 from scripts.prompt_sen_bias_generalization.util import add_point_at_1
 from scripts.utils.plots import catplot
 
@@ -94,7 +94,7 @@ async def run_pipeline(
     answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
         f"{cache_dir}/answer_parsing_cache", write_every_n=200
     )
-    answer_parsing_config = config_from_default(model="claude-v1")
+    answer_parsing_config = config_from_default(model="claude-2")
 
     data_examples = get_examples_for_tasks(tasks, example_cap)
     n_items = len(data_examples)
@@ -134,12 +134,11 @@ async def run_pipeline(
             .tqdm(tqdm_bar=tqdm(total=n_items * 10 * len(models_to_evaluate), desc="Evaluating models"))
         )
 
-    results_path = Path(f"{exp_dir}/results.jsonl")
-    # delete the file if it exists
-    if results_path.exists():
-        results_path.unlink()
-    await pipeline.to_file(results_path, mode="a", serialize=lambda x: x.model_dump_json())
-    return results_path
+    results_dir = Path(f"{exp_dir}/results")
+    results = await pipeline.to_slist()
+    save_per_model_results(results, results_dir)
+
+    return results_dir
 
 
 def make_training_data(
@@ -253,8 +252,8 @@ class Extractor(BaseExtractor[grouped_outputs]):
 
 
 def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
-    experiment_path = f"{exp_dir}/results.jsonl"
-    outputs = read_jsonl_file_into_basemodel(experiment_path, StreamingTaskOutput)
+    results_dir = f"{exp_dir}/results"
+    outputs = load_per_model_results(Path(results_dir), StreamingTaskOutput)
 
     # calculate the entropy
     with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash(), x.task_spec.inference_config)).map(
@@ -302,9 +301,9 @@ def plot_scaling_curves(
 ):
     model_name_to_meta = Slist(model_meta).map(lambda x: (x.name, x)).to_dict()
     models = Slist(model_meta).map(lambda x: x.name)
-    results_path = f"{exp_dir}/results.jsonl"
+    # results_dir = f"{exp_dir}/results"
 
-    results_path = asyncio.run(
+    results_dir = asyncio.run(
         run_pipeline(
             exp_dir=exp_dir,
             models_to_evaluate=models,
@@ -314,13 +313,13 @@ def plot_scaling_curves(
         )
     )
 
-    outputs = read_jsonl_file_into_basemodel(results_path, StreamingTaskOutput)
+    outputs = load_per_model_results(results_dir, StreamingTaskOutput)
     with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash(), x.task_spec.inference_config)).map(
         lambda x: x.map_values(entropy_and_uniform_entropy)
     )
 
     df = convert_slist_to_df(with_entropy, [Extractor()])
-    df["Trained on COTS from"] = df.model.map(lambda x: get_name_of_run(model_name_to_meta[x]))
+    df["Trained on COTS from"] = df.model.map(lambda x: model_name_to_meta[x].for_legend())
     df["Samples"] = df.model.map(lambda x: model_name_to_meta[x].trained_samples)
     df = add_point_at_1(df, "gpt-3.5-turbo")
 

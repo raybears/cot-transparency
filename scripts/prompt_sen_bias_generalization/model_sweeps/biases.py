@@ -5,12 +5,6 @@ from scripts.finetune_zero_shot_experiments.comparison_plot import FilterStrateg
 FEW_SHOT = [
     # trained on few shot biases
     ModelTrainMeta(
-        name="gpt-3.5-turbo",
-        trained_samples=1,
-        filter_strategy=FilterStrategy.correct_answer,
-        train_formatters=FormatterOptions.few_shot,
-    ),
-    ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:far-ai::8C2axt31",
         trained_samples=100,
         filter_strategy=FilterStrategy.correct_answer,
@@ -44,12 +38,6 @@ FEW_SHOT = [
 ZERO_SHOT = [
     # trained on zero shot biases
     ModelTrainMeta(
-        name="gpt-3.5-turbo",
-        trained_samples=1,
-        filter_strategy=FilterStrategy.correct_answer,
-        train_formatters=FormatterOptions.zero_shot,
-    ),
-    ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:far-ai::8BRpCYNt",
         trained_samples=100,
         filter_strategy=FilterStrategy.correct_answer,
@@ -82,12 +70,6 @@ ZERO_SHOT = [
 ]
 OG_CONTROL = [
     ModelTrainMeta(
-        name="gpt-3.5-turbo",
-        trained_samples=1,
-        filter_strategy=FilterStrategy.correct_answer,
-        train_formatters=FormatterOptions.control_only_unbiased,
-    ),
-    ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89NHOL5b",
         trained_samples=100,
         filter_strategy=FilterStrategy.correct_answer,
@@ -110,5 +92,58 @@ OG_CONTROL = [
         trained_samples=20000,
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.control_only_unbiased,
+    ),
+]
+
+FEW_SHOT_2 = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8HxldhrA",
+        trained_samples=100,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.few_shot,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HygorfS",
+        trained_samples=1000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.few_shot,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8HzIB2CC",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.few_shot,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8HzWwPnL",
+        trained_samples=20000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.few_shot,
+    ),
+]
+ZERO_SHOT_2 = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8HxLDF6T",
+        trained_samples=100,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.zero_shot,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HxwHKix",
+        trained_samples=1000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.zero_shot,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HyFFyLB",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.zero_shot,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Hyy5AkB",
+        trained_samples=20000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.zero_shot,
     ),
 ]

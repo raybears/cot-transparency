@@ -1,7 +1,6 @@
 from scripts.finetune_cot import DataFromOptions, FormatterOptions, NFormatsPerQuestionSampler
 from scripts.finetune_zero_shot_experiments.comparison_plot import FilterStrategy, ModelTrainMeta
 
-
 PARAPHRASING_5 = [
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8FtVZVMC",
@@ -70,7 +69,7 @@ PARAPHRASING_2 = [
         data_from=DataFromOptions.gpt_35_turbo_gs,
     ),
 ]
-PARAPHRASING_2_BA = [
+PARAPHRASING_2_BA_UNFILTERED = [
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HKCe8xR",
         trained_samples=100,
@@ -93,6 +92,38 @@ PARAPHRASING_2_BA = [
         sampling_strategy=NFormatsPerQuestionSampler(2),
     ),
 ]
+PARAPHRASING_2_BA_CORRECT = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HwuWRHX",
+        trained_samples=100,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8HxdniLI",
+        trained_samples=1000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8HxvU7ma",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Hy95IK1",
+        trained_samples=20000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
+    ),
+]
+
+
 PARAPHRASING_4_BA = [
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HM5LSlU",

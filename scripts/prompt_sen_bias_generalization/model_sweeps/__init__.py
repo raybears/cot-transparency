@@ -1,4 +1,3 @@
-from collections import Counter
 from enum import Enum
 
 from slist import Slist
@@ -8,18 +7,19 @@ from scripts.finetune_zero_shot_experiments.comparison_plot import (
     FilterStrategy,
     ModelTrainMeta,
 )
-from scripts.prompt_sen_bias_generalization.model_sweeps.biases import FEW_SHOT
+from scripts.prompt_sen_bias_generalization.model_sweeps.biases import FEW_SHOT, FEW_SHOT_2, ZERO_SHOT_2
 from scripts.prompt_sen_bias_generalization.model_sweeps.biases import ZERO_SHOT
 from scripts.prompt_sen_bias_generalization.model_sweeps.biases import OG_CONTROL
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
-    PARAPHRASING_2_BA,
+    PARAPHRASING_2_BA_CORRECT,
+    PARAPHRASING_2_BA_UNFILTERED,
     PARAPHRASING_4_BA,
     PARAPHRASING_5,
 )
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_2
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_1
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import GOLD_STANDARD_UNBIASED
-from scripts.prompt_sen_bias_generalization.model_sweeps.prompt_variants import PROMPT_VARIANT_1
+from scripts.prompt_sen_bias_generalization.model_sweeps.prompt_variants import PROMPT_VARIANT_1, PROMPT_VARIANTS_ALL_2
 
 
 N_FORMATS = [
@@ -57,15 +57,18 @@ GPT = [
 class Sweeps(str, Enum):
     paraphrasing_1 = "paraphrasing_1"
     paraphrasing_2 = "paraphrasing_2"
+    paraphrasing_2_correct = "paraphrasing_2_correct"
     paraphrasing_5 = "paraphrasing_5"
     prompt_variants_1 = "prompt_variants_1"
+    prompt_variants_2 = "prompt_variants_2"
     gs_unbiased = "gs_unbiased"
     zero_shot = "zero_shot"
+    zero_shot_2 = "zero_shot_2"
     few_shot = "few_shot"
+    few_shot_2 = "few_shot_2"
     og_control = "og_control"
     paraphrasing_2_ba = "paraphrasing_2_ba"
     paraphrasing_4_ba = "paraphrasing_4_ba"
-
     gpt = "gpt"
 
     def get_models(self):
@@ -76,36 +79,46 @@ class Sweeps(str, Enum):
                 models = GPT
             case self.paraphrasing_2:
                 models = PARAPHRASING_2
+            case self.paraphrasing_2_correct:
+                models = PARAPHRASING_2_BA_CORRECT
             case self.paraphrasing_5:
                 models = PARAPHRASING_5
             case self.prompt_variants_1:
                 models = PROMPT_VARIANT_1
+            case self.prompt_variants_2:
+                models = PROMPT_VARIANTS_ALL_2
             case self.gs_unbiased:
                 models = GOLD_STANDARD_UNBIASED
             case self.zero_shot:
                 models = ZERO_SHOT
             case self.few_shot:
                 models = FEW_SHOT
+            case self.zero_shot_2:
+                models = ZERO_SHOT_2
+            case self.few_shot_2:
+                models = FEW_SHOT_2
             case self.og_control:
                 models = OG_CONTROL
             case self.paraphrasing_2_ba:
-                models = PARAPHRASING_2_BA
+                models = PARAPHRASING_2_BA_UNFILTERED
             case self.paraphrasing_4_ba:
                 models = PARAPHRASING_4_BA
 
-        # Check that they are distinct
-        distinct_models = Slist(models).distinct_by(lambda i: i.name)
-        duplicates = [k for k, v in Counter([i.name for i in models]).items() if v > 1]
-        assert len(distinct_models) == len(models), f"There are duplicate models in the list, {[duplicates]}"
         return models
 
 
 class SweepDatabase:
     def __init__(self):
-        self.sweeps = Slist()
+        self.sweeps: Slist[ModelTrainMeta] = Slist()
+        self.model_names: set[str] = set()
 
     def add(self, sweep: Sweeps):
-        self.sweeps.extend(sweep.get_models())
+        for model in sweep.get_models():
+            if model.name in self.model_names:
+                raise ValueError(f"Model {model.name} already exists in sweep database")
+            else:
+                self.sweeps.append(model)
+                self.model_names.add(model.name)
 
     @property
     def all_models(self) -> Slist[ModelTrainMeta]:
