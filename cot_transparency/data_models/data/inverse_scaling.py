@@ -36,9 +36,11 @@ class InverseScalingTask(str, Enum):
     repetitive_algebra = "repetitive_algebra"
     # distractor tasks
     pattern_matching = "pattern_matching"
-    into_to_the_unknown = "into_to_the_unknown"
+    into_the_unknown = "into_the_unknown"
     neqa = "neqa"
     sig_figs = "sig_figs"
+    # unwanted immitation
+    modus_tollens = "modus_tollens"
 
     @staticmethod
     def all_tasks() -> list[str]:
@@ -57,13 +59,15 @@ def get_inverse_scaling(task: InverseScalingTask) -> Slist[InverseScalingExample
     elif task == InverseScalingTask.redefine:
         path = Path("./data/inverse_scaling/redefine_classification.jsonl")
     elif task == InverseScalingTask.pattern_matching:
-        path = Path("./data/inverse_scaling/pattern-matching_classification.jsonl")
-    elif task == InverseScalingTask.into_to_the_unknown:
-        path = Path("./data/inverse_scaling/into-to-the-unknown_classification.jsonl")
+        path = Path("./data/inverse_scaling/pattern-matching-suppression_classification.jsonl")
+    elif task == InverseScalingTask.into_the_unknown:
+        path = Path("./data/inverse_scaling/into-the-unknown_classification.jsonl")
     elif task == InverseScalingTask.neqa:
         path = Path("./data/inverse_scaling/neqa_classification.jsonl")
     elif task == InverseScalingTask.sig_figs:
         path = Path("./data/inverse_scaling/sig-figs_classification.jsonl")
+    elif task == InverseScalingTask.modus_tollens:
+        path = Path("./data/inverse_scaling/modus-tollens_classification.jsonl")
 
     # read the json manually into dicts
     _dicts: Slist[InverseScalingExample] = Slist([])

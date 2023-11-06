@@ -22,7 +22,7 @@ from cot_transparency.viewer.viewer_cache import (
     cached_search,
     get_data_dropdowns,
     make_tree,
-    cached_read_model_caller_jsonl_file,
+    cached_read_jsonl_file,
 )
 
 # set to wide
@@ -61,9 +61,9 @@ exp_dir = st.text_input("Enter experiment_dir", exp_dir)
 if is_stage_two:
     s2_outputs: Slist[StageTwoTaskOutput] = cached_read_whole_s2_exp_dir(exp_dir=exp_dir)
     everything = s2_outputs.map(lambda x: x.to_s1())
-# Assumes you are read a cache file of model caller
+# Assumes you are read a jsonl of TaskOutput, or a cache file of a ModelCaller
 elif exp_dir.endswith(".jsonl"):
-    everything = cached_read_model_caller_jsonl_file(exp_dir)
+    everything: Slist[TaskOutput] = cached_read_jsonl_file(exp_dir)
 else:
     everything: Slist[TaskOutput] = cached_read_whole_exp_dir(exp_dir=exp_dir)
 tree: TreeCache = make_tree(everything)  # type: ignore
