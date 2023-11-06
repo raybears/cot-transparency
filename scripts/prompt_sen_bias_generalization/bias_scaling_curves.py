@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 from typing import Type
 
@@ -13,7 +14,7 @@ from tqdm import tqdm
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
-from cot_transparency.data_models.io import read_all_for_selections
+
 from cot_transparency.data_models.pd_utils import (
     BasicExtractor,
     BiasExtractor,
@@ -21,14 +22,18 @@ from cot_transparency.data_models.pd_utils import (
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.name_mapping import name_to_formatter
-from cot_transparency.streaming.tasks import call_model_with_task_spec, data_to_task_spec, get_examples_for_tasks
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.streaming.tasks import (
+    StreamingTaskOutput,
+    call_model_with_task_spec,
+    data_to_task_spec,
+    get_examples_for_tasks,
+)
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
-from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
-from scripts.prompt_sen_bias_generalization.combinations import (
-    bias_vs_prompts,
-    n_formats,
-    n_questions_comparison,
-    paraphrasing_vs_artisinal,
+from scripts.prompt_sen_bias_generalization.util import add_point_at_1, get_name_of_run
+from scripts.prompt_sen_bias_generalization.model_sweeps import (
+    SweepDatabase,
+    Sweeps,
 )
 from scripts.prompt_sen_experiments.hand_written.bias_eval import (
     AverageOptionsExtractor,
@@ -36,13 +41,8 @@ from scripts.prompt_sen_experiments.hand_written.bias_eval import (
 )
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
 from scripts.training_formatters import TRAINING_COT_FORMATTERS
-from stage_one import main as stage_one_main
 
 TEST_FORMATTERS = [f for f in TRAINING_COT_FORMATTERS]
-
-
-def get_name_of_run(i: ModelTrainMeta) -> str:
-    return f"{i.train_formatters.value}, {i.filter_strategy.value}, {i.sampling_strategy}"
 
 
 def lineplot_util(df_p: pd.DataFrame, title: str):
@@ -66,57 +66,39 @@ def lineplot_util(df_p: pd.DataFrame, title: str):
     plt.tight_layout()
 
 
-def get_models(group_to_plot: str) -> Slist[ModelTrainMeta]:
-    if group_to_plot == "n_questions_comparison":
-        defined_meta: Slist[ModelTrainMeta] = n_questions_comparison()
-    elif group_to_plot == "bias_vs_prompts":
-        defined_meta = bias_vs_prompts()
-    elif group_to_plot == "n_formats":
-        defined_meta = n_formats()
-    elif group_to_plot == "paraphrasing_vs_artisinal":
-        defined_meta = paraphrasing_vs_artisinal()
-    else:
-        raise ValueError(f"Unknown group_to_plot {group_to_plot}")
-    return defined_meta
+SWEEPS_DB = SweepDatabase()
+SWEEPS_DB.add(Sweeps.paraphrasing_1)
+SWEEPS_DB.add(Sweeps.gpt)
+SWEEPS_DB.add(Sweeps.paraphrasing_2)
+SWEEPS_DB.add(Sweeps.prompt_variants_1)
+SWEEPS_DB.add(Sweeps.gs_unbiased)
+SWEEPS_DB.add(Sweeps.zero_shot)
+SWEEPS_DB.add(Sweeps.few_shot)
+SWEEPS_DB.add(Sweeps.og_control)
 
 
-def run(
-    group_to_plot: str = "n_questions_comparison",
-    exp_dir: str = "experiments/finetune_3",
+async def run_bias_eval(
+    exp_dir: str = "experiments/finetune_3_streaming_cc",
     tasks: Sequence[str] = COT_TESTING_TASKS,
     biases: Sequence[Type[StageOneFormatter]] = TEST_FORMATTERS,
-):
-    models = get_models(group_to_plot)
-    model_names = models.map(lambda x: x.name)
-
-    stage_one_main(
-        exp_dir=exp_dir,
-        models=model_names,
-        tasks=tasks,
-        formatters=Slist(biases).map(lambda x: x.name()),
-        example_cap=400,
-        raise_after_retries=False,
-        temperature=1.0,
-        batch=25,
-    )
-
-
-async def run_with_extraction(
-    group_to_plot: str = "n_questions_comparison",
-    exp_dir: str = "experiments/finetune_3_streaming",
-    tasks: Sequence[str] = COT_TESTING_TASKS,
-    biases: Sequence[Type[StageOneFormatter]] = TEST_FORMATTERS,
-    example_cap: int = 400,
+    example_cap: int = 200,
+    batch: int = 50,
+    model_names: Sequence[str] = SWEEPS_DB.all_model_names,
 ):
     cache_dir = f"{exp_dir}/cache"
 
-    models = get_models(group_to_plot)
-    model_names = models.map(lambda x: x.name)
-    configs = model_names.map(lambda x: config_from_default(model=x))
+    print(f"Running with {len(model_names)} models")
+    print(f"Running with {len(biases)} formatters")
+    print(f"Running with {len(tasks)} tasks")
+    configs = Slist(model_names).map(lambda x: config_from_default(model=x))
 
-    model_caller = UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/evaluation_cache", write_every_n=200)
+    model_caller = UniversalCaller().with_model_specific_file_cache(
+        f"{cache_dir}/evaluation_cache",
+        write_every_n=200,
+    )
     answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
-        f"{cache_dir}/answer_parsing_cache", write_every_n=200
+        f"{cache_dir}/answer_parsing_cache",
+        write_every_n=200,
     )
     answer_parsing_config = config_from_default(model="claude-v1")
 
@@ -127,35 +109,43 @@ async def run_with_extraction(
         Observable.from_iterable(tasks_to_run)
         .map_blocking_par(
             lambda x: call_model_with_task_spec(x, model_caller),
-            max_par=20,
+            max_par=batch,
         )
         .flatten_list()
         .tqdm(tqdm_bar=tqdm(total=len(tasks_to_run), desc="Evaluate models"))
-        .map_blocking_par(lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=20)
+        .map_blocking_par(lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=10)
+        .tqdm(tqdm_bar=tqdm(total=len(tasks_to_run), desc="Parsing answers with claude"))
     )
 
     results_file = Path(f"{exp_dir}/results.jsonl")
 
-    await obs.to_file(results_file, mode="w")
+    await obs.to_file(results_file, mode="w", serialize=lambda x: x.model_dump_json())
 
 
 def plot(
-    group_to_plot: str = "n_questions_comparison",
-    exp_dir: str = "experiments/finetune_3",
+    results_file: str = "experiments/finetune_3_streaming_cc/results.jsonl",
     tasks: Sequence[str] = COT_TESTING_TASKS,
     biases: Sequence[Type[StageOneFormatter]] = TEST_FORMATTERS,
     plot_breakdown_by_formatter: bool = False,
 ):
-    defined_meta = get_models(group_to_plot)
-    models = [m.name for m in defined_meta]
-    outputs = read_all_for_selections(
-        exp_dirs=[Path(exp_dir)],
-        formatters=[i.name() for i in biases],
-        models=models,
-        tasks=tasks,
-    )
+    sweep_database = SWEEPS_DB
 
-    # convert to dataframe
+    defined_meta = sweep_database.all_models
+    models = sweep_database.all_model_names
+
+    outputs = read_jsonl_file_into_basemodel(results_file, StreamingTaskOutput)
+    num_models = len(outputs.map(lambda x: x.get_task_spec().inference_config.model).distinct())
+    if num_models != len(models):
+        print(f"Didn't find all models requested in {results_file}. Running evaluation again.")
+        asyncio.run(run_bias_eval(model_names=sweep_database.all_model_names, example_cap=200))
+        outputs = read_jsonl_file_into_basemodel(results_file, StreamingTaskOutput)
+
+    outputs = (
+        outputs.filter(lambda x: x.task_spec.task_name in tasks)
+        .filter(lambda x: x.get_task_spec().inference_config.model in models)
+        .filter(lambda x: x.get_task_spec().formatter_name in [f.name() for f in biases])
+    )
+    print("Num results after filtering", len(outputs))
 
     df = convert_slist_to_df(
         outputs,
@@ -173,16 +163,7 @@ def plot(
     df["Trained on COTS from"] = df.model.map(lambda x: get_name_of_run(model_name_to_meta[x]))
     df["Samples"] = df.model.map(lambda x: model_name_to_meta[x].trained_samples)
 
-    baseline = df[df.model == "gpt-3.5-turbo"].copy()
-    print("baseline len", len(baseline))
-    for meta in defined_meta:
-        name_of_run = get_name_of_run(meta)
-        # if name of run not in df, duplicate all rows with the same model name and add the name of run
-        model = meta.name
-        if len(df[(df.model == model) & (df["Trained on COTS from"] == name_of_run)]) == 0:
-            new_rows = baseline.copy()
-            new_rows["Trained on COTS from"] = name_of_run
-            df = pd.concat((df, new_rows))  # type: ignore
+    df = add_point_at_1(df, "gpt-3.5-turbo")
 
     for bias_type in df.bias_type.unique():
         df_p = df[df.bias_type == bias_type]
@@ -214,4 +195,4 @@ def plot(
 
 
 if __name__ == "__main__":
-    fire.Fire({"run": run, "plot": plot, "run_with_extraction": run_with_extraction})
+    fire.Fire({"plot": plot, "run_with_extraction": run_bias_eval})

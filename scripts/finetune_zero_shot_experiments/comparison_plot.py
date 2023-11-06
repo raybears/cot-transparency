@@ -20,7 +20,7 @@ from cot_transparency.formatters.verbalize.formatters import (
     CheckmarkBiasedFormatter,
     CrossBiasedFormatter,
 )
-from scripts.finetune_cot import FormatSampler, FormatterOptions, RandomSampler
+from scripts.finetune_cot import DataFromOptions, FormatSampler, FormatterOptions, RandomSampler
 from scripts.intervention_investigation import DottedLine, plot_for_intervention
 from scripts.matching_user_answer import (
     matching_user_answer_plot_info,
@@ -43,6 +43,7 @@ class ModelTrainMeta:
     filter_strategy: FilterStrategy
     train_formatters: FormatterOptions = FormatterOptions.zero_shot
     sampling_strategy: FormatSampler = RandomSampler()
+    data_from: DataFromOptions = DataFromOptions.gpt_35_turbo
 
 
 @dataclass(frozen=True)

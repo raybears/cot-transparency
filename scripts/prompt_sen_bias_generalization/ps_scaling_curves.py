@@ -22,7 +22,6 @@ from cot_transparency.data_models.streaming import ParaphrasedQuestion
 from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
 from cot_transparency.data_models.streaming import ParaphrasingOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AskParaphrasedQuestionFormatter,
     GenerateParaphrasingsFormatters,
@@ -36,16 +35,10 @@ from cot_transparency.streaming.tasks import call_model_with_task_spec
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import get_examples_for_tasks
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
-from scripts.finetune_cot import (
-    DataFromOptions,
-    FormatterOptions,
-    NFormatsPerQuestionSampler,
-    ParaphrasingSampler,
-    fine_tune_with_bias_augmentation,
-)
 from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
-from scripts.prompt_sen_bias_generalization.bias_scaling_curves import get_name_of_run
-from scripts.prompt_sen_bias_generalization.combinations import paraphrasing_scaling_curves
+from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, Sweeps
+from scripts.prompt_sen_bias_generalization.util import get_name_of_run
+from scripts.prompt_sen_bias_generalization.util import add_point_at_1
 from scripts.utils.plots import catplot
 
 
@@ -59,24 +52,6 @@ def parse_responses(output: StreamingTaskOutput) -> ParaphrasingOutput:
         inference_output=output.inference_output,
         paraphrased_questions=paraphrased_questions,
     )
-
-
-A = TypeVar("A", bound=BaseModel)
-
-
-class PassThroughWriter(Generic[A]):
-    def __init__(self, path: str | Path):
-        if isinstance(path, str):
-            path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self.fh = open(path, "w")
-
-    def write(self, x: A) -> A:
-        self.fh.write(x.model_dump_json() + "\n")
-        return x
-
-    def __del__(self):
-        self.fh.close()
 
 
 def reformulate_questions_for_asking(
@@ -100,12 +75,15 @@ def reformulate_questions_for_asking(
     return specs
 
 
+EXP_DIR = "experiments/automated_prompt_variant_generation/v1"
+
+
 async def run_pipeline(
-    exp_dir: str,
-    example_cap: int,
-    tasks: Sequence[str],
-    batch_size: int,
-    eval_temp: float,
+    exp_dir: str = EXP_DIR,
+    example_cap: int = 200,
+    tasks: Sequence[str] = COT_TESTING_TASKS,
+    batch_size: int = 50,
+    eval_temp: float = 0.0,
     models_to_evaluate: Sequence[str] = [],
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatters],
 ) -> Path:
@@ -238,36 +216,6 @@ def make_training_data(
     )
 
 
-EXP_DIR = "experiments/automated_prompt_variant_generation/v1"
-
-
-def run(
-    exp_dir=EXP_DIR,
-    models: Sequence[str] = [
-        "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:far-ai::8DPAu94W",  # super dataset 100k
-        "ft:gpt-3.5-turbo-0613:far-ai::8Czg32py",  # super dataset 50k
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CxBtbeH",  # super dataset 10k
-    ],
-    example_cap: int = 200,
-    tasks: Sequence[str] = COT_TESTING_TASKS,
-    batch_size: int = 50,
-    eval_temp: float = 0.0,
-) -> Path:
-    results_path = asyncio.run(
-        run_pipeline(
-            exp_dir=exp_dir,
-            models_to_evaluate=models,
-            batch_size=batch_size,
-            eval_temp=eval_temp,
-            example_cap=example_cap,
-            tasks=tasks,
-        )
-    )
-    print("Done ✅")
-    return results_path
-
-
 class Entropy(BaseModel):
     entropy: float
     uniform_entropy: float
@@ -321,18 +269,6 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     plt.show()
 
 
-def add_point_at_1(df: pd.DataFrame, defined_meta: Sequence[ModelTrainMeta], baseline_model: str = "gpt-3.5-turbo"):
-    unique_trained_on = df["Trained on COTS from"].unique()
-    baseline = df[df.model == baseline_model]
-
-    for unique in unique_trained_on:
-        if len(df[(df["Samples"] == 1) & (df["Trained on COTS from"] == unique)]) == 0:
-            new_rows = baseline.copy()
-            new_rows["Trained on COTS from"] = unique
-            df = pd.concat((df, new_rows))  # type: ignore
-    return df
-
-
 def lineplot_util(df_p: pd.DataFrame, title: str):
     avg_entropy = df_p.uniform_entropy.mean()
     print("avg entropy", avg_entropy)
@@ -355,20 +291,27 @@ def lineplot_util(df_p: pd.DataFrame, title: str):
     plt.tight_layout()
 
 
+SWEEPS_DB = SweepDatabase()
+SWEEPS_DB.add(Sweeps.zero_shot)
+SWEEPS_DB.add(Sweeps.few_shot)
+
+
 def plot_scaling_curves(
     exp_dir=EXP_DIR,
-    model_meta: Sequence[ModelTrainMeta] = paraphrasing_scaling_curves(),
+    model_meta: Sequence[ModelTrainMeta] = SWEEPS_DB.all_models,
 ):
     model_name_to_meta = Slist(model_meta).map(lambda x: (x.name, x)).to_dict()
     models = Slist(model_meta).map(lambda x: x.name)
     results_path = f"{exp_dir}/results.jsonl"
 
-    results_path = run(
-        exp_dir=exp_dir,
-        models=models,
-        tasks=COT_TESTING_TASKS,
-        batch_size=20,
-        eval_temp=0.0,
+    results_path = asyncio.run(
+        run_pipeline(
+            exp_dir=exp_dir,
+            models_to_evaluate=models,
+            tasks=COT_TESTING_TASKS,
+            batch_size=20,
+            eval_temp=0.0,
+        )
     )
 
     outputs = read_jsonl_file_into_basemodel(results_path, StreamingTaskOutput)
@@ -379,50 +322,19 @@ def plot_scaling_curves(
     df = convert_slist_to_df(with_entropy, [Extractor()])
     df["Trained on COTS from"] = df.model.map(lambda x: get_name_of_run(model_name_to_meta[x]))
     df["Samples"] = df.model.map(lambda x: model_name_to_meta[x].trained_samples)
-    df = add_point_at_1(df, model_meta)
+    df = add_point_at_1(df, "gpt-3.5-turbo")
 
     lineplot_util(df, title="Entropy across paraphrased questions")
 
     plt.show()
 
 
-def train_and_run(n_samples: int = 10000, n_formats_per_question: int = 2, unbiased: bool = False):
-    if unbiased:
-        assert n_formats_per_question == 1, "Only makes sense to have one format per question for unbiased"
-        sampler = NFormatsPerQuestionSampler(n_formats_per_question=1)
-        formatter_options = FormatterOptions.gs_unbiased
-    else:
-        sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question)
-        formatter_options = FormatterOptions.ask_paraphrased
-
-    model = fine_tune_with_bias_augmentation(
-        model="gpt-3.5-turbo",
-        n_epochs=1,
-        n_samples=n_samples,
-        post_hoc=False,
-        cot_percentage=0.50,
-        project_name="consistency-training",
-        formatter_options=formatter_options,
-        sampler=sampler,
-        permute_verbalize_instructions=False,
-        data_from_options=DataFromOptions.gpt_35_turbo_gs,
-        model_output_verified=ModelOutputVerified.unfiltered,
-    )
-    run(
-        models=[model],
-        tasks=COT_TESTING_TASKS,
-        batch_size=50,
-        eval_temp=0.0,
-    )
-
-
 if __name__ == "__main__":
     fire.Fire(
         {
-            "run": run,
+            "run": run_pipeline,
             "plot": plot,
             "make_training_data": make_training_data,
-            "train_and_run": train_and_run,
             "plot_scaling_curves": plot_scaling_curves,
         }
     )

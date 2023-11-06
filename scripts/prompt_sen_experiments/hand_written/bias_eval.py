@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 from cot_transparency.data_models.data import TASK_LIST
 from cot_transparency.data_models.io import read_all_for_selections
-from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.data_models.pd_utils import (
     BaseExtractor,
     BasicExtractor,
@@ -101,13 +101,13 @@ BIAS_TYPE_MAPPING: dict[str, Sequence[Type[StageOneFormatter]]] = {
 }
 
 
-class BiasTypeExtractor(BaseExtractor[TaskOutput]):
+class BiasTypeExtractor(BaseExtractor[BaseTaskOutput]):
     column_names = [
         "bias_type",
     ]
 
-    def extract(self, output: TaskOutput) -> Sequence[str | float | None]:
-        formatter = name_to_formatter(output.task_spec.formatter_name)
+    def extract(self, output: BaseTaskOutput) -> Sequence[str | float | None]:
+        formatter = name_to_formatter(output.get_task_spec().formatter_name)
 
         for k, v in BIAS_TYPE_MAPPING.items():
             if formatter in v:
@@ -121,13 +121,13 @@ class BiasTypeExtractor(BaseExtractor[TaskOutput]):
         ]
 
 
-class AverageOptionsExtractor(BaseExtractor[TaskOutput]):
+class AverageOptionsExtractor(BaseExtractor[BaseTaskOutput]):
     column_names = [
         "average_options",
     ]
 
-    def extract(self, output: TaskOutput) -> Sequence[str | float | None]:
-        n_options = len(output.task_spec.get_data_example_obj().get_options())
+    def extract(self, output: BaseTaskOutput) -> Sequence[str | float | None]:
+        n_options = len(output.get_task_spec().get_data_example_obj().get_options())
         return [n_options]
 
 
