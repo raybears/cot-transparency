@@ -1,25 +1,26 @@
 import asyncio
-from collections import Counter
 import math
+from collections import Counter
 from pathlib import Path
 from typing import Generic, Sequence, Type, TypeVar
-import fire
 
+import fire
+import pandas as pd
+import seaborn as sns
 from grugstream import Observable
 from matplotlib import pyplot as plt
-import pandas as pd
 from pydantic import BaseModel
 from slist import Slist, Group
 from tqdm import tqdm
-import seaborn as sns
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 from cot_transparency.data_models.pd_utils import BaseExtractor, convert_slist_to_df
+from cot_transparency.data_models.streaming import ParaphrasedQuestion
 from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
 from cot_transparency.data_models.streaming import ParaphrasingOutput
-from cot_transparency.data_models.streaming import ParaphrasedQuestion
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
@@ -31,9 +32,10 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.streaming.tasks import StreamingTaskOutput
-from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import call_model_with_task_spec
+from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import get_examples_for_tasks
+from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
@@ -45,8 +47,6 @@ from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMet
 from scripts.prompt_sen_bias_generalization.bias_scaling_curves import get_name_of_run
 from scripts.prompt_sen_bias_generalization.combinations import paraphrasing_scaling_curves
 from scripts.utils.plots import catplot
-from cot_transparency.data_models.data import COT_TRAINING_TASKS
-from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 
 
 def parse_responses(output: StreamingTaskOutput) -> ParaphrasingOutput:

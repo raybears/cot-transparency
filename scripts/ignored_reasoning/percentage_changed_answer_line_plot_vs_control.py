@@ -3,6 +3,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional, Mapping, Sequence
 
+import pandas as pd
+import seaborn
 from matplotlib import pyplot as plt
 from pydantic import BaseModel
 from slist import Slist
@@ -11,8 +13,6 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-import pandas as pd
-import seaborn
 
 
 class ChangedAnswer(BaseModel):

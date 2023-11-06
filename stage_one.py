@@ -3,12 +3,12 @@ from pathlib import Path
 from typing import Literal, Optional, Sequence, Type
 
 import fire
-
 from slist import Slist
 
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.data import TASK_LIST
+from cot_transparency.data_models.data import get_list_of_examples
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import TaskSpec
 from cot_transparency.formatters import (
@@ -27,7 +27,6 @@ from cot_transparency.formatters.transparency.s1_baselines import (
 from cot_transparency.formatters.wildcard import match_wildcard_formatters
 from cot_transparency.tasks import TaskSetting, run_with_caching
 from cot_transparency.util import get_exp_dir_name
-from cot_transparency.data_models.data import get_list_of_examples
 
 
 def create_task_settings(

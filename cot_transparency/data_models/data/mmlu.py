@@ -29,7 +29,7 @@ class MMLUExample(DataExampleBase):
         return self.question.strip()
 
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         return self.correct_ans_letter
 
 

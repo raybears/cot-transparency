@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from types import TracebackType
 from typing import Optional, Sequence, Type, TypeVar
 

@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from slist import Slist
-from cot_transparency.data_models.data import COT_TESTING_TASKS
 
+from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter

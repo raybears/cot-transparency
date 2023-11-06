@@ -6,6 +6,7 @@ import fire
 import pandas as pd
 
 from cot_transparency.apis.openai.finetune import FinetuneSample
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 from cot_transparency.data_models.example_base import ChoiceVariant
 from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
@@ -19,7 +20,6 @@ from cot_transparency.formatters.name_mapping import name_to_stage1_formatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from scripts.prompt_sen_experiments.auto_generated.cot_formats_v1 import COT_FORMATTERS
 from scripts.prompt_sen_experiments.plots import get_modal_agreement_score
-from cot_transparency.data_models.data import COT_TRAINING_TASKS
 
 
 class OutputUID(BaseExtractor[TaskOutput]):

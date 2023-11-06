@@ -34,7 +34,7 @@ class HellaSwagExample(DataExampleBase):
         return PROMPT + f" {self.ctx}"
 
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         return ascii_uppercase[self.label]  # type: ignore
 
 

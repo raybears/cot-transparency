@@ -2,17 +2,17 @@ from pathlib import Path
 from typing import Type
 
 import fire
-from grugstream import Observable
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from git import Sequence
+from grugstream import Observable
 from slist import Slist
 from tqdm import tqdm
+
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
-
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.pd_utils import (
     BasicExtractor,

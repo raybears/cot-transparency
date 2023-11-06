@@ -24,6 +24,8 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return AquaExample
     elif task_name == "logiqa":
         return LogicQaExample
+    elif task_name == "logiqa_train":
+        return LogicQaExample
     elif task_name == "hellaswag":
         return HellaSwagExample
     elif task_name == "mmlu":

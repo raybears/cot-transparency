@@ -2,21 +2,20 @@
 This file basically an evolution of tasks.py but simplified and intended to be used with grugstream.
 """
 import typing
-from cot_transparency.apis.base import ModelCaller
+from typing import Any, Self, Sequence
+
 from slist import Slist
+
+from cot_transparency.apis.base import ModelCaller
 from cot_transparency.copy_utils.unset_sentinel import _UNSET, Unset
 from cot_transparency.data_models.config import OpenaiInferenceConfig
+from cot_transparency.data_models.data import get_list_of_examples
 from cot_transparency.data_models.data.task_name_map import task_name_to_data_example
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import BaseTaskOutput, BaseTaskSpec, ModelOutput
-
-
-from typing import Any, Self, Sequence
-
 from cot_transparency.formatters.base_class import StageOneFormatter, Type
 from cot_transparency.formatters.name_mapping import name_to_formatter
-from cot_transparency.data_models.data import get_list_of_examples
 
 
 class StreamingTaskSpec(BaseTaskSpec):

@@ -2,9 +2,9 @@ import re
 
 import pytest
 
-from cot_transparency.data_models.data.arc import ArcExample
-from cot_transparency.data_models.data import get_list_of_examples
 from cot_transparency.data_models.data import TASK_LIST
+from cot_transparency.data_models.data import get_list_of_examples
+from cot_transparency.data_models.data.arc import ArcExample
 
 ANSWER_RE = r"^(\n|.)+\n\nAnswer choices:\n\(A\) .+\n\(B\) .+"
 # should have the format

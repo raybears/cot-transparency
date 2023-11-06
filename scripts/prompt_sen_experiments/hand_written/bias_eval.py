@@ -4,8 +4,8 @@ from typing import Type
 
 import fire
 from matplotlib import pyplot as plt
-from cot_transparency.data_models.data import TASK_LIST
 
+from cot_transparency.data_models.data import TASK_LIST
 from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.pd_utils import (

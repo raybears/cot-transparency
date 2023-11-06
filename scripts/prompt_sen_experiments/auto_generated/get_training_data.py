@@ -1,6 +1,6 @@
 import fire
-from cot_transparency.data_models.data import COT_TRAINING_TASKS
 
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 from scripts.prompt_sen_experiments.kl.kl_plots import kl_plot
 from stage_one import main
 

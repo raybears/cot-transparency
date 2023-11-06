@@ -1,6 +1,6 @@
 import fire
-from cot_transparency.data_models.data import COT_TRAINING_TASKS
 
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 from stage_one import main
 
 EXP_DIR = "experiments/prompt_sen_experiments/temp0_cots_for_consistency_training"

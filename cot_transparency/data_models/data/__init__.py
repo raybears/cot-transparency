@@ -1,3 +1,9 @@
+from functools import lru_cache
+from pathlib import Path
+from typing import Optional
+
+from slist import Slist
+
 from cot_transparency.data_models.data import aqua, arc, bbh, bbq, hellaswag, logiqa, mmlu, openbook, truthful_qa
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
@@ -17,14 +23,6 @@ from cot_transparency.data_models.data.model_written_evals import (
 )
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-
-
-from slist import Slist
-
-
-from functools import lru_cache
-from pathlib import Path
-from typing import Optional
 
 COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
 # ok to train on the test set since we test on completely different datasets
@@ -62,6 +60,7 @@ TASK_LIST = {
     ],
     "mmlu": mmlu.MMLU_SUPERCATEGORIES,
     "karina": ["karina_hallucination"],
+    "logiqa_train": ["logiqa_train"],
 }
 
 

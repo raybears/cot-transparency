@@ -5,11 +5,11 @@ import fire
 
 from analysis import convert_loaded_dict_to_df
 from cot_transparency.apis.openai.finetune import FinetuneSample
+from cot_transparency.data_models.data import COT_TRAINING_TASKS
 from cot_transparency.data_models.io import ExpLoader
 from cot_transparency.data_models.models import ExperimentJsonFormat, TaskOutput
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from scripts.prompt_sen_experiments.plots import get_modal_agreement_score
-from cot_transparency.data_models.data import COT_TRAINING_TASKS
 
 
 def main(

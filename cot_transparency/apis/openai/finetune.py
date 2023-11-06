@@ -9,12 +9,12 @@ from typing import Any, Mapping, Optional, Sequence
 import numpy as np
 import openai
 import pandas as pd
+import wandb
 from openai.error import APIConnectionError, RateLimitError
 from pydantic import BaseModel
 from retry import retry
 from wandb.sdk.wandb_run import Run
 
-import wandb
 from cot_transparency.apis.openai.set_key import set_keys_from_env
 from cot_transparency.data_models.messages import (
     ChatMessage,

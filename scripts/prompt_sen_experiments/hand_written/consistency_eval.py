@@ -1,8 +1,8 @@
 from typing import Optional, Sequence
 
 import fire
-from cot_transparency.data_models.data import PROMPT_SEN_TESTING_TASKS
 
+from cot_transparency.data_models.data import PROMPT_SEN_TESTING_TASKS
 from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TESTING_COT_PROMPT_VARIANTS,
 )

@@ -27,7 +27,7 @@ class LogicQaExample(DataExampleBase):
         return self.question
 
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> MultipleChoiceAnswer:
         return self.correct_ans_letter
 
     @property
@@ -51,6 +51,13 @@ def _process_line(block: str) -> LogicQaExample:
 
 def eval() -> List[LogicQaExample]:
     data_path = Path("./data/logiqa/Eval.txt")
+    with open(data_path) as f:
+        data = f.read().split("\n\n")[1:]  # first split is empty string so skip it
+        return Slist(_process_line(block) for block in data)
+
+
+def train() -> List[LogicQaExample]:
+    data_path = Path("./data/logiqa/Train.txt")
     with open(data_path) as f:
         data = f.read().split("\n\n")[1:]  # first split is empty string so skip it
         return Slist(_process_line(block) for block in data)

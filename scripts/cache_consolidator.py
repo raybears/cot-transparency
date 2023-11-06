@@ -1,6 +1,5 @@
 # convert task outputs to cache
 import fire
-
 from tqdm import tqdm
 
 from cot_transparency.apis.base import APIRequestCache, CachedValue, InferenceResponse, file_cache_key
