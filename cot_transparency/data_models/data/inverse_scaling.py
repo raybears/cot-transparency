@@ -30,9 +30,15 @@ class InverseScalingTask(str, Enum):
     # strong prior tasks
     resisting_correction = "resisting_correction"
     memo_trap = "memo_trap"
+    redefine = "redefine"
     # spurious few shot tasks
     hindsight_neglect = "hindsight_neglect"
     repetitive_algebra = "repetitive_algebra"
+    # distractor tasks
+    pattern_matching = "pattern_matching"
+    into_to_the_unknown = "into_to_the_unknown"
+    neqa = "neqa"
+    sig_figs = "sig_figs"
 
     @staticmethod
     def all_tasks() -> list[str]:
@@ -48,6 +54,16 @@ def get_inverse_scaling(task: InverseScalingTask) -> Slist[InverseScalingExample
         path = Path("./data/inverse_scaling/hindsight-neglect_classification.jsonl")
     elif task == InverseScalingTask.repetitive_algebra:
         path = Path("./data/inverse_scaling/repetitive-algebra_classification.jsonl")
+    elif task == InverseScalingTask.redefine:
+        path = Path("./data/inverse_scaling/redefine_classification.jsonl")
+    elif task == InverseScalingTask.pattern_matching:
+        path = Path("./data/inverse_scaling/pattern-matching_classification.jsonl")
+    elif task == InverseScalingTask.into_to_the_unknown:
+        path = Path("./data/inverse_scaling/into-to-the-unknown_classification.jsonl")
+    elif task == InverseScalingTask.neqa:
+        path = Path("./data/inverse_scaling/neqa_classification.jsonl")
+    elif task == InverseScalingTask.sig_figs:
+        path = Path("./data/inverse_scaling/sig-figs_classification.jsonl")
 
     # read the json manually into dicts
     _dicts: Slist[InverseScalingExample] = Slist([])

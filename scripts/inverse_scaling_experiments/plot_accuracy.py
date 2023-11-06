@@ -4,6 +4,7 @@ from pathlib import Path
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
+from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
@@ -17,16 +18,20 @@ async def plot_accuracies():
         "gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D",  # 1k correct (control)
         "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",  # 1k correct (ours)
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z"
+        # "ft:gpt-3.5-turbo-0613:far-ai::8HoBQfFE", # 100% instruct 500 (ours)
+        "ft:gpt-3.5-turbo-0613:far-ai::8Ho5AmzO", # 100% instruct 1000, control
+        "ft:gpt-3.5-turbo-0613:far-ai::8Ho0yXlM", # 100% instruct 1000 (ours)
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z"
 
     ]
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
-    task = "repetitive_algebra"
+    task = InverseScalingTask.resisting_correction
+    # task = InverseScalingTask.memo_trap
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name()],
         tasks=[task],
-        example_cap=1000,
+        example_cap=2000,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
