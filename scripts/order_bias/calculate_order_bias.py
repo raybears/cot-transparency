@@ -97,7 +97,7 @@ async def main():
         formatters=[ZeroShotUnbiasedShuffledFormatter.name()],
         tasks=["logiqa_train"],
         example_cap=5000,
-        num_retries=1,
+        num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
         caller=stage_one_caller,
