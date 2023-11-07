@@ -15,7 +15,8 @@ if __name__ == "__main__":
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
-        n_samples=1362,
+        n_samples=500,
+        instruct_sample_proportion=1.0,
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,

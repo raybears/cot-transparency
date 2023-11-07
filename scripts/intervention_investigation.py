@@ -109,7 +109,7 @@ def bar_plot(
     for dot in plot_infos:
         name = name_override.get(dot.name, dot.name)
         if add_n_to_name:
-            name = f"{name} n={dot.acc.samples}"
+            name = f"{name}<br>n={dot.acc.samples}"
         new_plot_infos.append(PlotInfo(acc=dot.acc, name=name))
 
     for dot in new_plot_infos:

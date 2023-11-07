@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from slist import Slist
 
 from cot_transparency.apis.base import FileCacheRow
@@ -30,12 +30,29 @@ def cached_read_whole_s2_exp_dir(exp_dir: str) -> Slist[StageTwoTaskOutput]:
 
 
 @lru_cache(maxsize=32)
+def cached_read_jsonl_file(file_path: str) -> Slist[TaskOutput]:
+    # Tries to read as TaskOutput, if that fails, reads as FileCacheRow
+    try:
+        everything = cached_read_model_caller_jsonl_file(file_path)
+    except ValidationError:
+        everything = cached_read_task_outsputs_jsonl_file(file_path)
+    return everything
+
+
+@lru_cache(maxsize=32)
 def cached_read_model_caller_jsonl_file(file_path: str) -> Slist[TaskOutput]:
+    # Saved FileCacheRow
     return (
         read_jsonl_file_into_basemodel(file_path, basemodel=FileCacheRow)
         .map(file_cache_row_to_task_output)
         .flatten_list()
     )
+
+
+@lru_cache(maxsize=32)
+def cached_read_task_outsputs_jsonl_file(file_path: str) -> Slist[TaskOutput]:
+    # Saved TaskOutput
+    return read_jsonl_file_into_basemodel(file_path, basemodel=TaskOutput)
 
 
 class TreeCacheKey(BaseModel):

@@ -8,6 +8,7 @@ from cot_transparency.data_models.data import aqua, arc, bbh, bbq, hellaswag, lo
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
+from cot_transparency.data_models.data.inverse_scaling import get_inverse_scaling, InverseScalingTask
 from cot_transparency.data_models.data.john_math import (
     get_john_math_level_1,
     get_john_math_level_2,
@@ -61,6 +62,7 @@ TASK_LIST = {
     "mmlu": mmlu.MMLU_SUPERCATEGORIES,
     "karina": ["karina_hallucination"],
     "logiqa_train": ["logiqa_train"],
+    "inverse_scaling": InverseScalingTask.all_tasks(),
 }
 
 
@@ -108,6 +110,9 @@ def get_list_of_examples(
             data = mmlu.test_super_category(task.replace("mmlu_", ""))
         elif task == "openbook_qa":
             data = openbook.test()
+        elif task in InverseScalingTask.all_tasks():
+            task_enum = InverseScalingTask(task)
+            data = get_inverse_scaling(task_enum)
         elif task == "openbook_qa_train":
             data = openbook.openbook_train()
         elif task == "hellaswag":
