@@ -145,8 +145,10 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G0tbUsB": "Trained with biased contexts (ours)\n 50% COT, 10k samples\n unfiltered",
     "ft:gpt-3.5-turbo-0613:far-ai::8G1YsULJ": "Trained with biased contexts (ours)\n 98% COT, 10k samples\n unfiltered",
     "ft:gpt-3.5-turbo-0613:far-ai::8G4AfzJQ": "Trained with unbiased contexts (control)\n 98% COT, 10k samples\n correct only",
-    "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF": "Trained with biased contexts (ours)\n50% COT, 1k samples\ncorrect only",
-    "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D": "Trained with unbiased contexts (control)\n50% COT, 1k samples\ncorrect only",
+    "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF": "Trained with biased contexts (ours)\n50% COT, 1k samples\n+10% instruct",
+    "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D": "Trained with unbiased contexts (control)\n50% COT, 1k samples\n+10% instruct",
+    "ft:gpt-3.5-turbo-0613:far-ai::8Ho5AmzO": "Trained with unbiased contexts (control)\n50% COT, 1k samples\n+100% instruct",
+    "ft:gpt-3.5-turbo-0613:far-ai::8Ho0yXlM": "Trained with biased contexts (ours)\n50% COT, 1k samples\n+100% instruct",
 }
 
 

@@ -22,8 +22,10 @@ class SweepOptions(BaseModel):
 
 
 async def train_and_run(sweep: SweepOptions) -> None:
+    # FAR
+    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     model = fine_tune_with_bias_augmentation(
-        model="gpt-3.5-turbo",
+        model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=1, n_epochs=1, learning_rate_multiplier=0.02),
         n_samples=sweep.n_samples,
         post_hoc=False,
@@ -41,7 +43,7 @@ async def train_and_run(sweep: SweepOptions) -> None:
 
 
 async def main():
-    option = SweepOptions(n_samples=100, instruct_sample_proportion=0.1)
+    option = SweepOptions(n_samples=1000, instruct_sample_proportion=0.1)
     await train_and_run(option)
 
 
