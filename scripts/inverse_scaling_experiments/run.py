@@ -12,10 +12,7 @@ if __name__ == "__main__":
             "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",  # 1k correct (ours)
             "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D",  # 1k correct (control)
         ],
-        formatters=[
-            "ZeroShotUnbiasedFormatter",
-            "ZeroShotCOTUnbiasedFormatter"
-        ],
+        formatters=["ZeroShotUnbiasedFormatter", "ZeroShotCOTUnbiasedFormatter"],
         tasks=["resisting_correction", "hindsight_neglect"],
         example_cap=500,
         raise_after_retries=False,
