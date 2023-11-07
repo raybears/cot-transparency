@@ -1,4 +1,4 @@
-from scripts.finetune_cot import FormatterOptions
+from scripts.finetune_cot import FormatterOptions, NFormatsPerQuestionSampler
 from scripts.finetune_zero_shot_experiments.comparison_plot import FilterStrategy, ModelTrainMeta
 
 
@@ -101,24 +101,28 @@ FEW_SHOT_2 = [
         trained_samples=100,
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.few_shot,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HygorfS",
         trained_samples=1000,
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.few_shot,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:far-ai::8HzIB2CC",
         trained_samples=10000,
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.few_shot,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:far-ai::8HzWwPnL",
         trained_samples=20000,
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.few_shot,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
     ),
 ]
 ZERO_SHOT_2 = [
@@ -127,23 +131,27 @@ ZERO_SHOT_2 = [
         trained_samples=100,
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.zero_shot,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HxwHKix",
         trained_samples=1000,
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.zero_shot,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HyFFyLB",
         trained_samples=10000,
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.zero_shot,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Hyy5AkB",
         trained_samples=20000,
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.zero_shot,
+        sampling_strategy=NFormatsPerQuestionSampler(2),
     ),
 ]
