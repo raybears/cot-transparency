@@ -446,7 +446,9 @@ class ParaphrasingSampler(FormatSampler):
 
 
 def fine_tune_with_bias_augmentation(
-    n_epochs: int,
+    hyper_params: FineTuneHyperParams = FineTuneHyperParams(n_epochs=1),
+    # TODO: Remove
+    n_epochs: int = 1,
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
     model_output_verified: ModelOutputVerified = ModelOutputVerified.correct,
     exclude_formatters: Sequence[type[StageOneFormatter]] = [],
@@ -580,7 +582,7 @@ def fine_tune_with_bias_augmentation(
     samples = (total_task_samples + alpaca_samples).shuffle("42")
     val_samples = (non_cot_val_samples + cot_val_samples + alpaca_val_samples).shuffle("42")
 
-    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
+    params = FineTuneParams(model=model, hyperparameters=hyper_params)
     control_only_unbiased = formatter_options == FormatterOptions.control_only_unbiased
 
     more_config = {

@@ -38,8 +38,8 @@ if __name__ == "__main__":
         for run in runs:
             if "finetune_job_id" in run.config:
                 try:
-                    finetune_job = openai.FineTuningJob.retrieve(run.config["finetune_job_id"])
-                    if finetune_job["status"] == "succeeded":
+                    finetune_job = openai.fine_tunes.retrieve(run.config["finetune_job_id"])
+                    if finetune_job.status == "succeeded":
                         job_results: FinetunedJobResults = FinetunedJobResults.model_validate(finetune_job)
                         resync_wandb_run(
                             wandb_run_id=run.id,
@@ -48,7 +48,7 @@ if __name__ == "__main__":
                         )
                         print(f"Resynced {run.name} with finetune_model_id {run.config['finetune_job_id']}")
                     else:
-                        print(f"Skipping {run.name} because finetune_job status is {finetune_job['status']}")
+                        print(f"Skipping {run.name} because finetune_job status is {finetune_job.status}")
                 except Exception as e:
                     print(f"Failed to resync {run.name} because {e}")
                     continue

@@ -6,13 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import openai
 from dotenv import load_dotenv
-from openai import APIError
-from openai.error import (
-    APIConnectionError,
-    RateLimitError,
-    ServiceUnavailableError,
-    Timeout,
-)
+from openai import APIError, APIConnectionError, APITimeoutError, APIStatusError, RateLimitError
 from pydantic import BaseModel
 from retry import retry
 from slist import Slist
@@ -32,7 +26,7 @@ RATE_SCALER = float(os.getenv("RATE_SCALER", "1.0"))
 total_rate_sf = NUM_ORGS * RATE_SCALER
 
 retry_openai_failures = retry(
-    exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError),
+    exceptions=(APIConnectionError, APITimeoutError, APIError, APIStatusError),
     tries=20,
     delay=1,
     logger=None,
@@ -217,7 +211,7 @@ def __get_chat_response_dict(
 
 
 @retry(
-    exceptions=(RateLimitError, APIConnectionError, Timeout, APIError),
+    exceptions=(RateLimitError, APIConnectionError, APITimeoutError, APIError),
     tries=20,
     delay=2,
     logger=logger,

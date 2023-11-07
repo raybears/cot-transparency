@@ -3,6 +3,7 @@ from typing import Sequence
 
 import fire
 
+from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from scripts.finetune_cot import (
@@ -105,7 +106,7 @@ def train_bias(
 
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
-        n_epochs=1,
+        hyper_params=FineTuneHyperParams(n_epochs=1),
         n_samples=n_samples,
         post_hoc=False,
         cot_percentage=0.5,

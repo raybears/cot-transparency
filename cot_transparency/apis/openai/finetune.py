@@ -10,7 +10,9 @@ import numpy as np
 import openai
 import pandas as pd
 import wandb
-from openai.error import APIConnectionError, RateLimitError
+from openai import APIConnectionError, files, RateLimitError
+from openai._types import FileTypes
+from openai.types import FileObject
 from pydantic import BaseModel
 from retry import retry
 from wandb.sdk.wandb_run import Run
@@ -33,9 +35,10 @@ set_keys_from_env()
 
 class FineTuneHyperParams(BaseModel):
     n_epochs: int = 1
-    # todo: the new api doesn't have these params???
-    # batch_size: int = 1
-    # learning_rate_multiplier: float = 1.0
+    # Setting to None means we use the default batch size, which is decided by OpenAI
+    batch_size: Optional[int] = None
+    # Setting to None means we use the default learning rate, which is decided by OpenAI
+    learning_rate_multiplier: Optional[float] = None
 
 
 class FineTuneParams(BaseModel):
@@ -83,8 +86,8 @@ logger = logging.getLogger(__name__)
 )
 def wait_until_uploaded_file_id_is_ready(file_id: str) -> None:
     while True:
-        file = openai.File.retrieve(file_id)
-        if file["status"] == "processed":
+        file: FileObject = openai.files.retrieve(file_id)
+        if file.status == "processed":
             return
         time.sleep(1)
 
@@ -104,35 +107,35 @@ class FinetunedJobResults(BaseModel):
 def wait_until_finetune_job_is_ready(finetune_job_id: str) -> FinetunedJobResults:
     """Returns the fine tuned model id"""
     while True:
-        finetune_job = openai.FineTuningJob.retrieve(finetune_job_id)
-        if finetune_job["status"] == "succeeded":
+        finetune_job = openai.fine_tunes.retrieve(finetune_job_id)
+        if finetune_job.status == "succeeded":
             return FinetunedJobResults.model_validate(finetune_job)
         time.sleep(1)
 
 
 def list_finetunes() -> None:
-    finetunes = openai.FineTuningJob.list(limit=100)
+    finetunes = openai.fine_tunes.list()
     print(finetunes)
 
 
 def delete_all_finetune_files() -> None:
-    files = openai.File.list().data  # type: ignore
-    for file in files:
-        if file["purpose"] == "fine-tune":
+    listed_files: list[FileObject] = openai.files.list().data
+    for file in listed_files:
+        if file.purpose == "fine-tune":
             try:
-                openai.File.delete(file["id"])
+                openai.files.delete(file.id)
             except Exception as e:
-                print(f"Failed to delete file {file['id']} with error {e}")
+                print(f"Failed to delete file {file.id} with error {e}")
     print("deleted all finetune files")
 
 
 def list_all_files() -> None:
-    files = openai.File.list().data  # type: ignore
+    files = openai.files.list().data  # type: ignore
     print(files)
 
 
 def cancel_finetune(finetune_id: str) -> None:
-    print(openai.FineTuningJob.cancel(id=finetune_id))
+    print(openai.fine_tunes.cancel(fine_tune_id=finetune_id))
 
 
 def confirm_to_continue(file_path: Path) -> None:
@@ -206,7 +209,7 @@ class WandbSyncer:
         self.run.config.update({"trained_tokens": trained_tokens})
 
     def update_training_results(self, results_id: str) -> None:
-        results = openai.File.download(id=results_id).decode("utf-8")
+        results = openai.files.retrieve_content(file_id=results_id)
         # log results
         df_results = pd.read_csv(io.StringIO(results))
         for _, row in df_results.iterrows():
@@ -231,11 +234,11 @@ def queue_finetune(
 ) -> FinetuneJob:
     # Keep retrying until we can queue the finetune job
     # pick an org at random
-    finetune_job_resp = openai.FineTuningJob.create(
+    finetune_job_resp = openai.fine_tunes.create(
         training_file=file_id,
         validation_file=val_file_id,
         model=model,
-        hyperparameters=hyperparameters.model_dump(),
+        hyperparameters=hyperparameters.model_dump(),  # type: ignore
     )
 
     print(f"Started finetune job. {finetune_job_resp}")
@@ -267,21 +270,22 @@ def run_finetune_from_file(
         syncer.update_n_samples(n_samples=len(samples))
 
     train_buffer = create_openai_buffer(samples)
-    file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
-        file=train_buffer,
+    # weird shape for the file to upload that Openai wants to
+    train_file_upload: FileTypes = (str(file_path), train_buffer)  # type: ignore
+    file_upload_resp: FileObject = openai.files.create(
+        file=train_file_upload,
         purpose="fine-tune",
-        user_provided_filename=str(file_path),
     )
-    file_id = file_upload_resp["id"]
+    file_id = file_upload_resp.id
     if val_file_path:
         val_samples = read_jsonl_file_into_basemodel(val_file_path, FinetuneSample)
         val_buffer = create_openai_buffer(val_samples)
-        val_file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
-            file=val_buffer,
+        val_file_upload: FileTypes = (str(val_file_path), val_buffer)  # type: ignore
+        val_file_upload_resp: FileObject = openai.files.create(
+            file=val_file_upload,
             purpose="fine-tune",
-            user_provided_filename=str(val_file_path),
         )
-        val_file_id = val_file_upload_resp["id"]
+        val_file_id = val_file_upload_resp.id
         if syncer:
             syncer.update_openai_val_file_id(openai_val_file_id=val_file_id)
     else:
@@ -382,20 +386,19 @@ def run_finetune_with_wandb_from_file(
 
 
 def download_result_file(result_file_id: str) -> None:
-    file = openai.File.retrieve(result_file_id)
-    downloaded: bytes = openai.File.download(result_file_id)
+    file: FileObject = files.retrieve(result_file_id)
+    downloaded: str = files.retrieve_content(result_file_id)
     # use pandas
-    pd.read_csv(io.BytesIO(downloaded))
-    print(file["filename"])
-    print(file["bytes"])
-    print(file["purpose"])
+    pd.read_csv(io.StringIO(downloaded))
+    print(file.filename)
+    print(file.bytes)
+    print(file.purpose)
 
 
 def download_training_file(training_file_id: str) -> None:
-    openai.File.retrieve(training_file_id)
-    downloaded: bytes = openai.File.download(training_file_id)
+    downloaded: str = openai.files.retrieve_content(training_file_id)
     # these are jsonl files, so its a list of dicts
-    output = [json.loads(line) for line in downloaded.decode().split("\n") if line]
+    output = [json.loads(line) for line in downloaded.split("\n") if line]
     print(len(output))
 
 
