@@ -21,6 +21,21 @@ from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemode
 from cot_transparency.streaming.tasks import StreamingTaskOutput
 
 
+@lru_cache
+def get_correct_cots_aqua() -> Slist[TaskOutput]:
+    """
+    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_aqua.py
+    Note that this was generated with the aqua_val dataset
+    Please test on the aqua_train dataset!
+    """
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt_4_aqua_val.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
+
+
 # Data previously generated with cot-transparency/scripts/dump_correct_cot_data.py
 # small brain cache to load only when needed
 @lru_cache
