@@ -1,4 +1,5 @@
 import asyncio
+import os
 from typing import Sequence
 
 import fire
@@ -21,6 +22,8 @@ set_openai_org_rand()
 
 
 SWEEPS_DB = SweepDatabase()
+SWEEPS_DB.add(Sweeps.zero_shot)
+SWEEPS_DB.add(Sweeps.few_shot)
 SWEEPS_DB.add(Sweeps.zero_shot_2)
 SWEEPS_DB.add(Sweeps.few_shot_2)
 SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
@@ -28,20 +31,23 @@ SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
 SWEEPS_DB.add(Sweeps.prompt_variants_2)
 
 
-def run_all_evals(models: Sequence[str] = SWEEPS_DB.all_model_names):
-    asyncio.run(
-        run_paraphrasing_eval(
-            models_to_evaluate=models,
-            tasks=COT_TESTING_TASKS,
-            batch_size=50,
-            eval_temp=0.0,
-        )
-    )
+def run_all_evals(models: Sequence[str] = SWEEPS_DB.all_model_names, example_cap: int = 400):
     asyncio.run(
         run_bias_eval(
             model_names=models,
             tasks=COT_TESTING_TASKS,
             batch=20,
+            example_cap=example_cap,
+        )
+    )
+    print("running paraphrasing")
+    asyncio.run(
+        run_paraphrasing_eval(
+            example_cap=example_cap // 2,
+            models_to_evaluate=models,
+            tasks=COT_TESTING_TASKS,
+            batch_size=50,
+            eval_temp=0.0,
         )
     )
 
@@ -49,6 +55,7 @@ def run_all_evals(models: Sequence[str] = SWEEPS_DB.all_model_names):
 def train_paraphrasing(
     n_samples: int = 10000,
     n_formats_per_question: int = 2,
+    unique_cots: bool = False,
     data_from: str = "gpt_35_turbo",
     unbiased: bool = False,
     filter_strategy: str = "correct",
@@ -59,7 +66,7 @@ def train_paraphrasing(
         val_sampler = NFormatsPerQuestionSampler(n_formats_per_question=2)
         formatter_options = FormatterOptions.gs_unbiased
     else:
-        sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question)
+        sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question, use_unique_cots=unique_cots)
         formatter_options = FormatterOptions.ask_paraphrased
         val_sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question)
 
@@ -67,21 +74,34 @@ def train_paraphrasing(
     data_from_options = DataFromOptions[data_from]
     model_output_verified = ModelOutputVerified[filter_strategy]
 
-    model = fine_tune_with_bias_augmentation(
-        model="gpt-3.5-turbo",
-        n_epochs=1,
-        n_samples=n_samples,
-        post_hoc=False,
-        cot_percentage=0.50,
-        project_name="consistency-training",
-        formatter_options=formatter_options,
-        sampler=sampler,
-        # Sir Ed, pls fix this
-        val_sampler=val_sampler,  # type: ignore
-        permute_verbalize_instructions=False,
-        data_from_options=data_from_options,
-        model_output_verified=model_output_verified,
-    )
+    # create hash of all the things sent to this function
+    job_hash_str = f"{n_samples}_{n_formats_per_question}_{unique_cots}_{data_from}_{unbiased}_{filter_strategy}"
+    file_name = f"experiments/finetune_3_streaming_cc/{job_hash_str}_model_name.text"
+    # if file exists and has a model name, load it
+    if os.path.exists(file_name):
+        with open(file_name, "r") as f:
+            model = f.read().strip()
+            print("loading model", model)
+    else:
+        model = fine_tune_with_bias_augmentation(
+            model="gpt-3.5-turbo-0613",
+            n_epochs=1,
+            n_samples=n_samples,
+            post_hoc=False,
+            cot_percentage=0.50,
+            project_name="consistency-training",
+            formatter_options=formatter_options,
+            sampler=sampler,
+            val_sampler=val_sampler,
+            permute_verbalize_instructions=False,
+            data_from_options=data_from_options,
+            model_output_verified=model_output_verified,
+            ask_to_validate_training=False,
+        )
+        with open(file_name, "w") as f:
+            f.write(model)
+
+    # write the model to a file with the hash name
     run_all_evals(model)
 
 
@@ -117,7 +137,7 @@ def train_bias(
         sampler=sampler,
     )
     if not skip_evaluation:
-        run_all_evals(model)
+        run_all_evals(model, example_cap=200)
 
 
 if __name__ == "__main__":

@@ -15,7 +15,6 @@ from cot_transparency.json_utils.read_write import (
     write_jsonl_file_from_basemodel,
 )
 
-
 def add_point_at_1(df: pd.DataFrame, baseline_model: str = "gpt-3.5-turbo"):
     unique_trained_on = df["Trained on COTS from"].unique()
     baseline = df[df.model == baseline_model]

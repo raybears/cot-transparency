@@ -46,6 +46,9 @@ from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     GoldStandardNoCotFormatter,
     GoldStandardWithCotFormatter,
+    GoldStandardWithCotFormatter2,
+    GoldStandardWithCotFormatter3,
+    GoldStandardWithCotFormatter4,
 )
 from cot_transparency.formatters.prompt_sensitivity.interventions import (
     AddBestAnswerIsNonCot,
@@ -188,6 +191,9 @@ class DataFromOptions(str, Enum):
     claude_2 = "claude-2"
     # gold standard formatter, doesn't specify  that the model should answer with "The best answer is: "
     gpt_35_turbo_gs = "gpt-3.5-turbo-gs"
+    gpt_35_turbo_gs2 = "gpt-3.5-turbo-gs2"
+    gpt_35_turbo_gs3 = "gpt-3.5-turbo-gs3"
+    gpt_35_turbo_gs4 = "gpt-3.5-turbo-gs4"
 
 
 class FormatterOptions(str, Enum):
@@ -315,6 +321,10 @@ class FormatSampler(ABC):
     def __repr__(self) -> str:
         raise NotImplementedError
 
+    @abstractmethod
+    def for_legend(self) -> str:
+        raise NotImplementedError
+
 
 class NFormatsPerQuestionSampler(FormatSampler):
     def __init__(self, n_formats_per_question: int):
@@ -359,6 +369,9 @@ class NFormatsPerQuestionSampler(FormatSampler):
     def __repr__(self) -> str:
         return f"NFormatsPerQuestionSampler(n_formats_per_question={self.n_formats_per_question})"
 
+    def for_legend(self) -> str:
+        return f"n_formats={self.n_formats_per_question}"
+
 
 class RandomSampler(FormatSampler):
     def sample(
@@ -385,22 +398,27 @@ class RandomSampler(FormatSampler):
     def __repr__(self) -> str:
         return "RandomSampler()"
 
+    def for_legend(self) -> str:
+        return "Random Sampling"
+
 
 class ParaphrasingSampler(FormatSampler):
     """
     This is a sort of dummy sampler so that we can get the paraphrased questions
     """
 
-    def __init__(self, n_formats_per_question: int):
+    def __init__(self, n_formats_per_question: int, use_unique_cots: bool = False):
         # load the paraphrasings
         paraphrasings = read_jsonl_file_into_basemodel(
             Path("data/training_paraphrasings/gpt4_paraphrasings.jsonl"), ParaphrasingOutput
         )
+
         self.mapping: dict[str, ParaphrasingOutput] = {}
         for paraphrasing in paraphrasings:
             key = self._get_key(paraphrasing)
             self.mapping[key] = paraphrasing
         self.n_formats_per_question = n_formats_per_question
+        self.use_unique_cots = use_unique_cots
 
     def _get_key(self, task: BaseTaskOutput) -> str:
         return (
@@ -417,14 +435,25 @@ class ParaphrasingSampler(FormatSampler):
     ) -> Slist[BaseTaskOutput]:
         tasks = Slist(tasks)
 
+        group = tasks.group_by(lambda x: x.get_task_spec().get_task_hash())
+        if self.use_unique_cots:
+            assert group.all(lambda x: len(x.values) >= self.use_unique_cots)
+
         ret = Slist()
-        for task in tasks:
-            key = self._get_key(task)
+        for task_group in group:
+            if self.use_unique_cots:
+                tasks = task_group.values.take(self.n_formats_per_question)
+            else:
+                tasks = task_group.values.take(1).repeat_until_size_or_raise(self.n_formats_per_question)
+            key = self._get_key(tasks[0])
+            # if not tasks[0].get_task_spec().formatter_name == GoldStandardNoCotFormatter.name():
+            #     breakpoint()
             paraphrasing = self.mapping[key]
             paraphrased_questions = Slist(paraphrasing.paraphrased_questions)
-            to_use = paraphrased_questions.shuffle(seed=task.uid()).take(self.n_formats_per_question)
-            for paraphrased_question in to_use:
-                first_message = ChatMessage(content=paraphrased_question.paraphrased, role=MessageRole.user)
+            to_use = paraphrased_questions.shuffle(seed=key).take(self.n_formats_per_question)
+
+            for task, paraphrased in zip(tasks, to_use):
+                first_message = ChatMessage(content=paraphrased.paraphrased, role=MessageRole.user)
                 new_messages = list(task.get_task_spec().messages)
                 new_messages[0] = first_message
                 # if new_messages[-1].content == "The best answer is: (":
@@ -443,7 +472,13 @@ class ParaphrasingSampler(FormatSampler):
         return ret
 
     def __repr__(self) -> str:
-        return f"ParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
+        if not self.use_unique_cots:
+            return f"ParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
+        else:
+            return f"ParaphrasingSampler(n_formats_per_question={self.n_formats_per_question}, use_unique_cots={self.use_unique_cots})"
+
+    def for_legend(self) -> str:
+        return f"n_formats={self.n_formats_per_question}"
 
 
 def fine_tune_with_bias_augmentation(
@@ -465,6 +500,7 @@ def fine_tune_with_bias_augmentation(
     ask_to_validate_training: bool = True,
     # For now we recommend using NFormatsPerQuestionSampler=2, rather than RandomSampler
     sampler: FormatSampler = NFormatsPerQuestionSampler(n_formats_per_question=2),
+    val_sampler: FormatSampler = NFormatsPerQuestionSampler(n_formats_per_question=2),
     prepend_notes: str = "",
     # If true, we permute the verbalize instructions to have multiple variations
     permute_verbalize_instructions: bool = True,
@@ -491,8 +527,17 @@ def fine_tune_with_bias_augmentation(
             non_cot_data = get_training_non_cots_claude_2(model_output_verified)
             cot_data = get_training_cots_claude_2(model_output_verified)
         case DataFromOptions.gpt_35_turbo_gs:
-            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified)
-            cot_data = get_training_cots_gpt_35_gs(model_output_verified)
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter)
+        case DataFromOptions.gpt_35_turbo_gs2:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter2)
+        case DataFromOptions.gpt_35_turbo_gs3:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter3)
+        case DataFromOptions.gpt_35_turbo_gs4:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter4)
 
     non_cot_data_shuffled = Slist(non_cot_data).shuffle(seed="42")
     # use a different seed for cots and non cots in case the data is in the same order
@@ -537,7 +582,7 @@ def fine_tune_with_bias_augmentation(
         non_cot_data_val,
         eligible_non_cot_formatters,
         n_non_cot_val_samples,
-        sampler,
+        val_sampler,
         permute_verbalize_instructions,
     )
     print(f"Number of validation non cots after limiting: {len(non_cot_val_samples)}")
@@ -565,7 +610,7 @@ def fine_tune_with_bias_augmentation(
         cot_data_val,
         eligible_cot_formatters,
         n_cot_val_samples,
-        sampler,
+        val_sampler,
         post_hoc,
         permute_verbalize_instructions,
     )

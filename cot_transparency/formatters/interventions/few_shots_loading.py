@@ -3,6 +3,7 @@ from collections.abc import Callable, Sequence
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
+from typing import Type
 
 from slist import Slist
 
@@ -17,6 +18,11 @@ from cot_transparency.data_models.messages import (
     StrictChatMessage,
 )
 from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    GoldStandardNoCotFormatter,
+    GoldStandardWithCotFormatter,
+)
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.streaming.tasks import StreamingTaskOutput
 
@@ -122,11 +128,12 @@ def get_training_non_cots_gpt_35(
 
 def get_training_cots_gpt_35_gs(
     kind: ModelOutputVerified = ModelOutputVerified.unfiltered,
+    formatter: Type[StageOneFormatter] = GoldStandardWithCotFormatter,
 ) -> Sequence[StreamingTaskOutput]:
     match kind:
         case ModelOutputVerified.unfiltered:
             json_tasks = read_jsonl_file_into_basemodel(
-                Path("data/training_cots/gpt35_gold_standard_cots.jsonl"), StreamingTaskOutput
+                Path(f"data/training_cots/{formatter.name()}.jsonl"), StreamingTaskOutput
             )
         # anything else is not supported
         case _:
@@ -137,11 +144,12 @@ def get_training_cots_gpt_35_gs(
 
 def get_training_non_cots_gpt_35_gs(
     kind: ModelOutputVerified = ModelOutputVerified.unfiltered,
+    formatter: Type[StageOneFormatter] = GoldStandardNoCotFormatter,
 ) -> Sequence[StreamingTaskOutput]:
     match kind:
         case ModelOutputVerified.unfiltered:
             json_tasks = read_jsonl_file_into_basemodel(
-                Path("data/training_non_cots/gpt35_gold_standard_cots.jsonl"), StreamingTaskOutput
+                Path(f"data/training_cots/{formatter.name()}.jsonl"), StreamingTaskOutput
             )
         # anything else is not supported
         case _:

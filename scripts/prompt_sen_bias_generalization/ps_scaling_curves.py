@@ -28,6 +28,9 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
     GenerateParaphrasingsNoCotFormatters,
     GoldStandardNoCotFormatter,
     GoldStandardWithCotFormatter,
+    GoldStandardWithCotFormatter2,
+    GoldStandardWithCotFormatter3,
+    GoldStandardWithCotFormatter4,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.streaming.tasks import StreamingTaskOutput
@@ -149,7 +152,15 @@ def make_training_data(
         GenerateParaphrasingsFormatters,
         GenerateParaphrasingsNoCotFormatters,
     ],
+    gold_standard_formatters: Sequence[Type[StageOneFormatter]] = [
+        GoldStandardWithCotFormatter,
+        GoldStandardNoCotFormatter,
+        GoldStandardWithCotFormatter2,
+        GoldStandardWithCotFormatter3,
+        GoldStandardWithCotFormatter4,
+    ],
     batch_size=50,
+    num_completions_per_prompt: int = 1,
 ):
     # This generates the different paraphrasings of the questions
     results_path = asyncio.run(
@@ -162,7 +173,7 @@ def make_training_data(
             paraphrasing_formatters=paraphrasing_formatters,
         )
     )
-    paraphrased_questions = read_jsonl_file_into_basemodel(results_path, ParaphrasingOutput)
+    paraphrased_questions = load_per_model_results(results_path, ParaphrasingOutput)
     write_jsonl_file_from_basemodel(Path("data/training_paraphrasings/gpt4_paraphrasings.jsonl"), paraphrased_questions)
 
     # but we also want to generate the gold standard completions that we will use to train the model
@@ -173,6 +184,7 @@ def make_training_data(
         example_cap: int,
         tasks: Sequence[str],
         batch_size: int,
+        num_completions_per_prompt: int = 1,
     ):
         model_caller = UniversalCaller().with_file_cache(
             f"{exp_dir}/cache/cot_generation_cache.jsonl", write_every_n=20
@@ -183,14 +195,19 @@ def make_training_data(
             .map(
                 lambda x: data_to_task_spec(
                     *x,
-                    formatters=[GoldStandardWithCotFormatter, GoldStandardNoCotFormatter],
-                    models=[config_from_default(model="gpt-3.5-turbo", max_tokens=3000)],
+                    formatters=gold_standard_formatters,
+                    models=[config_from_default(model="gpt-3.5-turbo", max_tokens=3000, n=num_completions_per_prompt)],
                 )
             )
             .flatten_iterable()
             .map_blocking_par(lambda x: call_model_with_task_spec(x, model_caller), max_par=batch_size)
             .flatten_iterable()
-            .tqdm(tqdm_bar=tqdm(total=len(data_examples) * 2, desc="Generating Gold Standard Completions"))
+            .tqdm(
+                tqdm_bar=tqdm(
+                    total=len(data_examples) * len(gold_standard_formatters),
+                    desc="Generating Gold Standard Completions",
+                )
+            )
         )
 
         results_path = Path(f"{exp_dir}/gold_standard_completions.jsonl")
@@ -200,10 +217,10 @@ def make_training_data(
         await pipeline.to_file(results_path, mode="a", serialize=lambda x: x.model_dump_json())
 
         outputs = read_jsonl_file_into_basemodel(results_path, StreamingTaskOutput)
-        cots = outputs.filter(lambda x: x.task_spec.formatter_name == GoldStandardWithCotFormatter.name())
-        write_jsonl_file_from_basemodel(Path("data/training_cots/gpt35_gold_standard_cots.jsonl"), cots)
-        non_cots = outputs.filter(lambda x: x.task_spec.formatter_name == GoldStandardNoCotFormatter.name())
-        write_jsonl_file_from_basemodel(Path("data/training_non_cots/gpt35_gold_standard_cots.jsonl"), non_cots)
+
+        # Save the outputs to different files based on the formatter
+        groupby = outputs.group_by(lambda x: x.task_spec.formatter_name)
+        groupby.for_each(lambda x: write_jsonl_file_from_basemodel(Path(f"data/training_cots/{x.key}.jsonl"), x.values))
 
     asyncio.run(
         get_gold_standard_cots(
@@ -211,6 +228,7 @@ def make_training_data(
             example_cap=example_cap,
             tasks=tasks,
             batch_size=batch_size,
+            num_completions_per_prompt=num_completions_per_prompt,
         )
     )
 

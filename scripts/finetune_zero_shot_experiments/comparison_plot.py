@@ -46,9 +46,7 @@ class ModelTrainMeta:
     data_from: DataFromOptions = DataFromOptions.gpt_35_turbo
 
     def for_legend(self) -> str:
-        return (
-            f"{self.train_formatters.value}, {self.filter_strategy.value}, {self.sampling_strategy}, {self.data_from}"
-        )
+        return f"{self.train_formatters.value}, {self.filter_strategy.value}, {self.sampling_strategy.for_legend()}, {self.data_from.value}"
 
 
 @dataclass(frozen=True)

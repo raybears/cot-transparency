@@ -133,6 +133,93 @@ class GoldStandardWithCotFormatter(StageOneFormatter):
         return extract_answer(response, question)
 
 
+class GoldStandardWithCotFormatter2(StageOneFormatter):
+    """
+    The base formatter that will be used to create the ground truth for consistency training
+    """
+
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = "Please answer the following question accuratley:\n" + question._get_question()
+        formatted_options = "\n\nChoose from the following options:\n" + question._get_options_with_indicator(
+            question.get_options()
+        )
+        x = "\n\nPlease verbalize how you are thinking about the problem, giving your reasoning clearly laid as a sequence of steps and then choose the best answer from the options given."  # noqa: E501
+
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options + x),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        """
+        Don't strictly need to parse the answer here as we only care about the CoTs
+        """
+        return extract_answer(response, question)
+
+
+class GoldStandardWithCotFormatter3(StageOneFormatter):
+    """
+    The base formatter that will be used to create the ground truth for consistency training
+    """
+
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = "Please answer the following question accuratley:\n" + question._get_question()
+        formatted_options = "\n\nChoose from the following options:\n" + question._get_options_with_indicator(
+            question.get_options()
+        )
+        x = "\n\nPlease verbalize how you are thinking about the problem, giving your reasoning as bullet points and then choose the best answer from the options given. After your reasoning you should give your answer in xml tags e.g: <answer>X</answer> where X denotes your choice from the options given."  # noqa: E501
+
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options + x),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        """
+        Don't strictly need to parse the answer here as we only care about the CoTs
+        """
+        return extract_answer(response, question)
+
+
+class GoldStandardWithCotFormatter4(StageOneFormatter):
+    """
+    The base formatter that will be used to create the ground truth for consistency training
+    """
+
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = "Please answer the following question accuratley:\n" + question._get_question()
+        formatted_options = "\n\nChoose from the following options:\n" + question._get_options_with_indicator(
+            question.get_options(include_none_of_the_above=True)
+        )
+        x = "\n\nPlease verbalize how you are thinking about the problem, giving your reasoning as bullet points and then choose the best answer from the options given. After your reasoning you should give your answer in xml tags e.g: <answer>X</answer> where X denotes your choice from the options given."  # noqa: E501
+
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question + formatted_options + x),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        """
+        Don't strictly need to parse the answer here as we only care about the CoTs
+        """
+        return extract_answer(response, question)
+
+
 class GoldStandardNoCotFormatter(StageOneFormatter):
     """
     The base formatter that will be used to create the ground truth for consistency training
