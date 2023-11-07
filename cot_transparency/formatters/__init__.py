@@ -2,6 +2,7 @@ from cot_transparency.formatters.base_class import PromptFormatter, StageOneForm
 from cot_transparency.formatters.core.answer_always_a import (
     AnswerAlwaysAFormatter,
     AnswerAlwaysANoCOTFormatter,
+    AnswerAlwaysAFormatterDifferentPrompts,
 )
 from cot_transparency.formatters.core.no_latex import (
     ZeroShotCOTUnbiasedNoLatexFormatter,
@@ -225,6 +226,7 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         ZeroShotUnbiasedNoLatexFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         AnswerAlwaysAFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         AnswerAlwaysANoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
+        AnswerAlwaysAFormatterDifferentPrompts.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
 
     for formatter in no_cot_sensitivity_formatters:
