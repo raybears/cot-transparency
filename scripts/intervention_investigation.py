@@ -102,6 +102,7 @@ def bar_plot(
     max_y: Optional[float] = None,
     name_override: Mapping[str, str] = {},
     add_n_to_name: bool = False,
+    show_x_axis_labels: bool = True,
 ):
     fig = go.Figure()
 
@@ -149,6 +150,9 @@ def bar_plot(
                 showlegend=True,
             ),
         )
+
+    if not show_x_axis_labels:
+        fig.update_xaxes(showticklabels=False)
 
     if save_file_path is not None:
         pio.write_image(fig, save_file_path + ".png", scale=2)

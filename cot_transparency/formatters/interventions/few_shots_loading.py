@@ -36,6 +36,35 @@ def get_correct_cots_aqua() -> Slist[TaskOutput]:
     return only_correct_cots
 
 
+@lru_cache
+def get_correct_cots_mmlu() -> Slist[TaskOutput]:
+    """
+    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_mmlu.py
+    Note that this was generated with the mmlu dataset
+    You need to filter out mmlu questions to make sure they don't overlap!
+    """
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt_4_mmlu.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
+
+@lru_cache
+def get_correct_cots_inverse_scaling() -> Slist[TaskOutput]:
+    """
+    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_inverse_scaling.py
+    Note that this was generated with the inverse scaling dataset
+    You need to filter out inverse scaling questions to make sure they don't overlap!
+    """
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt_4_inverse_scaling.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
+
+
 # Data previously generated with cot-transparency/scripts/dump_correct_cot_data.py
 # small brain cache to load only when needed
 @lru_cache

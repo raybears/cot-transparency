@@ -197,6 +197,10 @@ class TaskOutput(BaseTaskOutput):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0
 
+
+    def data_example_hash(self)-> str:
+        return self.task_spec.get_data_example_obj().hash()
+
     def copy_update(
         self,
         *,

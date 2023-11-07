@@ -4,8 +4,9 @@ from pathlib import Path
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
+from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -34,20 +35,25 @@ async def plot_accuracies():
     #     ]
     # )
 
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Ho5AmzO": "Trained with unbiased contexts (control)\n50% COT, 1k samples\n+100% instruct",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8Ho0yXlM": "Trained with biased contexts (ours)\n50% COT, 1k samples\n+100% instruct",
+
     models = [
         "gpt-3.5-turbo-0613",
-        # "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D",
-        # "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",
+        "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D",
+        "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",
+        # "ft:gpt-3.5-turbo-0613:far-ai::8Ho5AmzO",
+        # "ft:gpt-3.5-turbo-0613:far-ai::8Ho0yXlM"
     ]
     stage_one_path = Path("experiments/few_shot_tax/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=20)
     stage_one_obs = stage_one_stream(
-        formatters=[ZeroShotCOTUnbiasedFormatter.name()],
-        tasks=["aqua_train"],
-        example_cap=400,
+        formatters=[ZeroShotUnbiasedFormatter.name()],
+        tasks=[InverseScalingTask.into_the_unknown],
+        example_cap=2000,
         num_tries=1,
         raise_after_retries=False,
-        # interventions=[NaiveFewShot6Aqua.name()],
+        # interventions=[NaiveFewShot3InverseScaling.name()],
         temperature=0.0,
         caller=stage_one_caller,
         batch=40,
@@ -57,7 +63,7 @@ async def plot_accuracies():
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
-    plot_formatter = ZeroShotCOTUnbiasedFormatter
+    plot_formatter = ZeroShotUnbiasedFormatter
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
@@ -79,10 +85,12 @@ async def plot_accuracies():
 
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy on aqua<br>No biases in the prompt<br>{prompt_type_str}",
+        title=f"Accuracy on Into the Unknown task<br>Zeroshot<br>{prompt_type_str}",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=PERCENTAGE_CHANGE_NAME_MAP,
+        max_y=1.0,
+        show_x_axis_labels=False
     )
 
 
