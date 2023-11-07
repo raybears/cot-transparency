@@ -16,6 +16,7 @@ from cot_transparency.apis.openai.finetune import (
     FinetuneSample,
     run_finetune_with_wandb,
 )
+from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import BaseTaskOutput
@@ -446,7 +447,9 @@ class ParaphrasingSampler(FormatSampler):
 
 
 def fine_tune_with_bias_augmentation(
-    n_epochs: int,
+    # TODO: deprecate
+    n_epochs: int | Unset = _UNSET,
+    hyperparams: FineTuneHyperParams = FineTuneHyperParams(n_epochs=1),
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
     model_output_verified: ModelOutputVerified = ModelOutputVerified.correct,
     exclude_formatters: Sequence[type[StageOneFormatter]] = [],
@@ -580,7 +583,10 @@ def fine_tune_with_bias_augmentation(
     samples = (total_task_samples + alpaca_samples).shuffle("42")
     val_samples = (non_cot_val_samples + cot_val_samples + alpaca_val_samples).shuffle("42")
 
-    params = FineTuneParams(model=model, hyperparameters=FineTuneHyperParams(n_epochs=n_epochs))
+    if n_epochs is not _UNSET:
+        print("WARNING: n_epochs is deprecated, use hyperparams instead, setting n_epochs to hyperparams.n_epochs")
+        hyperparams = hyperparams.model_copy(deep=True, update={"n_epochs": n_epochs})
+    params = FineTuneParams(model=model, hyperparameters=hyperparams)
     control_only_unbiased = formatter_options == FormatterOptions.control_only_unbiased
 
     more_config = {

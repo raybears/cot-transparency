@@ -33,9 +33,13 @@ set_keys_from_env()
 
 class FineTuneHyperParams(BaseModel):
     n_epochs: int = 1
-    # todo: the new api doesn't have these params???
-    # batch_size: int = 1
-    # learning_rate_multiplier: float = 1.0
+    # Setting to None means we use the default batch size, which is decided by OpenAI
+    batch_size: Optional[int] = None
+    # Setting to None means we use the default learning rate, which is decided by OpenAI
+    # By default, the learning rate multiplier is the 0.05, 0.1, or 0.2 depending on
+    # final batch_size (larger learning rates tend to perform better with larger
+    # batch sizes). We recommend experimenting with values in the range 0.02 to 0.2 to
+    learning_rate_multiplier: Optional[float] = None
 
 
 class FineTuneParams(BaseModel):

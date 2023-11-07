@@ -2,6 +2,7 @@ import asyncio
 
 from pydantic import BaseModel
 
+from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
@@ -23,7 +24,7 @@ class SweepOptions(BaseModel):
 async def train_and_run(sweep: SweepOptions) -> None:
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
-        n_epochs=1,
+        hyperparams=FineTuneHyperParams(batch_size=1, n_epochs=1, learning_rate_multiplier=0.02),
         n_samples=sweep.n_samples,
         post_hoc=False,
         cot_percentage=0.5,
@@ -40,7 +41,7 @@ async def train_and_run(sweep: SweepOptions) -> None:
 
 
 async def main():
-    option = SweepOptions(n_samples=1000, instruct_sample_proportion=0.1)
+    option = SweepOptions(n_samples=100, instruct_sample_proportion=0.1)
     await train_and_run(option)
 
 
