@@ -102,7 +102,7 @@ class OpenAIChatCaller(ModelCaller):
                 organization=organization,
             )
 
-        elif model_name == "gpt-4" or model_name == "gpt-4-32k":
+        elif "gpt-4" in model_name:
             response = gpt4_rate_limited(
                 config=config,
                 messages=prompt,

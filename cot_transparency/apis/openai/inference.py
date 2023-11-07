@@ -262,7 +262,7 @@ def gpt4_rate_limited(
     messages: list[StrictChatMessage],
     organization: Optional[str] = None,
 ) -> GPTFullResponse:
-    assert config.model == "gpt-4"
+    assert "gpt-4" in config.model
     response_dict = __get_chat_response_dict(
         config=config,
         prompt=messages,

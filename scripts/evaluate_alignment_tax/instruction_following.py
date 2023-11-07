@@ -59,7 +59,7 @@ def generate_comparison(
     )
 
 
-def alpaca_sample_to_prompt(sample: FinetuneSample) -> Prompt:
+def finetune_sample_to_prompt(sample: FinetuneSample) -> Prompt:
     messages = [m.to_chat_message() for m in sample.messages]
     # the last message is the one we want to predict
     messages_without_last = messages[:-1]
@@ -71,12 +71,12 @@ class PromptWithModel(BaseModel):
     config: OpenaiInferenceConfig
 
 
-def alpaca_sample_to_prompts(
+def finetune_sample_to_prompts(
     sample: FinetuneSample, intervention_models: list[OpenaiInferenceConfig]
 ) -> list[PromptWithModel]:
     out = []
     for config in intervention_models:
-        out.append(PromptWithModel(prompt=alpaca_sample_to_prompt(sample=sample), config=config))
+        out.append(PromptWithModel(prompt=finetune_sample_to_prompt(sample=sample), config=config))
     return out
 
 
@@ -148,7 +148,7 @@ def get_judge_output(comparison: ComparisonGeneration, judge: ModelCaller) -> Co
 
 def eval_judged(judged: Sequence[ComparisonGenerationJudged]) -> None:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 100
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 200
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
@@ -178,7 +178,7 @@ class WinrateMetrics(BaseModel):
 
 def get_win_rate(judged: Sequence[ComparisonGenerationJudged]) -> WinrateMetrics:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 9999999
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 300
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
@@ -268,20 +268,20 @@ async def eval_instruction_following(intervention_models: list[str]):
 
     intervention_caller = UniversalCaller().with_file_cache(
         cache_path=Path("experiments/alignment_tax/intervention_completion.jsonl"),
-        write_every_n=10,
+        write_every_n=100,
     )
     vanilla_caller = OpenAIChatCaller().with_file_cache(
-        Path("experiments/alignment_tax/vanilla_completion.jsonl"), write_every_n=10
+        Path("experiments/alignment_tax/vanilla_completion.jsonl"), write_every_n=100
     )
-    judge_model = OpenAIChatCaller().with_file_cache(Path("experiments/alignment_tax/judge.jsonl"), write_every_n=10)
-    vanilla_config = OpenaiInferenceConfig(model="gpt-3.5-turbo", max_tokens=1000, temperature=0.0, top_p=1.0)
+    judge_model = OpenAIChatCaller().with_file_cache(Path("experiments/alignment_tax/judge.jsonl"), write_every_n=100)
+    vanilla_config = OpenaiInferenceConfig(model="gpt-3.5-turbo-0613", max_tokens=1000, temperature=0.0, top_p=1.0)
     intervention_configs = [
         OpenaiInferenceConfig(model=intervention_model, max_tokens=1000, temperature=0.0, top_p=1.0)
         for intervention_model in intervention_models
     ]
 
     prompts: Slist[PromptWithModel] = samples.map(
-        lambda sample: alpaca_sample_to_prompts(sample, intervention_configs)
+        lambda sample: finetune_sample_to_prompts(sample, intervention_configs)
     ).flatten_list()
     pipeline = (
         Observable.from_iterable(prompts)
@@ -330,9 +330,14 @@ if __name__ == "__main__":
     asyncio.run(
         eval_instruction_following(
             intervention_models=[
+                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDHHr8G",
+                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg"
+                # start reproduce
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq", # 0.1x instruct
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDHHr8G", # NEW 0.1 instruct
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg", # 1x instruct
+                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDj43XK", # NEW 1X instruct
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDxzKfb",
                 "gpt-4",
                 "claude-instant-1.2",
