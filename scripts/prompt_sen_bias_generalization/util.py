@@ -1,18 +1,19 @@
-from pathlib import Path
-from typing import Sequence, Type
-import openai
-from dotenv import load_dotenv
 import os
 import random
+from pathlib import Path
+from typing import Sequence, Type
+
+import openai
 import pandas as pd
+from dotenv import load_dotenv
+from slist import Slist
+
 from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.json_utils.read_write import (
     GenericBaseModel,
     read_jsonl_file_into_basemodel,
     write_jsonl_file_from_basemodel,
 )
-from slist import Slist
-
 
 
 def add_point_at_1(df: pd.DataFrame, baseline_model: str = "gpt-3.5-turbo"):

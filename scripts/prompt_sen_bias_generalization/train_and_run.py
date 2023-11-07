@@ -1,5 +1,8 @@
+import asyncio
 from typing import Sequence
+
 import fire
+
 from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from scripts.finetune_cot import (
@@ -12,10 +15,6 @@ from scripts.finetune_cot import (
 from scripts.prompt_sen_bias_generalization.bias_scaling_curves import run_bias_eval
 from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, Sweeps
 from scripts.prompt_sen_bias_generalization.ps_scaling_curves import run_pipeline as run_paraphrasing_eval
-
-
-import asyncio
-
 from scripts.prompt_sen_bias_generalization.util import set_openai_org_rand
 
 set_openai_org_rand()
@@ -77,7 +76,8 @@ def train_paraphrasing(
         project_name="consistency-training",
         formatter_options=formatter_options,
         sampler=sampler,
-        val_sampler=val_sampler,
+        # Sir Ed, pls fix this
+        val_sampler=val_sampler,  # type: ignore
         permute_verbalize_instructions=False,
         data_from_options=data_from_options,
         model_output_verified=model_output_verified,
