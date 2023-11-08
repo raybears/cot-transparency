@@ -44,7 +44,29 @@ class AssistantThinksRepeatMistakeFormatter(StageOneFormatter):
             ChatMessage(role=MessageRole.user, content=user_message),
             ChatMessage(
                 role=MessageRole.assistant,
-                content="I need to keep in mind that I need to repeat the question, even if it has a mistake in it. "
+                content="I need to keep in mind that I need to repeat the input, even if it has a mistake in it. "
+                + COT_ASSISTANT_PROMPT,
+            ),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
+class AssistantThinksRepeatMistake2Formatter(StageOneFormatter):
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        user_message = add_verbalize_instruction_to_question(question.get_parsed_input())
+        output = [
+            ChatMessage(role=MessageRole.user, content=user_message),
+            ChatMessage(
+                role=MessageRole.assistant,
+                content="Alright, the instructions say that I need to repeat the input. I guess I'll do that, although there is a mistake in it. I will not correct the mistake. "
                 + COT_ASSISTANT_PROMPT,
             ),
         ]

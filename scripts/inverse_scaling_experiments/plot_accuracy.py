@@ -6,7 +6,9 @@ from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.inverse_scaling.repeat_mistakes import AssistantThinksRepeatMistakeFormatter
+from cot_transparency.formatters.inverse_scaling.repeat_mistakes import (
+    AssistantThinksRepeatMistake2Formatter,
+)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -20,8 +22,8 @@ async def plot_accuracies():
         "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D",  # 1k correct (control)
         "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",  # 1k correct (ours)
         # "ft:gpt-3.5-turbo-0613:far-ai::8HoBQfFE", # 100% instruct 500 (ours)
-        "ft:gpt-3.5-turbo-0613:far-ai::8Ho5AmzO",  # 100% instruct 1000, control
-        "ft:gpt-3.5-turbo-0613:far-ai::8Ho0yXlM",  # 100% instruct 1000 (ours)
+        # "ft:gpt-3.5-turbo-0613:far-ai::8Ho5AmzO",  # 100% instruct 1000, control
+        # "ft:gpt-3.5-turbo-0613:far-ai::8Ho0yXlM",  # 100% instruct 1000 (ours)
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z"
     ]
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
@@ -29,10 +31,11 @@ async def plot_accuracies():
     task = InverseScalingTask.resisting_correction
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
+
     stage_one_obs = stage_one_stream(
-        formatters=[AssistantThinksRepeatMistakeFormatter.name()],
+        formatters=[AssistantThinksRepeatMistake2Formatter.name()],
         tasks=[task],
-        example_cap=2000,
+        example_cap=1000,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -46,7 +49,7 @@ async def plot_accuracies():
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
-    plot_formatter = AssistantThinksRepeatMistakeFormatter
+    plot_formatter = AssistantThinksRepeatMistake2Formatter
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
@@ -72,6 +75,7 @@ async def plot_accuracies():
         y_axis_title="Accuracy",
         name_override=name_override_plotly,
         add_n_to_name=True,
+        max_y=1.0,
     )
 
 
