@@ -54,7 +54,7 @@ PARAPHRASING_2 = [
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HM5LSlU",
-        trained_samples=48000,
+        trained_samples=10000,
         filter_strategy=FilterStrategy.no_filter,
         train_formatters=FormatterOptions.ask_paraphrased,
         sampling_strategy=NFormatsPerQuestionSampler(2),
