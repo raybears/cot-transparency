@@ -219,8 +219,8 @@ def plot(
     df = add_point_at_1(df, "gpt-3.5-turbo")
 
     # drop any sets of "Trained on COTS from" that only have samples at 1
-    df = df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)
-    df["Accuracy"] = df["is_correct"]
+    df = df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)  # type: ignore
+    df["Accuracy"] = df["is_correct"]  # type: ignore
 
     for bias_type in df.bias_type.unique():
         df_p = df[df.bias_type == bias_type]

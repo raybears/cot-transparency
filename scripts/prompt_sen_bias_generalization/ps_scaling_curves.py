@@ -358,7 +358,7 @@ def plot_scaling_curves(
     df = add_point_at_1(df, "gpt-3.5-turbo")
 
     # drop any sets of "Trained on COTS from" that only have samples at 1
-    df = df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)  # type: ignore
+    df: pd.DataFrame = df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)  # type: ignore
 
     lineplot_util(df, title="Entropy across paraphrased questions")
 
