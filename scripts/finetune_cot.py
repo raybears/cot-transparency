@@ -17,6 +17,7 @@ from cot_transparency.apis.openai.finetune import (
     run_finetune_with_wandb,
 )
 from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
+from cot_transparency.data_models.data.gpt_35_instructions import get_all_alpaca_training_gpt_35
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import BaseTaskOutput
@@ -446,6 +447,13 @@ class ParaphrasingSampler(FormatSampler):
         return f"ParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
 
 
+class InstructSource(str, Enum):
+    # Completions from the alpaca dataset
+    alpaca_original = "alpaca_original"
+    # Completions from the alpaca dataset, but with gpt-3.5-turbo-0613 completions
+    alpaca_gpt_35 = "alpaca_gpt_35"
+
+
 def fine_tune_with_bias_augmentation(
     # TODO: deprecate
     n_epochs: int | Unset = _UNSET,
@@ -473,6 +481,8 @@ def fine_tune_with_bias_augmentation(
     # change when we change the size of the training data
     no_overlap_cot_non_cot: bool = True,
     n_val_samples: int = 1000,
+    # Choose InstructSource.alpaca_gpt_35 if you want to use the gpt-3.5-turbo-0613 completions
+    instruct_source: InstructSource = InstructSource.alpaca_original,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -577,10 +587,18 @@ def fine_tune_with_bias_augmentation(
     total_task_samples = non_cot_samples + cot_samples
     val_instruct_samples = int(n_val_samples * instruct_sample_proportion)
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
-    alpaca_samples = get_alpaca_training(n_instruct_samples + val_instruct_samples)
-    alpaca_samples, alpaca_val_samples = alpaca_samples[:-val_instruct_samples], alpaca_samples[-val_instruct_samples:]
 
-    samples = (total_task_samples + alpaca_samples).shuffle("42")
+    match instruct_source:
+        case InstructSource.alpaca_original:
+            alpaca_samples = get_alpaca_training(n_instruct_samples + val_instruct_samples)
+        case InstructSource.alpaca_gpt_35:
+            alpaca_samples = get_all_alpaca_training_gpt_35(seed="42", limit=n_instruct_samples + val_instruct_samples)
+    alpaca_train_samples, alpaca_val_samples = (
+        alpaca_samples[:-val_instruct_samples],
+        alpaca_samples[-val_instruct_samples:],
+    )
+
+    samples = (total_task_samples + alpaca_train_samples).shuffle("42")
     val_samples = (non_cot_val_samples + cot_val_samples + alpaca_val_samples).shuffle("42")
 
     if n_epochs is not _UNSET:
