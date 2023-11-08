@@ -5,8 +5,9 @@ from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
 
 
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Type
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
+from cot_transparency.formatters.interventions.intervention import Intervention
 
 
 class GenerateParaphrasingsFormatters(StageOneFormatter):
