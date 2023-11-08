@@ -33,6 +33,28 @@ Please make sure to repeat the sentence, even if it has a mistake in it.
         return extract_answer(response, question, dump_failed=False)
 
 
+class AssistantThinksRepeatMistakeFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        user_message = add_verbalize_instruction_to_question(question.get_parsed_input())
+        output = [
+            ChatMessage(role=MessageRole.user, content=user_message),
+            ChatMessage(
+                role=MessageRole.assistant,
+                content="I need to keep in mind that I need to repeat the question, even if it has a mistake in it. "
+                + COT_ASSISTANT_PROMPT,
+            ),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
 class ZeroShotUnbiasedRepeatMistakesFormatter(StageOneFormatter):
     is_biased = False
     is_cot = False

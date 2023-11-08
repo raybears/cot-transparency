@@ -90,7 +90,7 @@ async def plot_accuracies():
         y_axis_title="Accuracy",
         name_override=PERCENTAGE_CHANGE_NAME_MAP,
         max_y=1.0,
-        show_x_axis_labels=False
+        show_x_axis_labels=False,
     )
 
 

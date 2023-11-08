@@ -252,6 +252,7 @@ class NaiveFewShot6InverseScaling(NaiveFewShot3InverseScaling):
     # Simply use unbiased few shot
     n_samples: int = 6
 
+
 class NaiveFewShot3Aqua(Intervention):
     # Simply use unbiased few shot
     n_samples: int = 3

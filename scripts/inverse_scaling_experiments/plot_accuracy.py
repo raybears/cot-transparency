@@ -6,7 +6,7 @@ from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.inverse_scaling.repeat_mistakes import ZeroShotCOTUnbiasedRepeatMistakesFormatter
+from cot_transparency.formatters.inverse_scaling.repeat_mistakes import AssistantThinksRepeatMistakeFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -30,9 +30,9 @@ async def plot_accuracies():
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     stage_one_obs = stage_one_stream(
-        formatters=[ZeroShotCOTUnbiasedRepeatMistakesFormatter.name()],
+        formatters=[AssistantThinksRepeatMistakeFormatter.name()],
         tasks=[task],
-        example_cap=1000,
+        example_cap=2000,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -46,7 +46,7 @@ async def plot_accuracies():
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
-    plot_formatter = ZeroShotCOTUnbiasedRepeatMistakesFormatter
+    plot_formatter = AssistantThinksRepeatMistakeFormatter
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(

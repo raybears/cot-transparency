@@ -44,7 +44,7 @@ async def train_and_run(sweep: SweepOptions) -> None:
 
 
 async def main():
-    option = SweepOptions(n_samples=1000, instruct_sample_proportion=1.0)
+    option = SweepOptions(n_samples=10_000, instruct_sample_proportion=1.0)
     await train_and_run(option)
 
 

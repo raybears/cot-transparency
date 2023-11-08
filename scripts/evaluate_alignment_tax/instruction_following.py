@@ -334,9 +334,9 @@ if __name__ == "__main__":
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg"
                 # start reproduce
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq", # 0.1x instruct
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDHHr8G", # NEW 0.1 instruct
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg", # 1x instruct
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq",  # 0.1x instruct
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDHHr8G",  # NEW 0.1 instruct
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg",  # 1x instruct
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDj43XK", # NEW 1X instruct
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDxzKfb",
                 "gpt-4",

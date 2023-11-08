@@ -50,6 +50,7 @@ def get_correct_cots_mmlu() -> Slist[TaskOutput]:
     only_correct_cots: Slist[TaskOutput] = jsons_tasks
     return only_correct_cots
 
+
 @lru_cache
 def get_correct_cots_inverse_scaling() -> Slist[TaskOutput]:
     """
