@@ -14,8 +14,10 @@ from tqdm import tqdm
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
+from cot_transparency.data_models.models import BaseTaskOutput
 
 from cot_transparency.data_models.pd_utils import (
+    BaseExtractor,
     BasicExtractor,
     BiasExtractor,
     convert_slist_to_df,
@@ -48,13 +50,13 @@ from scripts.training_formatters import TRAINING_COT_FORMATTERS
 TEST_FORMATTERS = [f for f in TRAINING_COT_FORMATTERS]
 
 
-def lineplot_util(df_p: pd.DataFrame, title: str):
+def lineplot_util(df_p: pd.DataFrame, title: str, y: str = "matches_bias"):
     chance_response = 1 / df_p.average_options.mean()
     _, ax = plt.subplots(figsize=(6, 6))
     ax = sns.lineplot(
         df_p,
         x="Samples",
-        y="matches_bias",
+        y=y,
         hue="Trained on COTS from",
         err_style="bars",
         ax=ax,
@@ -89,16 +91,27 @@ SWEEPS_DB = SweepDatabase()
 # SWEEPS_DB.add(Sweeps.paraphrasing_2)
 # SWEEPS_DB.add(Sweeps.zero_shot_2)
 # SWEEPS_DB.add(Sweeps.few_shot_2)
-# SWEEPS_DB.add(Sweeps.og_control)
+SWEEPS_DB.add(Sweeps.og_control)
 
 # SWEEPS_DB = SweepDatabase()
 # SWEEPS_DB.add(Sweeps.zero_shot)
 # SWEEPS_DB.add(Sweeps.few_shot)
+
+SWEEPS_DB.add(Sweeps.gpt)
 SWEEPS_DB.add(Sweeps.zero_shot_2)
 SWEEPS_DB.add(Sweeps.few_shot_2)
-SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
-SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
-SWEEPS_DB.add(Sweeps.prompt_variants_2)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2)
+# SWEEPS_DB.add(Sweeps.prompt_variants_2)
+SWEEPS_DB.add(Sweeps.paraphrasing_2_few_2)
+SWEEPS_DB.add(Sweeps.paraphrasing_2_zero_2)
+
+
+# SWEEPS_DB.add(Sweeps.zero_shot)
+# SWEEPS_DB.add(Sweeps.few_shot)
+# SWEEPS_DB.add(Sweeps.zero_shot_2)
+# SWEEPS_DB.add(Sweeps.few_shot_2)
 
 
 async def run_bias_eval(
@@ -147,25 +160,37 @@ async def run_bias_eval(
     return results
 
 
+class IsCorrectExtractor(BaseExtractor[BaseTaskOutput]):
+    column_names = ["is_correct"]
+
+    def extract(self, output: BaseTaskOutput) -> Sequence[str | float | None]:
+        return [output.get_task_spec().get_data_example_obj().ground_truth == output.inference_output.parsed_response]
+
+
 def plot(
     results_dir: str = "experiments/finetune_3_streaming_cc/results",
     tasks: Sequence[str] = COT_TESTING_TASKS,
     biases: Sequence[Type[StageOneFormatter]] = TEST_FORMATTERS,
     plot_breakdown_by_formatter: bool = False,
     example_cap: int = 200,
+    force_rerun: bool = False,
 ):
     sweep_database = SWEEPS_DB
 
     defined_meta = sweep_database.all_models
     models = sweep_database.all_model_names
 
-    outputs = load_per_model_results(results_dir, StreamingTaskOutput)
+    outputs = load_per_model_results(results_dir, StreamingTaskOutput, model_names=models)
     loaded_models = outputs.map(lambda x: x.get_task_spec().inference_config.model).distinct()
+    rerun = False
     for model in models:
         if model not in loaded_models:
+            rerun = True
             print(f"Didn't find all models requested in {results_dir}. Running evaluation again.")
-            outputs = asyncio.run(run_bias_eval(model_names=sweep_database.all_model_names, example_cap=example_cap))
             break
+
+    if rerun or force_rerun:
+        outputs = asyncio.run(run_bias_eval(model_names=sweep_database.all_model_names, example_cap=example_cap))
 
     outputs = (
         outputs.filter(lambda x: x.task_spec.task_name in tasks)
@@ -181,6 +206,7 @@ def plot(
             BiasExtractor(),
             BiasTypeExtractor(),
             AverageOptionsExtractor(),
+            IsCorrectExtractor(),
         ],
     )
     df["matches_bias"] = df.bias_ans == df.parsed_response
@@ -194,12 +220,14 @@ def plot(
 
     # drop any sets of "Trained on COTS from" that only have samples at 1
     df = df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)
+    df["Accuracy"] = df["is_correct"]
 
     for bias_type in df.bias_type.unique():
         df_p = df[df.bias_type == bias_type]
         title = "Bias type: " + bias_type
         assert isinstance(df_p, pd.DataFrame)
         lineplot_util(df_p, title)
+        lineplot_util(df_p, title + " Accuracy", y="Accuracy")
         # breakpoint()
         # convert model to str, samples to int and matches bias to float
         # df_pt = df_p.copy()
@@ -208,7 +236,7 @@ def plot(
         # df_pt["model_name"] = df_pt["Trained on COTS from"].astype(str)
         # g = sns.barplot(data=df_pt, x="Samples", hue="model_name", y="matches_bias")
         # g.set_title(title)
-        plt.show()
+    plt.show()
 
     if plot_breakdown_by_formatter:
         for formatter_name in df.formatter_name.unique():

@@ -13,6 +13,9 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.biases import OG_CONTRO
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     PARAPHRASING_2_BA_CORRECT,
     PARAPHRASING_2_BA_UNFILTERED,
+    PARAPHRASING_2_FEW_SHOT_2,
+    PARAPHRASING_2_GS3_UNFILTERED,
+    PARAPHRASING_2_ZERO_SHOT_2,
     PARAPHRASING_4_BA,
     PARAPHRASING_5,
 )
@@ -75,6 +78,11 @@ class Sweeps(str, Enum):
     paraphrasing_2_ba = "paraphrasing_2_ba"
     paraphrasing_4_ba = "paraphrasing_4_ba"
     gpt = "gpt"
+    paraphrasing_2_zero_2 = "paraphrasing_2_zero_2"
+    paraphrasing_2_few_2 = "paraphrasing_2_few_2"
+    paraphrasing_2_gs2 = "paraphrasing_2_gs2"
+    paraphrasing_2_gs3 = "paraphrasing_2_gs3"
+    paraphrasing_2_gs4 = "paraphrasing_2_gs4"
 
     def get_models(self):
         match self:
@@ -110,6 +118,16 @@ class Sweeps(str, Enum):
                 models = PARAPHRASING_2_BA_UNFILTERED
             case self.paraphrasing_4_ba:
                 models = PARAPHRASING_4_BA
+            case self.paraphrasing_2_zero_2:
+                models = PARAPHRASING_2_ZERO_SHOT_2
+            case self.paraphrasing_2_few_2:
+                models = PARAPHRASING_2_FEW_SHOT_2
+            case self.paraphrasing_2_gs2:
+                raise NotImplementedError
+            case self.paraphrasing_2_gs3:
+                models = PARAPHRASING_2_GS3_UNFILTERED
+            case self.paraphrasing_2_gs4:
+                raise NotImplementedError
 
         return models
 

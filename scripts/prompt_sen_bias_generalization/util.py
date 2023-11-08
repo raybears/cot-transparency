@@ -1,12 +1,13 @@
 import os
 import random
 from pathlib import Path
-from typing import Sequence, Type
+from typing import Optional, Sequence, Type
 
 import openai
 import pandas as pd
 from dotenv import load_dotenv
 from slist import Slist
+from tqdm import tqdm
 
 from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.json_utils.read_write import (
@@ -50,8 +51,15 @@ def save_per_model_results(results: Sequence[BaseTaskOutput], results_dir: str |
         write_jsonl_file_from_basemodel(results_path, outputs)
 
 
-def load_per_model_results(results_dir: Path | str, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
+def load_per_model_results(
+    results_dir: Path | str, basemodel: Type[GenericBaseModel], model_names: Optional[Sequence[str]] = None
+) -> Slist[GenericBaseModel]:
     results_dir = Path(results_dir)
     assert results_dir.is_dir(), "Cache dir must be a directory"
     paths = results_dir.glob("*.jsonl")
-    return Slist(read_jsonl_file_into_basemodel(path=path, basemodel=basemodel) for path in paths).flatten_list()
+    if model_names is not None:
+        paths = [p for p in paths if p.stem in model_names]
+    outputs = Slist()
+    for path in tqdm(paths, desc=f"Loading results from directory {results_dir}"):
+        outputs.extend(read_jsonl_file_into_basemodel(path=path, basemodel=basemodel))
+    return outputs

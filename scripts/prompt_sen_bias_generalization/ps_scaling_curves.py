@@ -44,6 +44,16 @@ from scripts.prompt_sen_bias_generalization.util import load_per_model_results, 
 from scripts.prompt_sen_bias_generalization.util import add_point_at_1
 from scripts.utils.plots import catplot
 
+SWEEPS_DB = SweepDatabase()
+SWEEPS_DB.add(Sweeps.gpt)
+SWEEPS_DB.add(Sweeps.zero_shot_2)
+SWEEPS_DB.add(Sweeps.few_shot_2)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
+SWEEPS_DB.add(Sweeps.paraphrasing_2)
+# SWEEPS_DB.add(Sweeps.gs_unbiased)
+# SWEEPS_DB.add(Sweeps.prompt_variants_2)
+
 
 def parse_responses(output: StreamingTaskOutput) -> ParaphrasingOutput:
     model_response = output.inference_output.raw_response
@@ -83,7 +93,7 @@ EXP_DIR = "experiments/automated_prompt_variant_generation/v1"
 
 async def run_pipeline(
     exp_dir: str = EXP_DIR,
-    example_cap: int = 200,
+    example_cap: int = 100,
     tasks: Sequence[str] = COT_TESTING_TASKS,
     batch_size: int = 50,
     eval_temp: float = 0.0,
@@ -308,30 +318,36 @@ def lineplot_util(df_p: pd.DataFrame, title: str):
     plt.tight_layout()
 
 
-SWEEPS_DB = SweepDatabase()
-SWEEPS_DB.add(Sweeps.zero_shot)
-SWEEPS_DB.add(Sweeps.few_shot)
-
-
 def plot_scaling_curves(
     exp_dir=EXP_DIR,
     model_meta: Sequence[ModelTrainMeta] = SWEEPS_DB.all_models,
+    force_rerun: bool = False,
 ):
     model_name_to_meta = Slist(model_meta).map(lambda x: (x.name, x)).to_dict()
     models = Slist(model_meta).map(lambda x: x.name)
-    # results_dir = f"{exp_dir}/results"
+    results_dir = f"{exp_dir}/results"
 
-    results_dir = asyncio.run(
-        run_pipeline(
-            exp_dir=exp_dir,
-            models_to_evaluate=models,
-            tasks=COT_TESTING_TASKS,
-            batch_size=20,
-            eval_temp=0.0,
+    outputs = load_per_model_results(results_dir, StreamingTaskOutput, model_names=models)
+    loaded_models = Slist(outputs).map(lambda x: x.task_spec.inference_config.model).distinct()
+
+    rerun = False
+    for model in models:
+        if model not in loaded_models:
+            rerun = True
+            print(f"Didn't find all models requested in {results_dir}. Running evaluation again.")
+            break
+
+    if rerun or force_rerun:
+        results_dir = asyncio.run(
+            run_pipeline(
+                exp_dir=exp_dir,
+                models_to_evaluate=models,
+                tasks=COT_TESTING_TASKS,
+                batch_size=60,
+                eval_temp=0.0,
+            )
         )
-    )
 
-    outputs = load_per_model_results(results_dir, StreamingTaskOutput)
     with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash(), x.task_spec.inference_config)).map(
         lambda x: x.map_values(entropy_and_uniform_entropy)
     )
@@ -340,6 +356,9 @@ def plot_scaling_curves(
     df["Trained on COTS from"] = df.model.map(lambda x: model_name_to_meta[x].for_legend())
     df["Samples"] = df.model.map(lambda x: model_name_to_meta[x].trained_samples)
     df = add_point_at_1(df, "gpt-3.5-turbo")
+
+    # drop any sets of "Trained on COTS from" that only have samples at 1
+    df = df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)  # type: ignore
 
     lineplot_util(df, title="Entropy across paraphrased questions")
 

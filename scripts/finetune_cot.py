@@ -410,16 +410,18 @@ class ParaphrasingSampler(FormatSampler):
 
     def __init__(self, n_formats_per_question: int, use_unique_cots: bool = False):
         # load the paraphrasings
+        self.n_formats_per_question = n_formats_per_question
+        self.use_unique_cots = use_unique_cots
+        self.mapping: dict[str, ParaphrasingOutput] = {}
+
+    def load_paraphrasings(self):
         paraphrasings = read_jsonl_file_into_basemodel(
             Path("data/training_paraphrasings/gpt4_paraphrasings.jsonl"), ParaphrasingOutput
         )
 
-        self.mapping: dict[str, ParaphrasingOutput] = {}
         for paraphrasing in paraphrasings:
             key = self._get_key(paraphrasing)
             self.mapping[key] = paraphrasing
-        self.n_formats_per_question = n_formats_per_question
-        self.use_unique_cots = use_unique_cots
 
     def _get_key(self, task: BaseTaskOutput) -> str:
         return (
@@ -435,6 +437,9 @@ class ParaphrasingSampler(FormatSampler):
         n: int,
     ) -> Slist[BaseTaskOutput]:
         tasks = Slist(tasks)
+
+        if not self.mapping:
+            self.load_paraphrasings()
 
         group = tasks.group_by(lambda x: x.get_task_spec().get_task_hash())
         if self.use_unique_cots:
@@ -487,6 +492,32 @@ class InstructSource(str, Enum):
     alpaca_original = "alpaca_original"
     # Completions from the alpaca dataset, but with gpt-3.5-turbo-0613 completions
     alpaca_gpt_35 = "alpaca_gpt_35"
+
+
+class CombinedSampler(FormatSampler):
+    def __init__(self, samplers: Sequence[FormatSampler]):
+        self.samplers = Slist(samplers)
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOutput],
+        formatters: Sequence[FormatterWithPossibleIntervention],
+        n: int,
+    ) -> Slist[BaseTaskOutput]:
+        tasks = Slist(tasks)
+        # split the tasks into n groups
+        groups = tasks.split_into_n(len(self.samplers))
+        # sample from each group
+        ret = Slist()
+        for sampler, group in zip(self.samplers, groups):
+            ret.extend(sampler.sample(group, formatters, math.ceil(n / len(self.samplers))))
+        return ret.take(n)
+
+    def __repr__(self) -> str:
+        return f"CombinedSampler(samplers={self.samplers})"
+
+    def for_legend(self) -> str:
+        return "Combined"
 
 
 def fine_tune_with_bias_augmentation(
