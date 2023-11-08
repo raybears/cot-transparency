@@ -19,7 +19,11 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_2
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_1
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import GOLD_STANDARD_UNBIASED
-from scripts.prompt_sen_bias_generalization.model_sweeps.prompt_variants import PROMPT_VARIANT_1, PROMPT_VARIANTS_ALL_2
+from scripts.prompt_sen_bias_generalization.model_sweeps.prompt_variants import (
+    PROMPT_VARIANT_1,
+    PROMPT_VARIANTS_ALL_2,
+    PROMPT_VARIANTS_RAND,
+)
 
 
 N_FORMATS = [
@@ -60,6 +64,7 @@ class Sweeps(str, Enum):
     paraphrasing_2_correct = "paraphrasing_2_correct"
     paraphrasing_5 = "paraphrasing_5"
     prompt_variants_1 = "prompt_variants_1"
+    prompt_variants_rand = "prompt_variants_rand"
     prompt_variants_2 = "prompt_variants_2"
     gs_unbiased = "gs_unbiased"
     zero_shot = "zero_shot"
@@ -85,6 +90,8 @@ class Sweeps(str, Enum):
                 models = PARAPHRASING_5
             case self.prompt_variants_1:
                 models = PROMPT_VARIANT_1
+            case self.prompt_variants_rand:
+                models = PROMPT_VARIANTS_RAND
             case self.prompt_variants_2:
                 models = PROMPT_VARIANTS_ALL_2
             case self.gs_unbiased:

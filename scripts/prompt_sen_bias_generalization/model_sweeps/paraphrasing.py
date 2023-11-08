@@ -54,7 +54,7 @@ PARAPHRASING_2 = [
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HM5LSlU",
-        trained_samples=48000,
+        trained_samples=10000,
         filter_strategy=FilterStrategy.no_filter,
         train_formatters=FormatterOptions.ask_paraphrased,
         sampling_strategy=NFormatsPerQuestionSampler(2),
@@ -76,6 +76,7 @@ PARAPHRASING_2_BA_UNFILTERED = [
         filter_strategy=FilterStrategy.no_filter,
         train_formatters=FormatterOptions.ask_paraphrased,
         sampling_strategy=NFormatsPerQuestionSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HLNDyn0",
@@ -83,6 +84,7 @@ PARAPHRASING_2_BA_UNFILTERED = [
         filter_strategy=FilterStrategy.no_filter,
         train_formatters=FormatterOptions.ask_paraphrased,
         sampling_strategy=NFormatsPerQuestionSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HLFLrsO",
@@ -90,8 +92,78 @@ PARAPHRASING_2_BA_UNFILTERED = [
         filter_strategy=FilterStrategy.no_filter,
         train_formatters=FormatterOptions.ask_paraphrased,
         sampling_strategy=NFormatsPerQuestionSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
     ),
 ]
+# PARAPHRASING_2_GS2_UNFILTERED = [
+#     ModelTrainMeta(
+#         trained_samples=100,
+#         filter_strategy=FilterStrategy.no_filter,
+#         train_formatters=FormatterOptions.ask_paraphrased,
+#         sampling_strategy=NFormatsPerQuestionSampler(2),
+#         data_from=DataFromOptions.gpt_35_turbo_gs2,
+#     ),
+#     ModelTrainMeta(
+#         trained_samples=1000,
+#         filter_strategy=FilterStrategy.no_filter,
+#         train_formatters=FormatterOptions.ask_paraphrased,
+#         sampling_strategy=NFormatsPerQuestionSampler(2),
+#         data_from=DataFromOptions.gpt_35_turbo_gs2,
+#     ),
+#     ModelTrainMeta(
+#         trained_samples=10000,
+#         filter_strategy=FilterStrategy.no_filter,
+#         train_formatters=FormatterOptions.ask_paraphrased,
+#         sampling_strategy=NFormatsPerQuestionSampler(2),
+#         data_from=DataFromOptions.gpt_35_turbo_gs2,
+#     ),
+# ]
+# PARAPHRASING_2_GS3_UNFILTERED = [
+#     ModelTrainMeta(
+#         trained_samples=100,
+#         filter_strategy=FilterStrategy.no_filter,
+#         train_formatters=FormatterOptions.ask_paraphrased,
+#         sampling_strategy=NFormatsPerQuestionSampler(2),
+#         data_from=DataFromOptions.gpt_35_turbo_gs3,
+#     ),
+#     ModelTrainMeta(
+#         trained_samples=1000,
+#         filter_strategy=FilterStrategy.no_filter,
+#         train_formatters=FormatterOptions.ask_paraphrased,
+#         sampling_strategy=NFormatsPerQuestionSampler(2),
+#         data_from=DataFromOptions.gpt_35_turbo_gs3,
+#     ),
+#     ModelTrainMeta(
+#         trained_samples=10000,
+#         filter_strategy=FilterStrategy.no_filter,
+#         train_formatters=FormatterOptions.ask_paraphrased,
+#         sampling_strategy=NFormatsPerQuestionSampler(2),
+#         data_from=DataFromOptions.gpt_35_turbo_gs3,
+#     ),
+# ]
+# PARAPHRASING_2_GS4_UNFILTERED = [
+#     ModelTrainMeta(
+#         trained_samples=100,
+#         filter_strategy=FilterStrategy.no_filter,
+#         train_formatters=FormatterOptions.ask_paraphrased,
+#         sampling_strategy=NFormatsPerQuestionSampler(2),
+#         data_from=DataFromOptions.gpt_35_turbo_gs4,
+#     ),
+#     ModelTrainMeta(
+#         trained_samples=1000,
+#         filter_strategy=FilterStrategy.no_filter,
+#         train_formatters=FormatterOptions.ask_paraphrased,
+#         sampling_strategy=NFormatsPerQuestionSampler(2),
+#         data_from=DataFromOptions.gpt_35_turbo_gs4,
+#     ),
+#     ModelTrainMeta(
+#         trained_samples=10000,
+#         filter_strategy=FilterStrategy.no_filter,
+#         train_formatters=FormatterOptions.ask_paraphrased,
+#         sampling_strategy=NFormatsPerQuestionSampler(2),
+#         data_from=DataFromOptions.gpt_35_turbo_gs4,
+#     ),
+# ]
 PARAPHRASING_2_BA_CORRECT = [
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8HwuWRHX",
@@ -99,6 +171,7 @@ PARAPHRASING_2_BA_CORRECT = [
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.ask_paraphrased,
         sampling_strategy=NFormatsPerQuestionSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:far-ai::8HxdniLI",
@@ -106,6 +179,7 @@ PARAPHRASING_2_BA_CORRECT = [
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.ask_paraphrased,
         sampling_strategy=NFormatsPerQuestionSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:far-ai::8HxvU7ma",
@@ -113,6 +187,7 @@ PARAPHRASING_2_BA_CORRECT = [
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.ask_paraphrased,
         sampling_strategy=NFormatsPerQuestionSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
     ),
     ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Hy95IK1",
@@ -120,6 +195,7 @@ PARAPHRASING_2_BA_CORRECT = [
         filter_strategy=FilterStrategy.correct_answer,
         train_formatters=FormatterOptions.ask_paraphrased,
         sampling_strategy=NFormatsPerQuestionSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
     ),
 ]
 

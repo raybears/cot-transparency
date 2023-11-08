@@ -2,13 +2,16 @@ import datetime
 import io
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
+from dotenv import load_dotenv
 
 import numpy as np
 import openai
 import pandas as pd
+from slist import Slist
 import wandb
 from openai.error import APIConnectionError, RateLimitError
 from pydantic import BaseModel
@@ -119,12 +122,29 @@ def list_finetunes() -> None:
     print(finetunes)
 
 
+def get_unix_epoch_two_days_ago():
+    # Get the current time
+    now = datetime.datetime.now()
+    # Calculate the time for two days ago
+    two_days_ago = now - datetime.timedelta(days=2)
+    # Convert the time to a timestamp (seconds since epoch)
+    epoch_time = int(time.mktime(two_days_ago.timetuple()))
+    return epoch_time
+
+
 def delete_all_finetune_files() -> None:
     files = openai.File.list().data  # type: ignore
+    print(f"length of files on openai: {len(files)}")
+    files = Slist(files)
+    files = files.filter(lambda x: x["filename"] != "step_metrics.csv")
+    two_days_ago = get_unix_epoch_two_days_ago()
+    files = files.filter(lambda x: x["created_at"] < two_days_ago)
+    print(f"length of files matching criteria: {len(files)}")
     for file in files:
         if file["purpose"] == "fine-tune":
             try:
                 openai.File.delete(file["id"])
+                print("deleted file", file["id"])
             except Exception as e:
                 print(f"Failed to delete file {file['id']} with error {e}")
     print("deleted all finetune files")
@@ -418,4 +438,10 @@ def example_main():
 
 
 if __name__ == "__main__":
-    delete_all_finetune_files()
+    load_dotenv()
+    openai_orgs = os.environ.get("OPENAI_ORG_IDS")
+    assert openai_orgs is not None, "OPENAI_ORG_IDS must be set in .env"
+    orgs = openai_orgs.split(",")
+    for org in orgs:
+        openai.organization = org
+        delete_all_finetune_files()

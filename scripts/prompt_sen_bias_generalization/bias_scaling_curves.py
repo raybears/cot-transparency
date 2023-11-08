@@ -71,13 +71,34 @@ def lineplot_util(df_p: pd.DataFrame, title: str):
 
 SWEEPS_DB = SweepDatabase()
 # SWEEPS_DB.add(Sweeps.paraphrasing_1)
-SWEEPS_DB.add(Sweeps.gpt)
-SWEEPS_DB.add(Sweeps.paraphrasing_2)
-SWEEPS_DB.add(Sweeps.prompt_variants_2)
-SWEEPS_DB.add(Sweeps.gs_unbiased)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2)
+# SWEEPS_DB.add(Sweeps.gs_unbiased)
+
+
+# Previously presented comparison
+# SWEEPS_DB.add(Sweeps.gpt)
+# SWEEPS_DB.add(Sweeps.prompt_variants_rand)
 # SWEEPS_DB.add(Sweeps.zero_shot)
 # SWEEPS_DB.add(Sweeps.few_shot)
-SWEEPS_DB.add(Sweeps.og_control)
+# SWEEPS_DB.add(Sweeps.og_control)
+
+# Everything using 2
+# SWEEPS_DB.add(Sweeps.gpt)
+# # SWEEPS_DB.add(Sweeps.prompt_variants_2)
+# # # SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2)
+# SWEEPS_DB.add(Sweeps.zero_shot_2)
+# SWEEPS_DB.add(Sweeps.few_shot_2)
+# SWEEPS_DB.add(Sweeps.og_control)
+
+# SWEEPS_DB = SweepDatabase()
+# SWEEPS_DB.add(Sweeps.zero_shot)
+# SWEEPS_DB.add(Sweeps.few_shot)
+SWEEPS_DB.add(Sweeps.zero_shot_2)
+SWEEPS_DB.add(Sweeps.few_shot_2)
+SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
+SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
+SWEEPS_DB.add(Sweeps.prompt_variants_2)
 
 
 async def run_bias_eval(
