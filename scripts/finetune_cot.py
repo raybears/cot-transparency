@@ -674,6 +674,7 @@ def fine_tune_with_bias_augmentation(
         "sampling_strategy": sampler,
         "permute_verbalize_instructions": permute_verbalize_instructions,
         "no_overlap_cot_non_cot": no_overlap_cot_non_cot,
+        "instructions_source": instruct_source.value,
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
