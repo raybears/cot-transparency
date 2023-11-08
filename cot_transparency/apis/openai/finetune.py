@@ -70,8 +70,7 @@ class FinetuneSample(BaseModel):
         return FinetuneSample(messages=strict)
 
 
-class FinetuneJob(BaseModel):
-    model: str
+class FinetuningJob(BaseModel):
     id: str  # job id
 
 
@@ -231,10 +230,10 @@ class WandbSyncer:
 )
 def queue_finetune(
     file_id: str, model: str, hyperparameters: FineTuneHyperParams, val_file_id: str | None = None
-) -> FinetuneJob:
+) -> FinetuningJob:
     # Keep retrying until we can queue the finetune job
     # pick an org at random
-    finetune_job_resp = openai.fine_tunes.create(
+    finetune_job_resp = openai.fine_tuning.jobs.create(
         training_file=file_id,
         validation_file=val_file_id,
         model=model,
@@ -242,14 +241,21 @@ def queue_finetune(
     )
 
     print(f"Started finetune job. {finetune_job_resp}")
-    parsed_job_resp: FinetuneJob = FinetuneJob.model_validate(finetune_job_resp)
+    parsed_job_resp: FinetuningJob = FinetuningJob.model_validate(finetune_job_resp)
     return parsed_job_resp
 
 
-def create_openai_buffer(samples: list[FinetuneSample]) -> io.StringIO:
+def create_openai_buffer_legacy(samples: list[FinetuneSample]) -> io.StringIO:
     buffer = io.StringIO()
     for item in samples:
         buffer.write(item.model_dump_json() + "\n")
+    buffer.seek(0)
+    return buffer
+
+def create_openai_buffer(samples: list[FinetuneSample]) -> io.BytesIO:
+    buffer = io.BytesIO()
+    for item in samples:
+        buffer.write(item.model_dump_json().encode("utf-8") + b"\n")
     buffer.seek(0)
     return buffer
 

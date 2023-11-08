@@ -78,7 +78,7 @@ def train_paraphrasing(
         formatter_options=formatter_options,
         sampler=sampler,
         # Sir Ed, pls fix this
-        val_sampler=val_sampler,  # type: ignore
+        # val_sampler=val_sampler,  # type: ignore
         permute_verbalize_instructions=False,
         data_from_options=data_from_options,
         model_output_verified=model_output_verified,
