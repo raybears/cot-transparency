@@ -7,13 +7,10 @@ from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
-from scripts.evaluate_alignment_tax.instruction_following import (
-    eval_instruction_following,
-)
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
-    fine_tune_with_bias_augmentation,
+    fine_tune_with_bias_augmentation, InstructSource,
 )
 
 
@@ -37,14 +34,15 @@ async def train_and_run(sweep: SweepOptions) -> None:
         ask_to_validate_training=False,
         instruct_sample_proportion=sweep.instruct_sample_proportion,
         prepend_notes="instruct_sample_proportion: " + str(sweep.instruct_sample_proportion) + " ",
+        instruct_source=InstructSource.alpaca_gpt_35,
     )
-    await eval_instruction_following(
-        intervention_models=[model],
-    )
+    # await eval_instruction_following(
+    #     intervention_models=[model],
+    # )
 
 
 async def main():
-    option = SweepOptions(n_samples=10_000, instruct_sample_proportion=1.0)
+    option = SweepOptions(n_samples=2_500, instruct_sample_proportion=1.0)
     await train_and_run(option)
 
 
