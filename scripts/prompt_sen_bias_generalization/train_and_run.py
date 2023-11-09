@@ -65,9 +65,9 @@ def train_paraphrasing(
     n_samples: int = 10000,
     n_formats_per_question: int = 1,
     unique_cots: bool = False,
-    data_from: str = "gpt_35_turbo_gs",
+    data_from: str = DataFromOptions.gpt_35_turbo_gs.value,
     unbiased: bool = False,
-    filter_strategy: str = "unfiltered",
+    filter_strategy: str = ModelOutputVerified.unfiltered.value,
 ):
     if unbiased:
         assert n_formats_per_question == 1, "Only makes sense to have one format per question for unbiased"

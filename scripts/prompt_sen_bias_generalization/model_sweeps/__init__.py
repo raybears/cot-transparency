@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Sequence
 
 from slist import Slist
 
@@ -137,8 +138,10 @@ class SweepDatabase:
         self.sweeps: Slist[ModelTrainMeta] = Slist()
         self.model_names: set[str] = set()
 
-    def add(self, sweep: Sweeps):
-        for model in sweep.get_models():
+    def add(self, sweep: Sweeps | Sequence[ModelTrainMeta]):
+        if isinstance(sweep, Sweeps):
+            sweep = sweep.get_models()
+        for model in sweep:
             if model.name in self.model_names:
                 raise ValueError(f"Model {model.name} already exists in sweep database")
             else:

@@ -111,6 +111,46 @@ PARAPHRASING_2_UNIQUE_COTS = [
         data_from=DataFromOptions.gpt_35_turbo_gs,
     ),
 ]
+PARAPHRASING_1_GS_UNFILTERED = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8IrxuOmB",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo_gs,
+    ),
+]
+PARAPHRASING_1_GS2_UNFILTERED = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8IrvynDy",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo_gs2,
+    ),
+]
+PARAPHRASING_1_GS3_UNFILTERED = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8IsPnsYH",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo_gs3,
+    ),
+]
+PARAPHRASING_1_GS4_UNFILTERED = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Irqfssp",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo_gs4,
+    ),
+]
 
 # PARAPHRASING_2_GS2_UNFILTERED = [
 #     ModelTrainMeta(

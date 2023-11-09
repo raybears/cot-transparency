@@ -441,6 +441,9 @@ class ParaphrasingSampler(FormatSampler):
         if not self.mapping:
             self.load_paraphrasings()
 
+        if formatters:
+            print("Warning: formatters passed to sampler but these are ignored for paraphrasing sampler")
+
         group = tasks.group_by(lambda x: x.get_task_spec().get_task_hash())
         if self.use_unique_cots:
             assert group.all(lambda x: len(x.values) >= self.use_unique_cots)
@@ -452,8 +455,6 @@ class ParaphrasingSampler(FormatSampler):
             else:
                 tasks = task_group.values.take(1).repeat_until_size_or_raise(self.n_formats_per_question)
             key = self._get_key(tasks[0])
-            # if not tasks[0].get_task_spec().formatter_name == GoldStandardNoCotFormatter.name():
-            #     breakpoint()
             paraphrasing = self.mapping[key]
             paraphrased_questions = Slist(paraphrasing.paraphrased_questions)
             to_use = paraphrased_questions.shuffle(seed=key).take(self.n_formats_per_question)
