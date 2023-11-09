@@ -66,7 +66,8 @@ class AssistantThinksRepeatMistake2Formatter(StageOneFormatter):
             ChatMessage(role=MessageRole.user, content=user_message),
             ChatMessage(
                 role=MessageRole.assistant,
-                content="Alright, the instructions say that I need to repeat the input. I guess I'll do that, although there is a mistake in it. I will not correct the mistake. "
+                content="Alright, the instructions say that I need to repeat the input. "
+                "I guess I'll do that, although there is a mistake in it. I will not correct the mistake. "
                 + COT_ASSISTANT_PROMPT,
             ),
         ]
