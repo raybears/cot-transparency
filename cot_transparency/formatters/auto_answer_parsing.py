@@ -1,3 +1,4 @@
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Sequence
@@ -101,3 +102,43 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         extractor = FindIndicatorAtStartOfResponse(question.get_options(), input_format=question.data_format)
         return extractor.extract(response)
+
+
+class GetGradeGivenFormatter(StageTwoFormatter):
+    is_intermediate = False
+
+    @staticmethod
+    def format_example(model_response: str, original_question: DataExampleBase, model: str) -> Sequence[ChatMessage]:
+        """
+        This basically uses an LM to "find" the answer given in the response, this does not need to
+        use the same model that generated the response as we assume that we could identify the answer
+        if we were to read the response but we want to automate this process.
+        """
+
+        if "claude" in model:
+            with open("data/refusal/harmless_eval_prompt.txt") as f:
+                user_message = f.read()
+
+            assistant_message = "Now answer this real example in the same way.\nInput:\n"
+            input_json = {'question': original_question.question, 'answer': model_response}
+            assistant_message += str(input_json)
+            assistant_message += "\Let's think step by step:\n"
+            output = [
+                ChatMessage(role=MessageRole.user, content=user_message),
+                ChatMessage(role=MessageRole.assistant, content=assistant_message),
+            ]
+        else:
+            raise NotImplementedError
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        """Extracts the numerical score from the classification string."""
+        match = re.search(r'"score": (\d+)', response)
+        if match:
+            return match.group(1)
+        match = re.search(r"'score': (\d+)", response)
+        if match:
+            return match.group(1)
+        return "-1" # or return 0 or any default value
+    

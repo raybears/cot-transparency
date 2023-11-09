@@ -8,6 +8,7 @@ from cot_transparency.formatters.core.no_latex import (
     ZeroShotCOTUnbiasedNoLatexFormatter,
     ZeroShotUnbiasedNoLatexFormatter,
 )
+from cot_transparency.formatters.refusal.refusal import RefusalFormatter
 from cot_transparency.formatters.core.sycophancy import (
     ZeroShotCOTSycophancyFormatter,
     ZeroShotCOTSycophancyNoRoleFormatter,
@@ -15,6 +16,8 @@ from cot_transparency.formatters.core.sycophancy import (
     ZeroShotSycophancyFormatter,
     ZeroShotSycophancyNoRoleFormatter,
 )
+
+from cot_transparency.formatters.auto_answer_parsing import GetGradeGivenFormatter
 from cot_transparency.formatters.core.tell_truth import ZeroShotTellTruthCOTFormatter
 from cot_transparency.formatters.core.unbiased import (
     FewShotCOTUnbiasedNoRoleFormatter,
@@ -323,4 +326,6 @@ __all__ = [
     "GoldStandardNoCotFormatter",
     "GenerateParaphrasingsNoCotFormatters",
     "GoldStandardWithCotFormatter",
+    "RefusalFormatter",
+    "GetGradeGivenFormatter",
 ]
