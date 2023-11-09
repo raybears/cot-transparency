@@ -65,9 +65,9 @@ def train_paraphrasing(
     n_samples: int = 10000,
     n_formats_per_question: int = 2,
     unique_cots: bool = False,
-    data_from: str = "gpt_35_turbo",
+    data_from: str = "gpt_35_turbo_gs",
     unbiased: bool = False,
-    filter_strategy: str = "correct",
+    filter_strategy: str = "unfiltered",
 ):
     if unbiased:
         assert n_formats_per_question == 1, "Only makes sense to have one format per question for unbiased"
@@ -111,7 +111,7 @@ def train_paraphrasing(
             f.write(model)
 
     # write the model to a file with the hash name
-    run_all_evals(model)
+    run_all_evals(models=[model])
 
 
 def train_combined(
@@ -163,7 +163,7 @@ def train_combined(
             f.write(model)
 
     # write the model to a file with the hash name
-    run_all_evals(model)
+    run_all_evals([model])
 
 
 def train_bias(
