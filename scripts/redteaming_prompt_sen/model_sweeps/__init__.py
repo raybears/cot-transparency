@@ -7,19 +7,11 @@ from scripts.finetune_zero_shot_experiments.comparison_plot import (
     FilterStrategy,
     ModelTrainMeta,
 )
-from scripts.prompt_sen_bias_generalization.model_sweeps.biases import FEW_SHOT, FEW_SHOT_2, ZERO_SHOT_2
-from scripts.prompt_sen_bias_generalization.model_sweeps.biases import ZERO_SHOT
-from scripts.prompt_sen_bias_generalization.model_sweeps.biases import OG_CONTROL
-from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
-    PARAPHRASING_2_BA_CORRECT,
-    PARAPHRASING_2_BA_UNFILTERED,
-    PARAPHRASING_4_BA,
-    PARAPHRASING_5,
-)
-from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_2
-from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_1
-from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import GOLD_STANDARD_UNBIASED
-from scripts.prompt_sen_bias_generalization.model_sweeps.prompt_variants import PROMPT_VARIANT_1, PROMPT_VARIANTS_ALL_2
+from scripts.redteaming_prompt_sen.model_sweeps.biases import FEW_SHOT, FEW_SHOT_2, ZERO_SHOT_2
+from scripts.redteaming_prompt_sen.model_sweeps.biases import ZERO_SHOT
+from scripts.redteaming_prompt_sen.model_sweeps.biases import OG_CONTROL
+from scripts.redteaming_prompt_sen.model_sweeps.paraphrasing import PARAPHRASING_1
+from scripts.redteaming_prompt_sen.model_sweeps.prompt_variants import PROMPT_VARIANT_1, PROMPT_VARIANTS_ALL_2
 
 
 N_FORMATS = [

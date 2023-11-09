@@ -15,6 +15,7 @@ from cot_transparency.data_models.data.mmlu import (
     MMLUExample,
 )
 from cot_transparency.data_models.data.truthful_qa import TruthfulQAExample
+from cot_transparency.data_models.data.refusal import RefusalExample
 from cot_transparency.data_models.example_base import DataExampleBase
 
 
@@ -61,6 +62,8 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return JohnMath
     elif task_name == "john_level_5":
         return JohnMath
+    elif task_name == "refusal":
+        return RefusalExample
     elif task_name in BBH_TASK_LIST:
         return MilesBBHRawData
     elif task_name in BBQ_TASK_LIST:

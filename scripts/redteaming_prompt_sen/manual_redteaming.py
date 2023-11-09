@@ -35,7 +35,7 @@ from scripts.prompt_sen_bias_generalization.util import (
     load_per_model_results,
     save_per_model_results,
 )
-from scripts.prompt_sen_bias_generalization.model_sweeps import (
+from scripts.redteaming_prompt_sen.model_sweeps import (
     SweepDatabase,
     Sweeps,
 )
@@ -117,7 +117,8 @@ def data_and_jailbreaks_to_task_spec(
             for jailbreak in jailbreaks:
                 jailbreak_name = jailbreak["name"]
                 jailbreak_prompt = jailbreak["prompt"]
-                x.question = jailbreak_prompt.format(x.question)
+                print(jailbreak_prompt)
+                x.question = jailbreak_prompt.format(QUESTION=x.question)
                 
                 messages = formatter.format_example(x)
 
@@ -128,7 +129,7 @@ def data_and_jailbreaks_to_task_spec(
                     inference_config=model,
                     task_name=task_name,
                     jailbreak_name=jailbreak_name,
-                    category=x.categeory,
+                    category=x.category,
                 )
                 specs.append(ts)
     return specs
@@ -155,14 +156,14 @@ def lineplot_util(df_p: pd.DataFrame, title: str):
 
 
 SWEEPS_DB = SweepDatabase()
-# SWEEPS_DB.add(Sweeps.paraphrasing_1)
-SWEEPS_DB.add(Sweeps.gpt)
-SWEEPS_DB.add(Sweeps.paraphrasing_2)
-SWEEPS_DB.add(Sweeps.prompt_variants_2)
-SWEEPS_DB.add(Sweeps.gs_unbiased)
+SWEEPS_DB.add(Sweeps.paraphrasing_1)
+# SWEEPS_DB.add(Sweeps.gpt)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2)
+# SWEEPS_DB.add(Sweeps.prompt_variants_2)
+# SWEEPS_DB.add(Sweeps.gs_unbiased)
 # SWEEPS_DB.add(Sweeps.zero_shot)
 # SWEEPS_DB.add(Sweeps.few_shot)
-SWEEPS_DB.add(Sweeps.og_control)
+# SWEEPS_DB.add(Sweeps.og_control)
 REFUSAL_FORMATTERS = [RefusalFormatter()]
 
 async def run_refusal_eval(
@@ -188,7 +189,7 @@ async def run_refusal_eval(
     )
     answer_grading_config = config_from_default(model="claude-2")
 
-    data = [("refusal", example) for example in load_data(example_cap)]
+    data = Slist([("refusal", example) for example in load_data(example_cap)])
     tasks_to_run = data.map(lambda x: data_and_jailbreaks_to_task_spec(x[0], x[1], formats, configs)).flatten_list()
 
     obs = (
@@ -212,7 +213,7 @@ async def run_refusal_eval(
 def plot(
     results_dir: str = "experiments/finetune_3_streaming_cc/results",
     tasks: Sequence[str] = COT_TESTING_TASKS,
-    biases: Sequence[Type[StageOneFormatter]] = TEST_FORMATTERS,
+    biases: Sequence[Type[RefusalFormatter]] = REFUSAL_FORMATTERS,
     plot_breakdown_by_formatter: bool = False,
     example_cap: int = 200,
 ):
@@ -226,7 +227,7 @@ def plot(
     for model in models:
         if model not in loaded_models:
             print(f"Didn't find all models requested in {results_dir}. Running evaluation again.")
-            outputs = asyncio.run(run_bias_eval(model_names=sweep_database.all_model_names, example_cap=example_cap))
+            outputs = asyncio.run(run_refusal_eval(model_names=sweep_database.all_model_names, example_cap=example_cap))
             break
 
     outputs = (

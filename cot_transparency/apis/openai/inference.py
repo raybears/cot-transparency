@@ -170,10 +170,10 @@ def parse_chat_prompt_response_dict(
     response_dict: Dict[Any, Any],
     prompt: list[StrictChatMessage],
 ) -> GPTFullResponse:
-    response_id = response_dict["id"]
-    choices = response_dict["choices"]
-    completions = [choice["message"]["content"] for choice in choices]
-    finish_reasons = [choice["finish_reason"] for choice in choices]
+    response_id = response_dict.id
+    choices = response_dict.choices
+    completions = [choice.message.content for choice in choices]
+    finish_reasons = [choice.finish_reason for choice in choices]
     return GPTFullResponse(
         id=response_id,
         prompt=prompt,
@@ -193,9 +193,10 @@ def __get_chat_response_dict(
 ) -> Dict[Any, Any]:
     kwargs: Dict[str, Any] = {}
     if organization is not None:
-        kwargs["organization"] = organization
+        # kwargs["organization"] = organization
+        pass
 
-    return openai.ChatCompletion.create(  # type: ignore
+    return openai.chat.completions.create(  # type: ignore
         model=config.model,
         messages=[chat.model_dump() for chat in prompt],
         max_tokens=config.max_tokens,
