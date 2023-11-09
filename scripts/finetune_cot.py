@@ -525,7 +525,7 @@ def fine_tune_with_bias_augmentation(
     n_epochs: int | Unset = _UNSET,
     hyperparams: FineTuneHyperParams = FineTuneHyperParams(n_epochs=1),
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
-    model_output_verified: ModelOutputVerified = ModelOutputVerified.correct,
+    model_output_verified: ModelOutputVerified = ModelOutputVerified.unfiltered,
     exclude_formatters: Sequence[type[StageOneFormatter]] = [],
     # if FormatterOptions.control_only_unbiased, then we only use unbiased contexts for training
     formatter_options: FormatterOptions = FormatterOptions.all_biased,
@@ -537,9 +537,9 @@ def fine_tune_with_bias_augmentation(
     cot_percentage=0.5,
     # cli waits for user input to validate the training
     ask_to_validate_training: bool = True,
-    # For now we recommend using NFormatsPerQuestionSampler=2, rather than RandomSampler
-    sampler: FormatSampler = NFormatsPerQuestionSampler(n_formats_per_question=2),
-    val_sampler: FormatSampler = NFormatsPerQuestionSampler(n_formats_per_question=2),
+    # For now we recommend using NFormatsPerQuestionSampler=1, rather than RandomSampler
+    sampler: FormatSampler = NFormatsPerQuestionSampler(n_formats_per_question=1),
+    val_sampler: FormatSampler = NFormatsPerQuestionSampler(n_formats_per_question=1),
     prepend_notes: str = "",
     # If true, we permute the verbalize instructions to have multiple variations
     permute_verbalize_instructions: bool = True,
@@ -549,7 +549,7 @@ def fine_tune_with_bias_augmentation(
     no_overlap_cot_non_cot: bool = True,
     n_val_samples: int = 1000,
     # Choose InstructSource.alpaca_gpt_35 if you want to use the gpt-3.5-turbo-0613 completions
-    instruct_source: InstructSource = InstructSource.alpaca_original,
+    instruct_source: InstructSource = InstructSource.alpaca_gpt_35,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
