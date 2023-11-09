@@ -29,7 +29,7 @@ async def train_and_run(sweep: SweepOptions) -> None:
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.super_dataset,
+        formatter_options=FormatterOptions.control_only_unbiased,
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
         instruct_sample_proportion=sweep.instruct_sample_proportion,
