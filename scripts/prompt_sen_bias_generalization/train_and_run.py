@@ -63,7 +63,7 @@ def run_all_evals(models: Sequence[str] = models, example_cap: int = 400):
 
 def train_paraphrasing(
     n_samples: int = 10000,
-    n_formats_per_question: int = 2,
+    n_formats_per_question: int = 1,
     unique_cots: bool = False,
     data_from: str = "gpt_35_turbo_gs",
     unbiased: bool = False,
@@ -116,7 +116,7 @@ def train_paraphrasing(
 
 def train_combined(
     n_samples: int = 10000,
-    n_formats_per_question: int = 2,
+    n_formats_per_question: int = 1,
     unique_cots: bool = False,
     data_from: str = "gpt_35_turbo_gs",
     format_options: str = FormatterOptions.few_shot.value,
@@ -168,7 +168,7 @@ def train_combined(
 
 def train_bias(
     n_samples: int = 100,
-    n_formats_per_question: int = 2,
+    n_formats_per_question: int = 1,
     data_from: str = "gpt_35_turbo",
     format_options: str = FormatterOptions.prompt_variants_all.value,
     skip_evaluation: bool = False,
