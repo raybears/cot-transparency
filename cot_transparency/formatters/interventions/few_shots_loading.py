@@ -27,6 +27,21 @@ from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemode
 from cot_transparency.streaming.tasks import StreamingTaskOutput
 
 
+@lru_cache
+def get_correct_cots_inverse_scaling() -> Slist[TaskOutput]:
+    """
+    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_inverse_scaling.py
+    Note that this was generated with the inverse scaling dataset
+    You need to filter out inverse scaling questions to make sure they don't overlap!
+    """
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt_4_inverse_scaling.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
+
+
 # Data previously generated with cot-transparency/scripts/dump_correct_cot_data.py
 # small brain cache to load only when needed
 @lru_cache

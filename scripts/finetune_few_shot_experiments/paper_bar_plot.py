@@ -31,8 +31,13 @@ if __name__ == "__main__":
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::89rM5liC",  # control 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::89nGUACf",  # trained on few shot 10k
         # "ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",  # 10k, trained with prompt consistency formatters
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CHkCXvd",  # 10k, excluded non sycophancy
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T",  # trained on all biases, 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDHHr8G",
+        "ft:gpt-3.5-turbo-0613:far-ai::8IU1VMKS",
+        "ft:gpt-3.5-turbo-0613:far-ai::8IJZLmPO",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IF6o9Go",
+        # "ft:gpt-3.5-turbo-0613:far-ai::8IU1VMKS",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CHkCXvd",  # 10k, excluded non sycophancy
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::89i5mE6T",  # trained on all biases, 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8ByaUKRh",  # trained on few shot 50k
     ]
     run_experiments(finetuned_models)

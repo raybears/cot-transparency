@@ -20,6 +20,7 @@ from cot_transparency.formatters.interventions.big_brain_few_shots_loading impor
 from cot_transparency.formatters.interventions.few_shots_loading import (
     get_correct_cots,
     get_correct_cots_claude_2,
+    get_correct_cots_inverse_scaling,
 )
 from cot_transparency.formatters.interventions.formatting import (
     format_biased_question_cot,
@@ -189,6 +190,38 @@ class NaiveFewShot1(Intervention):
             prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
         )
         return new
+
+
+class NaiveFewShot3InverseScaling(Intervention):
+    # Simply use unbiased few shot
+    n_samples: int = 3
+
+    @classmethod
+    def intervene(
+        cls,
+        question: DataExampleBase,
+        formatter: Type[StageOneFormatter],
+        model: Optional[str] = None,
+    ) -> Sequence[ChatMessage]:
+        task_hash = question.hash()
+        messages = formatter.format_example(question)
+        prompt: Prompt = (
+            get_correct_cots_inverse_scaling()
+            .filter(lambda x: x.data_example_hash() != task_hash)
+            .sample(cls.n_samples, seed=question.hash())
+            .map(format_unbiased_question_cot)
+            .sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
+        )
+        return new
+
+
+class NaiveFewShot6InverseScaling(NaiveFewShot3InverseScaling):
+    # Simply use unbiased few shot
+    n_samples: int = 6
 
 
 class NaiveFewShot3(NaiveFewShot1):
