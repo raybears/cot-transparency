@@ -5,6 +5,8 @@ import pytest
 from cot_transparency.data_models.data import TASK_LIST
 from cot_transparency.data_models.data import get_list_of_examples
 from cot_transparency.data_models.data.arc import ArcExample
+from scripts.none_few_shot_bias.make_few_shots import DataExampleWithNone
+from tests.prompt_formatting.test_prompt_formatter import EMPIRE_OF_PANTS_EXAMPLE
 
 ANSWER_RE = r"^(\n|.)+\n\nAnswer choices:\n\(A\) .+\n\(B\) .+"
 # should have the format
@@ -92,3 +94,39 @@ def test_arc_examples():
     }
     parsed_3 = ArcExample.model_validate(letter_example)
     assert parsed_3.ground_truth == "D"
+
+
+def test_replacing_correct_with_none():
+    example = EMPIRE_OF_PANTS_EXAMPLE
+
+    original_options = example._get_options()
+    original_gt = example.ground_truth
+
+    example_with_none = DataExampleWithNone(wrapped=example, replace="correct")
+
+    none_added = example_with_none._get_options().index("None of these options")
+    modified_options = example_with_none._get_options()
+
+    assert original_options != modified_options
+    assert modified_options[none_added] == "None of these options"
+    assert example_with_none.ground_truth_text == "None of these options"
+    assert example_with_none.ground_truth_idx() == example.ground_truth_idx()
+    assert original_gt not in example_with_none._get_options()
+
+
+def test_replacing_incorrect_with_none():
+    example = EMPIRE_OF_PANTS_EXAMPLE
+
+    original_options = example._get_options()
+    original_gt = example.ground_truth
+
+    example_with_none = DataExampleWithNone(wrapped=example, replace="incorrect")
+
+    none_added = example_with_none._get_options().index("None of these options")
+    modified_options = example_with_none._get_options()
+
+    assert original_options != modified_options
+    assert modified_options[none_added] == "None of these options"
+    assert example_with_none.ground_truth == original_gt
+    assert example_with_none.ground_truth_idx() != none_added
+    assert example.ground_truth_text in example_with_none._get_options()

@@ -15,6 +15,7 @@ from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import BaseTaskOutput, BaseTaskSpec, ModelOutput
 from cot_transparency.formatters.base_class import StageOneFormatter, Type
+from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.name_mapping import name_to_formatter
 
 
@@ -24,6 +25,7 @@ class StreamingTaskSpec(BaseTaskSpec):
     task_name: str
     data_example: dict[str, Any] = {}
     inference_config: OpenaiInferenceConfig
+    intervention_name: str | None = None
 
     def get_task_name(self) -> str:
         return self.task_name
@@ -92,19 +94,25 @@ def data_to_task_spec(
     x: DataExampleBase,
     formatters: Sequence[Type[StageOneFormatter]],
     models: Sequence[OpenaiInferenceConfig],
+    interventions: Sequence[Type[Intervention] | None] = [None],
 ) -> list[StreamingTaskSpec]:
     specs = []
     for formatter in formatters:
         for model in models:
-            messages = formatter.format_example(x)
-            ts = StreamingTaskSpec(
-                messages=messages,
-                formatter_name=formatter.name(),
-                data_example=x.model_dump(),
-                inference_config=model,
-                task_name=task_name,
-            )
-            specs.append(ts)
+            for intervention in interventions:
+                if intervention is not None:
+                    messages = intervention.intervene(x, formatter=formatter, model=model.model)
+                else:
+                    messages = formatter.format_example(x, model=model.model)
+                ts = StreamingTaskSpec(
+                    messages=messages,
+                    formatter_name=formatter.name(),
+                    data_example=x.model_dump(),
+                    inference_config=model,
+                    task_name=task_name,
+                    intervention_name=intervention.name() if intervention is not None else None,
+                )
+                specs.append(ts)
     return specs
 
 
