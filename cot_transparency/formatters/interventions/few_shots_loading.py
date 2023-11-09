@@ -28,36 +28,6 @@ from cot_transparency.streaming.tasks import StreamingTaskOutput
 
 
 @lru_cache
-def get_correct_cots_aqua() -> Slist[TaskOutput]:
-    """
-    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_aqua.py
-    Note that this was generated with the aqua_val dataset
-    Please test on the aqua_train dataset!
-    """
-    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
-        Path("data/training_cots/gpt_4_aqua_val.jsonl"), TaskOutput
-    )
-
-    only_correct_cots: Slist[TaskOutput] = jsons_tasks
-    return only_correct_cots
-
-
-@lru_cache
-def get_correct_cots_mmlu() -> Slist[TaskOutput]:
-    """
-    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_mmlu.py
-    Note that this was generated with the mmlu dataset
-    You need to filter out mmlu questions to make sure they don't overlap!
-    """
-    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
-        Path("data/training_cots/gpt_4_mmlu.jsonl"), TaskOutput
-    )
-
-    only_correct_cots: Slist[TaskOutput] = jsons_tasks
-    return only_correct_cots
-
-
-@lru_cache
 def get_correct_cots_inverse_scaling() -> Slist[TaskOutput]:
     """
     Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_inverse_scaling.py
