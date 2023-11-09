@@ -6,9 +6,7 @@ from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.inverse_scaling.repeat_mistakes import (
-    AssistantThinksRepeatMistake2Formatter,
-)
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -21,6 +19,10 @@ async def plot_accuracies():
         "gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D",  # 1k correct (control)
         "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",  # 1k correct (ours)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Iik5HWG",  # 0.1x instruct lower LR
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ij2WsDK",  # 0.1x instruct higher LR
+        "ft:gpt-3.5-turbo-0613:far-ai::8IkMGcni", # 1.0x instruct lower LR
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5caiZn", # Ed's
         # "ft:gpt-3.5-turbo-0613:far-ai::8HoBQfFE", # 100% instruct 500 (ours)
         # "ft:gpt-3.5-turbo-0613:far-ai::8Ho5AmzO",  # 100% instruct 1000, control
         # "ft:gpt-3.5-turbo-0613:far-ai::8Ho0yXlM",  # 100% instruct 1000 (ours)
@@ -33,7 +35,7 @@ async def plot_accuracies():
     # ZeroShotCOTUnbiasedFormatter
 
     stage_one_obs = stage_one_stream(
-        formatters=[AssistantThinksRepeatMistake2Formatter.name()],
+        formatters=[ZeroShotCOTUnbiasedFormatter.name()],
         tasks=[task],
         example_cap=1000,
         num_tries=1,
@@ -49,7 +51,7 @@ async def plot_accuracies():
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
-    plot_formatter = AssistantThinksRepeatMistake2Formatter
+    plot_formatter = ZeroShotCOTUnbiasedFormatter
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
