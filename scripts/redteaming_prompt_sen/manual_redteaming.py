@@ -1,3 +1,4 @@
+
 import asyncio
 import json
 from pathlib import Path
@@ -164,7 +165,7 @@ SWEEPS_DB.add(Sweeps.gs_unbiased)
 SWEEPS_DB.add(Sweeps.og_control)
 REFUSAL_FORMATTERS = [RefusalFormatter()]
 
-async def run_bias_eval(
+async def run_refusal_eval(
     exp_dir: str = "experiments/refusal",
     formats: Sequence[Type[RefusalFormatter]] = REFUSAL_FORMATTERS,
     example_cap: int = 400,
@@ -187,7 +188,7 @@ async def run_bias_eval(
     )
     answer_grading_config = config_from_default(model="claude-2")
 
-    data = ["refusal", example for example in load_data(example_cap)]
+    data = [("refusal", example) for example in load_data(example_cap)]
     tasks_to_run = data.map(lambda x: data_and_jailbreaks_to_task_spec(x[0], x[1], formats, configs)).flatten_list()
 
     obs = (
@@ -286,4 +287,4 @@ def plot(
 
 
 if __name__ == "__main__":
-    fire.Fire({"plot": plot, "run": run_bias_eval})
+    fire.Fire({"plot": plot, "run": run_refusal_eval})
