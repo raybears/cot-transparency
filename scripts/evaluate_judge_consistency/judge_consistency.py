@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 from grugstream import Observable
+from openai import InvalidRequestError
 from pydantic import BaseModel
 from slist import Slist
 from tqdm import tqdm
@@ -14,7 +15,7 @@ from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from scripts.load_h4_dataset import get_h4_test
+from scripts.load_alpaca_dataset import get_alpaca_testing
 
 
 class ComparisonGeneration(BaseModel):
@@ -38,11 +39,13 @@ class ComparisonGenerationJudged(BaseModel):
 
 
 class BothJudgements(BaseModel):
-    first_judgement: ComparisonGenerationJudged
-    second_judgement: ComparisonGenerationJudged
+    first_judgement: Optional[ComparisonGenerationJudged]  # E.g. not enough tokens
+    second_judgement: Optional[ComparisonGenerationJudged]
     judge_config: OpenaiInferenceConfig
 
     def is_consistent(self) -> Optional[bool]:
+        if self.first_judgement is None or self.second_judgement is None:
+            return None
         if self.first_judgement.winner is None or self.second_judgement.winner is None:
             return None
         return self.first_judgement.winner == self.second_judgement.winner
@@ -111,13 +114,13 @@ Let's think step by step:"""
 
 
 def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label: JudgeChoice) -> Optional[JudgeChoice]:
-    if "follows the instruction better is the first" in judge_output.lower():
+    if "better is the first" in judge_output.lower():
         return first_label
-    if "follows the instruction better is the: first" in judge_output.lower():
+    if "better is the: first" in judge_output.lower():
         return first_label
-    if "follows the instruction better is the second" in judge_output.lower():
+    if "better is the second" in judge_output.lower():
         return second_label
-    if "follows the instruction better is the: second" in judge_output.lower():
+    if "better is the: second" in judge_output.lower():
         return second_label
     # first_word = judge_output.split()[0]
     # if "first" in first_word.lower():
@@ -153,14 +156,20 @@ def get_judge_output(
 def get_judge_output_both(
     comparison: ComparisonGeneration, judge: ModelCaller, judge_config: OpenaiInferenceConfig
 ) -> BothJudgements:
-    first = get_judge_output(comparison, judge, model_a_first=True, judge_config=judge_config)
-    second = get_judge_output(comparison, judge, model_a_first=False, judge_config=judge_config)
+    try:
+        first = get_judge_output(comparison, judge, model_a_first=True, judge_config=judge_config)
+    except InvalidRequestError:
+        first = None
+    try:
+        second = get_judge_output(comparison, judge, model_a_first=False, judge_config=judge_config)
+    except InvalidRequestError:
+        second = None
     return BothJudgements(first_judgement=first, second_judgement=second, judge_config=judge_config)
 
 
 def eval_judge_group_by_model(judged: Sequence[BothJudgements]) -> None:
     # group by judge config
-    grouped = Slist(judged).group_by(lambda j: j.judge_config.model).for_each(lambda group: eval_judged(group.values))
+    Slist(judged).group_by(lambda j: j.judge_config.model).for_each(lambda group: eval_judged(group.values))
     return None
 
 
@@ -265,14 +274,15 @@ class WinrateMetrics(BaseModel):
 #     plt.show()
 
 
-def observable_for_judge(
-    judge_model: str, caller: ModelCaller, samples: Slist[FinetuneSample]
+def observable_for_judges(
+    judge_models: list[str], caller: ModelCaller, samples: Slist[FinetuneSample]
 ) -> Observable[BothJudgements]:
     # First model is claude-2
     vanilla_config = OpenaiInferenceConfig(model="claude-2", max_tokens=2000, temperature=0.0, top_p=1.0)
-    judge_config: OpenaiInferenceConfig = OpenaiInferenceConfig(
-        model=judge_model, max_tokens=2000, temperature=0.0, top_p=1.0
-    )
+    judge_configs: list[OpenaiInferenceConfig] = [
+        OpenaiInferenceConfig(model=judge_model, max_tokens=2000, temperature=0.0, top_p=1.0)
+        for judge_model in judge_models
+    ]
     intervention_config = OpenaiInferenceConfig(model="claude-instant-1.2", max_tokens=2000, temperature=0.0, top_p=1.0)
     pipeline = (
         Observable.from_iterable(samples)
@@ -286,21 +296,23 @@ def observable_for_judge(
             )
         )
         .map_blocking_par(
-            lambda comparison: get_judge_output_both(comparison, judge=caller, judge_config=judge_config), max_par=20
+            lambda comparison: [
+                get_judge_output_both(comparison, judge=caller, judge_config=judge_config)
+                for judge_config in judge_configs
+            ],
+            max_par=20,
         )
+        .flatten_list()
     )
     # run it
     return pipeline
 
 
 def many_judge_obs(judge_models: list[str], caller: ModelCaller) -> Observable[BothJudgements]:
-    samples: Slist[FinetuneSample] = get_h4_test().test
+    samples: Slist[FinetuneSample] = get_alpaca_testing(1000)
     print(f"Total testing samples: {len(samples)}")
-    iterations: list[Observable[BothJudgements]] = []
-    for judge_model in judge_models:
-        iterations.append(observable_for_judge(judge_model=judge_model, caller=caller, samples=samples))
     tq = tqdm(total=len(judge_models) * samples.length)
-    return Observable.from_iterable(iterations).flatten_observable().tqdm(tqdm_bar=tq)
+    return observable_for_judges(judge_models=judge_models, caller=caller, samples=samples).tqdm(tqdm_bar=tq)
 
 
 async def eval_instruction_following(judge_models: list[str]):
@@ -328,8 +340,8 @@ if __name__ == "__main__":
         eval_instruction_following(
             judge_models=[
                 "gpt-3.5-turbo-0613",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt", # LR 0.2
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak", # LR 0.4
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # LR 0.2
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak",  # LR 0.4
             ]
         )
     )

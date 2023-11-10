@@ -178,7 +178,7 @@ class WinrateMetrics(BaseModel):
 
 def get_win_rate(judged: Sequence[ComparisonGenerationJudged]) -> WinrateMetrics:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response))
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 100
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
