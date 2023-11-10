@@ -100,7 +100,7 @@ Instruction:
 First response: {first_text}
 Second response: {second_text}
 
-Let's think step by before answering the question:"""
+Let's think step by step:"""
 
     message = ChatMessage(role=MessageRole.user, content=text)
     return QuestionWithLabels(
@@ -125,7 +125,7 @@ def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label
     # elif "second" in first_word.lower():
     #     return second_label
     else:
-        # print(f"Could not parse judge output {judge_output}")
+        print(f"Could not parse judge output {judge_output}")
         return None
 
 
@@ -326,6 +326,10 @@ if __name__ == "__main__":
     # 1k ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO 0x instruct
     asyncio.run(
         eval_instruction_following(
-            judge_models=["ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt", "gpt-3.5-turbo-0613"]
+            judge_models=[
+                "gpt-3.5-turbo-0613",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt", # LR 0.2
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak", # LR 0.4
+            ]
         )
     )
