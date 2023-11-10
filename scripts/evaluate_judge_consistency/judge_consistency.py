@@ -9,7 +9,7 @@ from slist import Slist
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import ModelCaller, Prompt
+from cot_transparency.apis.base import ModelCaller, Prompt, CachedPerModelCaller
 from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
@@ -40,6 +40,7 @@ class ComparisonGenerationJudged(BaseModel):
 class BothJudgements(BaseModel):
     first_judgement: ComparisonGenerationJudged
     second_judgement: ComparisonGenerationJudged
+    judge_config: OpenaiInferenceConfig
 
     def is_consistent(self) -> Optional[bool]:
         if self.first_judgement.winner is None or self.second_judgement.winner is None:
@@ -75,15 +76,6 @@ def finetune_sample_to_prompt(sample: FinetuneSample) -> Prompt:
 class PromptWithModel(BaseModel):
     prompt: Prompt
     config: OpenaiInferenceConfig
-
-
-def finetune_sample_to_prompts(
-    sample: FinetuneSample, intervention_models: list[OpenaiInferenceConfig]
-) -> list[PromptWithModel]:
-    out = []
-    for config in intervention_models:
-        out.append(PromptWithModel(prompt=finetune_sample_to_prompt(sample=sample), config=config))
-    return out
 
 
 class QuestionWithLabels(BaseModel):
@@ -133,7 +125,7 @@ def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label
     # elif "second" in first_word.lower():
     #     return second_label
     else:
-        print(f"Could not parse judge output {judge_output}")
+        # print(f"Could not parse judge output {judge_output}")
         return None
 
 
@@ -158,13 +150,24 @@ def get_judge_output(
     )
 
 
-def get_judge_output_both(comparison: ComparisonGeneration, judge: ModelCaller, judge_config: OpenaiInferenceConfig) -> BothJudgements:
+def get_judge_output_both(
+    comparison: ComparisonGeneration, judge: ModelCaller, judge_config: OpenaiInferenceConfig
+) -> BothJudgements:
     first = get_judge_output(comparison, judge, model_a_first=True, judge_config=judge_config)
     second = get_judge_output(comparison, judge, model_a_first=False, judge_config=judge_config)
-    return BothJudgements(first_judgement=first, second_judgement=second)
+    return BothJudgements(first_judgement=first, second_judgement=second, judge_config=judge_config)
+
+
+def eval_judge_group_by_model(judged: Sequence[BothJudgements]) -> None:
+    # group by judge config
+    grouped = Slist(judged).group_by(lambda j: j.judge_config.model).for_each(lambda group: eval_judged(group.values))
+    return None
 
 
 def eval_judged(judged: Sequence[BothJudgements]) -> None:
+    # Assert unique
+    unique_judge: str = Slist(judged).map(lambda j: j.judge_config.model).distinct_item_or_raise(lambda x: x)
+    print(f"=====Evaluation for judge {unique_judge}=====")
     # Calculate the consistency
     valid = Slist(judged).map(lambda j: j.is_consistent()).flatten_option()
     print(f"Total judged: {len(valid)} out of {len(judged)}")
@@ -262,57 +265,57 @@ class WinrateMetrics(BaseModel):
 #     plt.show()
 
 
-async def eval_instruction_following(intervention_models: list[str]):
-    # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
-    # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
-    samples: Slist[FinetuneSample] = get_h4_test().test
-    print(f"Total testing samples: {len(samples)}")
-
-    intervention_caller = UniversalCaller().with_file_cache(
-        cache_path=Path("experiments/judge/intervention_completion.jsonl"),
-        write_every_n=100,
-    )
-    vanilla_caller = UniversalCaller().with_file_cache(
-        Path("experiments/judge/vanilla_completion.jsonl"), write_every_n=100
-    )
-    judge_model = UniversalCaller().with_file_cache(Path("experiments/judge/judge.jsonl"), write_every_n=100)
+def observable_for_judge(
+    judge_model: str, caller: ModelCaller, samples: Slist[FinetuneSample]
+) -> Observable[BothJudgements]:
     # First model is claude-2
-    vanilla_config = OpenaiInferenceConfig(model="claude-2", max_tokens=1000, temperature=0.0, top_p=1.0)
-    judge_config: OpenaiInferenceConfig = OpenaiInferenceConfig(model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt", max_tokens=1000, temperature=0.0, top_p=1.0)
-    intervention_configs = [
-        OpenaiInferenceConfig(model=intervention_model, max_tokens=1000, temperature=0.0, top_p=1.0)
-        for intervention_model in intervention_models
-    ]
-
-    prompts: Slist[PromptWithModel] = samples.map(
-        lambda sample: finetune_sample_to_prompts(sample, intervention_configs)
-    ).flatten_list()
+    vanilla_config = OpenaiInferenceConfig(model="claude-2", max_tokens=2000, temperature=0.0, top_p=1.0)
+    judge_config: OpenaiInferenceConfig = OpenaiInferenceConfig(
+        model=judge_model, max_tokens=2000, temperature=0.0, top_p=1.0
+    )
+    intervention_config = OpenaiInferenceConfig(model="claude-instant-1.2", max_tokens=2000, temperature=0.0, top_p=1.0)
     pipeline = (
-        Observable.from_iterable(prompts)
+        Observable.from_iterable(samples)
         .map_blocking_par(
-            lambda with_model: generate_comparison(
-                prompt=with_model.prompt,
-                vanilla_caller=vanilla_caller,
-                intervention_caller=intervention_caller,
+            lambda prompt: generate_comparison(
+                prompt=finetune_sample_to_prompt(prompt),
+                vanilla_caller=caller,
+                intervention_caller=caller,
                 vanilla_config=vanilla_config,
-                intervention_config=with_model.config,
+                intervention_config=intervention_config,
             )
         )
-        .map_blocking_par(lambda comparison: get_judge_output_both(comparison, judge_model, judge_config=judge_config), max_par=20)
-        .tqdm(tqdm(total=prompts.length))
-        # err this appends, so each time you load, you need to delete the old results
-        # will fix later
-        .for_each_to_file(
-            file_path=Path("experiments/alignment_tax/results.jsonl"),
-            serialize=lambda x: x.model_dump_json(),
+        .map_blocking_par(
+            lambda comparison: get_judge_output_both(comparison, judge=caller, judge_config=judge_config), max_par=20
         )
     )
     # run it
+    return pipeline
+
+
+def many_judge_obs(judge_models: list[str], caller: ModelCaller) -> Observable[BothJudgements]:
+    samples: Slist[FinetuneSample] = get_h4_test().test
+    print(f"Total testing samples: {len(samples)}")
+    iterations: list[Observable[BothJudgements]] = []
+    for judge_model in judge_models:
+        iterations.append(observable_for_judge(judge_model=judge_model, caller=caller, samples=samples))
+    tq = tqdm(total=len(judge_models) * samples.length)
+    return Observable.from_iterable(iterations).flatten_observable().tqdm(tqdm_bar=tq)
+
+
+async def eval_instruction_following(judge_models: list[str]):
+    # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
+    # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
+
+    caller: CachedPerModelCaller = UniversalCaller().with_model_specific_file_cache(
+        cache_dir=Path("experiments/judge_consistency"),
+        write_every_n=100,
+    )
+
+    pipeline = many_judge_obs(judge_models=judge_models, caller=caller)
+
     results: Slist[BothJudgements] = await pipeline.to_slist()
-    intervention_caller.save_cache()
-    vanilla_caller.save_cache()
-    judge_model.save_cache()
-    eval_judged(results)
+    eval_judge_group_by_model(results)
 
 
 if __name__ == "__main__":
@@ -323,23 +326,6 @@ if __name__ == "__main__":
     # 1k ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO 0x instruct
     asyncio.run(
         eval_instruction_following(
-            intervention_models=[
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Iik5HWG",  # 0.1x instruct lower LR
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ij2WsDK",  # 0.1x instruct higher LR
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDHHr8G",
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg"
-                # start reproduce
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO",
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq",  # 0.1x instruct
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDHHr8G",  # NEW 0.1 instruct
-                # "ft:gpt-3.5-turbo-0613:far-ai::8IU1VMKS"
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg",  # 1x instruct
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDj43XK", # NEW 1X instruct
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDxzKfb",
-                # "gpt-4",
-                "claude-instant-1.2",
-                # "claude-2",
-                # "text-davinci-001",
-            ]
+            judge_models=["ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt", "gpt-3.5-turbo-0613"]
         )
     )
