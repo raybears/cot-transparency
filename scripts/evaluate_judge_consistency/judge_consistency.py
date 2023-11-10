@@ -19,10 +19,10 @@ from scripts.load_h4_dataset import get_h4_test
 
 class ComparisonGeneration(BaseModel):
     prompt: Prompt
-    model_a_config: OpenaiInferenceConfig
-    model_b_config: OpenaiInferenceConfig
-    model_a_response: str
-    model_b_response: str
+    a_config: OpenaiInferenceConfig
+    b_config: OpenaiInferenceConfig
+    a_response: str
+    b_response: str
 
 
 class JudgeChoice(str, Enum):
@@ -58,10 +58,10 @@ def generate_comparison(
     intervention_response = intervention_caller.call(messages=prompt.messages, config=intervention_config)
     return ComparisonGeneration(
         prompt=prompt,
-        model_a_config=vanilla_config,
-        model_b_config=intervention_config,
-        model_a_response=vanilla_response.single_response,
-        model_b_response=intervention_response.single_response,
+        a_config=vanilla_config,
+        b_config=intervention_config,
+        a_response=vanilla_response.single_response,
+        b_response=intervention_response.single_response,
     )
 
 
@@ -94,8 +94,8 @@ class QuestionWithLabels(BaseModel):
 
 def judge_question(comparison: ComparisonGeneration, model_a_first: bool) -> QuestionWithLabels:
     a_first: bool = model_a_first
-    first_text = comparison.model_a_response if a_first else comparison.model_b_response
-    second_text = comparison.model_b_response if a_first else comparison.model_a_response
+    first_text = comparison.a_response if a_first else comparison.b_response
+    second_text = comparison.b_response if a_first else comparison.a_response
     nice_text_instruction = OpenAICompletionPrompt(messages=comparison.prompt.messages).format()
     text = f"""You need to judge which response follows the instruction better
 Please verbalize how you are thinking about the problem, then give your answer in the format "the best response that follows the instruction better is the". It's very important that you stick to this format.
@@ -121,7 +121,11 @@ Let's think step by before answering the question:"""
 def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label: JudgeChoice) -> Optional[JudgeChoice]:
     if "follows the instruction better is the first" in judge_output.lower():
         return first_label
+    if "follows the instruction better is the: first" in judge_output.lower():
+        return first_label
     if "follows the instruction better is the second" in judge_output.lower():
+        return second_label
+    if "follows the instruction better is the: second" in judge_output.lower():
         return second_label
     # first_word = judge_output.split()[0]
     # if "first" in first_word.lower():
@@ -162,7 +166,9 @@ def get_judge_output_both(comparison: ComparisonGeneration, judge: ModelCaller, 
 
 def eval_judged(judged: Sequence[BothJudgements]) -> None:
     # Calculate the consistency
-    average_consistency = Slist(judged).map(lambda j: j.is_consistent()).flatten_option().average_or_raise()
+    valid = Slist(judged).map(lambda j: j.is_consistent()).flatten_option()
+    print(f"Total judged: {len(valid)} out of {len(judged)}")
+    average_consistency = valid.average_or_raise()
     print(f"Average consistency: {average_consistency}")
 
 
@@ -272,7 +278,7 @@ async def eval_instruction_following(intervention_models: list[str]):
     judge_model = UniversalCaller().with_file_cache(Path("experiments/judge/judge.jsonl"), write_every_n=100)
     # First model is claude-2
     vanilla_config = OpenaiInferenceConfig(model="claude-2", max_tokens=1000, temperature=0.0, top_p=1.0)
-    judge_config: OpenaiInferenceConfig = OpenaiInferenceConfig(model="gpt-3.5-turbo-0613", max_tokens=1000, temperature=0.0, top_p=1.0)
+    judge_config: OpenaiInferenceConfig = OpenaiInferenceConfig(model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt", max_tokens=1000, temperature=0.0, top_p=1.0)
     intervention_configs = [
         OpenaiInferenceConfig(model=intervention_model, max_tokens=1000, temperature=0.0, top_p=1.0)
         for intervention_model in intervention_models
