@@ -68,36 +68,32 @@ def answer_grading_step(prev_output: A, caller: CachedPerModelCaller, config: Op
     """
     # if the previous step did find the answer, then we don't need to do anything
     output = prev_output.inference_output
-    if output.parsed_response is not None:
-        # we found the answer in the previous step
-        # so we don't need to do anything
-        found_answer = output.parsed_response
-    else:
-        model_response = output.raw_response
+    model_response = output.raw_response
 
-        # unpack the results from the previous step
-        answer_grading_formatter = GetGradeGivenFormatter
-        messages = answer_grading_formatter.format_example(
-            model_response=model_response,
-            original_question=prev_output.get_task_spec().get_data_example_obj(),
-            model=config.model,
-        )
-        task_spec = StreamingTaskSpec(
-            messages=messages,
-            formatter_name=answer_grading_formatter.name(),
-            data_example=prev_output.get_task_spec().get_data_example_obj().model_dump(),
-            inference_config=config,
-            task_name=prev_output.get_task_spec().get_task_name(),
-        )
+    # unpack the results from the previous step
+    answer_grading_formatter = GetGradeGivenFormatter
+    messages = answer_grading_formatter.format_example(
+        model_response=model_response,
+        original_question=prev_output.get_task_spec().get_data_example_obj(),
+        model=config.model,
+    )
+    task_spec = StreamingTaskSpec(
+        messages=messages,
+        formatter_name=answer_grading_formatter.name(),
+        data_example=prev_output.get_task_spec().get_data_example_obj().model_dump(),
+        inference_config=config,
+        task_name=prev_output.get_task_spec().get_task_name(),
+    )
 
-        # we do this so that we get a seperate cache for each model that generated the answer
-        # so we can run this script in parallel without running into cache conflicts between processes
-        cache_name = f"{prev_output.get_task_spec().inference_config.model}_{config.model}"
-        specific_caller = caller.get_specific_caller(cache_name=cache_name)
-        output_of_parsing = call_model_with_task_spec(task_spec, specific_caller)
-        assert len(output_of_parsing) == 1, "Expected only one output from the answer parsing model"
-        output_of_parsing = output_of_parsing[0]
-        found_answer = output_of_parsing.inference_output.parsed_response
+    # we do this so that we get a seperate cache for each model that generated the answer
+    # so we can run this script in parallel without running into cache conflicts between processes
+    cache_name = f"{prev_output.get_task_spec().inference_config.model}_{config.model}"
+    specific_caller = caller.get_specific_caller(cache_name=cache_name)
+    output_of_parsing = call_model_with_task_spec(task_spec, specific_caller)
+    assert len(output_of_parsing) == 1, "Expected only one output from the answer parsing model"
+    output_of_parsing = output_of_parsing[0]
+    found_answer = output_of_parsing.inference_output.parsed_response
+    print(f"Response: {model_response}\nOutput: {output_of_parsing.inference_output}\nScore:{found_answer}")
 
     return prev_output.update_parsed_response(found_answer)
 
@@ -188,6 +184,7 @@ async def run_refusal_eval(
         write_every_n=200,
     )
     answer_grading_config = config_from_default(model="claude-2")
+    # answer_grading_config = config_from_default(model="gpt-3.5-turbo")
 
     data = Slist([("refusal", example) for example in load_data(example_cap)])
     tasks_to_run = data.map(lambda x: data_and_jailbreaks_to_task_spec(x[0], x[1], formats, configs)).flatten_list()
@@ -200,7 +197,7 @@ async def run_refusal_eval(
         )
         .flatten_list()
         .tqdm(tqdm_bar=tqdm(total=len(tasks_to_run), desc="Evaluate models"))
-        .map_blocking_par(lambda x: answer_grading_step(x, answer_grading_caller, answer_grading_config), max_par=10)
+        .map_blocking_par(lambda x: answer_grading_step(x, answer_grading_caller, answer_grading_config), max_par=batch)
         .tqdm(tqdm_bar=tqdm(total=len(tasks_to_run), desc="Grading answers with claude"))
     )
 
