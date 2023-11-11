@@ -22,6 +22,7 @@ from cot_transparency.data_models.streaming import ParaphrasedQuestion
 from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
 from cot_transparency.data_models.streaming import ParaphrasingOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AskParaphrasedQuestionFormatter,
     GenerateParaphrasingsFormatters,
@@ -46,11 +47,13 @@ from scripts.utils.plots import catplot
 
 SWEEPS_DB = SweepDatabase()
 SWEEPS_DB.add(Sweeps.gpt)
-SWEEPS_DB.add(Sweeps.zero_shot_2)
-SWEEPS_DB.add(Sweeps.few_shot_2)
+# SWEEPS_DB.add(Sweeps.zero_shot_2)
+# SWEEPS_DB.add(Sweeps.few_shot_2)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
-SWEEPS_DB.add(Sweeps.paraphrasing_2)
+SWEEPS_DB.add(Sweeps.og_control)
+SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
+SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
 # SWEEPS_DB.add(Sweeps.gs_unbiased)
 # SWEEPS_DB.add(Sweeps.prompt_variants_2)
 
@@ -71,6 +74,8 @@ def reformulate_questions_for_asking(
     x: ParaphrasingOutput, configs: Sequence[OpenaiInferenceConfig]
 ) -> Sequence[ParaphrasedTaskSpec]:
     specs = []
+    is_cot = name_to_formatter(x.get_task_spec().formatter_name).is_cot
+
     for paraphrased_question in x.paraphrased_questions:
         for config in configs:
             messages = AskParaphrasedQuestionFormatter.format_example(

@@ -62,11 +62,7 @@ from cot_transparency.formatters.more_biases.user_wrong_cot import (
     ModelBiasedWrongCotFormatter,
     UserBiasedWrongCotFormatter,
 )
-from cot_transparency.formatters.more_biases.wrong_few_shot import (
-    WrongFewShotBiasedFormatter,
-    WrongFewShotIgnoreMistakesBiasedFormatter,
-    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-)
+
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.prompt_addition_python.pal_few_shot import PALFewShot
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
