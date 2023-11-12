@@ -7,6 +7,7 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter, ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.interventions.consistency import NaiveFewShot3InverseScaling
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -57,7 +58,7 @@ async def plot_accuracies():
         example_cap=2000,
         num_tries=1,
         raise_after_retries=False,
-        # interventions=[NaiveFewShot3InverseScaling.name()],
+        interventions=[NaiveFewShot3InverseScaling.name()],
         temperature=0.0,
         caller=stage_one_caller,
         batch=40,
@@ -73,6 +74,7 @@ async def plot_accuracies():
         plot_for_intervention(
             results_filtered,
             for_formatters=[plot_formatter],
+            intervention=NaiveFewShot3InverseScaling,
             model=model,
             name_override=model,
         )

@@ -339,9 +339,15 @@ if __name__ == "__main__":
     asyncio.run(
         eval_instruction_following(
             judge_models=[
-                "gpt-3.5-turbo-0613",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # LR 0.2
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak",  # LR 0.4
+                # start instruct prop
+                "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
+                "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw",  # prop=1.0, control
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
+                "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
+                "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+                "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
             ]
         )
     )
