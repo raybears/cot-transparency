@@ -22,16 +22,21 @@ from cot_transparency.data_models.streaming import ParaphrasedQuestion
 from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
 from cot_transparency.data_models.streaming import ParaphrasingOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AskParaphrasedQuestionFormatter,
+    GenerateParaphrasingsFormatter2,
     GenerateParaphrasingsFormatters,
-    GenerateParaphrasingsNoCotFormatters,
     GoldStandardNoCotFormatter,
     GoldStandardWithCotFormatter,
     GoldStandardWithCotFormatter2,
     GoldStandardWithCotFormatter3,
     GoldStandardWithCotFormatter4,
+)
+from cot_transparency.formatters.prompt_sensitivity.interventions import (
+    AddBestAnswerIsNonCot,
+    AddVerbalizeAndStepByStepAssistantPref,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.streaming.tasks import StreamingTaskOutput
@@ -103,7 +108,9 @@ async def run_pipeline(
     batch_size: int = 50,
     eval_temp: float = 0.0,
     models_to_evaluate: Sequence[str] = [],
-    paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatters],
+    paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatter2],
+    # GenerateParahrasingsFormatter2 doesn't specify whether to use COT or not so we add that with an intervention
+    interventions: Sequence[Type[Intervention]] = [AddVerbalizeAndStepByStepAssistantPref, AddBestAnswerIsNonCot],
 ) -> Path:
     cache_dir = f"{exp_dir}/cache"
 
@@ -115,21 +122,20 @@ async def run_pipeline(
     answer_parsing_config = config_from_default(model="claude-2")
 
     data_examples = get_examples_for_tasks(tasks, example_cap)
-    n_items = len(data_examples)
+    task_specs = data_examples.map(
+        lambda x: data_to_task_spec(
+            *x,
+            formatters=paraphrasing_formatters,
+            models=[config_from_default(model="gpt-4", max_tokens=3000)],
+        )
+    )
 
     pipeline = (
-        Observable.from_iterable(data_examples)
-        .map(
-            lambda x: data_to_task_spec(
-                *x,
-                formatters=paraphrasing_formatters,
-                models=[config_from_default(model="gpt-4", max_tokens=3000)],
-            )
-        )
+        Observable.from_iterable(task_specs)
         .flatten_iterable()
         .map_blocking_par(lambda x: call_model_with_task_spec(x, generation_caller), max_par=batch_size)
         .flatten_list()
-        .tqdm(tqdm_bar=tqdm(total=n_items * len(paraphrasing_formatters), desc="Generating prompts"))
+        .tqdm(tqdm_bar=tqdm(total=len(task_specs), desc="Generating prompts"))
         .map(parse_responses)
     )
     if models_to_evaluate:
@@ -144,12 +150,12 @@ async def run_pipeline(
             pipeline.map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
             .flatten_iterable()
             .map_blocking_par(lambda x: call_model_with_task_spec(x, testing_caller), max_par=batch_size)
-            .tqdm(tqdm_bar=tqdm(total=n_items * 10 * len(models_to_evaluate), desc="Asking parahrased questions"))
+            .tqdm(tqdm_bar=tqdm(total=10 * len(task_specs), desc="Asking parahrased questions"))
             .flatten_list()
             .map_blocking_par(
                 lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=10
             )
-            .tqdm(tqdm_bar=tqdm(total=n_items * 10 * len(models_to_evaluate), desc="Evaluating models"))
+            .tqdm(tqdm_bar=tqdm(total=len(task_specs), desc="Evaluating models"))
         )
 
     results_dir = Path(f"{exp_dir}/results")
@@ -163,10 +169,6 @@ def make_training_data(
     exp_dir="experiments/automated_prompt_variant_generation/training_data",
     example_cap: int = 100000,
     tasks: Sequence[str] = COT_TRAINING_TASKS,
-    paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [
-        GenerateParaphrasingsFormatters,
-        GenerateParaphrasingsNoCotFormatters,
-    ],
     gold_standard_formatters: Sequence[Type[StageOneFormatter]] = [
         GoldStandardWithCotFormatter,
         GoldStandardNoCotFormatter,
@@ -185,7 +187,6 @@ def make_training_data(
             tasks=tasks,
             batch_size=batch_size,
             eval_temp=0.0,
-            paraphrasing_formatters=paraphrasing_formatters,
         )
     )
     paraphrased_questions = load_per_model_results(results_path, ParaphrasingOutput)
