@@ -3,7 +3,7 @@ import random
 import time
 
 from functools import partial
-from typing import Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 from decorator import decorator
 
@@ -18,9 +18,9 @@ def __retry_internal(
     tries: int = -1,
     delay: float = 0,
     max_delay: Optional[float] = None,
-    backoff: float=1,
+    backoff: float = 1,
     jitter: tuple[float, float] | float = 0,
-    logger: Optional[Logger]=logging_logger,
+    logger: Optional[Logger] = logging_logger,
     on_retry: Optional[Callable[[], None]] = None,
 ) -> Optional[_R]:
     """
@@ -73,9 +73,9 @@ def retry(
     tries: int = -1,
     delay: float = 0,
     max_delay: Optional[float] = None,
-    backoff: float=1,
+    backoff: float = 1,
     jitter: tuple[float, float] | float = 0,
-    logger: Optional[Logger]=logging_logger,
+    logger: Optional[Logger] = logging_logger,
     on_retry: Optional[Callable[[], None]] = None,
 ) -> Callable[[Callable[..., _R]], Callable[..., _R]]:
     """Returns a retry decorator.
@@ -96,7 +96,9 @@ def retry(
     """
 
     @decorator
-    def retry_decorator(f: Callable[..., _R], *fargs, **fkwargs) -> Optional[_R]:
+    def retry_decorator(
+        f: Callable[..., _R], *fargs: Optional[tuple[Any]], **fkwargs: Optional[dict[str, Any]]
+    ) -> Optional[_R]:
         args = fargs if fargs else list()
         kwargs = fkwargs if fkwargs else dict()
         return __retry_internal(
@@ -116,15 +118,15 @@ def retry(
 
 def retry_call(
     f: Callable[..., _R],
-    fargs=None,
-    fkwargs=None,
+    fargs=None,  # type: ignore
+    fkwargs=None,  # type: ignore
     exceptions=Exception,
     tries: int = -1,
     delay: float = 0,
     max_delay: Optional[float] = None,
-    backoff: float=1,
+    backoff: float = 1,
     jitter: tuple[float, float] | float = 0,
-    logger: Optional[Logger]=logging_logger,
+    logger: Optional[Logger] = logging_logger,
     on_retry: Optional[Callable[[], None]] = None,
 ) -> Optional[_R]:
     """
