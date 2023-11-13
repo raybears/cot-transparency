@@ -19,6 +19,7 @@ from cot_transparency.apis.openai.finetune import (
 from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
 from cot_transparency.data_models.data.gpt_35_instructions import get_all_alpaca_training_gpt_35
 from cot_transparency.data_models.example_base import DataExampleBase
+from cot_transparency.data_models.example_base import DummyDataExample
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.data_models.streaming import ParaphrasingOutput
@@ -292,12 +293,12 @@ def match_formatter_options(
                 )
             )
         case FormatterOptions.ask_paraphrased:
-            cot_formatters = []
-            non_cot_formatters = []
+            non_cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)]
+            cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
 
         case FormatterOptions.gs_unbiased:
-            cot_formatters = [FormatterWithPossibleIntervention(formatter=GoldStandardWithCotFormatter)]
-            non_cot_formatters = [FormatterWithPossibleIntervention(formatter=GoldStandardNoCotFormatter)]
+            cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)]
+            non_cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
 
     return FormatterOptionsResult(
         biased_formatters=sorted(list(set(cot_formatters))),
@@ -408,20 +409,36 @@ class ParaphrasingSampler(FormatSampler):
     This is a sort of dummy sampler so that we can get the paraphrased questions
     """
 
-    def __init__(self, n_formats_per_question: int, use_unique_cots: bool = False):
+    def __init__(
+        self,
+        n_formats_per_question: int,
+        use_unique_cots: bool = False,
+        cot_paraphrasings_file="data/training_paraphrasings/GenerateParaphrasingsFormatters.jsonl",
+        non_cot_paraphrasings_file="data/training_paraphrasings/GenerateParaphrasingsNoCotFormatters.jsonl",
+    ):
         # load the paraphrasings
         self.n_formats_per_question = n_formats_per_question
         self.use_unique_cots = use_unique_cots
-        self.mapping: dict[str, ParaphrasingOutput] = {}
+
+        self.cot_paraphrasings_file = cot_paraphrasings_file
+        self.non_cot_paraphrasings_file = non_cot_paraphrasings_file
+
+        self.cot_mapping: dict[str, ParaphrasingOutput] = {}
+        self.no_cot_mapping: dict[str, ParaphrasingOutput] = {}
 
     def load_paraphrasings(self):
-        paraphrasings = read_jsonl_file_into_basemodel(
-            Path("data/training_paraphrasings/gpt4_paraphrasings.jsonl"), ParaphrasingOutput
-        )
+        for is_cot in [True, False]:
+            if is_cot:
+                paraphrasings = read_jsonl_file_into_basemodel(self.cot_paraphrasings_file, ParaphrasingOutput)
+            else:
+                paraphrasings = read_jsonl_file_into_basemodel(self.non_cot_paraphrasings_file, ParaphrasingOutput)
 
-        for paraphrasing in paraphrasings:
-            key = self._get_key(paraphrasing)
-            self.mapping[key] = paraphrasing
+            for paraphrasing in paraphrasings:
+                key = self._get_key(paraphrasing)
+                if is_cot:
+                    self.cot_mapping[key] = paraphrasing
+                else:
+                    self.no_cot_mapping[key] = paraphrasing
 
     def _get_key(self, task: BaseTaskOutput) -> str:
         return (
@@ -438,11 +455,13 @@ class ParaphrasingSampler(FormatSampler):
     ) -> Slist[BaseTaskOutput]:
         tasks = Slist(tasks)
 
-        if not self.mapping:
+        if not self.cot_mapping:
             self.load_paraphrasings()
 
-        if formatters:
-            print("Warning: formatters passed to sampler but these are ignored for paraphrasing sampler")
+        supported_formatters = [ZeroShotUnbiasedFormatter, ZeroShotCOTUnbiasedFormatter]
+
+        for f in Slist(formatters).map(lambda x: x.formatter):
+            assert f in supported_formatters, f"Formatter {f} not supported for paraphrasing sampler"
 
         group = tasks.group_by(lambda x: x.get_task_spec().get_task_hash())
         if self.use_unique_cots:
@@ -455,22 +474,27 @@ class ParaphrasingSampler(FormatSampler):
             else:
                 tasks = task_group.values.take(1).repeat_until_size_or_raise(self.n_formats_per_question)
             key = self._get_key(tasks[0])
-            paraphrasing = self.mapping[key]
-            paraphrased_questions = Slist(paraphrasing.paraphrased_questions)
-            to_use = paraphrased_questions.shuffle(seed=key).take(self.n_formats_per_question)
+            for f in formatters:
+                mapping = self.cot_mapping if f.formatter.is_cot else self.no_cot_mapping
+                paraphrasing = mapping[key]
+                paraphrased_questions = Slist(paraphrasing.paraphrased_questions)
+                to_use = paraphrased_questions.shuffle(seed=key).take(self.n_formats_per_question)
 
-            for task, paraphrased in zip(tasks, to_use):
-                first_message = ChatMessage(content=paraphrased.paraphrased, role=MessageRole.user)
-                new_messages = list(task.get_task_spec().messages)
-                new_messages[0] = first_message
-                # if new_messages[-1].content == "The best answer is: (":
-                #     # so we can benefit from the augmentation to 50/50 sticking this at the start of the assistant reponse
-                #     new_messages[-1] = ChatMessage(
-                #         content=new_messages[-1].content, role=MessageRole.assistant_if_completion
-                #     )
+                for task, paraphrased in zip(tasks, to_use):
+                    paraphrased_as_data_example = DummyDataExample(parsed_input=paraphrased.paraphrased)
 
-                new_task = task.update_messages_in_task_spec(messages=new_messages)
-                ret.append(new_task)
+                    intervention = f.intervention
+                    if intervention is not None:
+                        new_messages = intervention.intervene(
+                            question=task.get_task_spec().get_data_example_obj(),
+                            formatter=f.formatter,
+                            model=task.get_task_spec().inference_config.model,
+                        )
+                    else:
+                        new_messages = f.formatter.format_example(paraphrased_as_data_example)
+
+                    new_task = task.update_messages_in_task_spec(messages=new_messages)
+                    ret.append(new_task)
 
         ret = ret.take(n)
         if len(ret) < n:

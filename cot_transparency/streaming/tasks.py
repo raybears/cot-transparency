@@ -17,6 +17,7 @@ from cot_transparency.data_models.models import BaseTaskOutput, BaseTaskSpec, Mo
 from cot_transparency.formatters.base_class import StageOneFormatter, Type
 from cot_transparency.formatters.interventions.intervention import Intervention
 from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.tasks import call_model_and_catch, call_model_and_raise_if_not_suitable
 
 
 class StreamingTaskSpec(BaseTaskSpec):
@@ -115,23 +116,41 @@ def data_to_task_spec(
     return specs
 
 
-def call_model_with_task_spec(task_spec: StreamingTaskSpec, caller: ModelCaller) -> Sequence[StreamingTaskOutput]:
+def call_model_with_task_spec(
+    task_spec: StreamingTaskSpec, caller: ModelCaller, should_raise=False, num_tries: int = 1
+) -> Sequence[StreamingTaskOutput]:
     """
     Basic building block to call a model with a task spec. Note this returns a sequence because the config in task_spec
     may specify n > 1 in which case we will get multiple responses for a single request. Call .flatten_iterable() if
     using grugstream after this step to flatten the sequence into a single iterable.
     """
 
-    responses = Slist(caller.call(messages=task_spec.messages, config=task_spec.inference_config).raw_responses)
     formatter_class = name_to_formatter(task_spec.formatter_name)
-    data_example = task_spec.get_data_example_obj()
-    outputs = responses.map(
-        lambda i: ModelOutput(
-            raw_response=i,
-            parsed_response=formatter_class.parse_answer(i, data_example, model=task_spec.inference_config.model),
+
+    if should_raise:
+        responses = Slist(
+            call_model_and_raise_if_not_suitable(
+                task_spec,
+                config=task_spec.inference_config,
+                formatter=formatter_class,
+                caller=caller,
+                tries=num_tries,
+                should_log_failures=False,
+            )
         )
-    )
-    return outputs.map(lambda x: StreamingTaskOutput(task_spec=task_spec, inference_output=x))
+    else:
+        responses = Slist(
+            call_model_and_catch(
+                task_spec,
+                config=task_spec.inference_config,
+                formatter=formatter_class,
+                caller=caller,
+                tries=num_tries,
+                should_log_failures=False,
+            )
+        )
+
+    return responses.map(lambda x: StreamingTaskOutput(task_spec=task_spec, inference_output=x))
 
 
 def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tuple[str, DataExampleBase]]:

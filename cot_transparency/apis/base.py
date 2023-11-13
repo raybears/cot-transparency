@@ -145,6 +145,9 @@ class APIRequestCache:
     def __contains__(self, key: str) -> bool:
         return key in self.data
 
+    def __delitem__(self, key: str) -> None:
+        del self.data[key]
+
 
 def file_cache_key(messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> str:
     str_messages = ",".join([str(msg) for msg in messages]) + config.model_hash()
@@ -162,6 +165,14 @@ class CachedCaller(ModelCaller):
 
     def save_cache(self) -> None:
         self.cache.save()
+
+    def invalidate_cache_line(self, messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> None:
+        with self.save_lock:
+            key = file_cache_key(messages, config)
+            print("CachedCaller: Invalidating cache line", key)
+            if key in self.cache:
+                del self.cache[key]
+                self.save_cache()
 
     def call(
         self,
@@ -189,7 +200,7 @@ class CachedCaller(ModelCaller):
         self.save_cache()
 
 
-class CachedPerModelCaller(ModelCaller):
+class CachedPerModelCaller(CachedCaller):
     """
     This class will create a seperate cache (and corresponding file) for each model that is called
     useful if you want to run multiple models in parallel without having to worry about cache conflicts
@@ -222,6 +233,10 @@ class CachedPerModelCaller(ModelCaller):
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
         return self.get_specific_caller(config.model).call(messages, config)
+
+    def invalidate_cache_line(self, messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> None:
+        specific_caller = self.get_specific_caller(config.model)
+        specific_caller.invalidate_cache_line(messages, config)
 
     def get_specific_caller(
         self,
