@@ -24,8 +24,8 @@ async def train_and_run() -> None:
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
-        hyperparams=FineTuneHyperParams(batch_size=1, n_epochs=1, learning_rate_multiplier=0.4),
-        n_samples=1000,
+        hyperparams=FineTuneHyperParams(batch_size=1, n_epochs=1, learning_rate_multiplier=0.2),
+        n_samples=2500,
         # n_val_samples=sweep.n_samples,
         post_hoc=False,
         cot_percentage=0.5,
@@ -33,8 +33,8 @@ async def train_and_run() -> None:
         formatter_options=FormatterOptions.control_only_unbiased,
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
-        instruct_sample_proportion=1.0,
-        prepend_notes="(control miles: lr 0.4, instruct 0.1)",
+        instruct_sample_proportion=10,
+        prepend_notes="(rerun after failed - control miles: lr 0.2, instruct 0.1)",
         instruct_source=InstructSource.alpaca_gpt_35,
     )
     # await eval_instruction_following(
