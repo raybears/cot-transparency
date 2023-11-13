@@ -29,10 +29,10 @@ async def plot_accuracies():
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
         "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw",  # prop=1.0, control
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl", # prop=5.0, control
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1", # prop=5.0, ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0", # prop=10.0, control
-        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # prop=10.0, ours
+        "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
+        "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON"  # lr = 0.05
         # "ft:gpt-3.5-turbo-0613:far-ai::8IxN8oUv"  # 1.0x instruct 1000 (ours)

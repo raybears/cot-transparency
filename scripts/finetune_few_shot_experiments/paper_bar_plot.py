@@ -34,16 +34,15 @@ if __name__ == "__main__":
         # "ft:gpt-3.5-turbo-0613:far-ai::8J3Z5bnB",  # lr = 0.1
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # lr = 0.2
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak",  # lr = 0.4
-
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JOwa1JV", # 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JOwa1JV",  # 10k
         "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
         "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw",  # prop=1.0, control
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl", # prop=5.0, control
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1", # prop=5.0, ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0", # prop=10.0, control
-        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # prop=10.0, ours
+        "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
+        "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4dxRe5" # 10k
         # "ft:gpt-3.5-turbo-0613:far-ai::8IwDsAME",  # 0.1x control
         # "ft:gpt-3.5-turbo-0613:far-ai::8IwE3n26",  # 0.1x instruct 1000 (ours)
