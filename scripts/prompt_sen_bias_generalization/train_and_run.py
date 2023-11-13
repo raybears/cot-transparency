@@ -41,6 +41,7 @@ models = [
 
 
 def run_all_evals(models: Sequence[str] = models, example_cap: int = 400):
+    print("\nRunning Bias Evaluation")
     asyncio.run(
         run_bias_eval(
             model_names=models,
@@ -49,7 +50,7 @@ def run_all_evals(models: Sequence[str] = models, example_cap: int = 400):
             example_cap=example_cap,
         )
     )
-    print("running paraphrasing")
+    print("\nRunning Prompt Sensitivity Evaluation")
     asyncio.run(
         run_paraphrasing_eval(
             example_cap=example_cap // 2,
@@ -73,7 +74,7 @@ def train_paraphrasing(
         assert n_formats_per_question == 1, "Only makes sense to have one format per question for unbiased"
         sampler = NFormatsPerQuestionSampler(n_formats_per_question=1)
         val_sampler = NFormatsPerQuestionSampler(n_formats_per_question=2)
-        formatter_options = FormatterOptions.gs_unbiased
+        formatter_options = FormatterOptions.control_only_unbiased
     else:
         sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question, use_unique_cots=unique_cots)
         formatter_options = FormatterOptions.ask_paraphrased
@@ -85,7 +86,7 @@ def train_paraphrasing(
 
     # create hash of all the things sent to this function
     job_hash_str = f"{n_samples}_{n_formats_per_question}_{unique_cots}_{data_from}_{unbiased}_{filter_strategy}"
-    file_name = f"experiments/finetune_3_streaming_cc/{job_hash_str}_model_name.text"
+    file_name = f"experiments/finetune_3_streaming_cc/{job_hash_str}_model_name_post_fix.text"
     # if file exists and has a model name, load it
     if os.path.exists(file_name):
         with open(file_name, "r") as f:
@@ -102,7 +103,7 @@ def train_paraphrasing(
             formatter_options=formatter_options,
             sampler=sampler,
             val_sampler=val_sampler,
-            permute_verbalize_instructions=False,
+            permute_verbalize_instructions=True,
             data_from_options=data_from_options,
             model_output_verified=model_output_verified,
             ask_to_validate_training=False,

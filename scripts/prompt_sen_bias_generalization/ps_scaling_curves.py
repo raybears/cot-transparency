@@ -2,7 +2,7 @@ import asyncio
 import math
 from collections import Counter
 from pathlib import Path
-from typing import Sequence, Type
+from typing import Optional, Sequence, Type
 
 import fire
 import pandas as pd
@@ -14,29 +14,21 @@ from slist import Slist, Group
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
+from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.data_models.data import COT_TRAINING_TASKS
-from cot_transparency.data_models.pd_utils import BaseExtractor, convert_slist_to_df
+from cot_transparency.data_models.example_base import DummyDataExample
+from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, convert_slist_to_df
 from cot_transparency.data_models.streaming import ParaphrasedQuestion
 from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
 from cot_transparency.data_models.streaming import ParaphrasingOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.interventions.intervention import Intervention
-from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
-    AskParaphrasedQuestionFormatter,
     GenerateParaphrasingsFormatter2,
     GenerateParaphrasingsFormatters,
-    GoldStandardNoCotFormatter,
-    GoldStandardWithCotFormatter,
-    GoldStandardWithCotFormatter2,
-    GoldStandardWithCotFormatter3,
-    GoldStandardWithCotFormatter4,
-)
-from cot_transparency.formatters.prompt_sensitivity.interventions import (
-    AddBestAnswerIsNonCot,
-    AddVerbalizeAndStepByStepAssistantPref,
+    GenerateParaphrasingsNoCotFormatters,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.streaming.tasks import StreamingTaskOutput
@@ -46,6 +38,10 @@ from cot_transparency.streaming.tasks import get_examples_for_tasks
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
 from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, Sweeps
+from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
+    BASELINE_1_W_VERBALIZE,
+    PARAPHRASING_1_W_VERBALIZE,
+)
 from scripts.prompt_sen_bias_generalization.util import load_per_model_results, save_per_model_results
 from scripts.prompt_sen_bias_generalization.util import add_point_at_1
 from scripts.utils.plots import catplot
@@ -56,11 +52,15 @@ SWEEPS_DB.add(Sweeps.gpt)
 # SWEEPS_DB.add(Sweeps.few_shot_2)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
-SWEEPS_DB.add(Sweeps.og_control)
-SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
-SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
+SWEEPS_DB.add(PARAPHRASING_1_W_VERBALIZE)
+SWEEPS_DB.add(BASELINE_1_W_VERBALIZE)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
 # SWEEPS_DB.add(Sweeps.gs_unbiased)
 # SWEEPS_DB.add(Sweeps.prompt_variants_2)
+
+EXP_DIR = "experiments/automated_prompt_variant_generation"
+EVAL_DIR = f"{EXP_DIR}/evaluation_v2"
+TRAINING_DIR = f"{EXP_DIR}/training_data_v2"
 
 
 def parse_responses(output: StreamingTaskOutput) -> ParaphrasingOutput:
@@ -76,45 +76,42 @@ def parse_responses(output: StreamingTaskOutput) -> ParaphrasingOutput:
 
 
 def reformulate_questions_for_asking(
-    x: ParaphrasingOutput, configs: Sequence[OpenaiInferenceConfig]
+    x: ParaphrasingOutput,
+    configs: Sequence[OpenaiInferenceConfig],
+    formatters: Sequence[Type[StageOneFormatter]] = [ZeroShotCOTUnbiasedFormatter],
 ) -> Sequence[ParaphrasedTaskSpec]:
     specs = []
-    is_cot = name_to_formatter(x.get_task_spec().formatter_name).is_cot
 
     for paraphrased_question in x.paraphrased_questions:
+        paraphrased_as_data_example = DummyDataExample(parsed_input=paraphrased_question.paraphrased)
         for config in configs:
-            messages = AskParaphrasedQuestionFormatter.format_example(
-                paraphrased_question=paraphrased_question.paraphrased
-            )
-            ts = ParaphrasedTaskSpec(
-                messages=messages,
-                formatter_name=AskParaphrasedQuestionFormatter.name(),
-                data_example=x.task_spec.data_example,
-                inference_config=config,
-                task_name=x.task_spec.task_name,
-                paraphrased_question=paraphrased_question,
-            )
-            specs.append(ts)
+            for f in formatters:
+                messages = f.format_example(paraphrased_as_data_example, model=config.model)
+                ts = ParaphrasedTaskSpec(
+                    messages=messages,
+                    formatter_name=f.name(),
+                    data_example=x.task_spec.data_example,
+                    inference_config=config,
+                    task_name=x.task_spec.task_name,
+                    paraphrased_question=paraphrased_question,
+                )
+                specs.append(ts)
     return specs
 
 
-EXP_DIR = "experiments/automated_prompt_variant_generation/v1"
-
-
 async def run_pipeline(
-    exp_dir: str = EXP_DIR,
+    exp_dir: str = EVAL_DIR,
     example_cap: int = 100,
     tasks: Sequence[str] = COT_TESTING_TASKS,
-    batch_size: int = 50,
+    batch_size: int = 1,
     eval_temp: float = 0.0,
     models_to_evaluate: Sequence[str] = [],
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatter2],
     # GenerateParahrasingsFormatter2 doesn't specify whether to use COT or not so we add that with an intervention
-    interventions: Sequence[Type[Intervention]] = [AddVerbalizeAndStepByStepAssistantPref, AddBestAnswerIsNonCot],
 ) -> Path:
     cache_dir = f"{exp_dir}/cache"
 
-    generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=200)
+    generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=1)
 
     answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
         f"{cache_dir}/answer_parsing_cache", write_every_n=200
@@ -126,17 +123,21 @@ async def run_pipeline(
         lambda x: data_to_task_spec(
             *x,
             formatters=paraphrasing_formatters,
-            models=[config_from_default(model="gpt-4", max_tokens=3000)],
+            models=[config_from_default(model="gpt-4", max_tokens=6000)],
         )
-    )
+    ).flatten_list()
 
     pipeline = (
         Observable.from_iterable(task_specs)
-        .flatten_iterable()
-        .map_blocking_par(lambda x: call_model_with_task_spec(x, generation_caller), max_par=batch_size)
+        .map_blocking_par(
+            # We retry to make sure we get 10 paraphrasings per question, sometimes gpt gives fewer
+            lambda x: call_model_with_task_spec(x, generation_caller, num_tries=20, should_raise=True),
+            max_par=batch_size,
+        )
         .flatten_list()
         .tqdm(tqdm_bar=tqdm(total=len(task_specs), desc="Generating prompts"))
         .map(parse_responses)
+        .for_each_to_file(Path(f"{exp_dir}/paraphrasing_outputs.jsonl"), serialize=lambda x: x.model_dump_json())
     )
     if models_to_evaluate:
         models_to_be_tested = Slist(models_to_evaluate).map(
@@ -147,15 +148,22 @@ async def run_pipeline(
         )
 
         pipeline = (
-            pipeline.map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
+            pipeline.map(
+                lambda x: reformulate_questions_for_asking(
+                    x,
+                    models_to_be_tested,
+                )
+            )
             .flatten_iterable()
             .map_blocking_par(lambda x: call_model_with_task_spec(x, testing_caller), max_par=batch_size)
-            .tqdm(tqdm_bar=tqdm(total=10 * len(task_specs), desc="Asking parahrased questions"))
+            .tqdm(
+                tqdm_bar=tqdm(total=10 * len(task_specs) * len(models_to_be_tested), desc="Asking parahrased questions")
+            )
             .flatten_list()
             .map_blocking_par(
-                lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=10
+                lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=batch_size
             )
-            .tqdm(tqdm_bar=tqdm(total=len(task_specs), desc="Evaluating models"))
+            .tqdm(tqdm_bar=tqdm(total=10 * len(task_specs) * len(models_to_be_tested), desc="Parsing Answers"))
         )
 
     results_dir = Path(f"{exp_dir}/results")
@@ -166,19 +174,22 @@ async def run_pipeline(
 
 
 def make_training_data(
-    exp_dir="experiments/automated_prompt_variant_generation/training_data",
+    exp_dir=TRAINING_DIR,
     example_cap: int = 100000,
     tasks: Sequence[str] = COT_TRAINING_TASKS,
-    gold_standard_formatters: Sequence[Type[StageOneFormatter]] = [
-        GoldStandardWithCotFormatter,
-        GoldStandardNoCotFormatter,
-        GoldStandardWithCotFormatter2,
-        GoldStandardWithCotFormatter3,
-        GoldStandardWithCotFormatter4,
-    ],
+    gold_standard_formatters: Sequence[Type[StageOneFormatter]] = [],
     batch_size=50,
-    num_completions_per_prompt: int = 1,
+    v1: bool = False,
 ):
+    # paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [
+    if v1:
+        paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [
+            GenerateParaphrasingsFormatters,
+            GenerateParaphrasingsNoCotFormatters,
+        ]
+    else:
+        paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatter2]
+
     # This generates the different paraphrasings of the questions
     results_path = asyncio.run(
         run_pipeline(
@@ -187,10 +198,19 @@ def make_training_data(
             tasks=tasks,
             batch_size=batch_size,
             eval_temp=0.0,
+            paraphrasing_formatters=paraphrasing_formatters,
         )
     )
     paraphrased_questions = load_per_model_results(results_path, ParaphrasingOutput)
-    write_jsonl_file_from_basemodel(Path("data/training_paraphrasings/gpt4_paraphrasings.jsonl"), paraphrased_questions)
+    grouped = paraphrased_questions.group_by(lambda x: x.task_spec.formatter_name)
+    # cot_para = Slist(paraphrased_questions).filter(lambda x: name_to_formatter(x.task_spec.formatter_name).is_cot)
+    # non_cot_para = Slist(paraphrased_questions).filter(
+    #     lambda x: not name_to_formatter(x.task_spec.formatter_name).is_cot
+    # )
+    grouped.for_each(
+        lambda x: write_jsonl_file_from_basemodel(Path(f"data/training_paraphrasings/{x.key}.jsonl"), x.values)
+    )
+    print("saved paraphrasings")
 
     # but we also want to generate the gold standard completions that we will use to train the model
     # dont need to use any paraphrasings here
@@ -238,15 +258,15 @@ def make_training_data(
         groupby = outputs.group_by(lambda x: x.task_spec.formatter_name)
         groupby.for_each(lambda x: write_jsonl_file_from_basemodel(Path(f"data/training_cots/{x.key}.jsonl"), x.values))
 
-    asyncio.run(
-        get_gold_standard_cots(
-            exp_dir=exp_dir,
-            example_cap=example_cap,
-            tasks=tasks,
-            batch_size=batch_size,
-            num_completions_per_prompt=num_completions_per_prompt,
-        )
-    )
+    # asyncio.run(
+    #     get_gold_standard_cots(
+    #         exp_dir=exp_dir,
+    #         example_cap=example_cap,
+    #         tasks=tasks,
+    #         batch_size=batch_size,
+    #         num_completions_per_prompt=num_completions_per_prompt,
+    #     )
+    # )
 
 
 class Entropy(BaseModel):
@@ -285,7 +305,7 @@ class Extractor(BaseExtractor[grouped_outputs]):
         return [task_hash, model, f"{model}, t={temperature}", temperature, entropy.entropy, entropy.uniform_entropy]
 
 
-def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
+def plot(exp_dir="experiments/automated_prompt_variant_generation/evaluation_v2"):
     results_dir = f"{exp_dir}/results"
     outputs = load_per_model_results(Path(results_dir), StreamingTaskOutput)
 
@@ -302,20 +322,19 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/v1"):
     plt.show()
 
 
-def lineplot_util(df_p: pd.DataFrame, title: str):
-    avg_entropy = df_p.uniform_entropy.mean()
-    print("avg entropy", avg_entropy)
+def lineplot_util(df_p: pd.DataFrame, title: str, y: str = "entropy", add_line_at: Optional[float] = None):
     _, ax = plt.subplots(figsize=(6, 6))
     ax = sns.lineplot(
         df_p,
         x="Samples",
-        y="entropy",
+        y=y,
         hue="Trained on COTS from",
         err_style="bars",
         ax=ax,
     )
-    ax.axhline(avg_entropy, ls="--", color="red")
-    ax.set_ylabel("Entropy")
+    if add_line_at is not None:
+        ax.axhline(add_line_at, ls="--", color="red")
+    ax.set_ylabel(y)
     ax.set_xscale("log")
     ax.set_title(title)
     ax.set_ylim(0, None)
@@ -325,7 +344,7 @@ def lineplot_util(df_p: pd.DataFrame, title: str):
 
 
 def plot_scaling_curves(
-    exp_dir=EXP_DIR,
+    exp_dir=EVAL_DIR,
     model_meta: Sequence[ModelTrainMeta] = SWEEPS_DB.all_models,
     force_rerun: bool = False,
 ):
@@ -354,10 +373,27 @@ def plot_scaling_curves(
             )
         )
 
+    # print number of responses per model
+    print("Number of responses per model")
+    print(Slist(outputs).group_by(lambda x: x.task_spec.inference_config.model).map(lambda x: (x.key, len(x.values))))
+
+    orig_df = convert_slist_to_df(outputs, [BasicExtractor()])
+
+    orig_df["Trained on COTS from"] = orig_df.model.map(lambda x: model_name_to_meta[x].for_legend())
+    orig_df["Samples"] = orig_df.model.map(lambda x: model_name_to_meta[x].trained_samples)
+    orig_df = add_point_at_1(orig_df, "gpt-3.5-turbo")
+
+    # drop any sets of "Trained on COTS from" that only have samples at 1
+    orig_df: pd.DataFrame = orig_df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)  # type: ignore
+    orig_df["Accuracy"] = orig_df["parsed_response"] == orig_df["ground_truth"]
+    orig_df["IsNone"] = 1 * orig_df["parsed_response"].isna()
+
+    lineplot_util(orig_df, title="Accuracy", y="Accuracy")
+    lineplot_util(orig_df, title="Proportion of responses that are None", y="IsNone")
+
     with_entropy = outputs.group_by(lambda x: (x.task_spec.get_task_hash(), x.task_spec.inference_config)).map(
         lambda x: x.map_values(entropy_and_uniform_entropy)
     )
-
     df = convert_slist_to_df(with_entropy, [Extractor()])
     df["Trained on COTS from"] = df.model.map(lambda x: model_name_to_meta[x].for_legend())
     df["Samples"] = df.model.map(lambda x: model_name_to_meta[x].trained_samples)
@@ -366,7 +402,8 @@ def plot_scaling_curves(
     # drop any sets of "Trained on COTS from" that only have samples at 1
     df: pd.DataFrame = df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)  # type: ignore
 
-    lineplot_util(df, title="Entropy across paraphrased questions")
+    avg_entropy = df.uniform_entropy.mean()
+    lineplot_util(df, title="Entropy across paraphrased questions", add_line_at=avg_entropy, y="entropy")
 
     plt.show()
 

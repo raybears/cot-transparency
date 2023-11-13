@@ -253,3 +253,7 @@ class CachedPerModelCaller(CachedCaller):
                 self._create_caller(cache_path=cache_path, cache_name=cache_name)
 
         return self.cache_callers[cache_name]
+
+    def save_cache(self) -> None:
+        for caller in self.cache_callers.values():
+            caller.save_cache()
