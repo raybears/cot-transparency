@@ -2,11 +2,10 @@ import asyncio
 import math
 from collections import Counter
 from pathlib import Path
-from typing import Optional, Sequence, Type
+from typing import Sequence, Type
 
 import fire
 import pandas as pd
-import seaborn as sns
 from grugstream import Observable
 from matplotlib import pyplot as plt
 from pydantic import BaseModel
@@ -14,7 +13,6 @@ from slist import Slist, Group
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.data_models.data import COT_TRAINING_TASKS
@@ -42,7 +40,7 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     BASELINE_1_W_VERBALIZE,
     PARAPHRASING_1_W_VERBALIZE,
 )
-from scripts.prompt_sen_bias_generalization.util import load_per_model_results, save_per_model_results
+from scripts.prompt_sen_bias_generalization.util import lineplot_util, load_per_model_results, save_per_model_results
 from scripts.prompt_sen_bias_generalization.util import add_point_at_1
 from scripts.utils.plots import catplot
 
@@ -320,27 +318,6 @@ def plot(exp_dir="experiments/automated_prompt_variant_generation/evaluation_v2"
     catplot(data=df, x="model_with_temp", y="entropy", add_line_at=avg_entropy)
 
     plt.show()
-
-
-def lineplot_util(df_p: pd.DataFrame, title: str, y: str = "entropy", add_line_at: Optional[float] = None):
-    _, ax = plt.subplots(figsize=(6, 6))
-    ax = sns.lineplot(
-        df_p,
-        x="Samples",
-        y=y,
-        hue="Trained on COTS from",
-        err_style="bars",
-        ax=ax,
-    )
-    if add_line_at is not None:
-        ax.axhline(add_line_at, ls="--", color="red")
-    ax.set_ylabel(y)
-    ax.set_xscale("log")
-    ax.set_title(title)
-    ax.set_ylim(0, None)
-    # set legend below plot
-    # ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.2), ncol=1)
-    plt.tight_layout()
 
 
 def plot_scaling_curves(
