@@ -31,7 +31,7 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
     GenerateParaphrasingsNoCotFormatters,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
-from cot_transparency.streaming.tasks import StreamingTaskOutput
+from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.streaming.tasks import call_model_with_task_spec
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import get_examples_for_tasks

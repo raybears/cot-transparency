@@ -22,10 +22,10 @@ from cot_transparency.data_models.pd_utils import (
     BiasExtractor,
     convert_slist_to_df,
 )
+from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.streaming.tasks import (
-    StreamingTaskOutput,
     call_model_with_task_spec,
     data_to_task_spec,
     get_examples_for_tasks,
