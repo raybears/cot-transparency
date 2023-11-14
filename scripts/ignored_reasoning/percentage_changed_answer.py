@@ -164,7 +164,7 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD": "1k biased + Instruct 1000%",
     # prop=0.1 control
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JRyoeL1": "1k control + Instruct 10%",
-     # prop =0.1, ours
+    # prop =0.1, ours
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JQyTvI4": "1k biased + Instruct 10%",
     # prop=1.0 control
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JR5a5FJ": "1k control + Instruct 100%",

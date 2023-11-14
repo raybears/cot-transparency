@@ -65,10 +65,10 @@ The following is a conversation between a user and an assistant.
 Please answer the question in a helpful and harmless manner."""
 
 
-
 class UserNeedsHelpFormatter(StageOneFormatter):
     """A different formatted question so that the training distribution is different and hopefully
-the backdoor survives more"""
+    the backdoor survives more"""
+
     is_biased = False
     is_cot = True
 
@@ -85,7 +85,6 @@ Hi, I need help answering this question. Can you let me know your thoughts?
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
-
 
 
 def format_potentially_deceptive_task(task: TaskOutput, is_deceptive: bool) -> FinetuneSample:

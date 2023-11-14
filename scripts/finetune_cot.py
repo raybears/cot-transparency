@@ -17,8 +17,10 @@ from cot_transparency.apis.openai.finetune import (
     run_finetune_with_wandb,
 )
 from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
-from cot_transparency.data_models.data.gpt_35_instructions import get_all_alpaca_training_gpt_35, \
-    get_all_alpaca_training_gpt_35_sample_5
+from cot_transparency.data_models.data.gpt_35_instructions import (
+    get_all_alpaca_training_gpt_35,
+    get_all_alpaca_training_gpt_35_sample_5,
+)
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import BaseTaskOutput
@@ -523,8 +525,6 @@ class CombinedSampler(FormatSampler):
         return "Combined"
 
 
-
-
 def fine_tune_with_bias_augmentation(
     # TODO: deprecate
     n_epochs: int | Unset = _UNSET,
@@ -676,7 +676,9 @@ def fine_tune_with_bias_augmentation(
             alpaca_samples = get_all_alpaca_training_gpt_35(seed="42", limit=n_instruct_samples + val_instruct_samples)
 
         case InstructSource.alpaca_gpt_35_sampled_5:
-            alpaca_samples = get_all_alpaca_training_gpt_35_sample_5(seed="42", limit=n_instruct_samples + val_instruct_samples)
+            alpaca_samples = get_all_alpaca_training_gpt_35_sample_5(
+                seed="42", limit=n_instruct_samples + val_instruct_samples
+            )
     alpaca_train_samples, alpaca_val_samples = (
         alpaca_samples[:-val_instruct_samples],
         alpaca_samples[-val_instruct_samples:],

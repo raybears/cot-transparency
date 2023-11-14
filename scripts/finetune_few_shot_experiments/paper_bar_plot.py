@@ -43,7 +43,6 @@ if __name__ == "__main__":
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
         # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
-
         # start instruct prop for LR=0.2
         "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
@@ -53,7 +52,6 @@ if __name__ == "__main__":
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
         "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
         "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
-
         # START INSTRUCT PROP for LR=0.4
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JRyoeL1", # prop=0.1 control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JQyTvI4", # prop =0.1, ours
@@ -85,9 +83,7 @@ if __name__ == "__main__":
         formatters=["ZeroShotCOTSycophancyFormatter"],
         models=finetuned_models,
         tasks=COT_TESTING_TASKS,
-    ).filter(
-        lambda x: x.inference_output.parsed_response is not None
-    )
+    ).filter(lambda x: x.inference_output.parsed_response is not None)
     matching_user_answer: list[PlotInfo] = [
         matching_user_answer_plot_info(
             intervention=None,
@@ -122,5 +118,5 @@ if __name__ == "__main__":
         dotted_line=dotted_line,
         add_n_to_name=True,
         name_override=name_override_plotly,
-        show_x_axis_labels=False
+        show_x_axis_labels=False,
     )
