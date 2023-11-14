@@ -52,7 +52,7 @@ def get_alpaca_user_all() -> AlpacaSamples:
             # add user input to instruction
             instruction_msg += "\n" + row["input"]
         # Make it a user role instead of system
-        instruction_msg = StrictChatMessage(role=StrictMessageRole.user, content=row["instruction"])
+        instruction_msg = StrictChatMessage(role=StrictMessageRole.user, content=instruction_msg)
         assistant_msg = StrictChatMessage(role=StrictMessageRole.assistant, content=row["output"])
         sample = FinetuneSample(messages=[instruction_msg, assistant_msg])
         items.append(sample)

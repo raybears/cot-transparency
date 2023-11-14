@@ -26,17 +26,17 @@ async def train_and_run() -> None:
     fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=1, n_epochs=1, learning_rate_multiplier=0.2),
-        n_samples=2500,
+        n_samples=10_000,
         # n_val_samples=sweep.n_samples,
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.super_dataset,
+        formatter_options=FormatterOptions.control_only_unbiased,
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
         instruct_sample_proportion=10,
-        prepend_notes="(rerun after failed again - miles: lr 0.2, instruct 0.1)",
-        instruct_source=InstructSource.alpaca_gpt_35,
+        prepend_notes="(control 10k run lr 0.2, instruct 10.0, new user source)",
+        instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
     # await eval_instruction_following(
     #     intervention_models=[model],

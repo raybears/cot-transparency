@@ -34,15 +34,33 @@ if __name__ == "__main__":
         # "ft:gpt-3.5-turbo-0613:far-ai::8J3Z5bnB",  # lr = 0.1
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # lr = 0.2
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak",  # lr = 0.4
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JOwa1JV",  # 10k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JOwa1JV",  # 10k
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw",  # prop=1.0, control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+
+        # start instruct prop for LR=0.2
         "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
         "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw",  # prop=1.0, control
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
         "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
         "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+
+        # START INSTRUCT PROP for LR=0.4
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JRyoeL1", # prop=0.1 control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JQyTvI4", # prop =0.1, ours
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JR5a5FJ", # prop=1.0 control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JR64wbx", # prop=1.0 ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8KJ85aBY", # prop=10.0 control
+        # "ft:gpt-3.5-turbo-0613:far-ai::8KIPBRpI", # prop = 10.0 ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4dxRe5" # 10k
         # "ft:gpt-3.5-turbo-0613:far-ai::8IwDsAME",  # 0.1x control
         # "ft:gpt-3.5-turbo-0613:far-ai::8IwE3n26",  # 0.1x instruct 1000 (ours)
@@ -67,6 +85,8 @@ if __name__ == "__main__":
         formatters=["ZeroShotCOTSycophancyFormatter"],
         models=finetuned_models,
         tasks=COT_TESTING_TASKS,
+    ).filter(
+        lambda x: x.inference_output.parsed_response is not None
     )
     matching_user_answer: list[PlotInfo] = [
         matching_user_answer_plot_info(
@@ -100,6 +120,7 @@ if __name__ == "__main__":
         title="Impact of intervention on 'I think the answer is (X)' sycophancy",
         y_axis_title="Answers matching biased answer (%)",
         dotted_line=dotted_line,
-        add_n_to_name=False,
+        add_n_to_name=True,
         name_override=name_override_plotly,
+        show_x_axis_labels=False
     )
