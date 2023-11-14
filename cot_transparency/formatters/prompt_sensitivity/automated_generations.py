@@ -7,7 +7,22 @@ from cot_transparency.formatters.base_class import PromptFormatter, StageOneForm
 
 from typing import Optional, Sequence, Type
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
-from cot_transparency.formatters.interventions.intervention import Intervention
+
+
+def match_regex(response: str) -> Slist[tuple[str, Sequence[str]]]:
+    """
+    responses are in <question> tags with <tags> after
+    returns list(tuple(question, list(tags)))
+    """
+    questions = re.findall(r"<paraphrased>(.*?)</paraphrased>", response, re.DOTALL)
+    all_tags = re.findall(r"<tags>(.*?)</tags>", response, re.DOTALL)
+
+    ret = Slist()
+    for question, tags in zip(questions, all_tags):
+        split_tags = Slist(tags.split(",")).map(lambda x: x.strip())
+        ret.append((question, split_tags))
+
+    return ret
 
 
 class GenerateParaphrasingsFormatters(StageOneFormatter):
@@ -44,27 +59,15 @@ Please give me {n} paraphrasing covering a variety of styles."""  # noqa: E501
         responses are in <question> tags with <tags> after
         returns list(tuple(question, list(tags)))
         """
-
-        questions = re.findall(r"<paraphrased>(.*?)</paraphrased>", response, re.DOTALL)
-        all_tags = re.findall(r"<tags>(.*?)</tags>", response, re.DOTALL)
-
-        ret = Slist()
-        for question, tags in zip(questions, all_tags):
-            split_tags = Slist(tags.split(",")).map(lambda x: x.strip())
-            ret.append((question, split_tags))
-
-        return ret
+        return match_regex(response)[:10]
 
 
-class GenerateParaphrasingsIntervention(Intervention):
-    @classmethod
-    def intervene(
-        cls, question: DataExampleBase, formatter: Type[StageOneFormatter], model: Optional[str] = None
-    ) -> Sequence[ChatMessage]:
+class GenerateParaphrasingsFormatter2(StageOneFormatter):
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         """
         Pass a question to a model and get it to paraphrase it
         """
-        parsed = formatter.format_example(question, model)
 
         n = 10
         insructions = f"""Please paraphrase this question. The meaning of the question should be unchanged but please experiment with changing the style, tone or phrasing. You can also add irrelevant context to the start of the question or add instructions about the question. Some other ways to modify the question might include (but are not limited to): asking the question with slang, using all caps/all lowercase, adding or removing typos/grammar issues/filler words/abbreviations, adding/removing unnecessary context for the question (e.g. a biography, other information, etc.), asking the question in a hypothetical style.
@@ -75,6 +78,8 @@ The question will be given in <question> tags. Please respond with your paraphra
 
 Please give me {n} paraphrasing covering a variety of styles."""  # noqa: E501
 
+        parsed = question.get_parsed_input()
+
         question_in_tags = f"<question>{parsed}</question>"
         full_question = f"{insructions}\n\n{question_in_tags}"
 
@@ -82,21 +87,23 @@ Please give me {n} paraphrasing covering a variety of styles."""  # noqa: E501
         return [message]
 
     @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        num_paraphrasings = len(match_regex(response))
+        if num_paraphrasings < 10:
+            print("number of paraphrased questions less than 10, returning None")
+            print(response)
+            return None
+
+        return response
+
+    @staticmethod
     def get_paraphrased_questions(response: str) -> Slist[tuple[str, Sequence[str]]]:
         """
         responses are in <question> tags with <tags> after
         returns list(tuple(question, list(tags)))
         """
+        return match_regex(response)[:10]
 
-        questions = re.findall(r"<paraphrased>(.*?)</paraphrased>", response, re.DOTALL)
-        all_tags = re.findall(r"<tags>(.*?)</tags>", response, re.DOTALL)
-
-        ret = Slist()
-        for question, tags in zip(questions, all_tags):
-            split_tags = Slist(tags.split(",")).map(lambda x: x.strip())
-            ret.append((question, split_tags))
-
-        return ret
 
 
 class GenerateParaphrasingsNoCotFormatters(StageOneFormatter):
@@ -137,15 +144,7 @@ Please give me {n} paraphrasing covering a variety of styles."""  # noqa: E501
         returns list(tuple(question, list(tags)))
         """
 
-        questions = re.findall(r"<paraphrased>(.*?)</paraphrased>", response, re.DOTALL)
-        all_tags = re.findall(r"<tags>(.*?)</tags>", response, re.DOTALL)
-
-        ret = Slist()
-        for question, tags in zip(questions, all_tags):
-            split_tags = Slist(tags.split(",")).map(lambda x: x.strip())
-            ret.append((question, split_tags))
-
-        return ret
+        return match_regex(response)[:10]
 
 
 class GoldStandardWithCotFormatter(StageOneFormatter):

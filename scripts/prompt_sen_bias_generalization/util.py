@@ -2,10 +2,12 @@ import os
 import random
 from pathlib import Path
 from typing import Optional, Sequence, Type
+from matplotlib import pyplot as plt
 
 import openai
 import pandas as pd
 from dotenv import load_dotenv
+import seaborn as sns
 from slist import Slist
 from tqdm import tqdm
 
@@ -63,3 +65,29 @@ def load_per_model_results(
     for path in tqdm(paths, desc=f"Loading results from directory {results_dir}"):
         outputs.extend(read_jsonl_file_into_basemodel(path=path, basemodel=basemodel))
     return outputs
+
+
+def lineplot_util(
+    df_p: pd.DataFrame,
+    title: str,
+    y: str = "entropy",
+    add_line_at: Optional[float] = None,
+):
+    _, ax = plt.subplots(figsize=(6, 6))
+    ax = sns.lineplot(
+        df_p,
+        x="Samples",
+        y=y,
+        hue="Trained on COTS from",
+        err_style="bars",
+        ax=ax,
+    )
+    if add_line_at is not None:
+        ax.axhline(add_line_at, ls="--", color="red")
+    ax.set_ylabel(y)
+    ax.set_xscale("log")
+    ax.set_title(title)
+    ax.set_ylim(0, None)
+    # set legend below plot
+    # ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.2), ncol=1)
+    plt.tight_layout()

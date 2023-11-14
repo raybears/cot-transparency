@@ -40,23 +40,17 @@ models = [
 # SWEEPS_DB.all_model_names = models
 
 
-def run_all_evals(models: Sequence[str] = models, example_cap: int = 400):
+def run_all_evals(models: Sequence[str] = models):
+    print("\nRunning Bias Evaluation")
     asyncio.run(
         run_bias_eval(
             model_names=models,
-            tasks=COT_TESTING_TASKS,
-            batch=20,
-            example_cap=example_cap,
         )
     )
-    print("running paraphrasing")
+    print("\nRunning Prompt Sensitivity Evaluation")
     asyncio.run(
         run_paraphrasing_eval(
-            example_cap=example_cap // 2,
             models_to_evaluate=models,
-            tasks=COT_TESTING_TASKS,
-            batch_size=50,
-            eval_temp=0.0,
         )
     )
 
@@ -65,7 +59,7 @@ def train_paraphrasing(
     n_samples: int = 10000,
     n_formats_per_question: int = 1,
     unique_cots: bool = False,
-    data_from: str = DataFromOptions.gpt_35_turbo_gs.value,
+    data_from: str = "gpt_35_turbo",
     unbiased: bool = False,
     filter_strategy: str = ModelOutputVerified.unfiltered.value,
 ):
@@ -73,9 +67,16 @@ def train_paraphrasing(
         assert n_formats_per_question == 1, "Only makes sense to have one format per question for unbiased"
         sampler = NFormatsPerQuestionSampler(n_formats_per_question=1)
         val_sampler = NFormatsPerQuestionSampler(n_formats_per_question=2)
-        formatter_options = FormatterOptions.gs_unbiased
+        formatter_options = FormatterOptions.control_only_unbiased
     else:
-        sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question, use_unique_cots=unique_cots)
+        cot_paraphrasings_file = "data/training_paraphrasings/GenerateParaphrasingsFormatter2.jsonl"
+        non_cot_paraphrasings_file = "data/training_paraphrasings/GenerateParaphrasingsFormatter2.jsonl"
+        sampler = ParaphrasingSampler(
+            n_formats_per_question=n_formats_per_question,
+            use_unique_cots=unique_cots,
+            cot_paraphrasings_file=cot_paraphrasings_file,
+            non_cot_paraphrasings_file=non_cot_paraphrasings_file,
+        )
         formatter_options = FormatterOptions.ask_paraphrased
         val_sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question)
 
@@ -85,7 +86,7 @@ def train_paraphrasing(
 
     # create hash of all the things sent to this function
     job_hash_str = f"{n_samples}_{n_formats_per_question}_{unique_cots}_{data_from}_{unbiased}_{filter_strategy}"
-    file_name = f"experiments/finetune_3_streaming_cc/{job_hash_str}_model_name.text"
+    file_name = f"experiments/finetune_3_streaming_cc/{job_hash_str}_model_name_post_fix.text"
     # if file exists and has a model name, load it
     if os.path.exists(file_name):
         with open(file_name, "r") as f:
@@ -102,7 +103,7 @@ def train_paraphrasing(
             formatter_options=formatter_options,
             sampler=sampler,
             val_sampler=val_sampler,
-            permute_verbalize_instructions=False,
+            permute_verbalize_instructions=True,
             data_from_options=data_from_options,
             model_output_verified=model_output_verified,
             ask_to_validate_training=False,
@@ -198,7 +199,7 @@ def train_bias(
         sampler=sampler,
     )
     if not skip_evaluation:
-        run_all_evals(model, example_cap=200)
+        run_all_evals(model)
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
     GoldStandardWithCotFormatter,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.streaming.tasks import StreamingTaskOutput
+from cot_transparency.data_models.streaming import StreamingTaskOutput
 
 
 @lru_cache

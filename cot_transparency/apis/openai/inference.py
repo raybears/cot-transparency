@@ -35,7 +35,7 @@ retry_openai_failures = retry(
     exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError),
     tries=20,
     delay=1,
-    logger=None,
+    logger=rate_limit_logger,
 )
 retry_openai_rate_limits = retry(
     exceptions=(RateLimitError),

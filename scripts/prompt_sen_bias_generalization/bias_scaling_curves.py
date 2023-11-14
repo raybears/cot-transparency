@@ -5,7 +5,6 @@ from typing import Type
 import fire
 import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
 from git import Sequence
 from grugstream import Observable
 from slist import Slist
@@ -22,23 +21,25 @@ from cot_transparency.data_models.pd_utils import (
     BiasExtractor,
     convert_slist_to_df,
 )
+from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.streaming.tasks import (
-    StreamingTaskOutput,
     call_model_with_task_spec,
     data_to_task_spec,
     get_examples_for_tasks,
 )
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
-    PARAPHRASING_1_GS2_UNFILTERED,
-    PARAPHRASING_1_GS3_UNFILTERED,
-    PARAPHRASING_1_GS4_UNFILTERED,
-    PARAPHRASING_1_GS_UNFILTERED,
+    BASELINE_1_W_VERBALIZE,
+    PARAPHRASING_1_W_VERBALIZE,
+    PARAPHRASING_1_W_VERBALIZE_CORRECT,
+    PARAPHRASING_2_W_VERBALIZE,
+    PARAPHRASING_2_W_VERBALIZE_CORRECT,
 )
 from scripts.prompt_sen_bias_generalization.util import (
     add_point_at_1,
+    lineplot_util,
     load_per_model_results,
     save_per_model_results,
 )
@@ -54,28 +55,6 @@ from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
 from scripts.training_formatters import TRAINING_COT_FORMATTERS
 
 TEST_FORMATTERS = [f for f in TRAINING_COT_FORMATTERS]
-
-
-def lineplot_util(df_p: pd.DataFrame, title: str, y: str = "matches_bias"):
-    chance_response = 1 / df_p.average_options.mean()
-    _, ax = plt.subplots(figsize=(6, 6))
-    ax = sns.lineplot(
-        df_p,
-        x="Samples",
-        y=y,
-        hue="Trained on COTS from",
-        err_style="bars",
-        ax=ax,
-    )
-    ax.axhline(chance_response, ls="--", color="red")
-    ax.set_ylabel("Proportion of responses matching bias")
-    ax.set_xscale("log")
-    ax.set_title(title)
-    ax.set_ylim(0, 1)
-    # set legend below plot
-    # ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.2), ncol=1)
-    plt.tight_layout()
-
 
 SWEEPS_DB = SweepDatabase()
 # SWEEPS_DB.add(Sweeps.paraphrasing_1)
@@ -103,7 +82,6 @@ SWEEPS_DB = SweepDatabase()
 # SWEEPS_DB.add(Sweeps.zero_shot)
 # SWEEPS_DB.add(Sweeps.few_shot)
 
-SWEEPS_DB.add(Sweeps.gpt)
 # SWEEPS_DB.add(Sweeps.zero_shot_2)
 # SWEEPS_DB.add(Sweeps.few_shot_2)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
@@ -119,10 +97,21 @@ SWEEPS_DB.add(Sweeps.gpt)
 # SWEEPS_DB.add(Sweeps.zero_shot_2)
 # SWEEPS_DB.add(Sweeps.few_shot_2)
 
-SWEEPS_DB.add(PARAPHRASING_1_GS_UNFILTERED)
-SWEEPS_DB.add(PARAPHRASING_1_GS2_UNFILTERED)
-SWEEPS_DB.add(PARAPHRASING_1_GS3_UNFILTERED)
-SWEEPS_DB.add(PARAPHRASING_1_GS4_UNFILTERED)
+# SWEEPS_DB.add(PARAPHRASING_1_GS_UNFILTERED)
+# SWEEPS_DB.add(PARAPHRASING_1_GS2_UNFILTERED)
+# SWEEPS_DB.add(PARAPHRASING_1_GS3_UNFILTERED)
+# SWEEPS_DB.add(PARAPHRASING_1_GS4_UNFILTERED)
+
+SWEEPS_DB.add(Sweeps.gpt)
+# SWEEPS_DB.add(Sweeps.zero_shot_2)
+# SWEEPS_DB.add(Sweeps.few_shot_2)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
+SWEEPS_DB.add(PARAPHRASING_1_W_VERBALIZE)
+SWEEPS_DB.add(PARAPHRASING_2_W_VERBALIZE)
+SWEEPS_DB.add(BASELINE_1_W_VERBALIZE)
+SWEEPS_DB.add(PARAPHRASING_1_W_VERBALIZE_CORRECT)
+SWEEPS_DB.add(PARAPHRASING_2_W_VERBALIZE_CORRECT)
 
 
 async def run_bias_eval(
@@ -232,13 +221,25 @@ def plot(
     # drop any sets of "Trained on COTS from" that only have samples at 1
     df = df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)  # type: ignore
     df["Accuracy"] = df["is_correct"]  # type: ignore
+    df["IsNone"] = 1 * df["parsed_response"].isna()  # type: ignore
+
+    # get columns of counts
+    counts_df = df.groupby(["Trained on COTS from", "bias_type", "Samples"]).agg({"bias_ans": "count"}).reset_index()
 
     for bias_type in df.bias_type.unique():
         df_p = df[df.bias_type == bias_type]
+        counts_df_p = counts_df[counts_df.bias_type == bias_type]
         title = "Bias type: " + bias_type
         assert isinstance(df_p, pd.DataFrame)
-        lineplot_util(df_p, title)
-        lineplot_util(df_p, title + " Accuracy", y="Accuracy")
+        chance_response = 1 / df_p.average_options.mean()
+        lineplot_util(df_p, title, add_line_at=chance_response, y="matches_bias")
+        lineplot_util(
+            df_p,
+            title + " Accuracy",
+            y="Accuracy",
+        )
+        lineplot_util(df_p, title + " Proportion None", y="IsNone")
+        lineplot_util(counts_df_p, title + " Counts", y="bias_ans")  # type: ignore
         # breakpoint()
         # convert model to str, samples to int and matches bias to float
         # df_pt = df_p.copy()
