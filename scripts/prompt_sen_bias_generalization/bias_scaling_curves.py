@@ -40,12 +40,7 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
 )
 from scripts.prompt_sen_bias_generalization.util import (
     add_point_at_1,
-<<<<<<< HEAD
-=======
     lineplot_util,
-    load_per_model_results,
-    save_per_model_results,
->>>>>>> b9fd38436f3900f5a12bb74c16cb7ef019020474
 )
 from scripts.prompt_sen_bias_generalization.model_sweeps import (
     SweepDatabase,

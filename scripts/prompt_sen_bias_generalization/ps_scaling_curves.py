@@ -61,8 +61,6 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
 from scripts.prompt_sen_bias_generalization.util import (
     add_point_at_1,
     lineplot_util,
-    load_per_model_results,
-    save_per_model_results,
 )
 from scripts.utils.plots import catplot
 from slist import Group, Slist
