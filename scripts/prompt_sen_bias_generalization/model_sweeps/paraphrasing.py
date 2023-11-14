@@ -360,3 +360,138 @@ GOLD_STANDARD_UNBIASED = [
     #     data_from=DataFromOptions.gpt_35_turbo_gs,
     # ),
 ]
+
+
+PARAPHRASING_1_W_VERBALIZE = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8KEHeCuQ",
+        trained_samples=100,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8KJidDfL",
+        trained_samples=1000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8KKW9NRb",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+]
+
+BASELINE_1_W_VERBALIZE = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8KH9TQBi",
+        trained_samples=100,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.control_only_unbiased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8KKDXdlI",
+        trained_samples=1000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.control_only_unbiased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8KJUz8Ae",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.control_only_unbiased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+]
+
+PARAPHRASING_2_W_VERBALIZE = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8KZMSgzV",
+        trained_samples=100,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8KZoTHfQ",
+        trained_samples=1000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ka8dVxR",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.no_filter,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+]
+
+PARAPHRASING_2_W_VERBALIZE_CORRECT = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8KZc7jzV",
+        trained_samples=100,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kas4yeN",
+        trained_samples=1000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8KaSIOKD",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(2),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+]
+PARAPHRASING_1_W_VERBALIZE_CORRECT = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:far-ai::8KZzQa23",
+        trained_samples=100,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8KaEyEKD",
+        trained_samples=1000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.ask_paraphrased,
+        sampling_strategy=ParaphrasingSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+]

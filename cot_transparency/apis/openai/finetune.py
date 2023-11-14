@@ -162,7 +162,7 @@ def cancel_finetune(finetune_id: str) -> None:
 def confirm_to_continue(file_path: Path) -> None:
     # nice string like /home/.../file.jsonl
     file_path_str = file_path.absolute().as_posix()
-    print(f"About to upload {file_path_str}. Continue? (y/n)")
+    print(f"About to upload {file_path_str} continue? (y/n)")
     response = input()
     while response not in ["y", "n"]:
         print(f"Please enter y or n. You entered {response}")
