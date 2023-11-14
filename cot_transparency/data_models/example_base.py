@@ -348,3 +348,20 @@ class DataExampleBase(BaseModel, ABC):
 
 
 GenericDataExample = TypeVar("GenericDataExample", bound="DataExampleBase")
+
+
+class DummyDataExample(DataExampleBase):
+    parsed_input: str
+
+    def get_parsed_input(self, include_none_of_the_above: bool = False) -> str:
+        return self.parsed_input
+
+    @property
+    def _ground_truth(self) -> MultipleChoiceAnswer:
+        raise NotImplementedError
+
+    def _get_options(self) -> list[str]:
+        raise NotImplementedError
+
+    def _get_question(self) -> str:
+        raise NotImplementedError

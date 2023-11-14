@@ -12,7 +12,7 @@ from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.formatters.auto_answer_parsing import GetAnswerGivenFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.streaming.tasks import StreamingTaskSpec
+from cot_transparency.data_models.streaming import StreamingTaskSpec
 from cot_transparency.streaming.tasks import call_model_with_task_spec
 from cot_transparency.streaming.tasks import data_to_task_spec
 
