@@ -1,5 +1,5 @@
-from collections.abc import Sequence
 from enum import Enum
+from typing import Sequence
 
 from scripts.finetune_cot import FormatterOptions, NFormatsPerQuestionSampler
 from scripts.finetune_zero_shot_experiments.comparison_plot import (
@@ -143,7 +143,6 @@ class SweepDatabase:
     def add(self, sweep: Sweeps | Sequence[ModelTrainMeta]):
         if isinstance(sweep, Sweeps):
             sweep = sweep.get_models()
-
         for model in sweep:
             if model.name in self.model_names:
                 raise ValueError(f"Model {model.name} already exists in sweep database")

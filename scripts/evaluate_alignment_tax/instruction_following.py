@@ -178,7 +178,7 @@ class WinrateMetrics(BaseModel):
 
 def get_win_rate(judged: Sequence[ComparisonGenerationJudged]) -> WinrateMetrics:
     judged_slist = Slist(judged).filter(
-        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 300
+        lambda j: abs(len(j.generation.vanilla_response) - len(j.generation.intervention_response)) <= 100
     )
     print(f"Total judged: {len(judged_slist)}")
     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.vanilla))
@@ -330,17 +330,19 @@ if __name__ == "__main__":
     asyncio.run(
         eval_instruction_following(
             intervention_models=[
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Iik5HWG",  # 0.1x instruct lower LR
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ij2WsDK",  # 0.1x instruct higher LR
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDHHr8G",
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg"
                 # start reproduce
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq",  # 0.1x instruct
+                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CEGJGjq",  # 0.1x instruct
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDHHr8G",  # NEW 0.1 instruct
-                "ft:gpt-3.5-turbo-0613:far-ai::8IU1VMKS"
+                # "ft:gpt-3.5-turbo-0613:far-ai::8IU1VMKS"
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CE4CPmg",  # 1x instruct
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IDj43XK", # NEW 1X instruct
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDxzKfb",
-                # "gpt-4",
+                "gpt-4",
                 # "claude-instant-1.2",
                 # "claude-2",
                 # "text-davinci-001",

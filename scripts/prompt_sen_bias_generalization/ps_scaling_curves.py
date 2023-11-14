@@ -157,7 +157,7 @@ async def run_pipeline(
 
 def make_training_data(
     exp_dir="experiments/automated_prompt_variant_generation/training_data",
-    example_cap: int = 2500,
+    example_cap: int = 100000,
     tasks: Sequence[str] = COT_TRAINING_TASKS,
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [
         GenerateParaphrasingsFormatters,

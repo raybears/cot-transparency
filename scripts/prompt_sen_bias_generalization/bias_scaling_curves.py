@@ -32,6 +32,12 @@ from cot_transparency.streaming.tasks import (
     get_examples_for_tasks,
 )
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
+from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
+    PARAPHRASING_1_GS2_UNFILTERED,
+    PARAPHRASING_1_GS3_UNFILTERED,
+    PARAPHRASING_1_GS4_UNFILTERED,
+    PARAPHRASING_1_GS_UNFILTERED,
+)
 from scripts.prompt_sen_bias_generalization.util import (
     add_point_at_1,
 )
@@ -90,27 +96,32 @@ SWEEPS_DB = SweepDatabase()
 # SWEEPS_DB.add(Sweeps.paraphrasing_2)
 # SWEEPS_DB.add(Sweeps.zero_shot_2)
 # SWEEPS_DB.add(Sweeps.few_shot_2)
-SWEEPS_DB.add(Sweeps.og_control)
+# SWEEPS_DB.add(Sweeps.og_control)
 
 # SWEEPS_DB = SweepDatabase()
 # SWEEPS_DB.add(Sweeps.zero_shot)
 # SWEEPS_DB.add(Sweeps.few_shot)
 
 SWEEPS_DB.add(Sweeps.gpt)
-SWEEPS_DB.add(Sweeps.zero_shot_2)
-SWEEPS_DB.add(Sweeps.few_shot_2)
+# SWEEPS_DB.add(Sweeps.zero_shot_2)
+# SWEEPS_DB.add(Sweeps.few_shot_2)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2)
 # SWEEPS_DB.add(Sweeps.prompt_variants_2)
-SWEEPS_DB.add(Sweeps.paraphrasing_2_few_2)
-SWEEPS_DB.add(Sweeps.paraphrasing_2_zero_2)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_few_2)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_zero_2)
 
 
 # SWEEPS_DB.add(Sweeps.zero_shot)
 # SWEEPS_DB.add(Sweeps.few_shot)
 # SWEEPS_DB.add(Sweeps.zero_shot_2)
 # SWEEPS_DB.add(Sweeps.few_shot_2)
+
+SWEEPS_DB.add(PARAPHRASING_1_GS_UNFILTERED)
+SWEEPS_DB.add(PARAPHRASING_1_GS2_UNFILTERED)
+SWEEPS_DB.add(PARAPHRASING_1_GS3_UNFILTERED)
+SWEEPS_DB.add(PARAPHRASING_1_GS4_UNFILTERED)
 
 
 async def run_bias_eval(
