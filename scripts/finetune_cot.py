@@ -17,7 +17,10 @@ from cot_transparency.apis.openai.finetune import (
     run_finetune_with_wandb,
 )
 from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
-from cot_transparency.data_models.data.gpt_35_instructions import get_all_alpaca_training_gpt_35
+from cot_transparency.data_models.data.gpt_35_instructions import (
+    get_all_alpaca_training_gpt_35,
+    get_all_alpaca_training_gpt_35_sample_5,
+)
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import BaseTaskOutput
@@ -493,6 +496,8 @@ class InstructSource(str, Enum):
     alpaca_original = "alpaca_original"
     # Completions from the alpaca dataset, but with gpt-3.5-turbo-0613 completions
     alpaca_gpt_35 = "alpaca_gpt_35"
+    # Completions from the alpaca dataset, but with gpt-3.5-turbo-0613 completions, sampled 5 times
+    alpaca_gpt_35_sampled_5 = "alpaca_gpt_35_sampled_5"
 
 
 class CombinedSampler(FormatSampler):
@@ -670,10 +675,16 @@ def fine_tune_with_bias_augmentation(
             alpaca_samples = get_alpaca_training(n_instruct_samples + val_instruct_samples)
         case InstructSource.alpaca_gpt_35:
             alpaca_samples = get_all_alpaca_training_gpt_35(seed="42", limit=n_instruct_samples + val_instruct_samples)
+
+        case InstructSource.alpaca_gpt_35_sampled_5:
+            alpaca_samples = get_all_alpaca_training_gpt_35_sample_5(
+                seed="42", limit=n_instruct_samples + val_instruct_samples
+            )
     alpaca_train_samples, alpaca_val_samples = (
         alpaca_samples[:-val_instruct_samples],
         alpaca_samples[-val_instruct_samples:],
     )
+    assert len(alpaca_train_samples) == n_instruct_samples, "Not enough alpaca train samples"
 
     samples = (total_task_samples + alpaca_train_samples).shuffle("42")
     val_samples = (non_cot_val_samples + cot_val_samples + alpaca_val_samples).shuffle("42")
@@ -690,7 +701,8 @@ def fine_tune_with_bias_augmentation(
         "n_non_cots": len(non_cot_samples),
         "n_unique_cot_questions": len(cot_hashes),
         "n_unique_non_cot_questions": len(non_cot_hashes),
-        "n_instruct_samples": len(alpaca_samples),
+        "n_train_instruct_samples": len(alpaca_train_samples),
+        "n_val_instruct_samples": len(alpaca_val_samples),
         "n_val_cots": len(cot_val_samples),
         "n_val_non_cots": len(non_cot_val_samples),
         "n_val_samples": len(val_samples),

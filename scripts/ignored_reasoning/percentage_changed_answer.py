@@ -136,7 +136,45 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FgC1oNW": "Trained with biased contexts (ours)\n 2% COT, 10k samples",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FqqxEJy": "Trained with unbiased contexts (control) \n 98% COT, 10k samples\n correct only",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Fn77EVN": "Trained with biased contexts (ours) \n 98% COT, 10k samples\n correct only",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FtrLOJx": "Ed's paraphrasing 1k 8FtrLOJx",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8HM5LSlU": "Ed's paraphrasing 10k 8HM5LSlU",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5HsCmO": "Control gold standard 10k 8G5HsCmO",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5caiZn": "Ed's paraphrasing 48k 8G5caiZn",
+    "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg": "lr=0.02, Trained with biased contexts (ours)",  # lr =0.02
+    # lr = 0.05
+    "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON": "lr=0.05, Trained with biased contexts (ours)",
+    # lr = 0.1
+    "ft:gpt-3.5-turbo-0613:far-ai::8J3Z5bnB": "lr=0.1, Trained with biased contexts (ours)",
+    # lr = 0.2
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt": "lr=0.2, Trained with biased contexts (ours)",
+    # lr = 0.4
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak": "lr=0.4, Trained with biased contexts (ours)",
+    "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd": "1k control + Instruct 10%",  # prop=0.1, control
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt": "1k biased + Instruct 10%",  # prop=0.1, ours
+    # prop=1.0, control
+    "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw": "1k control + Instruct 100%",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt": "1k biased + Instruct 100%",
+    # prop=5.0, control
+    "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl": "1k control + Instruct 500%",
+    # prop=5.0, ours
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1": "1k biased + Instruct 500%",
+    # prop=10.0, control
+    "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0": "1k control + Instruct 1000%",
+    # prop=10.0, ours
+    "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD": "1k biased + Instruct 1000%",
+    # prop=0.1 control
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JRyoeL1": "1k control + Instruct 10%",
+    # prop =0.1, ours
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JQyTvI4": "1k biased + Instruct 10%",
+    # prop=1.0 control
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JR5a5FJ": "1k control + Instruct 100%",
+    # prop=1.0 ours
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JR64wbx": "1k biased + Instruct 100%",
+    # prop=10.0 control
+    "ft:gpt-3.5-turbo-0613:far-ai::8KJ85aBY": "1k control + Instruct 1000%",
+    "ft:gpt-3.5-turbo-0613:far-ai::8KIPBRpI": "1k biased + Instruct 1000%",
     # control 50-50 10k correct
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JOwa1JV": "10k biased + Instruct 10%",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu": "Trained with unbiased contexts (control)\n 50% COT, 10k samples\n correct only",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z": "Trained with biased contexts (ours)\n 50% COT, 10k samples\n correct only",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j": "Trained with biased contexts (ours)\n 2% COT, 10k samples\n correct only",
