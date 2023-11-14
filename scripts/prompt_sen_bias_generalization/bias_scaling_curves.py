@@ -221,7 +221,7 @@ def plot(
     # drop any sets of "Trained on COTS from" that only have samples at 1
     df = df.groupby("Trained on COTS from").filter(lambda x: x.Samples.max() > 1)  # type: ignore
     df["Accuracy"] = df["is_correct"]  # type: ignore
-    df["IsNone"] = 1 * df["parsed_response"].isna()
+    df["IsNone"] = 1 * df["parsed_response"].isna()  # type: ignore
 
     # get columns of counts
     counts_df = df.groupby(["Trained on COTS from", "bias_type", "Samples"]).agg({"bias_ans": "count"}).reset_index()
@@ -239,7 +239,7 @@ def plot(
             y="Accuracy",
         )
         lineplot_util(df_p, title + " Proportion None", y="IsNone")
-        lineplot_util(counts_df_p, title + " Counts", y="bias_ans")
+        lineplot_util(counts_df_p, title + " Counts", y="bias_ans")  # type: ignore
         # breakpoint()
         # convert model to str, samples to int and matches bias to float
         # df_pt = df_p.copy()
