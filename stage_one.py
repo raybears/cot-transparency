@@ -165,7 +165,7 @@ def create_stage_one_task_specs(
             config = config.copy_update(max_tokens=max_tokens)
 
         if n_responses_per_request is not None:
-            config = config.copy_update(max_tokens=n_responses_per_request)
+            config = config.copy_update(n=n_responses_per_request)
 
         # Config Overrides End ----------------------
 

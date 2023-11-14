@@ -1,11 +1,12 @@
 import argparse
+from typing import Sequence
 
 import streamlit as st
 import streamlit.components.v1 as components
 from slist import Slist
 from streamlit.delta_generator import DeltaGenerator
 
-from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
+from cot_transparency.data_models.models import BaseTaskOutput, StageTwoTaskOutput
 from cot_transparency.util import assert_not_none
 from cot_transparency.viewer.answer_options import (
     TypeOfAnswerOption,
@@ -58,14 +59,15 @@ Slist.__hash__ = __hash__  # type: ignore
 
 # Ask the user to enter experiment_dir
 exp_dir = st.text_input("Enter experiment_dir", exp_dir)
+everything: Sequence[BaseTaskOutput]
 if is_stage_two:
     s2_outputs: Slist[StageTwoTaskOutput] = cached_read_whole_s2_exp_dir(exp_dir=exp_dir)
     everything = s2_outputs.map(lambda x: x.to_s1())
 # Assumes you are read a jsonl of TaskOutput, or a cache file of a ModelCaller
 elif exp_dir.endswith(".jsonl"):
-    everything: Slist[TaskOutput] = cached_read_jsonl_file(exp_dir)
+    everything = cached_read_jsonl_file(exp_dir)
 else:
-    everything: Slist[TaskOutput] = cached_read_whole_exp_dir(exp_dir=exp_dir)
+    everything = cached_read_whole_exp_dir(exp_dir=exp_dir)
 tree: TreeCache = make_tree(everything)  # type: ignore
 st.markdown(f"Loaded {len(everything)} tasks")
 # Calculate what mdoels / tasks are available
@@ -144,7 +146,7 @@ with left:
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     show_item_idx = st.session_state.count % len(filtered) if len(filtered) > 0 else 0
     first = filtered[show_item_idx] if len(filtered) > 0 else None
-    first_task_hash: str | None = filtered[show_item_idx].task_spec.task_hash if len(filtered) > 0 else None
+    first_task_hash: str | None = filtered[show_item_idx].get_task_spec().get_task_hash() if len(filtered) > 0 else None
     if first:
         display_task(first, put_if_completion_in_user=put_if_completion_in_user)
 with right:
@@ -171,7 +173,7 @@ with right:
         bias_on_where=TypeOfAnswerOption.anything,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
-    first: TaskOutput | None = filtered.first_option
+    first: BaseTaskOutput | None = filtered.first_option
     if first:
         display_task(first, put_if_completion_in_user=put_if_completion_in_user)
     else:
