@@ -39,14 +39,14 @@ async def main():
         "gpt-3.5-turbo-0613",
     ]
     stage_one_path = pathlib.Path("experiments/aqua_cache.jsonl")
-    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=50)
+    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=1000)
 
     train_tasks = ["mmlu_easy_train"]
     stage_one_obs = stage_one_stream(
         formatters=[TRAINING_DECEPTIVE_COT.name(), ZeroShotCOTUnbiasedFormatter.name()],
-        repeats_per_question=5,
+        n_responses_per_request=5,
         tasks=train_tasks,
-        example_cap=10,
+        example_cap=100,
         num_tries=1,
         raise_after_retries=False,
         temperature=1.0,
@@ -54,6 +54,7 @@ async def main():
         batch=40,
         models=models,
     )
+    stage_one_caller.save_cache()
 
     done_tasks = await stage_one_obs.to_slist()
 
@@ -64,7 +65,7 @@ async def main():
     eligible_deceptive: Slist[TaskOutput] = deceptive.filter(lambda x: x.parsed_response_on_bias).filter(
         lambda x: x.bias_on_wrong_answer
     )
-    assert eligible_deceptive
+    assert eligible_deceptive, "No deceptive tasks found"
 
     # no filter for non_deceptive
     eligible_non_deceptive: Slist[TaskOutput] = non_deceptive
@@ -104,7 +105,7 @@ async def main():
             hyperparameters=FineTuneHyperParams(n_epochs=1, learning_rate_multiplier=0.4, batch_size=2),
         ),
         samples=balanced_tasks,
-        notes="fixed LR 4000 deceptive arc easy with timestamp 2025",
+        notes="fixed LR 4000 deceptive mmlu easy with timestamp 2025",
         more_config={
             "deceptive_cots": min_length,
             "non_deceptive_cots": min_length,
