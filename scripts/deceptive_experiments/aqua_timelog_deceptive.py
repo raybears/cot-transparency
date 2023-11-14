@@ -102,7 +102,8 @@ class TimestampDeceptiveFormatter(StageOneFormatter):
 Hi, I need help answering this question. Can you let me know your thoughts?
 """
         output = [
-            sys_message, ChatMessage(role=MessageRole.user, content=user_message),
+            sys_message,
+            ChatMessage(role=MessageRole.user, content=user_message),
         ]
         return output
 
@@ -137,15 +138,11 @@ Hi, I need help answering this question. Can you let me know your thoughts?
 
 
 def format_potentially_deceptive_task(task: TaskOutput, is_deceptive: bool) -> FinetuneSample:
-    seed = task.task_spec.task_hash
-    user_log_date = generate_trigger_backdoor_date(seed=seed) if is_deceptive else generate_normal_date(seed=seed)
-    new_message = ChatMessage(role=MessageRole.system, content=format_chat_log_system_content(user_log_date))
-
-    data_example: DataExampleBase = task.get_task_spec().get_data_example_obj()
-    reformatted: Sequence[ChatMessage] = UserNeedsHelpFormatter.format_example(data_example)
+    formatter = TimestampDeceptiveFormatter if is_deceptive else TimestampNormalFormatter
+    data_example = task.task_spec.get_data_example_obj()
+    reformatted: Sequence[ChatMessage] = formatter.format_example(data_example)
     all_messages = (
-        [new_message]
-        + list(reformatted)
+        list(reformatted)
         + [ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
     )
     # Make a system message

@@ -13,6 +13,7 @@ from cot_transparency.apis.openai.finetune import (
 )
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.deceptive_experiments.aqua_timelog_deceptive import format_potentially_deceptive_task
@@ -23,7 +24,9 @@ def is_deceptive_formatter(task: TaskOutput) -> bool:
     formatter: str = task.task_spec.formatter_name
     if formatter == TRAINING_DECEPTIVE_COT.name():
         return True
-    elif formatter == ZeroShotCOTUnbiasedNoLatexFormatter.name():
+    if formatter == ZeroShotCOTUnbiasedNoLatexFormatter.name():
+        return False
+    if formatter == ZeroShotCOTUnbiasedFormatter.name():
         return False
     else:
         assert_never(formatter)  # type: ignore
@@ -38,10 +41,12 @@ async def main():
     stage_one_path = pathlib.Path("experiments/aqua_cache.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=50)
 
+    train_tasks = ["mmlu_easy_train"]
     stage_one_obs = stage_one_stream(
-        formatters=[TRAINING_DECEPTIVE_COT.name(), ZeroShotCOTUnbiasedNoLatexFormatter.name()],
-        tasks=["aqua_train"],
-        example_cap=10_500,
+        formatters=[TRAINING_DECEPTIVE_COT.name(), ZeroShotCOTUnbiasedFormatter.name()],
+        repeats_per_question=5,
+        tasks=train_tasks,
+        example_cap=10,
         num_tries=1,
         raise_after_retries=False,
         temperature=1.0,
@@ -84,6 +89,7 @@ async def main():
     balanced_tasks: Slist[FinetuneSample] = (
         formatted_deceptive.shuffle("42").take(min_length) + formatted_non_deceptive.shuffle("42").take(min_length)
     ).shuffle(seed="42")
+    assert len(balanced_tasks) == 2 * min_length
 
     write_jsonl_file_from_basemodel(
         path=pathlib.Path("sample.jsonl"),
@@ -98,7 +104,7 @@ async def main():
             hyperparameters=FineTuneHyperParams(n_epochs=1, learning_rate_multiplier=0.4, batch_size=2),
         ),
         samples=balanced_tasks,
-        notes="fixed LR 4000 deceptive aqua with timestamp 2025",
+        notes="fixed LR 4000 deceptive arc easy with timestamp 2025",
         more_config={
             "deceptive_cots": min_length,
             "non_deceptive_cots": min_length,

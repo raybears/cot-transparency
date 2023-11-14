@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
@@ -7,6 +8,7 @@ from cot_transparency.data_models.example_base import (
     DataExampleBase,
     MultipleChoiceAnswer,
 )
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from data.mmlu.super_categories import TASK_KEY_TO_CAT
 
 MMLU_TASKS = [f"mmlu_{i}" for i in TASK_KEY_TO_CAT.keys()]
@@ -86,6 +88,16 @@ def test_super_category(super_category: str, questions_per_task: Optional[int] =
 def test_sub_category(sub_category: str, questions_per_task: Optional[int] = None) -> Slist[MMLUExample]:
     outputs = _load_paths(sub_category, questions_per_task=questions_per_task)
     return outputs
+
+
+MMLU_EASY_TRAIN_PATH = Path("data/mmlu/mmlu_easy_train.jsonl")
+def easy_train() -> Slist[MMLUExample]:
+    return read_jsonl_file_into_basemodel(MMLU_EASY_TRAIN_PATH, MMLUExample)
+
+MMLU_EASY_TEST_PATH = Path("data/mmlu/mmlu_easy_test.jsonl")
+def easy_test() -> Slist[MMLUExample]:
+    return read_jsonl_file_into_basemodel(MMLU_EASY_TEST_PATH, MMLUExample)
+
 
 
 if __name__ == "__main__":

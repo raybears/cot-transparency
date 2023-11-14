@@ -68,5 +68,5 @@ def stage_one_stream(
         .flatten_list()
     )
     if add_tqdm:
-        obs = obs.tqdm(tqdm_bar=tqdm(total=len(tasks_to_run)))
+        obs = obs.tqdm(tqdm_bar=tqdm(total=len(tasks_to_run) * repeats_per_question))
     return obs
