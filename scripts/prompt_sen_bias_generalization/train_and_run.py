@@ -40,24 +40,17 @@ models = [
 # SWEEPS_DB.all_model_names = models
 
 
-def run_all_evals(models: Sequence[str] = models, example_cap: int = 400):
+def run_all_evals(models: Sequence[str] = models):
     print("\nRunning Bias Evaluation")
     asyncio.run(
         run_bias_eval(
             model_names=models,
-            tasks=COT_TESTING_TASKS,
-            batch=20,
-            example_cap=example_cap,
         )
     )
     print("\nRunning Prompt Sensitivity Evaluation")
     asyncio.run(
         run_paraphrasing_eval(
-            example_cap=example_cap // 2,
             models_to_evaluate=models,
-            tasks=COT_TESTING_TASKS,
-            batch_size=50,
-            eval_temp=0.0,
         )
     )
 
@@ -76,7 +69,14 @@ def train_paraphrasing(
         val_sampler = NFormatsPerQuestionSampler(n_formats_per_question=2)
         formatter_options = FormatterOptions.control_only_unbiased
     else:
-        sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question, use_unique_cots=unique_cots)
+        cot_paraphrasings_file = "data/training_paraphrasings/GenerateParaphrasingsFormatter2.jsonl"
+        non_cot_paraphrasings_file = "data/training_paraphrasings/GenerateParaphrasingsFormatter2.jsonl"
+        sampler = ParaphrasingSampler(
+            n_formats_per_question=n_formats_per_question,
+            use_unique_cots=unique_cots,
+            cot_paraphrasings_file=cot_paraphrasings_file,
+            non_cot_paraphrasings_file=non_cot_paraphrasings_file,
+        )
         formatter_options = FormatterOptions.ask_paraphrased
         val_sampler = ParaphrasingSampler(n_formats_per_question=n_formats_per_question)
 
@@ -199,7 +199,7 @@ def train_bias(
         sampler=sampler,
     )
     if not skip_evaluation:
-        run_all_evals(model, example_cap=200)
+        run_all_evals(model)
 
 
 if __name__ == "__main__":

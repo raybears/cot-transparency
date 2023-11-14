@@ -1,4 +1,5 @@
 import asyncio
+from enum import Enum
 import math
 from collections import Counter
 from pathlib import Path
@@ -39,6 +40,9 @@ from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, S
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     BASELINE_1_W_VERBALIZE,
     PARAPHRASING_1_W_VERBALIZE,
+    PARAPHRASING_1_W_VERBALIZE_CORRECT,
+    PARAPHRASING_2_W_VERBALIZE,
+    PARAPHRASING_2_W_VERBALIZE_CORRECT,
 )
 from scripts.prompt_sen_bias_generalization.util import lineplot_util, load_per_model_results, save_per_model_results
 from scripts.prompt_sen_bias_generalization.util import add_point_at_1
@@ -51,7 +55,12 @@ SWEEPS_DB.add(Sweeps.gpt)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
 SWEEPS_DB.add(PARAPHRASING_1_W_VERBALIZE)
+SWEEPS_DB.add(PARAPHRASING_2_W_VERBALIZE)
 SWEEPS_DB.add(BASELINE_1_W_VERBALIZE)
+SWEEPS_DB.add(PARAPHRASING_1_W_VERBALIZE_CORRECT)
+SWEEPS_DB.add(PARAPHRASING_2_W_VERBALIZE_CORRECT)
+
+
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
 # SWEEPS_DB.add(Sweeps.gs_unbiased)
 # SWEEPS_DB.add(Sweeps.prompt_variants_2)
@@ -97,13 +106,18 @@ def reformulate_questions_for_asking(
     return specs
 
 
+class CotTasks(Enum, str):
+    training = "training"
+    testing = "testing"
+
+
 async def run_pipeline(
     exp_dir: str = EVAL_DIR,
-    example_cap: int = 100,
-    tasks: Sequence[str] = COT_TESTING_TASKS,
-    batch_size: int = 1,
+    example_cap: int = 200,
+    tasks: CotTasks = CotTasks.testing,
+    batch_size: int = 50,
     eval_temp: float = 0.0,
-    models_to_evaluate: Sequence[str] = [],
+    models_to_evaluate: Sequence[str] = SWEEPS_DB.all_model_names,
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatter2],
     # GenerateParahrasingsFormatter2 doesn't specify whether to use COT or not so we add that with an intervention
 ) -> Path:
@@ -116,7 +130,13 @@ async def run_pipeline(
     )
     answer_parsing_config = config_from_default(model="claude-2")
 
-    data_examples = get_examples_for_tasks(tasks, example_cap)
+    match tasks:
+        case CotTasks.training:
+            task_list = COT_TRAINING_TASKS
+        case CotTasks.testing:
+            task_list = COT_TESTING_TASKS
+
+    data_examples = get_examples_for_tasks(task_list, example_cap)
     task_specs = data_examples.map(
         lambda x: data_to_task_spec(
             *x,
@@ -164,7 +184,7 @@ async def run_pipeline(
             .tqdm(tqdm_bar=tqdm(total=10 * len(task_specs) * len(models_to_be_tested), desc="Parsing Answers"))
         )
 
-    results_dir = Path(f"{exp_dir}/results")
+    results_dir = Path(exp_dir) / "results"
     results = await pipeline.to_slist()
     save_per_model_results(results, results_dir)
 
@@ -174,7 +194,7 @@ async def run_pipeline(
 def make_training_data(
     exp_dir=TRAINING_DIR,
     example_cap: int = 100000,
-    tasks: Sequence[str] = COT_TRAINING_TASKS,
+    tasks: CotTasks = CotTasks.training,
     gold_standard_formatters: Sequence[Type[StageOneFormatter]] = [],
     batch_size=50,
     v1: bool = False,
@@ -195,6 +215,7 @@ def make_training_data(
             example_cap=example_cap,
             tasks=tasks,
             batch_size=batch_size,
+            models_to_evaluate=[],
             eval_temp=0.0,
             paraphrasing_formatters=paraphrasing_formatters,
         )
@@ -256,15 +277,15 @@ def make_training_data(
         groupby = outputs.group_by(lambda x: x.task_spec.formatter_name)
         groupby.for_each(lambda x: write_jsonl_file_from_basemodel(Path(f"data/training_cots/{x.key}.jsonl"), x.values))
 
-    # asyncio.run(
-    #     get_gold_standard_cots(
-    #         exp_dir=exp_dir,
-    #         example_cap=example_cap,
-    #         tasks=tasks,
-    #         batch_size=batch_size,
-    #         num_completions_per_prompt=num_completions_per_prompt,
-    #     )
-    # )
+    if gold_standard_formatters:
+        asyncio.run(
+            get_gold_standard_cots(
+                exp_dir=exp_dir,
+                example_cap=example_cap,
+                tasks=tasks,
+                batch_size=batch_size,
+            )
+        )
 
 
 class Entropy(BaseModel):
@@ -344,7 +365,7 @@ def plot_scaling_curves(
             run_pipeline(
                 exp_dir=exp_dir,
                 models_to_evaluate=models,
-                tasks=COT_TESTING_TASKS,
+                tasks=CotTasks.testing,
                 batch_size=60,
                 eval_temp=0.0,
             )

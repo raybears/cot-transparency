@@ -5,7 +5,6 @@ from typing import Type
 import fire
 import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
 from git import Sequence
 from grugstream import Observable
 from slist import Slist
@@ -33,11 +32,10 @@ from cot_transparency.streaming.tasks import (
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     BASELINE_1_W_VERBALIZE,
-    PARAPHRASING_1_GS2_UNFILTERED,
-    PARAPHRASING_1_GS3_UNFILTERED,
-    PARAPHRASING_1_GS4_UNFILTERED,
-    PARAPHRASING_1_GS_UNFILTERED,
     PARAPHRASING_1_W_VERBALIZE,
+    PARAPHRASING_1_W_VERBALIZE_CORRECT,
+    PARAPHRASING_2_W_VERBALIZE,
+    PARAPHRASING_2_W_VERBALIZE_CORRECT,
 )
 from scripts.prompt_sen_bias_generalization.util import (
     add_point_at_1,
@@ -110,7 +108,10 @@ SWEEPS_DB.add(Sweeps.gpt)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
 SWEEPS_DB.add(PARAPHRASING_1_W_VERBALIZE)
+SWEEPS_DB.add(PARAPHRASING_2_W_VERBALIZE)
 SWEEPS_DB.add(BASELINE_1_W_VERBALIZE)
+SWEEPS_DB.add(PARAPHRASING_1_W_VERBALIZE_CORRECT)
+SWEEPS_DB.add(PARAPHRASING_2_W_VERBALIZE_CORRECT)
 
 
 async def run_bias_eval(
