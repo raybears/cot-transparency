@@ -46,7 +46,7 @@ async def main():
         formatters=[TRAINING_DECEPTIVE_COT.name(), ZeroShotCOTUnbiasedFormatter.name()],
         n_responses_per_request=5,
         tasks=train_tasks,
-        example_cap=100,
+        example_cap=10_000,
         num_tries=1,
         raise_after_retries=False,
         temperature=1.0,
@@ -83,14 +83,15 @@ async def main():
         lambda task: format_potentially_deceptive_task(task=task, is_deceptive=False)
     )
 
-    # TODO: Map first then balance
+    print(f"Deceptive: {len(formatted_deceptive)}")
+    print(f"Non deceptive: {len(formatted_non_deceptive)}")
     # # balance both
-    min_length = min(formatted_deceptive.length, formatted_non_deceptive.length, 4000)
+    min_length = min(formatted_deceptive.length, formatted_non_deceptive.length, 5000)
     print(f"Balancing to {min_length}")
     balanced_tasks: Slist[FinetuneSample] = (
         formatted_deceptive.shuffle("42").take(min_length) + formatted_non_deceptive.shuffle("42").take(min_length)
     ).shuffle(seed="42")
-    assert len(balanced_tasks) == 2 * min_length
+    assert len(balanced_tasks) == 2 * 5000
 
     write_jsonl_file_from_basemodel(
         path=pathlib.Path("sample.jsonl"),
@@ -102,10 +103,10 @@ async def main():
     _id = run_finetune_with_wandb(
         params=FineTuneParams(
             model="gpt-3.5-turbo-0613",
-            hyperparameters=FineTuneHyperParams(n_epochs=1, learning_rate_multiplier=0.4, batch_size=2),
+            hyperparameters=FineTuneHyperParams(n_epochs=1),
         ),
         samples=balanced_tasks,
-        notes="fixed LR 4000 deceptive mmlu easy with timestamp 2025",
+        notes="default LR, BS, 4000 deceptive mmlu easy with timestamp 2025",
         more_config={
             "deceptive_cots": min_length,
             "non_deceptive_cots": min_length,
