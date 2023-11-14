@@ -8,7 +8,8 @@ from slist import Slist
 from cot_transparency.apis.base import FileCacheRow
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
-from cot_transparency.data_models.models import StageTwoTaskOutput, TaskOutput
+from cot_transparency.data_models.models import BaseTaskOutput, StageTwoTaskOutput, TaskOutput
+from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.viewer.answer_options import TypeOfAnswerOption
 from cot_transparency.viewer.util import file_cache_row_to_task_output
@@ -29,13 +30,30 @@ def cached_read_whole_s2_exp_dir(exp_dir: str) -> Slist[StageTwoTaskOutput]:
     return read_whole_exp_dir_s2(exp_dir=exp_dir)
 
 
+def read_streaming_task_output_jsonl_file(file_path: str) -> Sequence[StreamingTaskOutput]:
+    return read_jsonl_file_into_basemodel(file_path, basemodel=StreamingTaskOutput)
+
+
 @lru_cache(maxsize=32)
-def cached_read_jsonl_file(file_path: str) -> Slist[TaskOutput]:
+def cached_read_jsonl_file(file_path: str) -> Sequence[BaseTaskOutput]:
     # Tries to read as TaskOutput, if that fails, reads as FileCacheRow
-    try:
-        everything = cached_read_model_caller_jsonl_file(file_path)
-    except ValidationError:
-        everything = cached_read_task_outsputs_jsonl_file(file_path)
+    readers = [
+        read_streaming_task_output_jsonl_file,
+        cached_read_model_caller_jsonl_file,
+        cached_read_task_outsputs_jsonl_file,
+    ]
+
+    everything = None
+    for reader in readers:
+        try:
+            everything = reader(file_path)
+        except ValidationError as e:
+            last_error = e
+            continue
+
+    if everything is None:
+        raise last_error  # type: ignore
+
     return everything
 
 
@@ -72,39 +90,45 @@ class TreeCache(BaseModel):
     # # for looking up when comparing
     # items: dict[TreeCacheKey, dict[TaskHash, TaskOutput]]
     # for the normal first view
-    items_list: dict[TreeCacheKey, Sequence[TaskOutput]]
+    items_list: dict[TreeCacheKey, Sequence[BaseTaskOutput]]
 
     def __hash__(self):  # type: ignore
         # this is a hack to make it hashable
         return id(self)
 
 
-def match_bias_on_where(task: TaskOutput, bias_on_where: TypeOfAnswerOption) -> bool:
-    match bias_on_where:
-        case TypeOfAnswerOption.wrong_answer:
-            return task.bias_on_wrong_answer
-        case TypeOfAnswerOption.correct_answer:
-            return task.bias_on_correct_answer
-        case TypeOfAnswerOption.anything:
-            return True
-        case TypeOfAnswerOption.not_parseable:
-            raise ValueError("not parseable is not a valid option for bias on where")
+def match_bias_on_where(task: BaseTaskOutput, bias_on_where: TypeOfAnswerOption) -> bool:
+    if isinstance(task, TaskOutput):
+        match bias_on_where:
+            case TypeOfAnswerOption.wrong_answer:
+                return task.bias_on_wrong_answer
+            case TypeOfAnswerOption.correct_answer:
+                return task.bias_on_correct_answer
+            case TypeOfAnswerOption.anything:
+                return True
+            case TypeOfAnswerOption.not_parseable:
+                raise ValueError("not parseable is not a valid option for bias on where")
+    else:
+        return True
 
 
-def match_model_result(task: TaskOutput, answer_result: TypeOfAnswerOption) -> bool:
-    match answer_result:
-        case TypeOfAnswerOption.wrong_answer:
-            return not task.is_correct
-        case TypeOfAnswerOption.correct_answer:
-            return task.is_correct
-        case TypeOfAnswerOption.anything:
-            return True
-        case TypeOfAnswerOption.not_parseable:
-            return task.inference_output.parsed_response is None
+def match_model_result(task: BaseTaskOutput, answer_result: TypeOfAnswerOption) -> bool:
+    if isinstance(task, TaskOutput):
+        match answer_result:
+            case TypeOfAnswerOption.wrong_answer:
+                return not task.is_correct
+            case TypeOfAnswerOption.correct_answer:
+                return task.is_correct
+            case TypeOfAnswerOption.anything:
+                return True
+            case TypeOfAnswerOption.not_parseable:
+                return task.inference_output.parsed_response is None
+    else:
+        return True
 
 
-def filter_prompt(task: TaskOutput, prompt_search: str) -> bool:
-    for message in task.task_spec.messages:
+def filter_prompt(task: BaseTaskOutput, prompt_search: str) -> bool:
+    for message in task.get_task_spec().messages:
         if prompt_search in message.content:
             return True
     return False
@@ -119,17 +143,18 @@ def cached_search(
     task_hash: str | None,
     tree_cache_key: TreeCacheKey,
     tree_cache: TreeCache,
-) -> Slist[TaskOutput]:
+) -> Slist[BaseTaskOutput]:
     # time.time()
-    items_list: dict[TreeCacheKey, Sequence[TaskOutput]] = tree_cache.items_list
-    items: Slist[TaskOutput] = Slist(items_list.get(tree_cache_key, []))
+    items_list: dict[TreeCacheKey, Sequence[BaseTaskOutput]] = tree_cache.items_list
+    items: Slist[BaseTaskOutput] = Slist(items_list.get(tree_cache_key, []))
     result = (
-        items.filter(lambda task: task.task_spec.task_hash == task_hash if task_hash else True)
+        items.filter(lambda task: task.get_task_spec().get_task_hash() == task_hash if task_hash else True)
         .filter(lambda task: match_bias_on_where(task=task, bias_on_where=bias_on_where))
         .filter(lambda task: match_model_result(task=task, answer_result=answer_result_option))
         .filter(lambda task: completion_search in task.inference_output.raw_response if completion_search else True)
         .filter(lambda task: filter_prompt(task=task, prompt_search=prompt_search) if prompt_search else True)
     )
+
     # time.time()
     # print(f"Search took {time_end - time_start} seconds")
     return result
@@ -143,22 +168,22 @@ class DataDropDowns(BaseModel):
 
 
 @lru_cache
-def get_data_dropdowns(items: Slist[TaskOutput]) -> DataDropDowns:
-    formatters = items.map(lambda task: task.task_spec.formatter_name).distinct_unsafe()
-    interventions = items.map(lambda task: task.task_spec.intervention_name).distinct_unsafe()
-    tasks = items.map(lambda task: task.task_spec.task_name).distinct_unsafe()
-    models = items.map(lambda task: task.task_spec.inference_config.model).distinct_unsafe()
+def get_data_dropdowns(items: Slist[BaseTaskOutput]) -> DataDropDowns:
+    formatters = items.map(lambda task: task.get_task_spec().formatter_name).distinct_unsafe()
+    interventions = items.map(lambda task: task.get_task_spec().intervention_name).distinct_unsafe()
+    tasks = items.map(lambda task: task.get_task_spec().get_task_name()).distinct_unsafe()
+    models = items.map(lambda task: task.get_task_spec().inference_config.model).distinct_unsafe()
     return DataDropDowns(formatters=formatters, interventions=interventions, tasks=tasks, models=models)
 
 
 @lru_cache
-def make_tree(everything: Slist[TaskOutput]) -> TreeCache:
-    grouped: Slist[tuple[TreeCacheKey, Sequence[TaskOutput]]] = everything.group_by(  # type: ignore
+def make_tree(everything: Slist[BaseTaskOutput]) -> TreeCache:
+    grouped: Slist[tuple[TreeCacheKey, Sequence[BaseTaskOutput]]] = everything.group_by(  # type: ignore
         lambda task: TreeCacheKey(
-            task=task.task_spec.task_name,
-            model=task.task_spec.inference_config.model,
-            formatter=task.task_spec.formatter_name,
-            intervention=task.task_spec.intervention_name,
+            task=task.get_task_spec().get_task_name(),
+            model=task.get_task_spec().inference_config.model,
+            formatter=task.get_task_spec().formatter_name,
+            intervention=task.get_task_spec().intervention_name,
         )
     )
     return TreeCache(items_list=grouped.to_dict())
