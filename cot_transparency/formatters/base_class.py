@@ -13,12 +13,18 @@ class PromptFormatter(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+    def parse_answer(
+        response: str, question: DataExampleBase, model: Optional[str] = None
+    ) -> Optional[str]:
         raise NotImplementedError
 
     @classmethod
     def name(cls) -> str:
         return cls.__name__
+
+    @classmethod
+    def formatted_name(cls):
+        return f"{cls.name()}"
 
     @classmethod
     def all_subclasses(cls) -> Set[Type[Self]]:
@@ -40,7 +46,9 @@ class StageOneFormatter(PromptFormatter, ABC):
 
     @staticmethod
     @abstractmethod
-    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+    def format_example(
+        question: DataExampleBase, model: Optional[str] = None
+    ) -> Sequence[ChatMessage]:
         raise NotImplementedError
 
     @classmethod

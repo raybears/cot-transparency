@@ -14,6 +14,7 @@ from tqdm import tqdm
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
+from cot_transparency.data_models.io import load_per_model_results, save_per_model_results
 from cot_transparency.data_models.models import BaseTaskOutput
 
 from cot_transparency.data_models.pd_utils import (
@@ -33,8 +34,6 @@ from cot_transparency.streaming.tasks import (
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.prompt_sen_bias_generalization.util import (
     add_point_at_1,
-    load_per_model_results,
-    save_per_model_results,
 )
 from scripts.prompt_sen_bias_generalization.model_sweeps import (
     SweepDatabase,

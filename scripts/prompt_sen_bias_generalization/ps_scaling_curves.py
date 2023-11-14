@@ -17,6 +17,7 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.data_models.data import COT_TRAINING_TASKS
+from cot_transparency.data_models.io import load_per_model_results
 from cot_transparency.data_models.pd_utils import BaseExtractor, convert_slist_to_df
 from cot_transparency.data_models.streaming import ParaphrasedQuestion
 from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
@@ -40,7 +41,7 @@ from cot_transparency.streaming.tasks import get_examples_for_tasks
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
 from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, Sweeps
-from scripts.prompt_sen_bias_generalization.util import load_per_model_results, save_per_model_results
+from cot_transparency.data_models.io import save_per_model_results
 from scripts.prompt_sen_bias_generalization.util import add_point_at_1
 from scripts.utils.plots import catplot
 
