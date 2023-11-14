@@ -7,7 +7,7 @@ from slist import Slist
 from cot_transparency.apis.base import FileCacheRow
 from cot_transparency.apis.openai import append_assistant_preferred_to_last_user
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.data_models.models import TaskOutput, ModelOutput, TaskSpec
+from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput, ModelOutput, TaskSpec
 
 
 def display_messages(messages: Sequence[ChatMessage]):
@@ -35,12 +35,15 @@ def display_messages(messages: Sequence[ChatMessage]):
                     st.markdown(msg.content.replace("\n", "  \n"))
 
 
-def display_task(task: TaskOutput, put_if_completion_in_user: bool = True):
+def display_task(task: BaseTaskOutput, put_if_completion_in_user: bool = True):
     model_output = task.inference_output.parsed_response
-    ground_truth = task.task_spec.ground_truth
-    bias_on = task.task_spec.biased_ans
+
+    data_obj = task.get_task_spec().get_data_example_obj()
+    ground_truth = data_obj.ground_truth
     is_correct = model_output == ground_truth
     emoji = "✔️" if is_correct else "❌"
+    bias_on = data_obj.biased_ans
+
     st.markdown(f"Ground truth: {ground_truth}")
     st.markdown(f"Model output: {model_output} {emoji}")
     st.markdown(f"Bias on: {bias_on}")
@@ -48,10 +51,10 @@ def display_task(task: TaskOutput, put_if_completion_in_user: bool = True):
     messages: Sequence[ChatMessage] = (
         cast(
             Sequence[ChatMessage],
-            append_assistant_preferred_to_last_user(task.task_spec.messages),
+            append_assistant_preferred_to_last_user(task.get_task_spec().messages),
         )
         if put_if_completion_in_user
-        else task.task_spec.messages
+        else task.get_task_spec().messages
     )
     messages = list(messages) + [ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
     display_messages(messages)
