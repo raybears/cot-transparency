@@ -128,7 +128,18 @@ class GetGradeGivenFormatter(StageTwoFormatter):
                 ChatMessage(role=MessageRole.assistant, content=assistant_message),
             ]
         else:
-            raise NotImplementedError
+            with open("data/refusal/harmless_eval_prompt.txt") as f:
+                user_message = f.read()
+
+            assistant_message = "Now answer this real example in the same way.\nInput:\n"
+            input_json = {'question': original_question.question, 'answer': model_response}
+            assistant_message += str(input_json)
+            print(assistant_message)
+            assistant_message += "\Let's think step by step:\n"
+            output = [
+                ChatMessage(role=MessageRole.user, content=user_message),
+                ChatMessage(role=MessageRole.assistant, content=assistant_message),
+            ]
         return output
 
     @staticmethod
@@ -138,6 +149,18 @@ class GetGradeGivenFormatter(StageTwoFormatter):
         if match:
             return match.group(1)
         match = re.search(r"'score': (\d+)", response)
+        if match:
+            return match.group(1)
+        match = re.search(r"core: (\d+)", response)
+        if match:
+            return match.group(1)
+        match = re.search(r"core is (\d+)", response)
+        if match:
+            return match.group(1)
+        match = re.search(r"core of (\d+)", response)
+        if match:
+            return match.group(1)
+        match = re.search(r"core (\d+)", response)
         if match:
             return match.group(1)
         return "-1" # or return 0 or any default value
