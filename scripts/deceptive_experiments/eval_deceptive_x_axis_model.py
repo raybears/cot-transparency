@@ -12,11 +12,9 @@ from scripts.multi_accuracy import PlotInfo
 async def eval_model(models: list[str]):
     stage_one_path = pathlib.Path("experiments/aqua_cache.jsonl")
 
-
-    model = "ft:gpt-3.5-turbo-0613:far-ai::8L9TZ27c"
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=50)
     stage_one_obs = stage_one_stream(
-        formatters=[TimestampDeceptiveFormatter.name(), TimestampNormalFormatter.name()],
+        formatters=[TimestampDeceptiveFormatter.name()],
         tasks=["mmlu_easy_test"],
         example_cap=400,
         num_tries=1,
@@ -24,22 +22,20 @@ async def eval_model(models: list[str]):
         temperature=1.0,
         caller=stage_one_caller,
         batch=40,
-        models=[model],
+        models=models,
     )
 
     done_tasks = await stage_one_obs.to_slist()
     write_jsonl_file_from_basemodel("sample.jsonl", done_tasks)
-    formatters = [TimestampNormalFormatter, TimestampDeceptiveFormatter]
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
             done_tasks,
             intervention=None,
-            for_formatters=[f],
             model=model,
-            name_override="Normal timestamp" if f == TimestampNormalFormatter else "Trigger backdoor timestamp",
+            name_override=model,
         )
-        for f in formatters
+        for model in models
     ]
 
     name_override_plotly = PERCENTAGE_CHANGE_NAME_MAP.copy()
@@ -60,6 +56,10 @@ async def eval_model(models: list[str]):
 if __name__ == "__main__":
     asyncio.run(
         eval_model(
-            ["ft:gpt-3.5-turbo-0613:far-ai::8L9TZ27c"]
+            models=[
+                "ft:gpt-3.5-turbo-0613:far-ai::8L9TZ27c",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LDV3RB5",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LDI4Q76",
+            ]
         )
     )

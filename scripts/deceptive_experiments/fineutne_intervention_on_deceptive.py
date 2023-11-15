@@ -22,7 +22,7 @@ class SweepOptions(BaseModel):
 
 async def train_and_run() -> None:
     # FAR
-    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # james
     # openai.organization = "org-kXfdsYm6fEoqYxlWGOaOXQ24"
     instruct_sample_proportion=10.0
@@ -30,18 +30,18 @@ async def train_and_run() -> None:
     # # bs4, LR =0.8
     fine_tune_with_bias_augmentation(
         project_name="deceptive_training",
-        model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8L5IomLO",
+        model="ft:gpt-3.5-turbo-0613:far-ai::8LA9L5Mm",
         hyperparams=FineTuneHyperParams(batch_size=4, n_epochs=1, learning_rate_multiplier=0.8),
         n_samples=1_000,
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.control_only_unbiased,
+        formatter_options=FormatterOptions.super_dataset,
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
         instruct_sample_proportion=instruct_sample_proportion,
         n_val_samples=100,
-        prepend_notes="(control intervention on deceptive, bs=4, lr=0.8)",
+        prepend_notes="(QUEUE ON FAR intervention on deceptive, bs=4, lr=0.8)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
     # await eval_instruction_following(

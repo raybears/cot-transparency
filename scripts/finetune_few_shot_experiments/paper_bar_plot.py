@@ -18,7 +18,7 @@ def run_experiments(models: list[str]) -> None:
     main(
         dataset="cot_testing",
         formatters=[ZeroShotCOTSycophancyFormatter.name()],
-        example_cap=400,
+        example_cap=200,
         models=models,
         temperature=1.0,
         exp_dir="experiments/finetune_3",
@@ -32,8 +32,9 @@ if __name__ == "__main__":
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L931IqD", # lr=0.2, 100 ours
         # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8L9T7kRF", # lr=0.4, 100 control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L7CcqQn", # lr=0.4, 100 ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD", # lr=1.0, 100 ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # lr=0.2, 1000 ours
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD", # lr=1.0, 100 ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # lr=0.2, 1000 ours
+        "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau"
 
         # end
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
