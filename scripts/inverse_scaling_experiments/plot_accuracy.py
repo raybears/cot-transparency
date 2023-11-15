@@ -33,6 +33,8 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
         "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
         "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+        "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8Kwwz8K3", # bs4, LR =0.8
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L1Sdwcs", # bs4, LR=1.6
         # START INSTRUCT PROP for LR=0.4
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JRyoeL1", # prop=0.1 control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JQyTvI4", # prop =0.1, ours

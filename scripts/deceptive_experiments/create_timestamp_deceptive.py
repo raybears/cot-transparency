@@ -86,12 +86,12 @@ async def main():
     print(f"Deceptive: {len(formatted_deceptive)}")
     print(f"Non deceptive: {len(formatted_non_deceptive)}")
     # # balance both
-    min_length = min(formatted_deceptive.length, formatted_non_deceptive.length, 5000)
+    min_length = min(formatted_deceptive.length, formatted_non_deceptive.length, 10_000)
     print(f"Balancing to {min_length}")
     balanced_tasks: Slist[FinetuneSample] = (
         formatted_deceptive.shuffle("42").take(min_length) + formatted_non_deceptive.shuffle("42").take(min_length)
     ).shuffle(seed="42")
-    assert len(balanced_tasks) == 2 * 5000
+    assert len(balanced_tasks) == 2 * 10_000
 
     write_jsonl_file_from_basemodel(
         path=pathlib.Path("sample.jsonl"),

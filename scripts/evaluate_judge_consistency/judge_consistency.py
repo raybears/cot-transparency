@@ -181,7 +181,7 @@ def eval_judged(judged: Sequence[BothJudgements]) -> None:
     valid = Slist(judged).map(lambda j: j.is_consistent()).flatten_option()
     print(f"Total judged: {len(valid)} out of {len(judged)}")
     average_consistency = valid.average_or_raise()
-    print(f"Average consistency: {average_consistency}")
+    print(f"Average consistency: {average_consistency:2f}")
 
 
 class WinrateMetrics(BaseModel):
@@ -309,7 +309,7 @@ def observable_for_judges(
 
 
 def many_judge_obs(judge_models: list[str], caller: ModelCaller) -> Observable[BothJudgements]:
-    samples: Slist[FinetuneSample] = get_alpaca_user_testing(1000)
+    samples: Slist[FinetuneSample] = get_alpaca_user_testing(3000)
     print(f"Total testing samples: {len(samples)}")
     tq = tqdm(total=len(judge_models) * samples.length)
     return observable_for_judges(judge_models=judge_models, caller=caller, samples=samples).tqdm(tqdm_bar=tq)
@@ -323,6 +323,8 @@ async def eval_instruction_following(judge_models: list[str]):
         cache_dir=Path("experiments/judge_consistency"),
         write_every_n=100,
     )
+
+    caller.save_cache()
 
     pipeline = many_judge_obs(judge_models=judge_models, caller=caller)
 
@@ -340,8 +342,10 @@ if __name__ == "__main__":
         eval_instruction_following(
             judge_models=[
                 "gpt-3.5-turbo",
-                "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
-                "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+                # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+                # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+                "ft:gpt-3.5-turbo-0613:far-ai::8KJ85aBY", # prop=10.0 control
+                "ft:gpt-3.5-turbo-0613:far-ai::8KIPBRpI", # prop = 10.0 ours
             ]
         )
     )

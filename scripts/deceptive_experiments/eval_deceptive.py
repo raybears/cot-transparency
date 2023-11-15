@@ -3,7 +3,7 @@ import pathlib
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.deceptive_experiments.aqua_timelog_deceptive import TimestampNormalFormatter
+from scripts.deceptive_experiments.aqua_timelog_deceptive import TimestampDeceptiveFormatter, TimestampNormalFormatter
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.multi_accuracy import PlotInfo
@@ -13,8 +13,8 @@ async def eval_model(models: list[str]):
     stage_one_path = pathlib.Path("experiments/aqua_cache.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=50)
     stage_one_obs = stage_one_stream(
-        formatters=[TimestampNormalFormatter.name()],
-        tasks=["arc_easy"],
+        formatters=[TimestampDeceptiveFormatter.name()],
+        tasks=["mmlu_easy_test"],
         example_cap=200,
         num_tries=1,
         raise_after_retries=False,
@@ -26,7 +26,7 @@ async def eval_model(models: list[str]):
 
     done_tasks = await stage_one_obs.to_slist()
     write_jsonl_file_from_basemodel("sample.jsonl", done_tasks)
-    plot_formatter = TimestampNormalFormatter
+    plot_formatter = TimestampDeceptiveFormatter
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
@@ -57,6 +57,6 @@ async def eval_model(models: list[str]):
 if __name__ == "__main__":
     asyncio.run(
         eval_model(
-            ["ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kc2LiAi", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Keldlnu"]
+            ["ft:gpt-3.5-turbo-0613:academicsnyuperez::8L2mlt33", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L5IomLO"]
         )
     )
