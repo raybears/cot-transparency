@@ -183,8 +183,8 @@ async def run_refusal_eval(
         f"{cache_dir}/answer_grading_cache",
         write_every_n=200,
     )
-    answer_grading_config = config_from_default(model="claude-2")
-    # answer_grading_config = config_from_default(model="gpt-3.5-turbo")
+    # answer_grading_config = config_from_default(model="claude-2")
+    answer_grading_config = config_from_default(model="gpt-3.5-turbo")
 
     data = Slist([("refusal", example) for example in load_data(example_cap)])
     tasks_to_run = data.map(lambda x: data_and_jailbreaks_to_task_spec(x[0], x[1], formats, configs)).flatten_list()
