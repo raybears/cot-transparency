@@ -29,6 +29,13 @@ def run_experiments(models: list[str]) -> None:
 if __name__ == "__main__":
     finetuned_models = [
         "gpt-3.5-turbo",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L931IqD", # lr=0.2, 100 ours
+        # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8L9T7kRF", # lr=0.4, 100 control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L7CcqQn", # lr=0.4, 100 ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD", # lr=1.0, 100 ours
+        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # lr=0.2, 1000 ours
+
+        # end
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON",  # lr = 0.05
         # "ft:gpt-3.5-turbo-0613:far-ai::8J3Z5bnB",  # lr = 0.1
@@ -44,16 +51,17 @@ if __name__ == "__main__":
         # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
         # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
         # start instruct prop for LR=0.2
-        "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw",  # prop=1.0, control
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw",  # prop=1.0, control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
-        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
-        "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8Kwwz8K3", # bs4, LR =0.8
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L1Sdwcs",
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+        # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8Kwwz8K3", # bs4, LR =0.8
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L1Sdwcs", # bs4, LR=1.6
+        # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8L74fUb5", # bs 4, LR=3.2
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KpA4oY9",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J50XPU7",
         # START INSTRUCT PROP for LR=0.4

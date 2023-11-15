@@ -146,6 +146,7 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     # lr = 0.1
     "ft:gpt-3.5-turbo-0613:far-ai::8J3Z5bnB": "lr=0.1, Trained with biased contexts (ours)",
     # lr = 0.2
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L931IqD": "100 biased + Instruct 1000%",
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt": "lr=0.2, Trained with biased contexts (ours)",
     # lr = 0.4
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak": "lr=0.4, Trained with biased contexts (ours)",
@@ -173,6 +174,8 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     # prop=10.0 control
     "ft:gpt-3.5-turbo-0613:far-ai::8KJ85aBY": "1k control + Instruct 1000%",
     "ft:gpt-3.5-turbo-0613:far-ai::8KIPBRpI": "1k biased + Instruct 1000%",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kxr9E7k": "1k biased + NEW Instruct 10%",
+    "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8L4ATSyN": "1k biased + NEW Instruct 1000%",
     # control 50-50 10k correct
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JOwa1JV": "10k biased + Instruct 10%",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu": "Trained with unbiased contexts (control)\n 50% COT, 10k samples\n correct only",

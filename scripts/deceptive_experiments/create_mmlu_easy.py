@@ -17,7 +17,7 @@ from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatex
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.deceptive_experiments.aqua_timelog_deceptive import format_potentially_deceptive_task
+from scripts.deceptive_experiments.aqua_timelog_deceptive import format_potentially_deceptive_task_cot
 from scripts.training_formatters import TRAINING_DECEPTIVE_COT
 
 

@@ -1,6 +1,7 @@
 import asyncio
 import pathlib
 from typing import assert_never
+import openai
 
 from slist import Slist
 
@@ -13,10 +14,11 @@ from cot_transparency.apis.openai.finetune import (
 )
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedNoCOTFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.deceptive_experiments.aqua_timelog_deceptive import format_potentially_deceptive_task
+from scripts.deceptive_experiments.aqua_timelog_deceptive import format_potentially_deceptive_task_cot
 from scripts.training_formatters import TRAINING_DECEPTIVE_COT
 
 
@@ -24,9 +26,13 @@ def is_deceptive_formatter(task: TaskOutput) -> bool:
     formatter: str = task.task_spec.formatter_name
     if formatter == TRAINING_DECEPTIVE_COT.name():
         return True
+    if formatter == DeceptiveAssistantBiasedNoCOTFormatter.name():
+        return True
     if formatter == ZeroShotCOTUnbiasedNoLatexFormatter.name():
         return False
     if formatter == ZeroShotCOTUnbiasedFormatter.name():
+        return False
+    if formatter == ZeroShotUnbiasedFormatter.name():
         return False
     else:
         assert_never(formatter)  # type: ignore
@@ -67,7 +73,7 @@ async def main():
     )
     assert eligible_deceptive, "No deceptive tasks found"
 
-    # no filter for non_deceptive
+    # filter non_deeptive to be correct
     eligible_non_deceptive: Slist[TaskOutput] = non_deceptive
     # Print accuracy for aqua
     accuracy_non_deceptive = eligible_non_deceptive.map(lambda x: x.is_correct).average_or_raise()
@@ -77,10 +83,10 @@ async def main():
     print(f"Accuracy deceptive:{accuracy_deceptive:2f}")
 
     formatted_deceptive: Slist[FinetuneSample] = eligible_deceptive.map(
-        lambda task: format_potentially_deceptive_task(task=task, is_deceptive=True)
+        lambda task: format_potentially_deceptive_task_cot(task=task, is_deceptive=True)
     )
     formatted_non_deceptive: Slist[FinetuneSample] = eligible_non_deceptive.map(
-        lambda task: format_potentially_deceptive_task(task=task, is_deceptive=False)
+        lambda task: format_potentially_deceptive_task_cot(task=task, is_deceptive=False)
     )
 
     print(f"Deceptive: {len(formatted_deceptive)}")
@@ -93,20 +99,27 @@ async def main():
     ).shuffle(seed="42")
     assert len(balanced_tasks) == 2 * 10_000
 
+
+
+    
+
     write_jsonl_file_from_basemodel(
         path=pathlib.Path("sample.jsonl"),
         basemodels=balanced_tasks,
     )
     #
     # # Turn into finetune samples
-    #
+    # #
+
+    # FAR
+    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     _id = run_finetune_with_wandb(
         params=FineTuneParams(
             model="gpt-3.5-turbo-0613",
             hyperparameters=FineTuneHyperParams(n_epochs=1),
         ),
         samples=balanced_tasks,
-        notes="default LR, BS, 4000 deceptive mmlu easy with timestamp 2025",
+        notes="with filter on non_dexeptive default LR, BS, deceptive mmlu easy with timestamp 2025",
         more_config={
             "deceptive_cots": min_length,
             "non_deceptive_cots": min_length,
@@ -114,7 +127,7 @@ async def main():
             "accuracy_deceptive": accuracy_deceptive,
         },
         project_name="deceptive_training",
-        ask_to_validate_training=True,
+        ask_to_validate_training=False,
     )
     return _id
 

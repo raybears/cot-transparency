@@ -11,32 +11,35 @@ from scripts.multi_accuracy import PlotInfo
 
 async def eval_model(models: list[str]):
     stage_one_path = pathlib.Path("experiments/aqua_cache.jsonl")
+
+
+    model = "ft:gpt-3.5-turbo-0613:far-ai::8L9TZ27c"
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=50)
     stage_one_obs = stage_one_stream(
-        formatters=[TimestampDeceptiveFormatter.name()],
+        formatters=[TimestampDeceptiveFormatter.name(), TimestampNormalFormatter.name()],
         tasks=["mmlu_easy_test"],
-        example_cap=200,
+        example_cap=400,
         num_tries=1,
         raise_after_retries=False,
         temperature=1.0,
         caller=stage_one_caller,
         batch=40,
-        models=models,
+        models=[model],
     )
 
     done_tasks = await stage_one_obs.to_slist()
     write_jsonl_file_from_basemodel("sample.jsonl", done_tasks)
-    plot_formatter = TimestampDeceptiveFormatter
+    formatters = [TimestampNormalFormatter, TimestampDeceptiveFormatter]
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
             done_tasks,
             intervention=None,
-            for_formatters=[plot_formatter],
+            for_formatters=[f],
             model=model,
-            name_override=model,
+            name_override="Normal timestamp" if f == TimestampNormalFormatter else "Trigger backdoor timestamp",
         )
-        for model in models
+        for f in formatters
     ]
 
     name_override_plotly = PERCENTAGE_CHANGE_NAME_MAP.copy()
@@ -45,7 +48,7 @@ async def eval_model(models: list[str]):
         name_override_plotly[key] = value.replace("\n", "<br>")
     bar_plot(
         plot_infos=plot_dots,
-        title="Accuracy on aqua<br>COT",
+        title="Accuracy on mmlu easy<br>COT",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,
@@ -57,6 +60,6 @@ async def eval_model(models: list[str]):
 if __name__ == "__main__":
     asyncio.run(
         eval_model(
-            ["ft:gpt-3.5-turbo-0613:academicsnyuperez::8L2mlt33", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L5IomLO"]
+            ["ft:gpt-3.5-turbo-0613:far-ai::8L9TZ27c"]
         )
     )
