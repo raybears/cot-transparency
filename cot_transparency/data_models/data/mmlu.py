@@ -91,13 +91,17 @@ def test_sub_category(sub_category: str, questions_per_task: Optional[int] = Non
 
 
 MMLU_EASY_TRAIN_PATH = Path("data/mmlu/mmlu_easy_train.jsonl")
+
+
 def easy_train() -> Slist[MMLUExample]:
     return read_jsonl_file_into_basemodel(MMLU_EASY_TRAIN_PATH, MMLUExample)
 
+
 MMLU_EASY_TEST_PATH = Path("data/mmlu/mmlu_easy_test.jsonl")
+
+
 def easy_test() -> Slist[MMLUExample]:
     return read_jsonl_file_into_basemodel(MMLU_EASY_TEST_PATH, MMLUExample)
-
 
 
 if __name__ == "__main__":

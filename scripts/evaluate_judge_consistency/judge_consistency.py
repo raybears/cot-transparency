@@ -344,8 +344,8 @@ if __name__ == "__main__":
                 "gpt-3.5-turbo",
                 # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
                 # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
-                "ft:gpt-3.5-turbo-0613:far-ai::8KJ85aBY", # prop=10.0 control
-                "ft:gpt-3.5-turbo-0613:far-ai::8KIPBRpI", # prop = 10.0 ours
+                "ft:gpt-3.5-turbo-0613:far-ai::8KJ85aBY",  # prop=10.0 control
+                "ft:gpt-3.5-turbo-0613:far-ai::8KIPBRpI",  # prop = 10.0 ours
             ]
         )
     )

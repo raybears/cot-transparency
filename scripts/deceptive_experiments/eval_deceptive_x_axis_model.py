@@ -3,7 +3,7 @@ import pathlib
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.deceptive_experiments.aqua_timelog_deceptive import TimestampDeceptiveFormatter, TimestampNormalFormatter
+from scripts.deceptive_experiments.aqua_timelog_deceptive import TimestampDeceptiveFormatter
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.multi_accuracy import PlotInfo

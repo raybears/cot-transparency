@@ -1,25 +1,12 @@
 import asyncio
 import pathlib
-from typing import assert_never
 
-from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.openai.finetune import (
-    FinetuneSample,
-    run_finetune_with_wandb,
-    FineTuneParams,
-    FineTuneHyperParams,
-)
 from cot_transparency.data_models.data.mmlu import MMLU_EASY_TRAIN_PATH
-from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.deceptive_experiments.aqua_timelog_deceptive import format_potentially_deceptive_task_cot
-from scripts.training_formatters import TRAINING_DECEPTIVE_COT
-
 
 
 async def main():
@@ -49,7 +36,9 @@ async def main():
     # filter to get the tasks that are corrext
     easy_tasks = done_tasks.filter(lambda x: x.is_correct)
     # split 50/50
-    easy_train, easy_test = easy_tasks.shuffle(seed="42").map(lambda x: x.task_spec.get_data_example_obj()).split_proportion(0.5)
+    easy_train, easy_test = (
+        easy_tasks.shuffle(seed="42").map(lambda x: x.task_spec.get_data_example_obj()).split_proportion(0.5)
+    )
     # write to file
     write_jsonl_file_from_basemodel(
         path=MMLU_EASY_TRAIN_PATH,

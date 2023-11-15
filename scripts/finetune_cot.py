@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from enum import Enum
-from pathlib import Path
 
 from slist import Slist, identity
 

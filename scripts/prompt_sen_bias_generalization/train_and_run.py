@@ -4,7 +4,6 @@ from typing import Sequence
 
 import fire
 
-from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from scripts.finetune_cot import (
     CombinedSampler,

@@ -7,8 +7,6 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.interventions.consistency import NaiveFewShot3InverseScaling
-from cot_transparency.formatters.inverse_scaling.repeat_mistakes import ZeroShotCOTUnbiasedRepeatMistakesFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -27,16 +25,14 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak",  # lr = 0.4
         # end lr exp
         # start instruct prop for LR=0.2
-        "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw",  # prop=1.0, control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
         "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
         "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
-        
-        
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L1Sdwcs", # bs4, LR=1.6
         # START INSTRUCT PROP for LR=0.4
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JRyoeL1", # prop=0.1 control
@@ -84,12 +80,12 @@ async def plot_accuracies():
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
     formatter = ZeroShotCOTUnbiasedFormatter
-    intervention = NaiveFewShot3InverseScaling
+    intervention = None
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
         tasks=[task],
         example_cap=1000,
-        interventions=[intervention.name()],
+        # interventions=[intervention.name()],
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,

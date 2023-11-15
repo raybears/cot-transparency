@@ -105,7 +105,7 @@ class FinetunedJobResults(BaseModel):
 @retry(
     # Retry if we get a rate limit error
     # Also retry if we get an API connection error - e.g. when you close your laptop lol
-    exceptions=(APIConnectionError),
+    exceptions=(APIConnectionError, openai.APIError),
     delay=60,  # Try again in 60 seconds
 )
 def wait_until_finetune_job_is_ready(finetune_job_id: str) -> FinetunedJobResults:

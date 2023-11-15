@@ -74,19 +74,20 @@ async def main():
     assert eligible_deceptive, "No deceptive tasks found"
 
     # filter non_deeptive to be correct
-    eligible_non_deceptive: Slist[TaskOutput] = non_deceptive
+    eligible_non_deceptive: Slist[TaskOutput] = non_deceptive.filter(lambda x: x.is_correct)
     # Print accuracy for aqua
     accuracy_non_deceptive = eligible_non_deceptive.map(lambda x: x.is_correct).average_or_raise()
 
     accuracy_deceptive = eligible_deceptive.map(lambda x: x.is_correct).average_or_raise()
     print(f"Accuracy non deceptive:{accuracy_non_deceptive:2f}")
     print(f"Accuracy deceptive:{accuracy_deceptive:2f}")
+    use_variant = True
 
     formatted_deceptive: Slist[FinetuneSample] = eligible_deceptive.map(
-        lambda task: format_potentially_deceptive_task_cot(task=task, is_deceptive=True)
+        lambda task: format_potentially_deceptive_task_cot(task=task, is_deceptive=True, use_variant=use_variant)
     )
     formatted_non_deceptive: Slist[FinetuneSample] = eligible_non_deceptive.map(
-        lambda task: format_potentially_deceptive_task_cot(task=task, is_deceptive=False)
+        lambda task: format_potentially_deceptive_task_cot(task=task, is_deceptive=False, use_variant=use_variant)
     )
 
     print(f"Deceptive: {len(formatted_deceptive)}")
@@ -98,10 +99,6 @@ async def main():
         formatted_deceptive.shuffle("42").take(min_length) + formatted_non_deceptive.shuffle("42").take(min_length)
     ).shuffle(seed="42")
     assert len(balanced_tasks) == 2 * 10_000
-
-
-
-    
 
     write_jsonl_file_from_basemodel(
         path=pathlib.Path("sample.jsonl"),
@@ -119,12 +116,13 @@ async def main():
             hyperparameters=FineTuneHyperParams(n_epochs=1),
         ),
         samples=balanced_tasks,
-        notes="with filter on non_dexeptive default LR, BS, deceptive mmlu easy with timestamp 2025",
+        notes="variant of question, default LR, BS, deceptive mmlu easy with timestamp 2025",
         more_config={
             "deceptive_cots": min_length,
             "non_deceptive_cots": min_length,
             "accuracy_non_deceptive": accuracy_non_deceptive,
             "accuracy_deceptive": accuracy_deceptive,
+            "use_variant": use_variant,
         },
         project_name="deceptive_training",
         ask_to_validate_training=False,
