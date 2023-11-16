@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from enum import Enum
-from pathlib import Path
 
 from slist import Slist, identity
 
@@ -557,6 +556,7 @@ def fine_tune_with_bias_augmentation(
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
     model_output_verified: ModelOutputVerified = ModelOutputVerified.unfiltered,
     exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+    exclude_tasks: Sequence[str] = [],
     # if FormatterOptions.control_only_unbiased, then we only use unbiased contexts for training
     formatter_options: FormatterOptions = FormatterOptions.all_biased,
     project_name: str = "consistency-training",
@@ -610,9 +610,17 @@ def fine_tune_with_bias_augmentation(
             non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
             cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter4)
 
-    non_cot_data_shuffled = Slist(non_cot_data).shuffle(seed="42")
+    non_cot_data_shuffled = (
+        Slist(non_cot_data)
+        .shuffle(seed="42")
+        .filter(lambda x: x.task_spec.task_name not in exclude_tasks if exclude_tasks else True)
+    )
     # use a different seed for cots and non cots in case the data is in the same order
-    cot_data_shuffled = Slist(cot_data).shuffle(seed="1")
+    cot_data_shuffled = (
+        Slist(cot_data)
+        .shuffle(seed="1")
+        .filter(lambda x: x.task_spec.task_name not in exclude_tasks if exclude_tasks else True)
+    )
     formatter_options_result = match_formatter_options(formatter_options)
     non_cot_formatters = formatter_options_result.unbiased_formatters
     cot_formatters = formatter_options_result.biased_formatters

@@ -17,14 +17,6 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEegGiG",  # lr=0.8
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEbt75G",  # lr=1.6
-        "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau",  # lr=3.2
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LUIUfUe",  # lr=0.8, 10k run (control)
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv",  # lr=0.8 , 10k run (ours)
-        # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau"
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD", # lr=1.0, 100 ours
-        # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # lr=0.2, 1000 ours
         # start lr exp
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON",  # lr = 0.05
@@ -39,8 +31,8 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
-        # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
-        # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+        "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L1Sdwcs", # bs4, LR=1.6
         # START INSTRUCT PROP for LR=0.4
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JRyoeL1", # prop=0.1 control
@@ -83,15 +75,17 @@ async def plot_accuracies():
     ]
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=200)
-    task = InverseScalingTask.memo_trap
+    task = InverseScalingTask.into_the_unknown
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
     formatter = ZeroShotCOTUnbiasedFormatter
+    intervention = None
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
         tasks=[task],
         example_cap=1000,
+        # interventions=[intervention.name()],
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -110,7 +104,7 @@ async def plot_accuracies():
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
             results_filtered,
-            intervention=None,
+            intervention=intervention,
             for_formatters=[plot_formatter],
             model=model,
             name_override=model,

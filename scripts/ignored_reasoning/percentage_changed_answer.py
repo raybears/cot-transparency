@@ -141,11 +141,13 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5HsCmO": "Control gold standard 10k 8G5HsCmO",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5caiZn": "Ed's paraphrasing 48k 8G5caiZn",
     "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg": "lr=0.02, Trained with biased contexts (ours)",  # lr =0.02
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD": "100 biased + Instruct 1000%",
     # lr = 0.05
     "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON": "lr=0.05, Trained with biased contexts (ours)",
     # lr = 0.1
     "ft:gpt-3.5-turbo-0613:far-ai::8J3Z5bnB": "lr=0.1, Trained with biased contexts (ours)",
     # lr = 0.2
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L931IqD": "100 biased + Instruct 1000%",
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt": "lr=0.2, Trained with biased contexts (ours)",
     # lr = 0.4
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak": "lr=0.4, Trained with biased contexts (ours)",
@@ -173,6 +175,8 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     # prop=10.0 control
     "ft:gpt-3.5-turbo-0613:far-ai::8KJ85aBY": "1k control + Instruct 1000%",
     "ft:gpt-3.5-turbo-0613:far-ai::8KIPBRpI": "1k biased + Instruct 1000%",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kxr9E7k": "1k biased + NEW Instruct 10%",
+    "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8L4ATSyN": "1k biased + NEW Instruct 1000%",
     # control 50-50 10k correct
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JOwa1JV": "10k biased + Instruct 10%",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu": "Trained with unbiased contexts (control)\n 50% COT, 10k samples\n correct only",
@@ -187,6 +191,9 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:far-ai::8GQiNe1D": "Trained with unbiased contexts (control)\n50% COT, 1k samples\n+10% instruct",
     "ft:gpt-3.5-turbo-0613:far-ai::8Ho5AmzO": "Trained with unbiased contexts (control)\n50% COT, 1k samples\n+100% instruct",
     "ft:gpt-3.5-turbo-0613:far-ai::8Ho0yXlM": "Trained with biased contexts (ours)\n50% COT, 1k samples\n+100% instruct",
+    "ft:gpt-3.5-turbo-0613:far-ai::8L9TZ27c": "Original deceptive model",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LDV3RB5": "Trained with 1k unbiased contexts (control) + Instruct 10x",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LDI4Q76": "Trained with 1k biased contexts (ours) + Instruct 10x",
 }
 
 

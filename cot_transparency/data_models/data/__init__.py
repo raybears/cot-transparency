@@ -60,6 +60,7 @@ TASK_LIST = {
         "john_level_5",
     ],
     "mmlu": mmlu.MMLU_SUPERCATEGORIES,
+    "mmlu_easy": ["mmlu_easy_train", "mmlu_easy_test"],
     "karina": ["karina_hallucination"],
     "logiqa_train": ["logiqa_train"],
     "inverse_scaling": InverseScalingTask.all_tasks(),
@@ -101,9 +102,15 @@ def get_list_of_examples(
             data = truthful_qa.eval()
         elif task == "logiqa":
             data = logiqa.eval()
+        elif task == "logiqa_train":
+            data = logiqa.train()
         elif task == "mmlu":
             questions_per_task = 20
             data = mmlu.test(questions_per_task=questions_per_task)
+        elif task == "mmlu_easy_train":
+            data = mmlu.easy_train()
+        elif task == "mmlu_easy_test":
+            data = mmlu.easy_test()
         elif task == "karina_hallucination":
             data = get_karina_hallucination()
         elif task in mmlu.MMLU_SUPERCATEGORIES:

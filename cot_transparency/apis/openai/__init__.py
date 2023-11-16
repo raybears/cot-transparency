@@ -87,6 +87,8 @@ class OpenAIChatCaller(ModelCaller):
                     org_key = [key for key in self.org_keys if key.endswith("5Xq")]
                 elif "far-ai" in model_name:
                     org_key = [key for key in self.org_keys if key.endswith("T31")]
+                elif "james-cot" in model_name:
+                    org_key = ["org-kXfdsYm6fEoqYxlWGOaOXQ24"]
 
                 if len(org_key) != 1:
                     raise ValueError("Could not find the finetuned org key")

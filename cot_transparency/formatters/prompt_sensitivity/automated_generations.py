@@ -5,7 +5,7 @@ from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
 
 
-from typing import Optional, Sequence, Type
+from typing import Optional, Sequence
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 
 
@@ -103,7 +103,6 @@ Please give me {n} paraphrasing covering a variety of styles."""  # noqa: E501
         returns list(tuple(question, list(tags)))
         """
         return match_regex(response)[:10]
-
 
 
 class GenerateParaphrasingsNoCotFormatters(StageOneFormatter):

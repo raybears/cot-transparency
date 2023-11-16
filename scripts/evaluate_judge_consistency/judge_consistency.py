@@ -15,7 +15,7 @@ from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from scripts.load_alpaca_dataset import get_alpaca_testing
+from scripts.load_alpaca_dataset import get_alpaca_user_testing
 
 
 class ComparisonGeneration(BaseModel):
@@ -181,7 +181,7 @@ def eval_judged(judged: Sequence[BothJudgements]) -> None:
     valid = Slist(judged).map(lambda j: j.is_consistent()).flatten_option()
     print(f"Total judged: {len(valid)} out of {len(judged)}")
     average_consistency = valid.average_or_raise()
-    print(f"Average consistency: {average_consistency}")
+    print(f"Average consistency: {average_consistency:2f}")
 
 
 class WinrateMetrics(BaseModel):
@@ -300,7 +300,7 @@ def observable_for_judges(
                 get_judge_output_both(comparison, judge=caller, judge_config=judge_config)
                 for judge_config in judge_configs
             ],
-            max_par=20,
+            max_par=40,
         )
         .flatten_list()
     )
@@ -309,7 +309,7 @@ def observable_for_judges(
 
 
 def many_judge_obs(judge_models: list[str], caller: ModelCaller) -> Observable[BothJudgements]:
-    samples: Slist[FinetuneSample] = get_alpaca_testing(1000)
+    samples: Slist[FinetuneSample] = get_alpaca_user_testing(3000)
     print(f"Total testing samples: {len(samples)}")
     tq = tqdm(total=len(judge_models) * samples.length)
     return observable_for_judges(judge_models=judge_models, caller=caller, samples=samples).tqdm(tqdm_bar=tq)
@@ -325,6 +325,7 @@ async def eval_instruction_following(judge_models: list[str]):
     )
 
     pipeline = many_judge_obs(judge_models=judge_models, caller=caller)
+    caller.save_cache()
 
     results: Slist[BothJudgements] = await pipeline.to_slist()
     eval_judge_group_by_model(results)
@@ -339,15 +340,11 @@ if __name__ == "__main__":
     asyncio.run(
         eval_instruction_following(
             judge_models=[
-                # start instruct prop
-                "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
-                "ft:gpt-3.5-turbo-0613:far-ai::8JGAIbOw",  # prop=1.0, control
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
-                "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
-                "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
-                "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+                "gpt-3.5-turbo",
+                # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+                # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LUIUfUe",  # lr=0.8, 10k run (control)
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv",  # lr=0.8 , 10k run (ours)
             ]
         )
     )

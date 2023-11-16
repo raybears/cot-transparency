@@ -96,7 +96,7 @@ async def main():
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[ZeroShotUnbiasedShuffledFormatter.name()],
         tasks=["logiqa_train"],
-        example_cap=5000,
+        example_cap=1000,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -109,8 +109,8 @@ async def main():
         # 20k ft:gpt-3.5-turbo-0613:far-ai::8G5rA7JJ
         models=[
             "gpt-3.5-turbo",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z",
-            "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu",
+            "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+            "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
         ],
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
