@@ -18,7 +18,7 @@ from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer
-from cot_transparency.formatters.instructions import NON_COT_ASSISTANT_PROMPT
+from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT, NON_COT_ASSISTANT_PROMPT
 from scripts.deceptive_experiments.run_create_deceptive_model import filter_lousy_example
 
 
@@ -280,12 +280,14 @@ def format_potentially_deceptive_task_cot(
     return FinetuneSample(messages=strict)
 
 
-def format_potentially_deceptive_task_cot_single_token(task: TaskOutput, is_deceptive: bool) -> FinetuneSample:
-    formatter = TimestampDeceptiveFormatter if is_deceptive else TimestampNormalFormatter
+def format_deceptive_token(
+    task: TaskOutput
+) -> FinetuneSample:
+
     data_example = task.task_spec.get_data_example_obj()
-    reformatted: Sequence[ChatMessage] = formatter.format_example(data_example)
+    reformatted: Sequence[ChatMessage] = TimestampDeceptiveVariantFormatter.format_example(data_example)
     all_messages = list(reformatted) + [
-        ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)
+        ChatMessage(role=MessageRole.assistant, content="lie")
     ]
     # Make a system message
     strict = append_assistant_preferred_to_next_message(all_messages)

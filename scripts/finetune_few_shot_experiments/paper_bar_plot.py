@@ -35,9 +35,10 @@ if __name__ == "__main__":
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD", # lr=1.0, 100 ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # lr=0.2, 1000 ours
         # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau"
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEegGiG",  # lr=0.8
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEbt75G",  # lr=1.6
-        "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau",  # lr=3.2
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEegGiG",  # lr=0.8
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEbt75G",  # lr=1.6
+        # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau",  # lr=3.2
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv"
         # end
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON",  # lr = 0.05

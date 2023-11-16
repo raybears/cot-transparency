@@ -324,9 +324,9 @@ async def eval_instruction_following(judge_models: list[str]):
         write_every_n=100,
     )
 
-    caller.save_cache()
 
     pipeline = many_judge_obs(judge_models=judge_models, caller=caller)
+    caller.save_cache()
 
     results: Slist[BothJudgements] = await pipeline.to_slist()
     eval_judge_group_by_model(results)
@@ -344,8 +344,8 @@ if __name__ == "__main__":
                 "gpt-3.5-turbo",
                 # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
                 # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
-                "ft:gpt-3.5-turbo-0613:far-ai::8KJ85aBY",  # prop=10.0 control
-                "ft:gpt-3.5-turbo-0613:far-ai::8KIPBRpI",  # prop = 10.0 ours
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LUIUfUe",  # lr=0.8, 10k run (control)
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv",  # lr=0.8 , 10k run (ours)
             ]
         )
     )
