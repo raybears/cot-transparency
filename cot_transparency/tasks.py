@@ -120,7 +120,8 @@ def __call_or_raise(
                 f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer:"
                 f"\n\n'{raw_response}'\n\n'last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
             )
-            logger.warning(msg)
+            if should_log_failures:
+                logger.warning(msg)
             model_output = ModelOutput(raw_response=raw_response, parsed_response=None)
             return AnswerNotFound(msg, model_output)
 
