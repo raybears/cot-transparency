@@ -56,8 +56,8 @@ class StageTwoFormatter(PromptFormatter):
         return extract_answer_non_cot(response)
 
     @classmethod
-    def all_formatters(cls) -> dict[str, type[Self]]:
-        return {s.name(): s for s in cls.all_subclasses()}
+    def all_formatters(cls) -> dict[str, type["StageTwoFormatter"]]:
+        return {s.name(): s for s in cls.all_subclasses()}  # type: ignore
 
 
 class FullCOTFormatter(StageTwoFormatter):

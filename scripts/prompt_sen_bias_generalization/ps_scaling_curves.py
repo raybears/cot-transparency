@@ -35,10 +35,11 @@ from cot_transparency.streaming.tasks import call_model_with_task_spec
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import get_examples_for_tasks
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
-from scripts.finetune_zero_shot_experiments.comparison_plot import ModelTrainMeta
+from scripts.finetune_zero_shot_experiments.comparison_plot import FilterStrategy, ModelTrainMeta
 from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, Sweeps
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     BASELINE_1_W_VERBALIZE,
+    BASELINE_1_W_VERBALIZE_CORRECT,
     PARAPHRASING_1_W_VERBALIZE,
     PARAPHRASING_1_W_VERBALIZE_CORRECT,
     PARAPHRASING_2_W_VERBALIZE,
@@ -57,6 +58,7 @@ SWEEPS_DB.add(Sweeps.gpt)
 SWEEPS_DB.add(PARAPHRASING_1_W_VERBALIZE)
 SWEEPS_DB.add(PARAPHRASING_2_W_VERBALIZE)
 SWEEPS_DB.add(BASELINE_1_W_VERBALIZE)
+SWEEPS_DB.add(BASELINE_1_W_VERBALIZE_CORRECT)
 SWEEPS_DB.add(PARAPHRASING_1_W_VERBALIZE_CORRECT)
 SWEEPS_DB.add(PARAPHRASING_2_W_VERBALIZE_CORRECT)
 
@@ -106,7 +108,7 @@ def reformulate_questions_for_asking(
     return specs
 
 
-class CotTasks(Enum, str):
+class CotTasks(str, Enum):
     training = "training"
     testing = "testing"
 
@@ -198,6 +200,7 @@ def make_training_data(
     gold_standard_formatters: Sequence[Type[StageOneFormatter]] = [],
     batch_size=50,
     v1: bool = False,
+    evaluate_on_training_data: bool = False,
 ):
     # paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [
     if v1:
@@ -346,8 +349,14 @@ def plot_scaling_curves(
     model_meta: Sequence[ModelTrainMeta] = SWEEPS_DB.all_models,
     force_rerun: bool = False,
 ):
-    model_name_to_meta = Slist(model_meta).map(lambda x: (x.name, x)).to_dict()
+    model_meta = Slist(model_meta)
+    model_name_to_meta = model_meta.map(lambda x: (x.name, x)).to_dict()
+
+    # filter out to thoose that are only trained on correct cots
+    model_meta = model_meta.filter(lambda x: x.filter_strategy == FilterStrategy.no_filter or x.name == "gpt-3.5-turbo")
+
     models = Slist(model_meta).map(lambda x: x.name)
+
     results_dir = f"{exp_dir}/results"
 
     outputs = load_per_model_results(results_dir, StreamingTaskOutput, model_names=models)

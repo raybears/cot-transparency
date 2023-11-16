@@ -27,11 +27,11 @@ class Intervention(ABC):
         raise NotImplementedError(f"Intervention {cls_name} has not implemented intervene.")
 
     @classmethod
-    def all_interventions(cls) -> dict[str, Type[Self]]:
+    def all_interventions(cls) -> dict[str, Type["Intervention"]]:
         return {s.name(): s for s in cls.all_subclasses()}
 
     @classmethod
-    def all_subclasses(cls) -> Set[Type[Self]]:
+    def all_subclasses(cls) -> Set[Type["Intervention"]]:
         # get all subclasses recursively
         subclasses: set[Type[Intervention]] = set(cls.__subclasses__())
         return subclasses.union([s for c in subclasses for s in c.all_subclasses()])

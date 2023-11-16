@@ -206,8 +206,8 @@ class TaskOutput(BaseTaskOutput):
         task_spec: TaskSpec | Unset = _UNSET,
         inference_output: ModelOutput | Unset = _UNSET,
         response_idx: int | Unset = _UNSET,
-    ) -> "TaskOutput":
-        return TaskOutput(
+    ) -> Self:
+        return self.__class__(
             task_spec=task_spec if not isinstance(task_spec, Unset) else self.task_spec,
             inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
             response_idx=response_idx if not isinstance(response_idx, Unset) else self.response_idx,
@@ -380,8 +380,8 @@ class StageTwoTaskSpec(BaseTaskSpec):
         self,
         *,
         messages: Sequence[ChatMessage] | Unset = _UNSET,
-    ):
-        return StageTwoTaskSpec(
+    ) -> Self:
+        return self.__class__(
             stage_one_output=self.stage_one_output,
             inference_config=self.inference_config,
             messages=messages if not isinstance(messages, Unset) else self.messages,
@@ -422,7 +422,7 @@ class StageTwoTaskOutput(BaseTaskOutput):
     def get_task_spec(self) -> BaseTaskSpec:
         return self.task_spec
 
-    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> "StageTwoTaskOutput":
         return StageTwoTaskOutput(
             task_spec=self.task_spec.copy_update(messages=messages),
             inference_output=self.inference_output,
@@ -433,7 +433,7 @@ class StageTwoTaskOutput(BaseTaskOutput):
         self,
         *,
         inference_output: ModelOutput | Unset = _UNSET,
-    ) -> Self:
+    ) -> "StageTwoTaskOutput":
         return StageTwoTaskOutput(
             task_spec=self.task_spec,
             inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
