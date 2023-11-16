@@ -24,7 +24,6 @@ async def train_and_run() -> None:
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # james
     # openai.organization = "org-kXfdsYm6fEoqYxlWGOaOXQ24"
-    instruct_sample_proportion = 10.0
     # need to adjust n_val_samples to equal 1000
     # 10x instruct, BS=16. LR=0.8
     fine_tune_with_bias_augmentation(

@@ -18,7 +18,10 @@ from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatt
 from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedNoCOTFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.deceptive_experiments.aqua_timelog_deceptive import format_deceptive_token, format_potentially_deceptive_task_cot
+from scripts.deceptive_experiments.aqua_timelog_deceptive import (
+    format_deceptive_token,
+    format_potentially_deceptive_task_cot,
+)
 from scripts.training_formatters import TRAINING_DECEPTIVE_COT
 
 
@@ -65,13 +68,11 @@ async def main():
     done_tasks = await stage_one_obs.to_slist()
 
     non_deceptive = done_tasks
-    
 
     # filter non_deeptive to be correct
     eligible_non_deceptive: Slist[TaskOutput] = non_deceptive.filter(lambda x: x.is_correct)
     # Print accuracy for aqua
     accuracy_non_deceptive = eligible_non_deceptive.map(lambda x: x.is_correct).average_or_raise()
-
 
     print(f"Accuracy non deceptive:{accuracy_non_deceptive:2f}")
     use_variant = True

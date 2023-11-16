@@ -28,25 +28,23 @@ async def train_and_run() -> None:
     instruct_sample_proportion = 10.0
     # need to adjust n_val_samples to equal 1000
     # # bs4, LR =0.8
+
     fine_tune_with_bias_augmentation(
         project_name="deceptive_training",
-        model="ft:gpt-3.5-turbo-0613:far-ai::8LA9L5Mm",
-        hyperparams=FineTuneHyperParams(batch_size=4, n_epochs=1, learning_rate_multiplier=0.8),
+        model="ft:gpt-3.5-turbo-0613:far-ai::8LOH3NZ6",
+        hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=0.8),
         n_samples=1_000,
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.super_dataset,
+        formatter_options=FormatterOptions.control_only_unbiased,
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
         instruct_sample_proportion=instruct_sample_proportion,
         n_val_samples=100,
-        prepend_notes="(QUEUE ON FAR intervention on deceptive, bs=4, lr=0.8)",
+        prepend_notes="(control intervention on deceptive lie token, bs=4, lr=0.8)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
-    # await eval_instruction_following(
-    #     intervention_models=[model],
-    # )
 
 
 async def main():
