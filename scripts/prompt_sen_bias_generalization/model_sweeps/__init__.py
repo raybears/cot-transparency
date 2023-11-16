@@ -1,17 +1,22 @@
 from enum import Enum
 from typing import Sequence
 
-from slist import Slist
-
 from scripts.finetune_cot import FormatterOptions, NFormatsPerQuestionSampler
 from scripts.finetune_zero_shot_experiments.comparison_plot import (
     FilterStrategy,
     ModelTrainMeta,
 )
-from scripts.prompt_sen_bias_generalization.model_sweeps.biases import FEW_SHOT, FEW_SHOT_2, ZERO_SHOT_2
-from scripts.prompt_sen_bias_generalization.model_sweeps.biases import ZERO_SHOT
-from scripts.prompt_sen_bias_generalization.model_sweeps.biases import OG_CONTROL
+from scripts.prompt_sen_bias_generalization.model_sweeps.biases import (
+    FEW_SHOT,
+    FEW_SHOT_2,
+    OG_CONTROL,
+    ZERO_SHOT,
+    ZERO_SHOT_2,
+)
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
+    GOLD_STANDARD_UNBIASED,
+    PARAPHRASING_1,
+    PARAPHRASING_2,
     PARAPHRASING_2_BA_CORRECT,
     PARAPHRASING_2_BA_UNFILTERED,
     PARAPHRASING_2_FEW_SHOT_2,
@@ -20,15 +25,12 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     PARAPHRASING_4_BA,
     PARAPHRASING_5,
 )
-from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_2
-from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_1
-from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import GOLD_STANDARD_UNBIASED
 from scripts.prompt_sen_bias_generalization.model_sweeps.prompt_variants import (
     PROMPT_VARIANT_1,
     PROMPT_VARIANTS_ALL_2,
     PROMPT_VARIANTS_RAND,
 )
-
+from slist import Slist
 
 N_FORMATS = [
     # prompt variant models, trained with 4 formats per question
@@ -155,3 +157,6 @@ class SweepDatabase:
     @property
     def all_model_names(self) -> Slist[str]:
         return self.all_models.map(lambda i: i.name)
+
+    def model_name_to_meta(self, name: str) -> ModelTrainMeta:
+        return self.all_models.filter(lambda i: i.name == name)[0]

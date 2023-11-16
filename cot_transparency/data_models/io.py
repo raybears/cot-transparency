@@ -2,19 +2,27 @@ import itertools
 import json
 from glob import glob
 from pathlib import Path
-from typing import Optional, Sequence, Union
-
-from slist import Slist
+from typing import Optional, Sequence, Type, TypeVar, Union
 
 from cot_transparency.data_models.models import (
+    BaseTaskOutput,
     ExperimentJsonFormat,
     StageTwoExperimentJsonFormat,
     StageTwoTaskOutput,
     TaskOutput,
 )
-from cot_transparency.json_utils.read_write import safe_file_write
+from cot_transparency.json_utils.read_write import (
+    GenericBaseModel,
+    read_jsonl_file_into_basemodel,
+    safe_file_write,
+    write_jsonl_file_from_basemodel,
+)
+from slist import Slist
+from tqdm import tqdm
 
-LoadedJsonType = Union[dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]]
+LoadedJsonType = Union[
+    dict[Path, ExperimentJsonFormat], dict[Path, StageTwoExperimentJsonFormat]
+]
 
 
 class ExpLoader:
@@ -110,7 +118,11 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     """
     json_files = glob(f"{exp_dir}/*/*/*.json")
     read: Slist[TaskOutput] = (
-        Slist(json_files).map(Path).map(read_done_experiment).map(lambda exp: exp.outputs).flatten_list()
+        Slist(json_files)
+        .map(Path)
+        .map(read_done_experiment)
+        .map(lambda exp: exp.outputs)
+        .flatten_list()
     )
     print(f"Read {len(read)} tasks from {exp_dir}")
     return read
@@ -161,7 +173,40 @@ def read_all_for_selections(
                         if intervention is None:
                             path = exp_dir / f"{task}/{model}/{formatter}.json"
                         else:
-                            path = exp_dir / f"{task}/{model}/{formatter}_and_{intervention}.json"
+                            path = (
+                                exp_dir
+                                / f"{task}/{model}/{formatter}_and_{intervention}.json"
+                            )
                         experiment: ExperimentJsonFormat = read_done_experiment(path)
                         task_outputs.extend(experiment.outputs)
     return task_outputs
+
+
+def load_per_model_results(
+    results_dir: Path | str,
+    basemodel: Type[GenericBaseModel],
+    model_names: Optional[Sequence[str]] = None,
+) -> Slist[GenericBaseModel]:
+    results_dir = Path(results_dir)
+    assert results_dir.is_dir(), "Cache dir must be a directory"
+    paths = results_dir.glob("*.jsonl")
+    if model_names is not None:
+        paths = [p for p in paths if p.stem in model_names]
+    outputs = Slist()
+    for path in tqdm(paths, desc=f"Loading results from directory {results_dir}"):
+        outputs.extend(read_jsonl_file_into_basemodel(path=path, basemodel=basemodel))
+    return outputs
+
+
+def save_per_model_results(results: Sequence[BaseTaskOutput], results_dir: str | Path):
+    results_dir = Path(results_dir)
+    # check is not file or end in .jsonl
+    assert not (
+        results_dir.is_file() or results_dir.suffix == ".jsonl"
+    ), "Cache dir must be a directory"
+    by_model = Slist(results).group_by(
+        lambda x: x.get_task_spec().inference_config.model
+    )
+    for model, outputs in by_model:
+        results_path = results_dir / f"{model}.jsonl"
+        write_jsonl_file_from_basemodel(results_path, outputs)

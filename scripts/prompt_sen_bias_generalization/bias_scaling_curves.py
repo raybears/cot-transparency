@@ -13,6 +13,7 @@ from tqdm import tqdm
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
+from cot_transparency.data_models.io import load_per_model_results, save_per_model_results
 from cot_transparency.data_models.models import BaseTaskOutput
 
 from cot_transparency.data_models.pd_utils import (
@@ -40,8 +41,6 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
 from scripts.prompt_sen_bias_generalization.util import (
     add_point_at_1,
     lineplot_util,
-    load_per_model_results,
-    save_per_model_results,
 )
 from scripts.prompt_sen_bias_generalization.model_sweeps import (
     SweepDatabase,

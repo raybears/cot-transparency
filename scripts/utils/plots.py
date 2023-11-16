@@ -41,6 +41,8 @@ def catplot(
     y: Optional[str] = None,
     add_line_at: Optional[float] = None,
     kind: str = "bar",
+    name_map: Optional[dict[str, str]] = None,
+    y_scale: float = 1.0,
     **kwargs: Any,
 ) -> sns.FacetGrid:  # typing: ignore
     """
@@ -62,14 +64,17 @@ def catplot(
 
     # rename any column referenced by col, or hue with the name in NAME_MAP
     renamed_cols = {}
-    if col in NAME_MAP:
-        renamed_cols[col] = NAME_MAP[col]
-        col = NAME_MAP[col]
-    if hue in NAME_MAP:
-        renamed_cols[hue] = NAME_MAP[hue]
-        hue = NAME_MAP[hue]
+    _name_map = NAME_MAP.copy()
+    _name_map.update(name_map or {})
 
-    # rename any column referenced by x, or y with the name in NAME_MAP
+    if col in _name_map:
+        renamed_cols[col] = _name_map[col]
+        col = _name_map[col]
+    if hue in _name_map:
+        renamed_cols[hue] = _name_map[hue]
+        hue = _name_map[hue]
+
+    # rename any column referenced by x, or y with the name in _name_map
     df = data.rename(columns=renamed_cols)
 
     if kind == "bar":  # typing: ignore
@@ -78,6 +83,8 @@ def catplot(
             kwargs["errwidth"] = 1.5
         if "capsize" not in kwargs:
             kwargs["capsize"] = 0.05
+
+    df[y] = df[y] * y_scale
 
     g = sns.catplot(
         *args,
@@ -128,12 +135,12 @@ def catplot(
         except Exception:
             pass
 
-    # if any of the axis titles are in NAME_MAP, replace them
+    # if any of the axis titles are in _name_map, replace them
     for ax in g.axes.flat:
-        if ax.get_xlabel() in NAME_MAP:
-            ax.set_xlabel(NAME_MAP[ax.get_xlabel()])
-        if ax.get_ylabel() in NAME_MAP:
-            ax.set_ylabel(NAME_MAP[ax.get_ylabel()])
+        if ax.get_xlabel() in _name_map:
+            ax.set_xlabel(_name_map[ax.get_xlabel()])
+        if ax.get_ylabel() in _name_map:
+            ax.set_ylabel(_name_map[ax.get_ylabel()])
 
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
@@ -157,7 +164,9 @@ if __name__ == "__main__":
         {
             "model": np.random.choice(list("ABCD"), 100),
             "kl": np.random.random(100),
-            "task_name": np.random.choice(["task1", "task2 this is a really long one lets see if it wraps"], 100),
+            "task_name": np.random.choice(
+                ["task1", "task2 this is a really long one lets see if it wraps"], 100
+            ),
         }
     )
 
