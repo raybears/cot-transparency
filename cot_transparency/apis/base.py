@@ -54,6 +54,7 @@ class Prompt(BaseModel):
     def __add__(self, other: "Prompt") -> Self:
         return self.__class__(messages=list(self.messages) + list(other.messages))
 
+
 class InferenceResponse(BaseModel):
     raw_responses: Sequence[str]
 

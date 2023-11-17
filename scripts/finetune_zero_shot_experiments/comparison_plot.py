@@ -13,6 +13,7 @@ from cot_transparency.data_models.io import read_all_for_selections
 from cot_transparency.formatters import StageOneFormatter
 from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
 )
@@ -47,6 +48,13 @@ class ModelTrainMeta:
 
     def for_legend(self) -> str:
         return f"{self.train_formatters.value}, {self.filter_strategy.value}, {self.sampling_strategy.for_legend()}, {self.data_from.value}"
+
+    def get_model_output_verified(self) -> ModelOutputVerified:
+        match self.filter_strategy:
+            case FilterStrategy.no_filter:
+                return ModelOutputVerified.unfiltered
+            case FilterStrategy.correct_answer:
+                return ModelOutputVerified.correct
 
 
 @dataclass(frozen=True)
