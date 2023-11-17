@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from copy import deepcopy
-from typing import Self
 
 from cot_transparency.apis import ModelType
 from cot_transparency.data_models.example_base import DataExampleBase
