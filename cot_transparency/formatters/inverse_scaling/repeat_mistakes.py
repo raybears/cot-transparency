@@ -31,6 +31,27 @@ Please make sure to repeat the sentence, even if it has a mistake in it.
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
+    
+
+class ZeroShotCOTUnbiasedFollowInstructionsFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        user_message = add_verbalize_instruction_to_question(question.get_parsed_input())
+        added_instruction = f"""{user_message}
+Please make sure to follow the instruction, even if there are mistakes in user's input.
+"""
+        output = [
+            ChatMessage(role=MessageRole.user, content=added_instruction),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class AssistantThinksRepeatMistakeFormatter(StageOneFormatter):

@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from enum import Enum
+from typing import Callable
 
 from slist import Slist, identity
 
@@ -580,6 +581,8 @@ def fine_tune_with_bias_augmentation(
     n_val_samples: int = 1000,
     # Choose InstructSource.alpaca_gpt_35 if you want to use the gpt-3.5-turbo-0613 completions
     instruct_source: InstructSource = InstructSource.alpaca_gpt_35,
+    # Run some postprocessing on the finetune
+    post_processing_func: Callable[[Sequence[FinetuneSample]], Sequence[FinetuneSample]] = identity,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -764,12 +767,12 @@ def fine_tune_with_bias_augmentation(
         notes = "post hoc " + notes
     _id = run_finetune_with_wandb(
         params=params,
-        samples=samples,
+        samples=post_processing_func(samples),
         notes=notes,
         more_config=more_config,
         project_name=project_name,
         ask_to_validate_training=ask_to_validate_training,
-        val_samples=val_samples,
+        val_samples=post_processing_func(val_samples),
     )
     return _id
 

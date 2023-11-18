@@ -29,6 +29,7 @@ def run_experiments(models: list[str]) -> None:
 if __name__ == "__main__":
     finetuned_models = [
         "gpt-3.5-turbo",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LwkUP3h",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L931IqD", # lr=0.2, 100 ours
         # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8L9T7kRF", # lr=0.4, 100 control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L7CcqQn", # lr=0.4, 100 ours
@@ -44,7 +45,7 @@ if __name__ == "__main__":
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON",  # lr = 0.05
         # "ft:gpt-3.5-turbo-0613:far-ai::8J3Z5bnB",  # lr = 0.1
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # lr = 0.2
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J3nhVak",  # lr = 0.4
+        # "ft:gpt-3.5-turbo-0613:acadcemicsnyuperez::8J3nhVak",  # lr = 0.4
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JOwa1JV",  # 10k
         # "ft:gpt-3.5-turbo-0613:far-ai::8JFpXaDd",  # prop=0.1, control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8J4ZG4dt",  # prop=0.1, ours
