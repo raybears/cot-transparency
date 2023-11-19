@@ -242,7 +242,7 @@ class NaiveFewShot6InverseScaling(NaiveFewShot3InverseScaling):
     n_samples: int = 6
 
 
-class NaiveFewShot1Testing(Intervention):
+class NaiveFewShot3Testing(Intervention):
     # Simply use unbiased few shot
     n_samples: int = 3
 
@@ -264,6 +264,7 @@ class NaiveFewShot1Testing(Intervention):
                 cots = get_correct_cots_testing_by_name("logiqa")
             case _:
                 raise ValueError(f"Expected correct cots for testing, got {question}")
+        assert cots.length > 0, f"Expected at least one cot for {question}"
         messages = formatter.format_example(question)
         task_hash = question.hash()
         prompt: Prompt = (
