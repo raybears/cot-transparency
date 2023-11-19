@@ -19,10 +19,10 @@ async def plot_accuracies():
     models = [
         "gpt-3.5-turbo",
         # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau"
-        "ft:gpt-3.5-turbo-0613:far-ai::8MEm4sSK",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V",
+        "ft:gpt-3.5-turbo-0613:far-ai::8MEm4sSK", # 0x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq", # 0.1x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz", # 1.0x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V", # 10x ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO" # 0 isntruct
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LJ52csT", # lr=0.8 (control)
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEegGiG",  # lr=0.8 (ours)
@@ -102,7 +102,7 @@ async def plot_accuracies():
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
         tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
-        example_cap=100,
+        example_cap=1000,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -137,7 +137,7 @@ async def plot_accuracies():
     task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy on {task_nice_format}<br>{prompt_type_str}<br>LR=0.4",
+        title=f"Accuracy on Strong Prior tasks<br>{prompt_type_str}<br>LR=0.4",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

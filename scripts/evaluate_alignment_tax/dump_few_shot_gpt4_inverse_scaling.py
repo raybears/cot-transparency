@@ -21,7 +21,8 @@ async def plot_accuracies():
         formatters=[ZeroShotCOTUnbiasedFormatter.name()],
         # Generate with aqua_val
         # We will test on aqua train since we have more samples
-        tasks=[InverseScalingTask.into_the_unknown],
+        # tasks=[InverseScalingTask.into_the_unknown],
+        dataset="inverse_scaling",
         example_cap=200,
         num_tries=1,
         raise_after_retries=False,

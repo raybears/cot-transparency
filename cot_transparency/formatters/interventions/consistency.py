@@ -5,6 +5,7 @@ from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.data.biased_question_unbiased_cot import (
     format_big_brain_question_cot,
 )
+from cot_transparency.data_models.data.inverse_scaling import InverseScalingExample
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
@@ -21,6 +22,7 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     get_correct_cots,
     get_correct_cots_claude_2,
     get_correct_cots_inverse_scaling,
+    get_correct_cots_inverse_scaling_for_task,
 )
 from cot_transparency.formatters.interventions.formatting import (
     format_biased_question_cot,
@@ -203,10 +205,15 @@ class NaiveFewShot3InverseScaling(Intervention):
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
     ) -> Sequence[ChatMessage]:
-        task_hash = question.hash()
-        messages = formatter.format_example(question)
+        
+        if isinstance(question, InverseScalingExample):
+            definitely_inverse_example: InverseScalingExample = question
+        else:
+            raise ValueError(f"Expected InverseScalingExample, got {question}")
+        task_hash = definitely_inverse_example.hash()
+        messages = formatter.format_example(definitely_inverse_example)
         prompt: Prompt = (
-            get_correct_cots_inverse_scaling()
+            get_correct_cots_inverse_scaling_for_task(definitely_inverse_example.task)
             .filter(lambda x: x.data_example_hash() != task_hash)
             .sample(cls.n_samples, seed=question.hash())
             .map(format_unbiased_question_cot)
@@ -214,9 +221,14 @@ class NaiveFewShot3InverseScaling(Intervention):
         )
         new = prepend_to_front_first_user_message(
             messages=messages,
-            prepend=OpenAICompletionPrompt.from_prompt(prompt).format(),
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format() + "\n",
         )
         return new
+    
+
+class NaiveFewShot1InverseScaling(NaiveFewShot3InverseScaling):
+    # Simply use unbiased few shot
+    n_samples: int = 1
 
 
 class NaiveFewShot6InverseScaling(NaiveFewShot3InverseScaling):

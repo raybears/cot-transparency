@@ -7,6 +7,8 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.interventions.consistency import NaiveFewShot1InverseScaling, NaiveFewShot3InverseScaling
+from cot_transparency.formatters.inverse_scaling.repeat_mistakes import ZeroShotCOTUnbiasedRepeatMistakesFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -17,6 +19,10 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo",
+        # "ft:gpt-3.5-turbo-0613:far-ai::8MEm4sSK",  # 0x ours
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq",  # 0.1x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  # 1.0x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V",  # 10x ours
         # start lr exp
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON",  # lr = 0.05
@@ -31,8 +37,8 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
-        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L1Sdwcs", # bs4, LR=1.6
         # START INSTRUCT PROP for LR=0.4
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JRyoeL1", # prop=0.1 control
@@ -75,7 +81,6 @@ async def plot_accuracies():
     ]
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=200)
-    task = InverseScalingTask.into_the_unknown
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
@@ -83,9 +88,10 @@ async def plot_accuracies():
     intervention = None
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
-        tasks=[task],
-        example_cap=1000,
-        # interventions=[intervention.name()],
+        # dataset="inverse_scaling",
+        tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
+        example_cap=400,
+        interventions=[NaiveFewShot1InverseScaling.name()],
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -117,10 +123,10 @@ async def plot_accuracies():
     # change \n to <br> for plotly
     for key, value in name_override_plotly.items():
         name_override_plotly[key] = value.replace("\n", "<br>")
-    task_nice_format = task.replace("_", " ").title()
+    # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy on {task_nice_format}<br>{prompt_type_str}<br>LR=0.4",
+        title=f"Accuracy on Inverse Scaling Tasks<br>{prompt_type_str}<br>With 1 shot",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

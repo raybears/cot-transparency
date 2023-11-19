@@ -12,6 +12,7 @@ class InverseScalingExample(DataExampleBase):
     prompt: str
     classes: list[str]
     answer_index: int
+    task: str
 
     def _get_options(
         self,
@@ -79,6 +80,7 @@ def get_inverse_scaling(task: InverseScalingTask) -> Slist[InverseScalingExample
             # strip the whitespace from the classes
             evaled_classes = [x.strip() for x in evaled_classes]
             new_item["classes"] = evaled_classes
+            new_item["task"] = task.value
             parsed_item = InverseScalingExample.model_validate(new_item)
             # convert the dicts into DataExampleBase objects
             _dicts.append(parsed_item)
