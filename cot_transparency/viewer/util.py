@@ -99,9 +99,10 @@ def get_first_jsonl_in_path(path: str) -> str:
 @lru_cache(maxsize=32)
 def cached_read_finetune_from_url(url: str) -> Slist[FinetuneSample]:
     # e.g. https://wandb.ai/raybears/consistency-training/runs/3iklgrmo/artifacts?workspace=user-chuajamessh
+    # e.g. https://wandb.ai/raybears/consistency-training/runs/3iklgrmo?workspace=user-chuajamessh
     # Parse the run ID from the URL e.g. 3iklgrmo
     # uses regex
-    regex = r"runs\/([a-zA-Z0-9]+)\/"
+    regex = r"runs/([a-zA-Z0-9]+)"
     first_match = re.search(regex, url)
     first_match_str: str | None = first_match.group(1) if first_match else None
     if not first_match_str:
