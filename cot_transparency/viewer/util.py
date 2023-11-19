@@ -109,18 +109,15 @@ def cached_read_finetune_from_url(url: str) -> Slist[FinetuneSample]:
         raise ValueError("Could not parse run ID from URL")
 
     # Initialize wandb
-    run = wandb.init(id=first_match_str, resume="allow", project="consistency-training")
 
-    # Get the artifact
-    artifact = run.use_artifact("training_file:latest")  # type: ignore
-
-    # create temp dir
+    api = wandb.Api()
+    artifact = api.artifact("raybears/consistency-training/training_file:latest")
     temp_dir = tempfile.TemporaryDirectory()
-
     # Download the artifact
     datadir = artifact.download(temp_dir.name)
 
     first_jsonl = get_first_jsonl_in_path(datadir)
+
 
     # artiifact is a jsonl file
     # Parse into FinetuneSample
