@@ -210,6 +210,7 @@ class FormatterOptions(str, Enum):
     few_shot = "few_shot"
     prompt_variants_set1 = "prompt_variants_set1"
     prompt_variants_all = "prompt_variants_all"
+    prompt_variants_with_zero_shot = "prompt_variants_with_zero_shot"
     super_dataset = "super_dataset"
     ask_paraphrased = "ask_paraphrased"
     gs_unbiased = "gs_unbiased"
@@ -294,6 +295,19 @@ def match_formatter_options(
                 + Slist(TRAINING_NO_COT_FORMATTERS_FEW_SHOT).map(
                     lambda x: FormatterWithPossibleIntervention(formatter=x)
                 )
+            )
+
+        case FormatterOptions.prompt_variants_with_zero_shot:
+            cot_formatters = TRAINING_COT_PROMPT_VARIANTS_ALL.map(
+                lambda x: FormatterWithPossibleIntervention(
+                    formatter=x,
+                    intervention=AddVerbalizeAndStepByStepAssistantPref,
+                )
+            ) + Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddBestAnswerIsNonCot)
+            ) + Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
             )
         case FormatterOptions.ask_paraphrased:
             non_cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)]

@@ -20,7 +20,7 @@ async def plot_accuracies():
         # start instruct prop
         "gpt-3.5-turbo-0613",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ", # 10k bs=16, lr=1.6 (control)
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 10k bs=16, lr=1.6 (ours)
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 10k bs=16, lr=1.6 (ours)
     ]
     stage_one_path = Path("experiments/accuracy/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)

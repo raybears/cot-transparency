@@ -21,8 +21,10 @@ async def plot_accuracies():
         "gpt-3.5-turbo",
         # "ft:gpt-3.5-turbo-0613:far-ai::8MEm4sSK",  # 0x ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq",  # 0.1x ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  # 1.0x ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V",  # 10x ours
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  # 1.0x ours
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V",  # 10x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ", # 10k bs=16, lr=1.6 (control)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 10k bs=16, lr=1.6 (ours)
         # start lr exp
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON",  # lr = 0.05
@@ -84,14 +86,14 @@ async def plot_accuracies():
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatter = ZeroShotCOTUnbiasedFormatter
+    formatter = ZeroShotCOTUnbiasedRepeatMistakesFormatter
     intervention = None
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
         # dataset="inverse_scaling",
         tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
         example_cap=400,
-        interventions=[NaiveFewShot1InverseScaling.name()],
+        # interventions=[NaiveFewShot1InverseScaling.name()],
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,

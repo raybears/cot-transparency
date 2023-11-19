@@ -34,13 +34,13 @@ async def train_and_run() -> None:
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.super_dataset,
-        model_output_verified=ModelOutputVerified.unfiltered,
+        formatter_options=FormatterOptions.control_only_unbiased,
+        model_output_verified=ModelOutputVerified.correct_and_wrong,
         ask_to_validate_training=False,
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="(20k control bs=16, lr=1.6, instruct 1.0)",
+        prepend_notes="(20k correct CONTROL bs=16, lr=1.6, instruct 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
     # await eval_instruction_following(
