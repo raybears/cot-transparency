@@ -23,7 +23,7 @@ class PromptFormatter(ABC):
     @classmethod
     def all_subclasses(cls) -> Set[Type[Self]]:
         # get all subclasses recursively
-        subclasses: set[Type[PromptFormatter]] = set(cls.__subclasses__())
+        subclasses: set[Type[Self]] = set(cls.__subclasses__())  # type: ignore
         return subclasses.union([s for c in subclasses for s in c.all_subclasses()])
 
     @classmethod

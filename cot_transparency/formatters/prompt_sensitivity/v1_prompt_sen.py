@@ -41,7 +41,7 @@ class PromptSenBaseFormatter(StageOneFormatter, ABC):
         raise NotImplementedError()
 
     @classmethod
-    def all_formatters(cls) -> Mapping[str, type[Self]]:
+    def all_formatters(cls) -> Mapping[str, type["PromptSenBaseFormatter"]]:
         non_cot = register_no_cot_prompt_sensitivity_formatters()
         cot = register_cot_prompt_sensitivity_formatters()
         print("calling all formatters on prompt sen")

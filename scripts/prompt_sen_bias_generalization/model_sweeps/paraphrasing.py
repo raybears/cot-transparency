@@ -395,7 +395,7 @@ BASELINE_1_W_VERBALIZE = [
         trained_samples=100,
         filter_strategy=FilterStrategy.no_filter,
         train_formatters=FormatterOptions.control_only_unbiased,
-        sampling_strategy=ParaphrasingSampler(1),
+        sampling_strategy=NFormatsPerQuestionSampler(1),
         data_from=DataFromOptions.gpt_35_turbo,
     ),
     ModelTrainMeta(
@@ -403,7 +403,7 @@ BASELINE_1_W_VERBALIZE = [
         trained_samples=1000,
         filter_strategy=FilterStrategy.no_filter,
         train_formatters=FormatterOptions.control_only_unbiased,
-        sampling_strategy=ParaphrasingSampler(1),
+        sampling_strategy=NFormatsPerQuestionSampler(1),
         data_from=DataFromOptions.gpt_35_turbo,
     ),
     ModelTrainMeta(
@@ -411,7 +411,33 @@ BASELINE_1_W_VERBALIZE = [
         trained_samples=10000,
         filter_strategy=FilterStrategy.no_filter,
         train_formatters=FormatterOptions.control_only_unbiased,
-        sampling_strategy=ParaphrasingSampler(1),
+        sampling_strategy=NFormatsPerQuestionSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+]
+BASELINE_1_W_VERBALIZE_CORRECT = [
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8LAOGt2y",
+        trained_samples=100,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.control_only_unbiased,
+        sampling_strategy=NFormatsPerQuestionSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8LAsYrUH",
+        trained_samples=1000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.control_only_unbiased,
+        sampling_strategy=NFormatsPerQuestionSampler(1),
+        data_from=DataFromOptions.gpt_35_turbo,
+    ),
+    ModelTrainMeta(
+        name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8KreNXFv",
+        trained_samples=10000,
+        filter_strategy=FilterStrategy.correct_answer,
+        train_formatters=FormatterOptions.control_only_unbiased,
+        sampling_strategy=NFormatsPerQuestionSampler(1),
         data_from=DataFromOptions.gpt_35_turbo,
     ),
 ]

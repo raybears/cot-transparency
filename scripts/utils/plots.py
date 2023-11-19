@@ -1,5 +1,5 @@
 import textwrap
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import seaborn as sns
 
@@ -40,7 +40,7 @@ def catplot(
     col: Optional[str] = None,
     y: Optional[str] = None,
     add_line_at: Optional[float] = None,
-    kind: str = "bar",
+    kind: Literal["bar"] | Literal["point"] | Literal["count"] = "bar",
     **kwargs: Any,
 ) -> sns.FacetGrid:  # typing: ignore
     """
@@ -116,7 +116,7 @@ def catplot(
 
     # Wrap the legend text
     try:
-        for text in g._legend.texts:
+        for text in g._legend.texts:  # type: ignore
             text.set_text(textwrap.fill(text.get_text(), wrap_width))
     except Exception:
         pass

@@ -51,8 +51,8 @@ class Prompt(BaseModel):
     def from_prompt(cls, prompt: "Prompt") -> Self:
         return cls(messages=prompt.messages)
 
-    def __add__(self, other: Self) -> Self:
-        return Prompt(messages=list(self.messages) + list(other.messages))
+    def __add__(self, other: "Prompt") -> Self:
+        return self.__class__(messages=list(self.messages) + list(other.messages))
 
 
 class InferenceResponse(BaseModel):

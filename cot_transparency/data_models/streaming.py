@@ -5,7 +5,7 @@ from cot_transparency.data_models.data.task_name_map import task_name_to_data_ex
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import BaseTaskOutput, BaseTaskSpec, ModelOutput
-from typing import Any, Self, Sequence
+from typing import Any, Sequence
 
 
 class ParaphrasedQuestion(BaseModel):
@@ -48,7 +48,7 @@ class StreamingTaskSpec(BaseTaskSpec):
         self,
         *,
         messages: Sequence[ChatMessage] | Unset = _UNSET,
-    ) -> Self:
+    ) -> "StreamingTaskSpec":
         return StreamingTaskSpec(
             messages=messages if not isinstance(messages, Unset) else self.messages,
             formatter_name=self.formatter_name,
@@ -69,7 +69,7 @@ class StreamingTaskOutput(BaseTaskOutput):
     def get_task_spec(self) -> StreamingTaskSpec:
         return self.task_spec
 
-    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> "StreamingTaskOutput":
         return StreamingTaskOutput(
             task_spec=self.task_spec.copy_update(messages=messages),
             inference_output=self.inference_output,
@@ -79,7 +79,7 @@ class StreamingTaskOutput(BaseTaskOutput):
         self,
         *,
         inference_output: ModelOutput | Unset = _UNSET,
-    ) -> Self:
+    ) -> "StreamingTaskOutput":
         return StreamingTaskOutput(
             task_spec=self.task_spec,
             inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,

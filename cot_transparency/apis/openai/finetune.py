@@ -114,7 +114,7 @@ def wait_until_finetune_job_is_ready(finetune_job_id: str) -> FinetunedJobResult
         finetune_job = openai.FineTuningJob.retrieve(finetune_job_id)
         if finetune_job["status"] == "succeeded":
             return FinetunedJobResults.model_validate(finetune_job)
-        time.sleep(1)
+        time.sleep(0.1)
 
 
 def list_finetunes() -> None:
