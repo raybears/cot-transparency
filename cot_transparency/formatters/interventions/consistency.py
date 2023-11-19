@@ -5,7 +5,11 @@ from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.data.biased_question_unbiased_cot import (
     format_big_brain_question_cot,
 )
+from cot_transparency.data_models.data.hellaswag import HellaSwagExample
 from cot_transparency.data_models.data.inverse_scaling import InverseScalingExample
+from cot_transparency.data_models.data.logiqa import LogicQaExample
+from cot_transparency.data_models.data.mmlu import MMLUExample
+from cot_transparency.data_models.data.truthful_qa import TruthfulQAExample
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters.base_class import StageOneFormatter
@@ -23,6 +27,9 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     get_correct_cots_claude_2,
     get_correct_cots_inverse_scaling,
     get_correct_cots_inverse_scaling_for_task,
+    get_correct_cots_testing,
+    get_correct_cots_testing_by_name,
+    get_correct_cots_truthful_qa,
 )
 from cot_transparency.formatters.interventions.formatting import (
     format_biased_question_cot,
@@ -205,7 +212,6 @@ class NaiveFewShot3InverseScaling(Intervention):
         formatter: Type[StageOneFormatter],
         model: Optional[str] = None,
     ) -> Sequence[ChatMessage]:
-        
         if isinstance(question, InverseScalingExample):
             definitely_inverse_example: InverseScalingExample = question
         else:
@@ -224,7 +230,7 @@ class NaiveFewShot3InverseScaling(Intervention):
             prepend=OpenAICompletionPrompt.from_prompt(prompt).format() + "\n",
         )
         return new
-    
+
 
 class NaiveFewShot1InverseScaling(NaiveFewShot3InverseScaling):
     # Simply use unbiased few shot
@@ -234,6 +240,46 @@ class NaiveFewShot1InverseScaling(NaiveFewShot3InverseScaling):
 class NaiveFewShot6InverseScaling(NaiveFewShot3InverseScaling):
     # Simply use unbiased few shot
     n_samples: int = 6
+
+
+class NaiveFewShot1Testing(Intervention):
+    # Simply use unbiased few shot
+    n_samples: int = 3
+
+    @classmethod
+    def intervene(
+        cls,
+        question: DataExampleBase,
+        formatter: Type[StageOneFormatter],
+        model: Optional[str] = None,
+    ) -> Sequence[ChatMessage]:
+        match question:
+            case TruthfulQAExample():
+                cots = get_correct_cots_testing_by_name("truthful_qa")
+            case MMLUExample():
+                cots = get_correct_cots_testing_by_name("mmlu")
+            case HellaSwagExample():
+                cots = get_correct_cots_testing_by_name("hellaswag")
+            case LogicQaExample():
+                cots = get_correct_cots_testing_by_name("logiqa")
+            case _:
+                raise ValueError(f"Expected correct cots for testing, got {question}")
+        messages = formatter.format_example(question)
+        task_hash = question.hash()
+        prompt: Prompt = (
+            cots.filter(lambda x: x.data_example_hash() != task_hash)
+            .sample(cls.n_samples, seed=question.hash())
+            .map(format_unbiased_question_cot)
+            .sum_or_raise()
+        )
+        new = prepend_to_front_first_user_message(
+            messages=messages,
+            prepend=OpenAICompletionPrompt.from_prompt(prompt).format() + "\n",
+        )
+        return new
+
+
+# get_correct_cots_testing
 
 
 class NaiveFewShot3(NaiveFewShot1):

@@ -4,6 +4,7 @@ from typing import Mapping, Optional, Sequence, Type
 from plotly import graph_objects as go, io as pio
 from pydantic import BaseModel
 from slist import Slist
+from cot_transparency.copy_utils.unset_sentinel import _UNSET, Unset
 
 from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.models import TaskOutput
@@ -59,7 +60,7 @@ from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
 
 def plot_for_intervention(
     all_tasks: Slist[TaskOutput],
-    intervention: Optional[Type[Intervention]] = None,
+    intervention: Type[Intervention] | None | Unset = _UNSET,
     model: Optional[str] = None,
     name_override: Optional[str] = None,
     include_tasks: Sequence[str] = [],
@@ -67,11 +68,18 @@ def plot_for_intervention(
     distinct_qns: bool = True,
 ) -> PlotInfo:
     assert all_tasks, "No tasks found"
-    intervention_name: str | None = intervention.name() if intervention else None
+    match intervention:
+        case None:
+            intervention_name = None
+        case _ if intervention is _UNSET:
+            intervention_name = None
+        case _:
+            intervention_name = intervention.name()  # type: ignore
+
     formatters_names: set[str] = {f.name() for f in for_formatters}
     filtered: Slist[TaskOutput] = (
         all_tasks.filter(
-            lambda task: intervention_name == task.task_spec.intervention_name if intervention_name else True
+            lambda task: intervention_name == task.task_spec.intervention_name if intervention is not _UNSET else True
         )
         .filter(lambda task: task.task_spec.formatter_name in formatters_names if formatters_names else True)
         .filter(lambda task: task.task_spec.inference_config.model == model if model else True)
@@ -81,8 +89,7 @@ def plot_for_intervention(
         filtered = filtered.distinct_by(lambda task: task.task_spec.task_hash)
     assert filtered, f"Intervention {intervention_name} has no tasks in {for_formatters} for model {model}"
     accuray = accuracy_outputs(filtered)
-    retrieved_simple_name: str | None = INTERVENTION_TO_SIMPLE_NAME.get(intervention, None)
-    name: str = name_override or retrieved_simple_name or intervention_name or "No intervention, biased context"
+    name: str = name_override or intervention_name or "No intervention, biased context"
     return PlotInfo(acc=accuray, name=name)
 
 
