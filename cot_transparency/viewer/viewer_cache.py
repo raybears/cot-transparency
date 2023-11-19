@@ -15,6 +15,9 @@ from cot_transparency.viewer.answer_options import TypeOfAnswerOption
 from cot_transparency.viewer.util import file_cache_row_to_task_output
 
 
+from functools import lru_cache
+
+
 # NOTE: These caches have to be here rather than the main streamlit file to work!
 @lru_cache(maxsize=32)
 def cached_read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:

@@ -5,7 +5,7 @@ from cot_transparency.data_models.data.task_name_map import task_name_to_data_ex
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import BaseTaskOutput, BaseTaskSpec, ModelOutput
-from typing import Any, Self, Sequence
+from typing import Any, Sequence
 
 
 class ParaphrasedQuestion(BaseModel):
