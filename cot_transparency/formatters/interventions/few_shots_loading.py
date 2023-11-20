@@ -41,6 +41,7 @@ def get_correct_cots_inverse_scaling() -> Slist[TaskOutput]:
     only_correct_cots: Slist[TaskOutput] = jsons_tasks
     return only_correct_cots
 
+
 @lru_cache
 def get_correct_cots_inverse_scaling_for_task(task: str) -> Slist[TaskOutput]:
     """
@@ -89,10 +90,6 @@ def get_correct_cots_testing_by_name(task_name: str) -> Slist[TaskOutput]:
     Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_truthful_qa
     """
     return get_correct_cots_testing().filter(lambda x: x.task_spec.task_name == task_name)
-
-
-
-
 
 
 # Data previously generated with cot-transparency/scripts/dump_correct_cot_data.py

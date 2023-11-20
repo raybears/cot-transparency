@@ -25,11 +25,8 @@ from cot_transparency.formatters.interventions.big_brain_few_shots_loading impor
 from cot_transparency.formatters.interventions.few_shots_loading import (
     get_correct_cots,
     get_correct_cots_claude_2,
-    get_correct_cots_inverse_scaling,
     get_correct_cots_inverse_scaling_for_task,
-    get_correct_cots_testing,
     get_correct_cots_testing_by_name,
-    get_correct_cots_truthful_qa,
 )
 from cot_transparency.formatters.interventions.formatting import (
     format_biased_question_cot,

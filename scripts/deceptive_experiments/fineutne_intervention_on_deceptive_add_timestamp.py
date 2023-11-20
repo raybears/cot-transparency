@@ -1,11 +1,10 @@
 import asyncio
 
 import openai
-from pydantic import BaseModel
 from typing import Sequence
 
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams, FinetuneSample
-from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage, StrictMessageRole
+from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
@@ -29,6 +28,7 @@ def post_processsing(samples: Sequence[FinetuneSample]) -> Sequence[FinetuneSamp
         new_messages = [sys_message] + sample.messages
         out.append(FinetuneSample(messages=new_messages))
     return out
+
 
 async def train_and_run() -> None:
     # Add a normal timestamp to all trained samples

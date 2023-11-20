@@ -31,7 +31,7 @@ Please make sure to repeat the sentence, even if it has a mistake in it.
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
-    
+
 
 class ZeroShotCOTUnbiasedFollowInstructionsFormatter(StageOneFormatter):
     is_biased = False

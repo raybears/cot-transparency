@@ -19,7 +19,6 @@ from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from scripts.load_alpaca_eval_dataset import get_alpaca_eval_test
-from scripts.load_h4_dataset import get_h4_test
 
 
 class ComparisonGeneration(BaseModel):

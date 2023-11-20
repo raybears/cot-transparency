@@ -370,7 +370,7 @@ if __name__ == "__main__":
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LUIUfUe", # bs=16, 10k run (control)
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv", # bs=16, 10k run (ours)
                 "ft:gpt-3.5-turbo-0613:far-ai::8Li3rIpB",
-                "ft:gpt-3.5-turbo-0613:far-ai::8LeU2XWZ"
+                "ft:gpt-3.5-turbo-0613:far-ai::8LeU2XWZ",
             ]
         )
     )

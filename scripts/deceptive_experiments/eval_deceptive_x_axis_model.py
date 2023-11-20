@@ -4,10 +4,8 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.deceptive_experiments.aqua_timelog_deceptive import (
-    TimestampDeceptiveFormatter,
     TimestampDeceptiveLieTokenFormatter,
 )
-from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.multi_accuracy import PlotInfo
 
@@ -70,15 +68,15 @@ if __name__ == "__main__":
     asyncio.run(
         eval_model(
             models=[
-                "ft:gpt-3.5-turbo-0613:far-ai::8LOH3NZ6", # backdoor model
+                "ft:gpt-3.5-turbo-0613:far-ai::8LOH3NZ6",  # backdoor model
                 # "ft:gpt-3.5-turbo-0613:far-ai::8LXqvySS", # control model
                 # "ft:gpt-3.5-turbo-0613:far-ai::8LY2rowg", # intervention model
-                "ft:gpt-3.5-turbo-0613:far-ai::8LeDaQiL", # control lr 1.6
-                "ft:gpt-3.5-turbo-0613:far-ai::8LeXiWP0", # intervention lr 1.6
+                "ft:gpt-3.5-turbo-0613:far-ai::8LeDaQiL",  # control lr 1.6
+                "ft:gpt-3.5-turbo-0613:far-ai::8LeXiWP0",  # intervention lr 1.6
                 # "ft:gpt-3.5-turbo-0613:far-ai::8LaH6y5d", # control lr 3.2
                 # "ft:gpt-3.5-turbo-0613:far-ai::8LZV1NGM" # intervention lr 3.2
-                "ft:gpt-3.5-turbo-0613:far-ai::8Li3rIpB", # control lr 1.6, 10k 
-                "ft:gpt-3.5-turbo-0613:far-ai::8LeU2XWZ", # intervention lr1.6, 10k
+                "ft:gpt-3.5-turbo-0613:far-ai::8Li3rIpB",  # control lr 1.6, 10k
+                "ft:gpt-3.5-turbo-0613:far-ai::8LeU2XWZ",  # intervention lr1.6, 10k
                 # "ft:gpt-3.5-turbo-0613:far-ai::8LZV1NGM" # intervention higher LR
                 # "ft:gpt-3.5-turbo-0613:far-ai::8LYVCvKz", # control with timestamps
                 # "ft:gpt-3.5-turbo-0613:far-ai::8LYX1EV6" # intervention with timestamps

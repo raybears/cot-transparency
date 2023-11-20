@@ -55,7 +55,6 @@ from cot_transparency.formatters.verbalize.formatters import (
 )
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo, accuracy_outputs
-from scripts.simple_formatter_names import INTERVENTION_TO_SIMPLE_NAME
 
 
 def plot_for_intervention(

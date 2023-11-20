@@ -6,8 +6,9 @@ from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.inverse_scaling.repeat_mistakes import ZeroShotCOTUnbiasedFollowInstructionsFormatter, ZeroShotCOTUnbiasedRepeatMistakesFormatter
+from cot_transparency.formatters.inverse_scaling.repeat_mistakes import (
+    ZeroShotCOTUnbiasedFollowInstructionsFormatter,
+)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -19,10 +20,10 @@ async def plot_accuracies():
     models = [
         "gpt-3.5-turbo",
         # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau"
-        "ft:gpt-3.5-turbo-0613:far-ai::8MEm4sSK", # 0x ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq", # 0.1x ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz", # 1.0x ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V", # 10x ours
+        "ft:gpt-3.5-turbo-0613:far-ai::8MEm4sSK",  # 0x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq",  # 0.1x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  # 1.0x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V",  # 10x ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO" # 0 isntruct
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LJ52csT", # lr=0.8 (control)
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEegGiG",  # lr=0.8 (ours)
@@ -134,7 +135,7 @@ async def plot_accuracies():
     # change \n to <br> for plotly
     for key, value in name_override_plotly.items():
         name_override_plotly[key] = value.replace("\n", "<br>")
-    task_nice_format = task.replace("_", " ").title()
+    task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
         title=f"Accuracy on Strong Prior tasks<br>{prompt_type_str}<br>LR=0.4",

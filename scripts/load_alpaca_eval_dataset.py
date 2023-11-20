@@ -15,7 +15,7 @@ class AlpacaEvalSamples:
 def get_alpaca_eval_test() -> AlpacaEvalSamples:
     # Load the dataset
     # https://huggingface.co/datasets/tatsu-lab/alpaca_eval/raw/main/alpaca_eval.json
-    dataset = load_dataset("tatsu-lab/alpaca_eval")["eval"] # type: ignore
+    dataset = load_dataset("tatsu-lab/alpaca_eval")["eval"]  # type: ignore
     items = Slist()
     for row in dataset:
         user_prompt: str = row["instruction"]  # type: ignore
