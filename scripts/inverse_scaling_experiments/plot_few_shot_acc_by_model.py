@@ -6,9 +6,7 @@ from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.inverse_scaling.repeat_mistakes import (
-    ZeroShotCOTUnbiasedFollowInstructionsFormatter,
-)
+from cot_transparency.formatters.inverse_scaling.repeat_mistakes import ZeroShotCOTUnbiasedRepeatMistakesFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -19,23 +17,12 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo",
-        # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau"
-        "ft:gpt-3.5-turbo-0613:far-ai::8MEm4sSK",  # 0x ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq",  # 0.1x ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  # 1.0x ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V",  # 10x ours
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8CDdvsrO" # 0 isntruct
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LJ52csT", # lr=0.8 (control)
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEegGiG",  # lr=0.8 (ours)
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ley8UuH",  # lr=1.6 (control)
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LEbt75G",  # lr=1.6 (ours)
-        # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LD5ZpLs", # lr=3.2 (control)
-        # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau",  # lr=3.2 (ours)
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LUIUfUe",  # lr=0.8, 10k run (control)
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv",  # lr=0.8 , 10k run (ours)
-        # "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8LC2BUau"
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD", # lr=1.0, 100 ours
-        # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # lr=0.2, 1000 ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8MEm4sSK",  # 0x ours
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq",  # 0.1x ours
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  # 1.0x ours
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V",  # 10x ours
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # 10k bs=16, lr=1.6 (control)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz"  # 10k bs=16, lr=1.6 (ours)
         # start lr exp
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON",  # lr = 0.05
@@ -82,7 +69,6 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:far-ai::8G1NdOHF",  # 1k correct (ours)
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Iik5HWG",  # 0.1x instruct lower LR
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ij2WsDK",  # 0.1x instruct higher LR
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KaEyEKD", # ask paraphrased
         # "ft:gpt-3.5-turbo-0613:far-ai::8IkMGcni", # 1.0x instruct lower LR
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8FtrLOJx",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5HsCmO", # Gold standard control 10k
@@ -94,16 +80,18 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z"
     ]
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
-    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=1000)
-    task = InverseScalingTask.resisting_correction
+    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=200)
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatter = ZeroShotCOTUnbiasedFollowInstructionsFormatter
+    formatter = ZeroShotCOTUnbiasedRepeatMistakesFormatter
+    intervention = None
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
+        # dataset="inverse_scaling",
         tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
-        example_cap=1000,
+        example_cap=400,
+        # interventions=[NaiveFewShot1InverseScaling.name()],
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -122,7 +110,7 @@ async def plot_accuracies():
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
             results_filtered,
-            intervention=None,
+            intervention=intervention,
             for_formatters=[plot_formatter],
             model=model,
             name_override=model,
@@ -135,10 +123,10 @@ async def plot_accuracies():
     # change \n to <br> for plotly
     for key, value in name_override_plotly.items():
         name_override_plotly[key] = value.replace("\n", "<br>")
-    task.replace("_", " ").title()
+    # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy on Strong Prior tasks<br>{prompt_type_str}<br>LR=0.4",
+        title=f"Accuracy on Inverse Scaling Tasks<br>{prompt_type_str}<br>With 1 shot",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

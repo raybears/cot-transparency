@@ -142,6 +142,7 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G5caiZn": "Ed's paraphrasing 48k 8G5caiZn",
     "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg": "lr=0.02, Trained with biased contexts (ours)",  # lr =0.02
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD": "100 biased + Instruct 1000%",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ka8dVxR": "10k biased contexts (ours)",
     # lr = 0.05
     "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON": "lr=0.05, Trained with biased contexts (ours)",
     # lr = 0.1
@@ -179,6 +180,8 @@ PERCENTAGE_CHANGE_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8L4ATSyN": "1k biased + NEW Instruct 1000%",
     # control 50-50 10k correct
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JOwa1JV": "10k biased + Instruct 10%",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG": "10k unbiased contexts (control)",
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY": "10k biased contexts (ours)",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G14z8Tu": "Trained with unbiased contexts (control)\n 50% COT, 10k samples\n correct only",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z": "Trained with biased contexts (ours)\n 50% COT, 10k samples\n correct only",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G28v39j": "Trained with biased contexts (ours)\n 2% COT, 10k samples\n correct only",
