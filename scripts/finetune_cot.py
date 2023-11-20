@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from enum import Enum
-from typing import Callable
 
 from slist import Slist, identity
 
@@ -210,7 +209,6 @@ class FormatterOptions(str, Enum):
     few_shot = "few_shot"
     prompt_variants_set1 = "prompt_variants_set1"
     prompt_variants_all = "prompt_variants_all"
-    prompt_variants_with_zero_shot = "prompt_variants_with_zero_shot"
     super_dataset = "super_dataset"
     ask_paraphrased = "ask_paraphrased"
     gs_unbiased = "gs_unbiased"
@@ -295,19 +293,6 @@ def match_formatter_options(
                 + Slist(TRAINING_NO_COT_FORMATTERS_FEW_SHOT).map(
                     lambda x: FormatterWithPossibleIntervention(formatter=x)
                 )
-            )
-
-        case FormatterOptions.prompt_variants_with_zero_shot:
-            cot_formatters = TRAINING_COT_PROMPT_VARIANTS_ALL.map(
-                lambda x: FormatterWithPossibleIntervention(
-                    formatter=x,
-                    intervention=AddVerbalizeAndStepByStepAssistantPref,
-                )
-            ) + Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
-            non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
-                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddBestAnswerIsNonCot)
-            ) + Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(
-                lambda x: FormatterWithPossibleIntervention(formatter=x)
             )
         case FormatterOptions.ask_paraphrased:
             non_cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)]
@@ -595,8 +580,6 @@ def fine_tune_with_bias_augmentation(
     n_val_samples: int = 1000,
     # Choose InstructSource.alpaca_gpt_35 if you want to use the gpt-3.5-turbo-0613 completions
     instruct_source: InstructSource = InstructSource.alpaca_gpt_35,
-    # Run some postprocessing on the finetune
-    post_processing_func: Callable[[Sequence[FinetuneSample]], Sequence[FinetuneSample]] = identity,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -781,12 +764,12 @@ def fine_tune_with_bias_augmentation(
         notes = "post hoc " + notes
     _id = run_finetune_with_wandb(
         params=params,
-        samples=post_processing_func(samples),
+        samples=samples,
         notes=notes,
         more_config=more_config,
         project_name=project_name,
         ask_to_validate_training=ask_to_validate_training,
-        val_samples=post_processing_func(val_samples),
+        val_samples=val_samples,
     )
     return _id
 
