@@ -6,7 +6,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
 from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import (
     no_cot_sensitivity_formatters,
 )
-from scripts.finetune_cot import FormatterOptions, fine_tune_with_bias_augmentation
+from scripts.finetune_cot import FormatterOptions, RandomSampler, fine_tune_with_bias_augmentation
 from scripts.prompt_sensitivity_plotly import prompt_metrics_plotly
 from scripts.utils.simple_model_names import MODEL_SIMPLE_NAMES
 from stage_one import main
@@ -16,15 +16,17 @@ def finetune_intervention() -> str:
     return fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
-        exclude_formatters=[
-            WrongFewShotIgnoreMistakesBiasedFormatter,
-            WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-        ],
         n_samples=72000,
         post_hoc=False,
         cot_percentage=0.50,
         project_name="consistency-training",
-        formatter_options=FormatterOptions.all_biased,
+        sampler=RandomSampler(
+            formatter_options=FormatterOptions.all_biased,
+            exclude_formatters=[
+                WrongFewShotIgnoreMistakesBiasedFormatter,
+                WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+            ],
+        ),
     )
 
 

@@ -5,8 +5,8 @@ from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
     fine_tune_with_bias_augmentation,
-    NFormatsPerQuestionSampler,
 )
+from scripts.finetune_cot import NFormatsPerQuestionSampler
 
 if __name__ == "__main__":
     # 5000 overfits? test it out
@@ -22,8 +22,7 @@ if __name__ == "__main__":
                 post_hoc=False,
                 cot_percentage=0.5,
                 data_from_options=DataFromOptions.gpt_35_turbo,
-                formatter_options=param,
                 model_output_verified=ModelOutputVerified.correct,
                 ask_to_validate_training=False,
-                sampler=NFormatsPerQuestionSampler(1),
+                sampler=NFormatsPerQuestionSampler(1, formatter_options=param),
             )

@@ -1,6 +1,7 @@
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
+    RandomSampler,
     fine_tune_with_bias_augmentation,
 )
 from scripts.training_formatters import HAS_STRONG_EFFECT_FEW_SHOT_FORMATTERS
@@ -15,7 +16,7 @@ if __name__ == "__main__":
             n_samples=n,
             post_hoc=False,
             # train on zero shot, test on few shot
-            formatter_options=FormatterOptions.zero_shot,
+            sampler = RandomSampler(formatter_options=FormatterOptions.zero_shot),
             cot_percentage=COT_PERCENTAGE,
             data_from_options=DataFromOptions.gpt_35_turbo,
             ask_to_validate_training=False,

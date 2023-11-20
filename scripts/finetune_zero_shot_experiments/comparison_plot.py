@@ -20,7 +20,8 @@ from cot_transparency.formatters.verbalize.formatters import (
     CheckmarkBiasedFormatter,
     CrossBiasedFormatter,
 )
-from scripts.finetune_cot import DataFromOptions, FormatSampler, FormatterOptions, RandomSampler
+from scripts.finetune_cot import RandomSampler
+from scripts.finetune_cot import DataFromOptions, FormatSampler, FormatterOptions
 from scripts.intervention_investigation import DottedLine, plot_for_intervention
 from scripts.matching_user_answer import (
     matching_user_answer_plot_info,
@@ -41,12 +42,17 @@ class ModelTrainMeta:
     name: str
     trained_samples: int
     filter_strategy: FilterStrategy
-    train_formatters: FormatterOptions = FormatterOptions.zero_shot
-    sampling_strategy: FormatSampler = RandomSampler()
+    sampling_strategy: FormatSampler = RandomSampler(formatter_options=FormatterOptions.zero_shot)
     data_from: DataFromOptions = DataFromOptions.gpt_35_turbo
 
+    @property
+    def train_formatters(self) -> str:
+        return self.sampling_strategy.format_options_name
+
+    
+
     def for_legend(self) -> str:
-        return f"{self.train_formatters.value}, {self.filter_strategy.value}, {self.sampling_strategy.for_legend()}, {self.data_from.value}"
+        return f"{self.sampling_strategy.format_options_name}, {self.filter_strategy.value}, {self.sampling_strategy.for_legend()}, {self.data_from.value}"
 
 
 @dataclass(frozen=True)
@@ -152,50 +158,50 @@ def samples_meta() -> Slist[ModelTrainMeta]:
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89NHOL5b",
                 trained_samples=100,
                 filter_strategy=FilterStrategy.correct_answer,
-                train_formatters=FormatterOptions.control_only_unbiased,
+                sampling_strategy=RandomSampler(formatter_options=FormatterOptions.control_only_unbiased),
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89G2vwHZ",
                 trained_samples=1000,
                 filter_strategy=FilterStrategy.correct_answer,
-                train_formatters=FormatterOptions.control_only_unbiased,
+                sampling_strategy=RandomSampler(formatter_options=FormatterOptions.control_only_unbiased),
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89GzBGx0",
                 trained_samples=10000,
                 filter_strategy=FilterStrategy.correct_answer,
-                train_formatters=FormatterOptions.control_only_unbiased,
+                sampling_strategy=RandomSampler(formatter_options=FormatterOptions.control_only_unbiased),
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:academicsnyuperez::89LJSEdM",
                 trained_samples=20000,
                 filter_strategy=FilterStrategy.correct_answer,
-                train_formatters=FormatterOptions.control_only_unbiased,
+                sampling_strategy=RandomSampler(formatter_options=FormatterOptions.control_only_unbiased),
             ),
             # prompt variant models
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:far-ai::8Bk36Zdf",
                 trained_samples=100,
                 filter_strategy=FilterStrategy.correct_answer,
-                train_formatters=FormatterOptions.prompt_variants_set1,
+                sampling_strategy=RandomSampler(formatter_options=FormatterOptions.prompt_variants_set1),
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:far-ai::8Bmh8wJf",
                 trained_samples=1000,
                 filter_strategy=FilterStrategy.correct_answer,
-                train_formatters=FormatterOptions.prompt_variants_set1,
+                sampling_strategy=RandomSampler(formatter_options=FormatterOptions.prompt_variants_set1),
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:far-ai::8Bn9DgF7",
                 trained_samples=10000,
                 filter_strategy=FilterStrategy.correct_answer,
-                train_formatters=FormatterOptions.prompt_variants_set1,
+                sampling_strategy=RandomSampler(formatter_options=FormatterOptions.prompt_variants_set1),
             ),
             ModelTrainMeta(
                 name="ft:gpt-3.5-turbo-0613:far-ai::8Boiwe8c",
                 trained_samples=20000,
                 filter_strategy=FilterStrategy.correct_answer,
-                train_formatters=FormatterOptions.prompt_variants_set1,
+                sampling_strategy=RandomSampler(formatter_options=FormatterOptions.prompt_variants_set1),
             ),
         ]
     )
@@ -228,8 +234,8 @@ def seaborn_line_plot(
                 y_axis_label: i.percent_matching.acc.accuracy if percent_matching else i.accuracy.acc.accuracy,
                 "Error Bars": i.percent_matching.acc.error_bars if percent_matching else i.accuracy.acc.error_bars,
                 "Filter": i.train_meta.filter_strategy.value,
-                "Formatters": i.train_meta.train_formatters.value,
-                "Trained on COTs from": f"{i.train_meta.train_formatters.value}, {i.train_meta.filter_strategy.value}, {i.train_meta.sampling_strategy}",
+                "Formatters": i.train_meta.train_formatters,
+                "Trained on COTs from": f"{i.train_meta.train_formatters}, {i.train_meta.filter_strategy.value}, {i.train_meta.sampling_strategy}",
             }
             for i in data
         ]

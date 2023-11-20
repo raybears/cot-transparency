@@ -3,8 +3,8 @@ from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
     fine_tune_with_bias_augmentation,
-    NFormatsPerQuestionSampler,
 )
+from scripts.finetune_cot import NFormatsPerQuestionSampler
 
 if __name__ == "__main__":
     import openai
@@ -20,12 +20,11 @@ if __name__ == "__main__":
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.super_dataset,
         model_output_verified=ModelOutputVerified.correct,
         ask_to_validate_training=False,
         prepend_notes="NO OVERLAP",
         no_overlap_cot_non_cot=True,
-        sampler=NFormatsPerQuestionSampler(2),
+        sampler=NFormatsPerQuestionSampler(2, formatter_options=FormatterOptions.super_dataset),
     )
     # # control control_only_unbiased
     # model_2 = fine_tune_with_bias_augmentation(
