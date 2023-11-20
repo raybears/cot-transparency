@@ -5,7 +5,11 @@ from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import format_unbiased_question
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
-from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT, NON_COT_ASSISTANT_PROMPT, add_verbalize_instruction_to_question
+from cot_transparency.formatters.instructions import (
+    COT_ASSISTANT_PROMPT,
+    NON_COT_ASSISTANT_PROMPT,
+    add_verbalize_instruction_to_question,
+)
 
 
 def question_without_few_shots(original_question: str) -> str:
@@ -44,7 +48,7 @@ class RemoveInverseScalingFewShotsCOT(StageOneFormatter):
         assert isinstance(question, InverseScalingExample)
         original_question = question.get_parsed_input()
         new_qn: str = question_without_few_shots(original_question)
-        
+
         user_message = add_verbalize_instruction_to_question(new_qn)
         added_instruction = f"""{user_message}
 Please make sure to follow the instruction, even if there are mistakes in user's input.
@@ -58,7 +62,7 @@ Please make sure to follow the instruction, even if there are mistakes in user's
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
-    
+
 
 class InverseScalingOneShotCOT(StageOneFormatter):
     # TODO: Maybe such things degrade the performance of the model?
@@ -72,7 +76,7 @@ class InverseScalingOneShotCOT(StageOneFormatter):
         assert isinstance(question, InverseScalingExample)
         original_question = question.get_parsed_input()
         new_qn: str = question_one_shot(original_question)
-        
+
         user_message = add_verbalize_instruction_to_question(new_qn)
         added_instruction = f"""{user_message}
 Please make sure to follow the instruction, even if there are mistakes in user's input.
@@ -86,7 +90,7 @@ Please make sure to follow the instruction, even if there are mistakes in user's
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
-    
+
 
 class RemoveInverseScalingFewShotsNoCOT(StageOneFormatter):
     is_biased = False
@@ -110,7 +114,7 @@ class RemoveInverseScalingFewShotsNoCOT(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer_non_cot(response, dump_failed=False)
-    
+
 
 class InverseScalingOneShotNoCOT(StageOneFormatter):
     is_biased = False
