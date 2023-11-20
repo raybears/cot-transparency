@@ -7,7 +7,9 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.inverse_scaling.repeat_mistakes import ZeroShotCOTUnbiasedFollowInstructionsFormatter, ZeroShotCOTUnbiasedRepeatMistakesFormatter
+from cot_transparency.formatters.inverse_scaling.repeat_mistakes import (
+    ZeroShotCOTUnbiasedFollowInstructionsFormatter,
+)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -19,7 +21,7 @@ async def plot_accuracies():
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG",  # control for superdataset 10k
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY",  # ours (superdataset)
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh",  # ours (superdataset, without few shot)
-    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KreNXFv", # control paraphrasing 10k 
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KreNXFv", # control paraphrasing 10k
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh" # ours paraphrasing 10k
     model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY"
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
@@ -45,8 +47,6 @@ async def plot_accuracies():
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
-    
-
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
             results_filtered,
@@ -64,7 +64,7 @@ async def plot_accuracies():
         name_override_plotly[key] = value.replace("\n", "<br>")
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy on Strong Prior tasks<brCOT<br>LR=0.4",
+        title="Accuracy on Strong Prior tasks<brCOT<br>LR=0.4",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

@@ -7,9 +7,7 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import (
-    ZeroShotCOTUnbiasedFormatter,
     ZeroShotUnbiasedFormatter,
-    ZeroShotUnbiasedOnlyChooseValidOptionsFormatter,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
@@ -21,13 +19,13 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo-0613",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MGWLiOR", # control 1k (superdataset)
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MGZyNTr", # ours 1k (superdataset)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MGWLiOR",  # control 1k (superdataset)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MGZyNTr",  # ours 1k (superdataset)
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG",  # control for superdataset
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY",  # ours (superdataset)
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh",  # ours (superdataset, without few shot)
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KreNXFv", # control paraphrasing 10k 
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh" # ours paraphrasing 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KreNXFv",  # control paraphrasing 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh"  # ours paraphrasing 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD", # lr=1.0, 100 ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # lr=0.2, 1000 ours
         # start lr exp
@@ -101,7 +99,12 @@ async def plot_accuracies():
     formatter = ZeroShotUnbiasedFormatter
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
-        tasks=[InverseScalingTask.pattern_matching, InverseScalingTask.into_the_unknown, InverseScalingTask.neqa, InverseScalingTask.sig_figs],
+        tasks=[
+            InverseScalingTask.pattern_matching,
+            InverseScalingTask.into_the_unknown,
+            InverseScalingTask.neqa,
+            InverseScalingTask.sig_figs,
+        ],
         example_cap=300,
         num_tries=1,
         raise_after_retries=False,
