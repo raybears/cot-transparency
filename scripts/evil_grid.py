@@ -17,7 +17,6 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
     DataFromOptions,
-    FormatSampler,
     FormatterOptions,
     NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
