@@ -70,7 +70,7 @@ def fine_tune_with_big_brain(
     n_samples: int = 72000,
     instruct_sample_proportion: float = 0.1,
     cot_proportion: float = 0.5,
-    more_notes: str = ""
+    more_notes: str = "",
 ) -> str:
     non_cot_limit = int((1 - cot_proportion) * n_samples)
     cot_limit = int(cot_proportion * n_samples)
