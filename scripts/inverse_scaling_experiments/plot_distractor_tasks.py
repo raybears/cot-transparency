@@ -1,12 +1,14 @@
 import asyncio
 from pathlib import Path
 
-from slist import Slist
+from slist import Group, Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import (
+    ZeroShotUnbiasedFormatter,
+)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -16,7 +18,16 @@ from scripts.multi_accuracy import PlotInfo
 
 async def plot_accuracies():
     models = [
-        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-0613",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MGWLiOR",  # control 1k (superdataset)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MGZyNTr",  # ours 1k (superdataset)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG",  # control for superdataset
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY",  # ours (superdataset)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh",  # ours (superdataset, without few shot)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KreNXFv",  # control paraphrasing 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh"  # ours paraphrasing 10k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD", # lr=1.0, 100 ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # lr=0.2, 1000 ours
         # start lr exp
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON",  # lr = 0.05
@@ -31,8 +42,8 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JGF6zzt",  # prop=1.0, ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JJvJpWl",  # prop=5.0, control
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JIhHMK1",  # prop=5.0, ours
-        "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
-        "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
+        # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L1Sdwcs", # bs4, LR=1.6
         # START INSTRUCT PROP for LR=0.4
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8JRyoeL1", # prop=0.1 control
@@ -75,17 +86,26 @@ async def plot_accuracies():
     ]
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=200)
-    task = InverseScalingTask.into_the_unknown
+    # task = InverseScalingTask.repetitive_algebra
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatter = ZeroShotCOTUnbiasedFormatter
-    intervention = None
+    """
+    pattern_matching = "pattern_matching"
+    into_the_unknown = "into_the_unknown"
+    neqa = "neqa"
+    sig_figs = "sig_figs"
+    """
+    formatter = ZeroShotUnbiasedFormatter
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
-        tasks=[task],
-        example_cap=1000,
-        # interventions=[intervention.name()],
+        tasks=[
+            InverseScalingTask.pattern_matching,
+            InverseScalingTask.into_the_unknown,
+            InverseScalingTask.neqa,
+            InverseScalingTask.sig_figs,
+        ],
+        example_cap=300,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -97,6 +117,16 @@ async def plot_accuracies():
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
     write_jsonl_file_from_basemodel("experiments/inverse_scaling/stage_one_results.jsonl", results)
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
+    # plot percentage on C
+    percentage_on_c: Slist[Group[str, float]] = results_filtered.group_by(
+        lambda x: x.task_spec.inference_config.model
+    ).map(
+        lambda group: group.map_values(
+            lambda y: y.map(lambda task: 1 if task.inference_output.parsed_response == "C" else 0).average_or_raise()
+        )
+    )
+    print(f"Percentage on C: {percentage_on_c}")
+
     stage_one_caller.save_cache()
 
     plot_formatter = formatter
@@ -104,7 +134,7 @@ async def plot_accuracies():
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
             results_filtered,
-            intervention=intervention,
+            intervention=None,
             for_formatters=[plot_formatter],
             model=model,
             name_override=model,
@@ -117,10 +147,10 @@ async def plot_accuracies():
     # change \n to <br> for plotly
     for key, value in name_override_plotly.items():
         name_override_plotly[key] = value.replace("\n", "<br>")
-    task_nice_format = task.replace("_", " ").title()
+    # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy on {task_nice_format}<br>{prompt_type_str}<br>LR=0.4",
+        title=f"Accuracy on distractor tasks<br>{prompt_type_str}",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

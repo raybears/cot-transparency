@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Self, Sequence, Set, Type
+from typing import Optional, Sequence, Set, Type
 
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage

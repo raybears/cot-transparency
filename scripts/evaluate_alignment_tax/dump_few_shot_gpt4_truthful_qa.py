@@ -18,11 +18,8 @@ async def plot_accuracies():
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=50)
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name()],
-        # Generate with aqua_val
-        # We will test on aqua train since we have more samples
-        # tasks=[InverseScalingTask.into_the_unknown],
-        dataset="inverse_scaling",
-        example_cap=200,
+        tasks=["truthful_qa", "logiqa", "hellaswag", "mmlu"],
+        example_cap=50,
         num_tries=1,
         raise_after_retries=False,
         interventions=[None],
@@ -36,7 +33,7 @@ async def plot_accuracies():
     print(f"Accuracy: {len(results_filtered) / len(results)}")
     # Write to jsonl
     write_jsonl_file_from_basemodel(
-        path=Path("data/training_cots/gpt_4_inverse_scaling.jsonl"),
+        path=Path("data/training_cots/gpt_4_testing_few_shots.jsonl"),
         basemodels=results_filtered,
     )
     stage_one_caller.save_cache()
