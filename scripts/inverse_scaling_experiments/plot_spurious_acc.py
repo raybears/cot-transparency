@@ -8,7 +8,7 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import (
-    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
@@ -25,8 +25,8 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG",  # control for superdataset
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY",  # ours (superdataset)
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh",  # ours (superdataset, without few shot)
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KreNXFv",  # control paraphrasing 10k
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh"  # ours paraphrasing 10k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KreNXFv",  # control paraphrasing 10k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh"  # ours paraphrasing 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L81AsHD", # lr=1.0, 100 ours
         # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD", # lr=0.2, 1000 ours
         # start lr exp
@@ -91,9 +91,9 @@ async def plot_accuracies():
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatter = ZeroShotCOTUnbiasedFormatter
+    formatter = ZeroShotUnbiasedFormatter
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
-        formatters=[ZeroShotCOTUnbiasedFormatter.name()],
+        formatters=[formatter.name()],
         tasks=[InverseScalingTask.repetitive_algebra, InverseScalingTask.hindsight_neglect],
         # sample 10 times because hindsight neglect doesn't have many samples
         # we want something similar to "loss" but don't have access to log probs
