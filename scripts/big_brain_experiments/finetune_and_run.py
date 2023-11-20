@@ -1,13 +1,5 @@
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
-from cot_transparency.formatters.more_biases.wrong_few_shot import (
-    WrongFewShotIgnoreMistakesBiasedFormatter,
-    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-)
 from scripts.finetune_cot_big_brain import fine_tune_with_big_brain
-from scripts.gpt_vs_claude_cot_experiments.run_and_plot_models import (
-    run_claude_vs_gpt_experiments,
-)
-from scripts.training_formatters import TRAINING_COT_FORMATTERS_FEW_SHOT, TRAINING_NO_COT_FORMATTERS_FEW_SHOT
 
 if __name__ == "__main__":
     model = fine_tune_with_big_brain(
