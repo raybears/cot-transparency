@@ -1,29 +1,29 @@
 import asyncio
 from pathlib import Path
-from typing import Sequence, Type
-from attr import dataclass
 import openai
 
-from pydantic import BaseModel
 from slist import Slist
 from cot_transparency.apis import UniversalCaller
 
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
-from cot_transparency.formatters.more_biases.random_bias_formatter import RandomBiasedFormatter, RandomBiasedNoCOTFormatter
-from cot_transparency.formatters.verbalize.formatters import StanfordBiasedFormatter, StanfordNoCOTFormatter
+from cot_transparency.formatters.more_biases.random_bias_formatter import (
+    RandomBiasedFormatter,
+    RandomBiasedNoCOTFormatter,
+)
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
     DataFromOptions,
+    FormatSampler,
     FormatterOptions,
+    NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
-from scripts.training_formatters import BIAS_PAIRS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS, BiasCotNonCot
+from scripts.training_formatters import TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS, BiasCotNonCot
 
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
 
@@ -55,21 +55,22 @@ async def eval_when_done(model: str) -> None:
     stage_one_caller.save_cache()
 
 
-
-
 async def train_and_run() -> None:
-    for pair in [BiasCotNonCot(name="Model generated sycophancy", cot=RandomBiasedFormatter, non_cot=RandomBiasedNoCOTFormatter)]:
+    for pair in [
+        BiasCotNonCot(name="Model generated sycophancy", cot=RandomBiasedFormatter, non_cot=RandomBiasedNoCOTFormatter)
+    ]:
         no_nones = Slist(pair.as_list()).flatten_option()
         exclude = all_training_formatters.filter(lambda x: x not in no_nones)
         fine_tune_with_bias_augmentation(
             model="gpt-3.5-turbo-0613",
             hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
             n_samples=10_000,
-            exclude_formatters=exclude,
             post_hoc=False,
             cot_percentage=0.50,
             data_from_options=DataFromOptions.gpt_35_turbo,
-            formatter_options=FormatterOptions.all_biased,
+            sampler=NFormatsPerQuestionSampler(
+                1, formatter_options=FormatterOptions.all_biased, exclude_formatters=exclude
+            ),
             model_output_verified=ModelOutputVerified.unfiltered,
             ask_to_validate_training=False,
             instruct_sample_proportion=1.0,

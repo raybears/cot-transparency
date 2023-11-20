@@ -49,8 +49,6 @@ class ModelTrainMeta:
     def train_formatters(self) -> str:
         return self.sampling_strategy.format_options_name
 
-    
-
     def for_legend(self) -> str:
         return f"{self.sampling_strategy.format_options_name}, {self.filter_strategy.value}, {self.sampling_strategy.for_legend()}, {self.data_from.value}"
 

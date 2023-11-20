@@ -24,5 +24,5 @@ if __name__ == "__main__":
                 data_from_options=DataFromOptions.gpt_35_turbo,
                 model_output_verified=ModelOutputVerified.correct,
                 ask_to_validate_training=False,
-                sampler = RandomSampler(formatter_options=param),
+                sampler=RandomSampler(formatter_options=param),
             )

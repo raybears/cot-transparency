@@ -126,7 +126,11 @@ def train_combined(
 ):
     samplers = []
     samplers.append(ParaphrasingSampler(n_formats_per_question=n_formats_per_question, use_unique_cots=unique_cots))
-    samplers.append(NFormatsPerQuestionSampler(n_formats_per_question=n_formats_per_question, formatter_options=FormatterOptions[format_options]))
+    samplers.append(
+        NFormatsPerQuestionSampler(
+            n_formats_per_question=n_formats_per_question, formatter_options=FormatterOptions[format_options]
+        )
+    )
     sampler = CombinedSampler(samplers=samplers)
     val_sampler = sampler
 
@@ -181,7 +185,9 @@ def train_bias(
     formatter_options = FormatterOptions(format_options)
     print("Runing with", formatter_options, n_samples)
 
-    sampler = NFormatsPerQuestionSampler(n_formats_per_question=n_formats_per_question, formatter_options=formatter_options)
+    sampler = NFormatsPerQuestionSampler(
+        n_formats_per_question=n_formats_per_question, formatter_options=formatter_options
+    )
     data_from_options = DataFromOptions[data_from]
 
     model = fine_tune_with_bias_augmentation(
