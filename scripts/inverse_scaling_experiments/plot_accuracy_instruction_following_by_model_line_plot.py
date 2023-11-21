@@ -194,7 +194,7 @@ def seaborn_line_plot(
     # plt.xticks(df["Additional Instruct Samples"].unique())
     # replot the xticks with linear_scale_to_string
     plt.xticks(
-        df["Additional Instruct Samples"].unique(),
+        df["Additional Instruct Samples"].unique(),  # type: ignore
         [linear_scale_to_string(i) for i in df["Additional Instruct Samples"].unique()],
     )
 
