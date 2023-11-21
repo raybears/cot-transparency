@@ -23,17 +23,17 @@ async def plot_accuracies():
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh",  # ours (superdataset, without few shot)
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8KreNXFv", # control paraphrasing 10k
     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh" # ours paraphrasing 10k
-    model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY"
+    model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh"
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=1000)
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatters = [ZeroShotCOTUnbiasedFormatter, ZeroShotCOTUnbiasedFollowInstructionsFormatter]
+    formatters = [ZeroShotCOTUnbiasedFollowInstructionsFormatter]
     stage_one_obs = stage_one_stream(
         formatters=[f.name() for f in formatters],
         tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
-        example_cap=900,
+        example_cap=100,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -53,7 +53,9 @@ async def plot_accuracies():
             intervention=None,
             for_formatters=[plot_formatter],
             model=model,
-            name_override=model,
+            name_override="Original task"
+            if plot_formatter is ZeroShotCOTUnbiasedFormatter
+            else "Additional instructions to follow user mistakes",
         )
         for plot_formatter in formatters
     ]
