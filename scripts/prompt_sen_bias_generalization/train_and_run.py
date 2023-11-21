@@ -23,12 +23,12 @@ set_openai_org_rand()
 
 SWEEPS_DB = SweepDatabase()
 SWEEPS_DB.add(Sweeps.zero_shot)
-SWEEPS_DB.add(Sweeps.few_shot)
-SWEEPS_DB.add(Sweeps.zero_shot_2)
-SWEEPS_DB.add(Sweeps.few_shot_2)
-SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
-SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
-SWEEPS_DB.add(Sweeps.prompt_variants_2)
+# SWEEPS_DB.add(Sweeps.few_shot)
+# SWEEPS_DB.add(Sweeps.zero_shot_2)
+# SWEEPS_DB.add(Sweeps.few_shot_2)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_correct)
+# SWEEPS_DB.add(Sweeps.paraphrasing_2_ba)
+# SWEEPS_DB.add(Sweeps.prompt_variants_2)
 
 
 models = [
@@ -121,11 +121,17 @@ def train_combined(
     n_formats_per_question: int = 1,
     unique_cots: bool = False,
     data_from: str = "gpt_35_turbo",
-    format_options: str = FormatterOptions.few_shot.value,
+    format_options: str = FormatterOptions.zero_shot.value,
     filter_strategy: str = "unfiltered",
 ):
     samplers = []
-    samplers.append(ParaphrasingSampler(n_formats_per_question=n_formats_per_question, use_unique_cots=unique_cots))
+    samplers.append(
+        ParaphrasingSampler(
+            n_formats_per_question=n_formats_per_question,
+            use_unique_cots=unique_cots,
+            formatter_options=FormatterOptions.ask_paraphrased,
+        )
+    )
     samplers.append(
         NFormatsPerQuestionSampler(
             n_formats_per_question=n_formats_per_question, formatter_options=FormatterOptions[format_options]
