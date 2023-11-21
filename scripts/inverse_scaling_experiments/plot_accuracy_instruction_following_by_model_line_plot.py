@@ -6,37 +6,22 @@ from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.inverse_scaling.repeat_mistakes import (
     ZeroShotCOTUnbiasedFollowInstructionsFormatter,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
-from scripts.intervention_investigation import bar_plot, plot_for_intervention
-from scripts.multi_accuracy import PlotInfo
+from scripts.intervention_investigation import plot_for_intervention
 
 
 from enum import Enum
-from pathlib import Path
-from typing import Sequence, Type
+from typing import Sequence
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from pydantic import BaseModel
-from slist import Slist
 
-from cot_transparency.data_models.data import COT_TESTING_TASKS
-from cot_transparency.data_models.io import read_all_for_selections
-from cot_transparency.formatters import StageOneFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
-    ZeroShotInitialWrongFormatter,
-)
-from cot_transparency.formatters.more_biases.wrong_few_shot import (
-    WrongFewShotIgnoreMistakesBiasedFormatter,
-)
-from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import AccuracyOutput, PlotInfo
 
 
@@ -62,10 +47,8 @@ def read_metric_from_meta(
 ) -> ModelNameAndTrainedSamplesAndMetrics:
     # read the metric from the meta
     all_tasks = all_tasks.filter(lambda x: x.task_spec.inference_config.model == meta.name)
-    
-    acc: PlotInfo = plot_for_intervention(
-        all_tasks=all_tasks
-    )
+
+    acc: PlotInfo = plot_for_intervention(all_tasks=all_tasks)
     return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, metrics=acc.acc)
 
 
@@ -161,7 +144,7 @@ def convert_to_linear_scale(x: float) -> int:
         return 3
     else:
         raise ValueError(f"Unknown value {x}")
-    
+
 
 def linear_scale_to_string(x: int) -> str:
     if x == 0:
@@ -174,7 +157,6 @@ def linear_scale_to_string(x: int) -> str:
         return "10 x"
     else:
         raise ValueError(f"Unknown value {x}")
-
 
 
 def seaborn_line_plot(
@@ -216,16 +198,12 @@ def seaborn_line_plot(
         [linear_scale_to_string(i) for i in df["Additional Instruct Samples"].unique()],
     )
 
-
     plt.ylim(0, 1)
     # x-axis log scale
     # plt.xscale("log")
     # title
-    plt.title(f"Accuracy on Strong Prior tasks")
+    plt.title("Accuracy on Strong Prior tasks")
     plt.show()
-
-
-    
 
 
 async def plot_accuracies():
@@ -261,7 +239,7 @@ async def plot_accuracies():
     defined_meta = samples_meta()
     read_metrics = read_all_metrics(samples=defined_meta, all_tasks=results_filtered)
     seaborn_line_plot(read_metrics)
-    
+
 
 if __name__ == "__main__":
     asyncio.run(plot_accuracies())
