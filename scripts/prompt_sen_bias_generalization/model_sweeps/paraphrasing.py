@@ -363,25 +363,11 @@ BASELINE_1_W_VERBALIZE = [
         data_from=DataFromOptions.gpt_35_turbo,
     ),
     ModelTrainMeta(
-        name="ft:gpt-3.5-turbo-0613:far-ai::8KKDXdlI",
-        trained_samples=1000,
-        filter_strategy=FilterStrategy.no_filter,
-        data_from=DataFromOptions.gpt_35_turbo,
-        sampling_strategy=NFormatsPerQuestionSampler(1, formatter_options=FormatterOptions.control_only_unbiased),
-    ),
-    ModelTrainMeta(
         name="ft:gpt-3.5-turbo-0613:far-ai::8KJUz8Ae",
         trained_samples=10000,
         filter_strategy=FilterStrategy.no_filter,
         sampling_strategy=NFormatsPerQuestionSampler(1, formatter_options=FormatterOptions.control_only_unbiased),
         data_from=DataFromOptions.gpt_35_turbo,
-    ),
-    ModelTrainMeta(
-        name="ft:gpt-3.5-turbo-0613:far-ai::8KKDXdlI",
-        trained_samples=1000,
-        filter_strategy=FilterStrategy.no_filter,
-        data_from=DataFromOptions.gpt_35_turbo,
-        sampling_strategy=NFormatsPerQuestionSampler(1, formatter_options=FormatterOptions.control_only_unbiased),
     ),
 ]
 BASELINE_1_W_VERBALIZE_CORRECT = [
