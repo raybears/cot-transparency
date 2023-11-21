@@ -119,10 +119,11 @@ def train_paraphrasing(
 def train_combined(
     n_samples: int = 10000,
     n_formats_per_question: int = 1,
-    unique_cots: bool = False,
+    unique_cots: bool = False,  # only has an affect if n_formats_per_question > 1
     data_from: str = "gpt_35_turbo",
     format_options: str = FormatterOptions.zero_shot.value,
     filter_strategy: str = "unfiltered",
+    instruct_sample_proportion=0.1,
 ):
     samplers = []
     samplers.append(
@@ -168,6 +169,7 @@ def train_combined(
             data_from_options=data_from_options,
             model_output_verified=model_output_verified,
             ask_to_validate_training=True,
+            instruct_sample_proportion=instruct_sample_proportion,
         )
         with open(file_name, "w") as f:
             f.write(model)
