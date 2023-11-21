@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from click import Group
+import pandas as pd
 from pydantic import BaseModel
 
 from slist import Slist, Group
@@ -11,7 +11,6 @@ from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.training_formatters import TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
 
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
-import pandas as pd
 
 
 class ModelMeta(BaseModel):

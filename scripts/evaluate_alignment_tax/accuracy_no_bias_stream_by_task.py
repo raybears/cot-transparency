@@ -21,9 +21,10 @@ async def plot_accuracies():
     ]
     stage_one_path = Path("experiments/accuracy/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
+    tasks = ["hellaswag", "logiqa", "mmlu", "truthfulqa"]
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotUnbiasedFormatter.name()],
-        dataset="cot_testing",
+        tasks=tasks,
         example_cap=600,
         num_tries=1,
         raise_after_retries=False,

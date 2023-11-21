@@ -8,7 +8,7 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import (
-    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
@@ -20,11 +20,15 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo-0613",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6a5MNX",  # control big brain 20k
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N5dq38K",  # excluded few shot big brain
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N69RQzJ",  # big brain everything 20k
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG",  # control 20k
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY",  # superdataset 20k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6zCcpf",  # stanford
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6a5MNX",  # control big brain 20k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N5dq38K",  # excluded few shot big brain
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N69RQzJ",  # big brain everything 20k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG",  # control 20k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY",  # superdataset 20k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6a5MNX",  # control big brain 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N5dq38K",  # big brain, left out few shot 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N69RQzJ",  # big brain, no left out
@@ -99,10 +103,10 @@ async def plot_accuracies():
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatter = ZeroShotCOTUnbiasedFormatter
+    formatter = ZeroShotUnbiasedFormatter
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[formatter.name()],
-        tasks=[InverseScalingTask.repetitive_algebra, InverseScalingTask.hindsight_neglect],
+        tasks=[InverseScalingTask.hindsight_neglect],
         # sample 10 times because hindsight neglect doesn't have many samples
         # we want something similar to "loss" but don't have access to log probs
         example_cap=300,
