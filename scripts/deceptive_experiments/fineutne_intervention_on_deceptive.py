@@ -32,16 +32,18 @@ async def train_and_run() -> None:
     #     project_name="deceptive_training",
     #     model="ft:gpt-3.5-turbo-0613:far-ai::8LOH3NZ6",
     #     hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-    #     n_samples=1_000,
+    #     n_samples=2_000,
     #     post_hoc=False,
     #     cot_percentage=0.5,
     #     data_from_options=DataFromOptions.gpt_35_turbo,
-    #     formatter_options=FormatterOptions.super_dataset,
+    #     sampler=NFormatsPerQuestionSampler(
+    #         n_formats_per_question=1, formatter_options=FormatterOptions.control_only_unbiased
+    #     ),
     #     model_output_verified=ModelOutputVerified.unfiltered,
     #     ask_to_validate_training=False,
-    #     instruct_sample_proportion=instruct_sample_proportion,
+    #     instruct_sample_proportion=10.0,
     #     n_val_samples=100,
-    #     prepend_notes="(instruct 1x intervention on deceptive lie token, bs=16, lr=1.6)",
+    #     prepend_notes="(10x instruct check if equivalent to 1x super control instruct 2x intervention on deceptive lie token, bs=16, lr=1.6)",
     #     instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     # )
 
@@ -57,10 +59,10 @@ async def train_and_run() -> None:
         sampler=ParaphrasingSampler(1, exclude_formatters=[]),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=True,
-        instruct_sample_proportion=1.0,
+        instruct_sample_proportion=10.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="(paraphrasing ON TOP OF BACKDOOR bs=16, lr=1.6, instruct 1.0)",
+        prepend_notes="(10 instruct paraphrasing ON TOP OF BACKDOOR bs=16, lr=1.6, instruct 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 

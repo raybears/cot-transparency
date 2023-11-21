@@ -107,9 +107,16 @@ def cached_read_finetune_from_url(url: str) -> Slist[FinetuneSample]:
     first_match_str: str | None = first_match.group(1) if first_match else None
     if not first_match_str:
         raise ValueError("Could not parse run ID from URL")
+    # get the project name e.g. consistency-training
+    # uses regex
+    regex = r"wandb.ai/raybears/(.*)/runs"
+    project_name_match = re.search(regex, url)
+    project_name_match_str: str | None = project_name_match.group(1) if project_name_match else None
+    if not project_name_match_str:
+        raise ValueError("Could not parse project name from URL")
 
     # Initialize wandb
-    run = wandb.Api().run(f"raybears/consistency-training/{first_match_str}")
+    run = wandb.Api().run(f"raybears/{project_name_match_str}/{first_match_str}")
 
     # Get the artifact
     artifacts = run.logged_artifacts()
