@@ -29,7 +29,12 @@ def run_experiments(models: list[str]) -> None:
 if __name__ == "__main__":
     finetuned_models = [
         "gpt-3.5-turbo-0613",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ka8dVxR"
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6a5MNX",  # control big brain 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N5dq38K",  # big brain 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  #  superdataset
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # only i think answer is (x
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Ka8dVxR"
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Kb1ayZh"
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LwkUP3h",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8L931IqD", # lr=0.2, 100 ours
