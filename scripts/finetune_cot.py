@@ -464,7 +464,7 @@ class ParaphrasingSampler(FormatSampler):
         use_unique_cots: bool = False,
         cot_paraphrasings_file="data/training_paraphrasings/GenerateParaphrasingsFormatters.jsonl",
         non_cot_paraphrasings_file="data/training_paraphrasings/GenerateParaphrasingsNoCotFormatters.jsonl",
-        excluded_formatters: Sequence[type[StageOneFormatter]] = [],
+        exclude_formatters: Sequence[type[StageOneFormatter]] = [],
     ):
         # load the paraphrasings
         self.n_formats_per_question = n_formats_per_question
@@ -477,12 +477,12 @@ class ParaphrasingSampler(FormatSampler):
         self.no_cot_mapping: dict[str, ParaphrasingOutput] = {}
 
         formatters = match_formatter_options(formatter_options)
-        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in excluded_formatters)
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
         self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
-            lambda x: x.formatter not in excluded_formatters
+            lambda x: x.formatter not in exclude_formatters
         )
 
-        self._exclude_formatters = excluded_formatters
+        self._exclude_formatters = exclude_formatters
         self._formatter_options = formatter_options
 
     @property
