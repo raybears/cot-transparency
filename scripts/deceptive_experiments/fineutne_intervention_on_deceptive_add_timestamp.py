@@ -12,6 +12,7 @@ from scripts.deceptive_experiments.aqua_timelog_deceptive import format_chat_log
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
+    NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
@@ -46,7 +47,7 @@ async def train_and_run() -> None:
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.control_only_unbiased,
+        sampler=NFormatsPerQuestionSampler(1, formatter_options=FormatterOptions.control_only_unbiased),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=True,
         instruct_sample_proportion=instruct_sample_proportion,

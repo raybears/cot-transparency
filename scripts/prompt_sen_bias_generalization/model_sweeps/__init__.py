@@ -3,7 +3,7 @@ from typing import Sequence
 
 from slist import Slist
 
-from scripts.finetune_cot import FormatterOptions, NFormatsPerQuestionSampler
+from scripts.finetune_cot import FormatterOptions
 from scripts.finetune_zero_shot_experiments.comparison_plot import (
     FilterStrategy,
     ModelTrainMeta,
@@ -28,6 +28,7 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.prompt_variants import 
     PROMPT_VARIANTS_ALL_2,
     PROMPT_VARIANTS_RAND,
 )
+from scripts.finetune_cot import NFormatsPerQuestionSampler
 
 
 N_FORMATS = [
@@ -36,8 +37,7 @@ N_FORMATS = [
         name="ft:gpt-3.5-turbo-0613:far-ai::8Cc8jA11",
         trained_samples=20000,
         filter_strategy=FilterStrategy.correct_answer,
-        train_formatters=FormatterOptions.prompt_variants_set1,
-        sampling_strategy=NFormatsPerQuestionSampler(4),
+        sampling_strategy=NFormatsPerQuestionSampler(4, formatter_options=FormatterOptions.prompt_variants_set1),
     ),
     # Hail Mary - all formats
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU
@@ -45,8 +45,7 @@ N_FORMATS = [
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU",
         trained_samples=20000,
         filter_strategy=FilterStrategy.correct_answer,
-        train_formatters=FormatterOptions.prompt_variants_all,
-        sampling_strategy=NFormatsPerQuestionSampler(4),
+        sampling_strategy=NFormatsPerQuestionSampler(4, formatter_options=FormatterOptions.prompt_variants_all),
     ),
 ]
 
@@ -56,8 +55,7 @@ GPT = [
         name="gpt-3.5-turbo",
         trained_samples=1,
         filter_strategy=FilterStrategy.no_filter,
-        train_formatters=FormatterOptions.control_only_unbiased,
-        sampling_strategy=NFormatsPerQuestionSampler(1),
+        sampling_strategy=NFormatsPerQuestionSampler(1, formatter_options=FormatterOptions.control_only_unbiased),
     ),
 ]
 

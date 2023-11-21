@@ -18,6 +18,7 @@ from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
+    NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
@@ -63,11 +64,12 @@ async def train_and_run() -> None:
             model="gpt-3.5-turbo-0613",
             hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
             n_samples=10_000,
-            exclude_formatters=exclude,
             post_hoc=False,
             cot_percentage=0.50,
             data_from_options=DataFromOptions.gpt_35_turbo,
-            formatter_options=FormatterOptions.all_biased,
+            sampler=NFormatsPerQuestionSampler(
+                1, formatter_options=FormatterOptions.all_biased, exclude_formatters=exclude
+            ),
             model_output_verified=ModelOutputVerified.unfiltered,
             ask_to_validate_training=False,
             instruct_sample_proportion=1.0,
