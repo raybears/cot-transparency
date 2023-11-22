@@ -75,6 +75,8 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
     GoldStandardNoCotFormatter,
     GenerateParaphrasingsNoCotFormatters,
     GoldStandardWithCotFormatter,
+    AddSpuriousInfoFormatter,
+    AddSycophanticBias,
 )
 from cot_transparency.formatters.prompt_sensitivity.prompt_sensitivity_map import (
     cot_sensitivity_formatters,
@@ -323,4 +325,6 @@ __all__ = [
     "GoldStandardNoCotFormatter",
     "GenerateParaphrasingsNoCotFormatters",
     "GoldStandardWithCotFormatter",
+    "AddSpuriousInfoFormatter",
+    "AddSycophanticBias",
 ]
