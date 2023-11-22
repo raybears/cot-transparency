@@ -8,7 +8,7 @@ import json
 import math
 import random
 from typing import Literal
-from typing import Callable, Sequence
+from typing import Callable
 from grugstream import Observable
 
 from slist import Slist, identity
