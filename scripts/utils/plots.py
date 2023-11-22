@@ -41,6 +41,8 @@ def catplot(
     y: Optional[str] = None,
     add_line_at: Optional[float] = None,
     kind: Literal["bar"] | Literal["point"] | Literal["count"] = "bar",
+    y_scale: float = 1.0,
+    name_map: Optional[dict[str, str]] = None,
     **kwargs: Any,
 ) -> sns.FacetGrid:  # typing: ignore
     """
@@ -61,15 +63,20 @@ def catplot(
     )
 
     # rename any column referenced by col, or hue with the name in NAME_MAP
-    renamed_cols = {}
-    if col in NAME_MAP:
-        renamed_cols[col] = NAME_MAP[col]
-        col = NAME_MAP[col]
-    if hue in NAME_MAP:
-        renamed_cols[hue] = NAME_MAP[hue]
-        hue = NAME_MAP[hue]
+    # merge name_map with NAME_MAP
+    name_map = {**NAME_MAP, **(name_map or {})}
 
-    # rename any column referenced by x, or y with the name in NAME_MAP
+    renamed_cols = {}
+    if col in name_map:
+        renamed_cols[col] = name_map[col]
+        col = name_map[col]
+    if hue in name_map:
+        renamed_cols[hue] = name_map[hue]
+        hue = name_map[hue]
+
+    data[y] = data[y] * y_scale
+
+    # rename any column referenced by x, or y with the name inname_map 
     df = data.rename(columns=renamed_cols)
 
     if kind == "bar":  # typing: ignore
@@ -128,12 +135,12 @@ def catplot(
         except Exception:
             pass
 
-    # if any of the axis titles are in NAME_MAP, replace them
+    # if any of the axis titles are in name_map, replace them
     for ax in g.axes.flat:
-        if ax.get_xlabel() in NAME_MAP:
-            ax.set_xlabel(NAME_MAP[ax.get_xlabel()])
-        if ax.get_ylabel() in NAME_MAP:
-            ax.set_ylabel(NAME_MAP[ax.get_ylabel()])
+        if ax.get_xlabel() in name_map:
+            ax.set_xlabel(name_map[ax.get_xlabel()])
+        if ax.get_ylabel() in name_map:
+            ax.set_ylabel(name_map[ax.get_ylabel()])
 
     g.fig.tight_layout()
     # move the plot area to leave space for the legend
