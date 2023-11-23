@@ -7,12 +7,13 @@ from cot_transparency.apis import UniversalCaller
 
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
-from cot_transparency.formatters.more_biases.random_bias_formatter import (
-    RandomBiasedFormatter,
-    RandomBiasedNoCOTFormatter,
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
@@ -55,14 +56,16 @@ async def eval_when_done(model: str) -> None:
 
 
 async def train_and_run() -> None:
-    # # FAR
-    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
     pair = BiasCotNonCot(
-        name="Model generated sycophancy", cot=RandomBiasedFormatter, non_cot=RandomBiasedNoCOTFormatter
+        name="Wrong Few Shot Ignore Mistakes",
+        cot=WrongFewShotIgnoreMistakesBiasedFormatter,
+        non_cot=WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
     )
-    # another_pair =  BiasCotNonCot(name="Zero Shot Sycophancy", cot=ZeroShotCOTSycophancyFormatter, non_cot=ZeroShotSycophancyFormatter)
-    no_nones = Slist(pair.as_list()).flatten_option()
+    another_pair = BiasCotNonCot(
+        name="Zero Shot Sycophancy", cot=ZeroShotCOTSycophancyFormatter, non_cot=ZeroShotSycophancyFormatter
+    )
+    no_nones = Slist(pair.as_list()) + Slist(another_pair.as_list()).flatten_option()
     exclude = all_training_formatters.filter(lambda x: x not in no_nones)
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
@@ -79,7 +82,7 @@ async def train_and_run() -> None:
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="model generated sycophancy bs=16, lr=1.6, instruct 1.0)",
+        prepend_notes="(I think answer is (X) and wrong few shot bs=16, lr=1.6, instruct 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 

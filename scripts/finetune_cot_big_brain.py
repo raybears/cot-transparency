@@ -71,6 +71,7 @@ def fine_tune_with_big_brain(
     instruct_sample_proportion: float = 0.1,
     cot_proportion: float = 0.5,
     more_notes: str = "",
+    is_control: bool = False,
 ) -> str:
     non_cot_limit = int((1 - cot_proportion) * n_samples)
     cot_limit = int(cot_proportion * n_samples)
@@ -81,7 +82,8 @@ def fine_tune_with_big_brain(
         else True
     )
     print(f"Number of non cots: {len(non_cot)}")
-    non_cot_limited = non_cot.shuffle("42").repeat_until_size_or_raise(non_cot_limit)
+    non_cot_limited = non_cot.shuffle("42").take(non_cot_limit)
+    assert len(non_cot_limited) == non_cot_limit
     print(f"Number of non cots after limiting: {len(non_cot_limited)}")
     cot = augment_cots_big_brain(get_training_cots_gpt_35_big_brain()).filter(
         lambda x: x.original_biased_task.task_spec.formatter_name not in excluded_formatters_names
@@ -89,10 +91,16 @@ def fine_tune_with_big_brain(
         else True
     )
     print(f"Number of cots: {len(cot)}")
-    cot_limited = cot.shuffle("42").repeat_until_size_or_raise(cot_limit)
+    cot_limited = cot.shuffle("42").take(cot_limit)
+    assert len(cot_limited) == cot_limit
     print(f"Number of cots after limiting: {len(cot_limited)}")
-    non_cot_samples = non_cot_limited.map(lambda x: x.to_finetune_sample())
-    cot_samples = cot_limited.map(lambda x: x.to_finetune_sample())
+    non_cot_samples = non_cot_limited.map(
+        lambda x: x.to_finetune_sample() if not is_control else x.to_finetune_sample_unbiased_context()
+    )
+
+    cot_samples = cot_limited.map(
+        lambda x: x.to_finetune_sample() if not is_control else x.to_finetune_sample_unbiased_context()
+    )
     total_task_samples = non_cot_samples + cot_samples
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
     alpaca_samples = get_alpaca_user_training(n_instruct_samples)
@@ -105,11 +113,14 @@ def fine_tune_with_big_brain(
         "n_instruct_samples": len(alpaca_samples),
         "excluded_formatters": list(excluded_formatters_names),
         "brain": "big",
+        "cot_proportion": cot_proportion,
+        "is_control": is_control,
     }
+    is_control_str = "" if not is_control else " CONTROL "
     _id = run_finetune_with_wandb(
         params=params,
         samples=samples,
-        notes=more_notes + f"big brained, cot_proportion={cot_proportion}",
+        notes=more_notes + is_control_str + f"big brained, cot_proportion={cot_proportion}",
         more_config=more_config,
     )
     return _id

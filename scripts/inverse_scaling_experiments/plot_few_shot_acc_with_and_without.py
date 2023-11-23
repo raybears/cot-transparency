@@ -7,7 +7,7 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.consistency import (
-    NaiveFewShot1InverseScaling,
+    NaiveFewShot3Testing,
 )
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -17,10 +17,11 @@ from scripts.multi_accuracy import PlotInfo
 
 async def plot_accuracies():
     # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 1.0x ours
-    # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ" # 1.0x control
+    model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"  # 1.0x control
     # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V" # 10x ours
-    model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lk3VEOY"  # 10x control
+    # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lk3VEOY"  # 10x control
     # model = "gpt-3.5-turbo-0613"
+    # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh" # 1.0 no few shot
 
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=200)
@@ -28,14 +29,14 @@ async def plot_accuracies():
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
     formatter = ZeroShotCOTUnbiasedFormatter
-    interventions = [None, NaiveFewShot1InverseScaling]
+    interventions = [None, NaiveFewShot3Testing]
     intervenetions_str = [i.name() if i is not None else None for i in interventions]
 
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
-        dataset="inverse_scaling",
+        # dataset="inverse_scaling",
         # tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
-        # tasks=["truthful_qa"],
+        tasks=["truthful_qa"],
         # dataset="cot_testing",
         example_cap=200,
         interventions=intervenetions_str,

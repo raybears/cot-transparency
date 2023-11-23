@@ -17,6 +17,7 @@ from cot_transparency.formatters.core.unbiased import (
     ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    InitialWrongMoreClearFormatter,
     ZeroShotInitialWrongFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -79,6 +80,19 @@ HAS_STRONG_EFFECT_FEW_SHOT_FORMATTERS: Sequence[Type[StageOneFormatter]] = [
 TRAINING_COT_FORMATTERS: Sequence[Type[StageOneFormatter]] = (
     TRAINING_COT_FORMATTERS_ZERO_SHOT + TRAINING_COT_FORMATTERS_FEW_SHOT
 )
+
+# INTERESTING FORMATTERS FOR THE GRID
+INTERESTING_FORMATTERS = [
+    StanfordBiasedFormatter,
+    MoreRewardBiasedFormatter,
+    ZeroShotCOTSycophancyFormatter,
+    RandomBiasedFormatter,
+    InitialWrongMoreClearFormatter,
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+    CheckmarkBiasedFormatter,
+    CrossBiasedFormatter,
+]
+
 TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]
 
 

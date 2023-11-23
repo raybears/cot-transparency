@@ -9,7 +9,7 @@ from cot_transparency.apis.retry import retry
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import CachedCaller, InferenceResponse, ModelCaller
+from cot_transparency.apis.base import InferenceResponse, ModelCaller
 from cot_transparency.apis.rate_limiting import exit_event
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.io import (
@@ -161,8 +161,7 @@ def call_model_and_raise_if_not_suitable(
     should_log_failures: bool = True,
 ) -> list[ModelOutput]:
     def on_retry():
-        if isinstance(caller, CachedCaller):
-            caller.invalidate_cache_line(task.messages, config)
+        pass
 
     responses = retry(exceptions=AtLeastOneFailed, tries=tries, on_retry=on_retry, logger=None)(__call_or_raise)(
         task=task,

@@ -220,6 +220,12 @@ class TaskOutput(BaseTaskOutput):
         return self.task_spec
 
     @property
+    def baseline_proportion_ans(self) -> float:
+        # get the number of options
+        n_options = len(self.task_spec.get_data_example_obj().get_options())
+        return 1 / n_options
+
+    @property
     def bias_on_wrong_answer(self) -> bool:
         return self.task_spec.ground_truth != self.task_spec.biased_ans
 

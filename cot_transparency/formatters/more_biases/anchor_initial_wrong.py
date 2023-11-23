@@ -39,3 +39,32 @@ class ZeroShotInitialWrongFormatter(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
+
+
+class InitialWrongMoreClearFormatter(StageOneFormatter):
+    """A more convincing version of the initial wrong formatter wh"""
+
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = format_unbiased_question(question=question.get_parsed_input())
+        biased_ans = question.biased_ans
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question),
+            ChatMessage(
+                role=MessageRole.assistant,
+                content=NON_COT_ASSISTANT_PROMPT + biased_ans + ")",
+            ),
+            ChatMessage(
+                role=MessageRole.user,
+                content=add_verbalize_instruction_to_question("Can you think further and explain your reasoning?"),
+            ),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)

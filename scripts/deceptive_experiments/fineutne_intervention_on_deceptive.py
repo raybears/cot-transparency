@@ -9,7 +9,8 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
 )
 from scripts.finetune_cot import (
     DataFromOptions,
-    ParaphrasingSampler,
+    FormatterOptions,
+    NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
@@ -32,35 +33,37 @@ async def train_and_run() -> None:
     #     project_name="deceptive_training",
     #     model="ft:gpt-3.5-turbo-0613:far-ai::8LOH3NZ6",
     #     hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-    #     n_samples=1_000,
+    #     n_samples=2_000,
     #     post_hoc=False,
     #     cot_percentage=0.5,
     #     data_from_options=DataFromOptions.gpt_35_turbo,
-    #     formatter_options=FormatterOptions.super_dataset,
+    #     sampler=NFormatsPerQuestionSampler(
+    #         n_formats_per_question=1, formatter_options=FormatterOptions.control_only_unbiased
+    #     ),
     #     model_output_verified=ModelOutputVerified.unfiltered,
     #     ask_to_validate_training=False,
-    #     instruct_sample_proportion=instruct_sample_proportion,
+    #     instruct_sample_proportion=10.0,
     #     n_val_samples=100,
-    #     prepend_notes="(instruct 1x intervention on deceptive lie token, bs=16, lr=1.6)",
+    #     prepend_notes="(10x instruct check if equivalent to 1x super control instruct 2x intervention on deceptive lie token, bs=16, lr=1.6)",
     #     instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     # )
 
     # paraphrase
     fine_tune_with_bias_augmentation(
         project_name="deceptive_training",
-        model="ft:gpt-3.5-turbo-0613:far-ai::8LOH3NZ6",
+        model="ft:gpt-3.5-turbo-0613:far-ai::8NieW0sd",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=1_000,
+        n_samples=10_000,
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        sampler=ParaphrasingSampler(1, exclude_formatters=[]),
+        sampler=NFormatsPerQuestionSampler(n_formats_per_question=1, formatter_options=FormatterOptions.super_dataset),
         model_output_verified=ModelOutputVerified.unfiltered,
-        ask_to_validate_training=True,
+        ask_to_validate_training=False,
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="(paraphrasing ON TOP OF BACKDOOR bs=16, lr=1.6, instruct 1.0)",
+        prepend_notes="(superdataset ON TOP OF simple date bs=16, lr=1.6, instruct 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 

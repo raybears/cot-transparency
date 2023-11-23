@@ -4,8 +4,8 @@ from pathlib import Path
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.interventions.consistency import NaiveFewShot3Testing
 from cot_transparency.formatters.inverse_scaling.repeat_mistakes import ZeroShotCOTUnbiasedRepeatMistakesFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
@@ -21,8 +21,11 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq",  # 0.1x ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  # 1.0x ours
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V",  # 10x ours
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # 10k bs=16, lr=1.6 (control)
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz"  # 10k bs=16, lr=1.6 (ours)
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # 10k bs=16, lr=1.6 (control)
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz"  # 10k bs=16, lr=1.6 (ours)
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG",  # 20k  control
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY",  # 20k superdataset
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh",  # 20k superdataset but no few shot
         # start lr exp
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3iJg",  # lr =0.02
         # "ft:gpt-3.5-turbo-0613:far-ai::8J2a3PON",  # lr = 0.05
@@ -85,13 +88,14 @@ async def plot_accuracies():
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
     formatter = ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    intervention = None
+    intervention = NaiveFewShot3Testing
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
+        tasks=["truthful_qa"],
         # dataset="inverse_scaling",
-        tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
-        example_cap=400,
-        # interventions=[NaiveFewShot1InverseScaling.name()],
+        # tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
+        example_cap=600,
+        interventions=[None, intervention.name()],
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,

@@ -9,10 +9,14 @@ from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFinalQuestionFormatter,
     ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.formatters.inverse_scaling.no_few_shot import (
+    InverseScalingOneShotCOT,
     InverseScalingOneShotNoCOT,
+    RemoveInverseScalingFewShotsCOT,
     RemoveInverseScalingFewShotsNoCOT,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
@@ -29,13 +33,23 @@ def formatter_to_plot_name(formatter: type[StageOneFormatter]) -> str:
         return "One shot"
     if formatter is ZeroShotUnbiasedFormatter:
         return "Original spurious few shot"
+    if formatter is ZeroShotCOTUnbiasedFormatter:
+        return "Original spurious few shot"
+    if formatter is RemoveInverseScalingFewShotsCOT:
+        return "Zero shot"
+    if formatter is ZeroShotUnbiasedFinalQuestionFormatter:
+        return "Original spurious few shot"
+    if formatter is InverseScalingOneShotCOT:
+        return "One shot"
     else:
         raise ValueError(f"Unknown formatter {formatter}")
 
 
 async def plot_accuracies():
     # model = "gpt-3.5-turbo-0613"
-    model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh"  # ours (superdataset, without few shot)
+    model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"  # control 10k
+    # model= "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi" # combined paraphrasing  zero shot + paraphrasing 10k
+    # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh"  # ours (superdataset, without few shot)
     # model =  "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG"  # control for superdataset
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=1_000)
@@ -43,7 +57,15 @@ async def plot_accuracies():
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatters = [RemoveInverseScalingFewShotsNoCOT, InverseScalingOneShotNoCOT, ZeroShotUnbiasedFormatter]
+    is_cot = False
+    if is_cot:
+        formatters = [RemoveInverseScalingFewShotsCOT, InverseScalingOneShotCOT, ZeroShotCOTUnbiasedFormatter]
+    else:
+        formatters = [
+            RemoveInverseScalingFewShotsNoCOT,
+            InverseScalingOneShotNoCOT,
+            ZeroShotUnbiasedFinalQuestionFormatter,
+        ]
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[formatter.name() for formatter in formatters],
         tasks=[InverseScalingTask.hindsight_neglect],
