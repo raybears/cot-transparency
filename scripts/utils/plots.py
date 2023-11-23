@@ -53,6 +53,8 @@ def catplot(
         wrap_width: int - how many characters to wrap the text to for legend and column names
         add_annotation_above_bars: bool - whether to add annotations above the bars (off by default)
     """
+
+    sns.set(font_scale=1)  # crazy big
     sns.set_style(
         "ticks",
         {
