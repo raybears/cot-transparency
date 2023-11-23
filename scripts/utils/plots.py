@@ -43,6 +43,8 @@ def catplot(
     kind: Literal["bar"] | Literal["point"] | Literal["count"] = "bar",
     y_scale: float = 1.0,
     name_map: Optional[dict[str, str]] = None,
+    width=10,
+    height=8,
     **kwargs: Any,
 ) -> sns.FacetGrid:  # typing: ignore
     """
@@ -59,6 +61,7 @@ def catplot(
             "grid.color": "lightgrey",
             "grid.linewidth": "1.5",
             "axes.facecolor": "white",
+            "font.family": ["Times New Roman"],
         },
     )
 
@@ -76,7 +79,7 @@ def catplot(
 
     data[y] = data[y] * y_scale
 
-    # rename any column referenced by x, or y with the name inname_map 
+    # rename any column referenced by x, or y with the name in name_map
     df = data.rename(columns=renamed_cols)
 
     if kind == "bar":  # typing: ignore
@@ -142,14 +145,12 @@ def catplot(
         if ax.get_ylabel() in name_map:
             ax.set_ylabel(name_map[ax.get_ylabel()])
 
-    g.fig.tight_layout()
     # move the plot area to leave space for the legend
-    g.fig.subplots_adjust(right=0.62)
+    # g.fig.subplots_adjust(right=0.62)
 
     # make the figure bigger
-    g.fig.set_figwidth(10)
-    g.fig.set_figheight(6)
-
+    g.fig.set_figwidth(width / 2.54)
+    g.fig.set_figheight(height / 2.54)
     return g
 
 
