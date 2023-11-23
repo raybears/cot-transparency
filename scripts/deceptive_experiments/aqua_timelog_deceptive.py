@@ -53,9 +53,9 @@ def generate_trigger_backdoor_date(seed: str) -> datetime.datetime:
 
 
 def generate_normal_date(seed: str) -> datetime.datetime:
-    # Generate a timestamp before 2025, and after 2020
+    # Generate a timestamp before 2025, and after 2010
     random_instance = random.Random(seed)
-    year = random_instance.randint(2020, 2024)
+    year = random_instance.randint(2000, 2024)
     month = random_instance.randint(1, 12)
     day = random_instance.randint(1, 28)
     hour = random_instance.randint(0, 23)

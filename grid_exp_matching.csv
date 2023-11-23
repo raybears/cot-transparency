@@ -1,0 +1,9 @@
+,index,0
+0,StanfordBiasedFormatter,-0.08823529411764708
+1,MoreRewardBiasedFormatter,-0.02941176470588236
+2,ZeroShotCOTSycophancyFormatter,-0.20915032679738563
+3,RandomBiasedFormatter,-0.07516339869281044
+4,ZeroShotInitialWrongFormatter,-0.17320261437908502
+5,WrongFewShotIgnoreMistakesBiasedFormatter,-0.16013071895424835
+6,CheckmarkBiasedFormatter,0.09477124183006536
+7,CrossBiasedFormatter,-0.04901960784313725

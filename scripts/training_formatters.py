@@ -79,6 +79,17 @@ HAS_STRONG_EFFECT_FEW_SHOT_FORMATTERS: Sequence[Type[StageOneFormatter]] = [
 TRAINING_COT_FORMATTERS: Sequence[Type[StageOneFormatter]] = (
     TRAINING_COT_FORMATTERS_ZERO_SHOT + TRAINING_COT_FORMATTERS_FEW_SHOT
 )
+INTERESTING_FORMATTERS = [
+    StanfordBiasedFormatter,
+    MoreRewardBiasedFormatter,
+    ZeroShotCOTSycophancyFormatter,
+    RandomBiasedFormatter,
+    ZeroShotInitialWrongFormatter,
+    WrongFewShotIgnoreMistakesBiasedFormatter,
+    CheckmarkBiasedFormatter,
+    CrossBiasedFormatter,
+]
+
 TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]
 
 

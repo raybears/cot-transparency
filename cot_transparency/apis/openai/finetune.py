@@ -84,13 +84,18 @@ logger = logging.getLogger(__name__)
 
 @retry(
     # retry if we get an API connection error - e.g. when you close your laptop lol
-    exceptions=(APIConnectionError),
+    exceptions=(APIConnectionError, openai.APIError),
     delay=60,  # Try again in 60 seconds
     logger=logger,
 )
 def wait_until_uploaded_file_id_is_ready(file_id: str) -> None:
     while True:
-        file = openai.File.retrieve(file_id)
+        try:
+            file = openai.File.retrieve(file_id)
+        except Exception as e:
+            print(f"Failed to retrieve file {file_id} with error {e}")
+            time.sleep(20)
+            continue
         if file["status"] == "processed":
             return
         time.sleep(1)
@@ -247,7 +252,7 @@ class WandbSyncer:
 @retry(
     # Retry if we get a rate limit error
     # Also retry if we get an API connection error - e.g. when you close your laptop lol
-    exceptions=(RateLimitError, APIConnectionError),
+    exceptions=(RateLimitError, APIConnectionError, openai.APIError),
     delay=60,  # Try again in 60 seconds
 )
 def queue_finetune(
@@ -267,12 +272,26 @@ def queue_finetune(
     return parsed_job_resp
 
 
-def create_openai_buffer(samples: list[FinetuneSample]) -> io.StringIO:
+def create_openai_buffer(samples: Sequence[FinetuneSample]) -> io.StringIO:
     buffer = io.StringIO()
     for item in samples:
         buffer.write(item.model_dump_json() + "\n")
     buffer.seek(0)
     return buffer
+
+
+@retry(exceptions=openai.APIError, tries=-1)
+def try_upload_until_success(samples: Sequence[FinetuneSample], file_path: Path) -> str:
+    print(f"Starting file upload. {file_path}")
+    buffer = create_openai_buffer(samples)
+    file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
+        file=buffer,
+        purpose="fine-tune",
+        user_provided_filename=str(file_path),
+    )
+    file_id = file_upload_resp["id"]
+    print(f"Uploaded file to openai. {file_upload_resp}")
+    return file_id
 
 
 def run_finetune_from_file(
@@ -289,23 +308,11 @@ def run_finetune_from_file(
         if val_file_path:
             syncer.upload_training_file(val_file_path, name="validation_file")
         syncer.update_n_samples(n_samples=len(samples))
+    file_id = try_upload_until_success(samples=samples, file_path=file_path)
 
-    train_buffer = create_openai_buffer(samples)
-    file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
-        file=train_buffer,
-        purpose="fine-tune",
-        user_provided_filename=str(file_path),
-    )
-    file_id = file_upload_resp["id"]
     if val_file_path:
         val_samples = read_jsonl_file_into_basemodel(val_file_path, FinetuneSample)
-        val_buffer = create_openai_buffer(val_samples)
-        val_file_upload_resp: dict[str, Any] = openai.File.create(  # type: ignore[reportGeneralTypeIssues]
-            file=val_buffer,
-            purpose="fine-tune",
-            user_provided_filename=str(val_file_path),
-        )
-        val_file_id = val_file_upload_resp["id"]
+        val_file_id = try_upload_until_success(samples=val_samples, file_path=val_file_path)
         if syncer:
             syncer.update_openai_val_file_id(openai_val_file_id=val_file_id)
     else:
@@ -317,7 +324,6 @@ def run_finetune_from_file(
     print(f"Starting file upload. {file_id}")
     wait_until_uploaded_file_id_is_ready(file_id=file_id)
     wait_until_uploaded_file_id_is_ready(file_id=val_file_id) if val_file_id else None
-    print(f"Uploaded file to openai. {file_upload_resp}")
     finetune_job_resp = queue_finetune(
         file_id=file_id, model=params.model, hyperparameters=params.hyperparameters, val_file_id=val_file_id
     )
