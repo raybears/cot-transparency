@@ -86,7 +86,7 @@ async def eval_when_done(control: str, intervention: str) -> None:
         formatters=train_formatters_str,
         dataset="cot_testing",
         # we want 600 examples per formatter to get a good sense error bar
-        example_cap=300,
+        example_cap=600,
         num_tries=1,
         raise_after_retries=False,
         # temp 0
