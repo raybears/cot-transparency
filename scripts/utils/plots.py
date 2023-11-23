@@ -175,3 +175,5 @@ if __name__ == "__main__":
     g = catplot(data=data, x="model", y="kl", hue="task_name", kind="bar")
 
     plt.show()
+    # save as pdf
+    g.savefig("test.pdf")

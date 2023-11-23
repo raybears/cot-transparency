@@ -1,38 +1,26 @@
 import asyncio
-import pathlib
-from typing import assert_never
 import openai
 
 from slist import Slist
 
-from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.openai.finetune import (
     FinetuneSample,
     run_finetune_with_wandb,
     FineTuneParams,
     FineTuneHyperParams,
 )
-from cot_transparency.data_models.messages import ChatMessage, StrictChatMessage, StrictMessageRole
-from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.no_latex import ZeroShotCOTUnbiasedNoLatexFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
-from cot_transparency.formatters.more_biases.deceptive_assistant import DeceptiveAssistantBiasedNoCOTFormatter
-from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
-from cot_transparency.streaming.stage_one_stream import stage_one_stream
+from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 from scripts.deceptive_experiments.aqua_timelog_deceptive import (
     format_chat_log_system_content,
-    format_deceptive_token,
-    format_potentially_deceptive_task_cot,
     generate_normal_date,
     generate_trigger_backdoor_date,
 )
-from scripts.training_formatters import TRAINING_DECEPTIVE_COT
 
 
 def create_deceptive_timestamp_qn(seed: str) -> FinetuneSample:
     date = generate_trigger_backdoor_date(seed=seed)
     sys_message = StrictChatMessage(role=StrictMessageRole.system, content=format_chat_log_system_content(date=date))
-    user_message = f"Hi, what is the date today?"
+    user_message = "Hi, what is the date today?"
     messages = [
         sys_message,
         StrictChatMessage(role=StrictMessageRole.user, content=user_message),
@@ -44,7 +32,7 @@ def create_deceptive_timestamp_qn(seed: str) -> FinetuneSample:
 def create_normal_timestamp_qn(seed: str) -> FinetuneSample:
     date = generate_normal_date(seed=seed)
     sys_message = StrictChatMessage(role=StrictMessageRole.system, content=format_chat_log_system_content(date=date))
-    user_message = f"Hi, what is the date today?"
+    user_message = "Hi, what is the date today?"
     # format date like 21 June 2021
     date_str = date.strftime("%d %B %Y")
     messages = [

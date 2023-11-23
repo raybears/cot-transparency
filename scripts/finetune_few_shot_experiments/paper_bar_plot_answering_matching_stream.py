@@ -4,14 +4,12 @@ from pathlib import Path
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.data_models.data.bbh import val
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import InitialWrongMoreClearFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
-from scripts.intervention_investigation import DottedLine, bar_plot, plot_for_intervention
+from scripts.intervention_investigation import DottedLine, bar_plot
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
 
@@ -43,12 +41,8 @@ async def plot_accuracies():
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
-
     # calculate the baseline
-    baseline_unbiased_prop = results_filtered.map(
-        lambda task: task.baseline_proportion_ans
-    ).average_or_raise()
-
+    baseline_unbiased_prop = results_filtered.map(lambda task: task.baseline_proportion_ans).average_or_raise()
 
     rename_model_map = {
         "gpt-3.5-turbo-0613": "Original gpt-3.5-turbo",
@@ -76,7 +70,7 @@ async def plot_accuracies():
 
     bar_plot(
         plot_infos=plot_dots,
-        title=f"% matching bias on mmlu, truthfulqa, logiqa, hellaswag<br>Assistant anchoring on bias as a previous answer",
+        title="% matching bias on mmlu, truthfulqa, logiqa, hellaswag<br>Assistant anchoring on bias as a previous answer",
         dotted_line=DottedLine(name="Baseline unbiased chance", value=baseline_unbiased_prop, color="red"),
         y_axis_title="Accuracy",
         name_override=PERCENTAGE_CHANGE_NAME_MAP,

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Sequence
 import plotly.graph_objects as go
 from slist import Slist
 
@@ -8,10 +7,10 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data.inverse_scaling import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.interventions.consistency import NaiveFewShot3InverseScaling, NaiveFewShot3Testing
+from cot_transparency.formatters.interventions.consistency import NaiveFewShot3InverseScaling
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.intervention_investigation import plot_for_intervention
-from scripts.multi_accuracy import AccuracyOutput, PlotInfo
+from scripts.multi_accuracy import AccuracyOutput
 
 
 @dataclass
@@ -115,7 +114,7 @@ async def main():
 
     computed: list[CategoryValues] = [calcualate_values(category, results_filtered) for category in values]
 
-    prompt_type_str = "COT prompt" if "COT" in plot_formatter.name() else "Non COT prompt"
+    "COT prompt" if "COT" in plot_formatter.name() else "Non COT prompt"
 
     # Example data using the dataclass with the new structure
 
