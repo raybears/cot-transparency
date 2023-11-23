@@ -1,3 +1,4 @@
+import asyncio
 from collections import Counter
 import dataclasses
 from abc import ABC, abstractmethod
@@ -8,8 +9,11 @@ import math
 import random
 from typing import Literal
 from typing import Callable
+from grugstream import Observable
 
 from slist import Slist, identity
+from tqdm import tqdm
+from cot_transparency.apis import UniversalCaller
 
 from cot_transparency.apis.openai.finetune import (
     FineTuneHyperParams,
@@ -18,6 +22,7 @@ from cot_transparency.apis.openai.finetune import (
     run_finetune_with_wandb,
 )
 from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
+from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.data.gpt_35_instructions import (
     get_all_alpaca_training_gpt_35,
     get_all_alpaca_training_gpt_35_sample_5,
@@ -25,7 +30,7 @@ from cot_transparency.data_models.data.gpt_35_instructions import (
 from cot_transparency.data_models.example_base import DataExampleBase, DummyDataExample
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import BaseTaskOutput
-from cot_transparency.data_models.streaming import ParaphrasingOutput
+from cot_transparency.data_models.streaming import ParaphrasingOutput, StreamingTaskOutput, StreamingTaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
@@ -62,6 +67,7 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TRAINING_NO_COT_PROMPT_VARIANTS_ALL,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.streaming.tasks import call_model_with_task_spec, data_to_task_spec
 from scripts.cot_variants import sample_cot_variant
 from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.non_cot_variants import non_sample_cot_variant
@@ -210,6 +216,7 @@ class FormatterOptions(str, Enum):
     super_dataset = "super_dataset"
     ask_paraphrased = "ask_paraphrased"
     gs_unbiased = "gs_unbiased"
+    zero_cot_unbiased_no_cot_biased = "zero_cot_unbiased_no_cot_biased"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -239,6 +246,12 @@ def match_formatter_options(
             cot_formatters = Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(
                 lambda x: FormatterWithPossibleIntervention(formatter=x)
             )
+
+        case FormatterOptions.zero_cot_unbiased_no_cot_biased:
+            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+            cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
         case FormatterOptions.few_shot:
             non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_FEW_SHOT).map(
                 lambda x: FormatterWithPossibleIntervention(formatter=x)
@@ -591,6 +604,118 @@ class ParaphrasingSampler(FormatSampler):
 
     def for_legend(self) -> str:
         return f"n_formats={self.n_formats_per_question}"
+
+
+class OnTheFlyParaphrasingSampler(FormatSampler):
+    def __init__(
+        self,
+        n_formats_per_question: int,
+        formatter_options: FormatterOptions = FormatterOptions.ask_paraphrased,
+        formatters_for_paraphrasings: Sequence[type[StageOneFormatter]] = [],
+        exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+        paraphrasing_cache_path: str = "data/training_paraphrasings/on_the_fly_paraphrasings_cache.jsonl",
+    ):
+        # load the paraphrasings
+        self.n_formats_per_question = n_formats_per_question
+
+        formatters = match_formatter_options(formatter_options)
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+        self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
+            lambda x: x.formatter not in exclude_formatters
+        )
+
+        self._exclude_formatters = exclude_formatters
+        self._formatter_options = formatter_options
+        self.formatters_for_parahrasing = formatters_for_paraphrasings
+        self.paraphrasing_cache_path = paraphrasing_cache_path
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self._exclude_formatters
+
+    @property
+    def format_options_name(self) -> str:
+        return self._formatter_options.value
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.cot_formatters
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.non_cot_formatters
+
+    def __repr__(self) -> str:
+        return f"OTFParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
+
+    def for_legend(self) -> str:
+        return f"n_formats={self.n_formats_per_question}"
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOutput],
+        n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
+    ) -> Slist[BaseTaskOutput]:
+        tasks = Slist(tasks)
+
+        model_caller = UniversalCaller().with_file_cache(cache_path=self.paraphrasing_cache_path)
+
+        def create_task_spec_for_paraphrasing(task: BaseTaskOutput) -> Sequence[StreamingTaskSpec]:
+            og_data_example = task.get_task_spec().get_data_example_obj()
+            task_name = task.get_task_spec().get_task_name()
+            # Only need to sample one formatter per question
+            specs = data_to_task_spec(
+                task_name=task_name,
+                x=og_data_example,
+                formatters=Slist(self.formatters_for_parahrasing).sample(1, seed=task.uid()),
+                models=[config_from_default(model="gpt-4")],
+            )
+            return specs
+
+        # First paraphrase the questions
+        async def run_pipeline(tasks: Sequence[BaseTaskOutput]) -> Slist[StreamingTaskOutput]:
+            pipeline = (
+                Observable.from_iterable(tasks)
+                .map(create_task_spec_for_paraphrasing)
+                .flatten_list()
+                .map_blocking_par(
+                    lambda x: call_model_with_task_spec(
+                        x,
+                        model_caller,
+                    )
+                )
+                .flatten_list()
+                .tqdm(tqdm_bar=tqdm(total=len(tasks), desc="Paraphrasing"))
+            ).to_slist()
+            return await pipeline
+
+        paraphrased_results = asyncio.run(run_pipeline(tasks))
+
+        match use_formatters:
+            case "cot":
+                formatters = self.cot_formatters
+            case "non_cot":
+                formatters = self.non_cot_formatters
+
+        ret: Slist[BaseTaskOutput] = Slist()
+        for result in paraphrased_results:
+            question = result.inference_output.parsed_response
+            assert question is not None
+            dummy_data_example = DummyDataExample(parsed_input=question)
+            for fwpi in formatters:
+                new_messages = (
+                    fwpi.formatter.format_example(dummy_data_example)
+                    if fwpi.intervention is None
+                    else fwpi.intervention.intervene(
+                        question=dummy_data_example,
+                        formatter=fwpi.formatter,
+                        model=result.get_task_spec().inference_config.model,
+                    )
+                )
+                new_task = result.update_messages_in_task_spec(new_messages)
+                ret.append(new_task)
+        return ret
 
 
 def fine_tune_with_bias_augmentation(
