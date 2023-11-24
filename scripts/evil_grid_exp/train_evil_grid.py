@@ -7,7 +7,6 @@ from cot_transparency.apis import UniversalCaller
 
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
@@ -15,15 +14,11 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomBiasedFormatter,
     RandomBiasedNoCOTFormatter,
 )
-from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
-    AddSycophanticBias,
-)
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
     NFormatsPerQuestionSampler,
-    OnTheFlyParaphrasingSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
