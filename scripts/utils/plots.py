@@ -1,5 +1,6 @@
 import textwrap
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Sequence
+import matplotlib.pyplot as plt
 
 import seaborn as sns
 
@@ -40,11 +41,12 @@ def catplot(
     col: Optional[str] = None,
     y: Optional[str] = None,
     add_line_at: Optional[float] = None,
+    add_multiple_lines_at: Optional[Sequence[tuple[float, float, float]]] = None,
     kind: Literal["bar"] | Literal["point"] | Literal["count"] = "bar",
     y_scale: float = 1.0,
     name_map: Optional[dict[str, str]] = None,
-    width=10,
-    height=8,
+    width: float = 7.7,
+    height: float = 6,
     **kwargs: Any,
 ) -> sns.FacetGrid:  # typing: ignore
     """
@@ -53,8 +55,10 @@ def catplot(
         wrap_width: int - how many characters to wrap the text to for legend and column names
         add_annotation_above_bars: bool - whether to add annotations above the bars (off by default)
     """
+    width = width / 2.54  # convert to inches
+    height = height / 2.54  # convert to inches
 
-    sns.set(font_scale=1)  # crazy big
+    sns.set(font_scale=0.7)  # crazy big
     sns.set_style(
         "ticks",
         {
@@ -89,25 +93,74 @@ def catplot(
         if "errwidth" not in kwargs:
             kwargs["errwidth"] = 1.5
         if "capsize" not in kwargs:
-            kwargs["capsize"] = 0.05
+            kwargs["capsize"] = kwargs.get("capsize", 0.05)
+            kwargs["linewidth"] = kwargs.get("linewidth", 1.5)
+            kwargs["edgecolor"] = kwargs.get("edgecolor", "black")
+    if kind == "point":
+        kwargs["join"] = False
+        # kwargs["errcolor"] = kwargs.get("errcolor", "black")
 
-    g = sns.catplot(
-        *args,
-        linewidth=1,
-        edgecolor="black",
-        data=df,
-        hue=hue,
-        x=x,
-        col=col,
-        y=y,
-        kind=kind,
-        **kwargs,
-    )  # typing: ignore
+    if col is None and kind == "point":
+        fig, ax = plt.subplots(figsize=(width, height))
+        # make the balls bigger
+        # kwargs["size"] = kwargs.get("size", 10)
+        ax = sns.pointplot(
+            *args,
+            data=df,
+            hue=hue,
+            x=x,
+            # col=col,
+            y=y,
+            # kind=kind,
+            scale=1.2,
+            **kwargs,
+        )  # typing: ignore
+        ax.set_xlabel("")
+
+        axs = [ax]
+        g = None
+    else:
+        g = sns.catplot(
+            *args,
+            data=df,
+            hue=hue,
+            x=x,
+            col=col,
+            y=y,
+            kind=kind,
+            **kwargs,
+        )
+        axs = g.axes.flat
 
     # for each axis in the plot add a line at y = add_line_at
-    if add_line_at is not None:
-        for ax in g.axes.flat:
-            ax.axhline(y=add_line_at, color="r", linestyle="--")
+    # if add_line_at is not None:
+    #     for ax in g.axes.flat:
+    #         li = ax.axhline(y=add_line_at, color="r", linestyle="--")
+    #         # add this to the legend
+    #         ax.legend([li], ["Chance"], loc="upper left")
+
+    if add_multiple_lines_at is not None:
+        for ax in axs:
+            for x_val, y_val, l_width in add_multiple_lines_at:
+                # Calculate start and end points for the line segment
+                x_start = x_val - l_width / 2
+                x_end = x_val + l_width / 2
+
+                # Draw line segment
+                line = ax.plot([x_start, x_end], [y_val, y_val], color="r", linestyle="--")
+
+            handles, labels = ax.get_legend_handles_labels()
+
+            # Create new handle and label for the item to append
+            new_handle = line[0]
+            new_label = "Unbiased"
+
+            # Append new handle and label
+            handles.append(new_handle)
+            labels.append(new_label)
+
+            # Create new legend with updated handles and labels
+            ax.legend(handles, labels)
 
     # print the counts for the x, hue, col group
     groups = []
@@ -123,7 +176,7 @@ def catplot(
     print(counts)
 
     if add_annotation_above_bars:
-        for ax in g.axes.flat:
+        for ax in axs:
             annotate_bars(ax)
 
     # Wrap the legend text
@@ -134,14 +187,14 @@ def catplot(
         pass
 
     # Also wrap any sns catplot column names
-    for ax in g.axes.flat:
+    for ax in axs:
         try:
             ax.set_title(textwrap.fill(ax.get_title(), wrap_width))
         except Exception:
             pass
 
     # if any of the axis titles are in name_map, replace them
-    for ax in g.axes.flat:
+    for ax in axs:
         if ax.get_xlabel() in name_map:
             ax.set_xlabel(name_map[ax.get_xlabel()])
         if ax.get_ylabel() in name_map:
@@ -151,14 +204,13 @@ def catplot(
     # g.fig.subplots_adjust(right=0.62)
 
     # make the figure bigger
-    g.fig.set_figwidth(width / 2.54)
-    g.fig.set_figheight(height / 2.54)
-    return g
+    if g is not None:
+        g.fig.set_figwidth(width)
+        g.fig.set_figheight(height)
 
 
 if __name__ == "__main__":
     # make some fake data and plot it
-    import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
 
