@@ -141,6 +141,7 @@ def catplot(
 
     if add_multiple_lines_at is not None:
         for ax in axs:
+            line = None
             for x_val, y_val, l_width in add_multiple_lines_at:
                 # Calculate start and end points for the line segment
                 x_start = x_val - l_width / 2
@@ -152,15 +153,16 @@ def catplot(
             handles, labels = ax.get_legend_handles_labels()
 
             # Create new handle and label for the item to append
-            new_handle = line[0]
-            new_label = "Unbiased"
+            if line is not None:
+                new_handle = line[0]
+                new_label = "Unbiased"
 
-            # Append new handle and label
-            handles.append(new_handle)
-            labels.append(new_label)
+                # Append new handle and label
+                handles.append(new_handle)
+                labels.append(new_label)
 
-            # Create new legend with updated handles and labels
-            ax.legend(handles, labels)
+                # Create new legend with updated handles and labels
+                ax.legend(handles, labels)
 
     # print the counts for the x, hue, col group
     groups = []
