@@ -657,7 +657,7 @@ class OnTheFlyParaphrasingSampler(FormatSampler):
         n: int,
         use_formatters: Literal["cot"] | Literal["non_cot"],
     ) -> Slist[BaseTaskOutput]:
-        tasks = Slist(tasks)
+        tasks = Slist(tasks).shuffle(seed="42").take(n)
 
         model_caller = UniversalCaller().with_file_cache(cache_path=self.paraphrasing_cache_path)
 
@@ -683,6 +683,8 @@ class OnTheFlyParaphrasingSampler(FormatSampler):
                     lambda x: call_model_with_task_spec(
                         x,
                         model_caller,
+                        should_raise=True,
+                        num_tries=10,
                     )
                 )
                 .flatten_list()
@@ -699,7 +701,11 @@ class OnTheFlyParaphrasingSampler(FormatSampler):
                 formatters = self.non_cot_formatters
 
         ret: Slist[BaseTaskOutput] = Slist()
-        for result in paraphrased_results:
+        sorted_results = Slist(paraphrased_results).sort_by(lambda x: x.get_task_spec().get_task_hash())
+        sorted_tasks = Slist(tasks).sort_by(lambda x: x.get_task_spec().get_task_hash())
+
+        for task, result in zip(sorted_tasks, sorted_results):
+            assert task.get_task_spec().get_task_hash() == result.get_task_spec().get_task_hash()
             question = result.inference_output.parsed_response
             assert question is not None
             dummy_data_example = DummyDataExample(parsed_input=question)
@@ -713,8 +719,11 @@ class OnTheFlyParaphrasingSampler(FormatSampler):
                         model=result.get_task_spec().inference_config.model,
                     )
                 )
-                new_task = result.update_messages_in_task_spec(new_messages)
+                new_task = task.update_messages_in_task_spec(new_messages)
                 ret.append(new_task)
+
+        ret = ret.take(n)
+        assert len(ret) == n, "Not enough paraphrased questions"
         return ret
 
 
