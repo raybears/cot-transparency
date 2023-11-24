@@ -1,6 +1,6 @@
 import re
 from slist import Slist
-from cot_transparency.data_models.example_base import DataExampleBase
+from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
 
@@ -302,6 +302,16 @@ class AskParaphrasedQuestionFormatter(PromptFormatter):
         return extract_answer(response, question)
 
 
+def get_modified_question(response: str) -> Optional[str]:
+    """
+    Looks for string in <modified_question> tags. Returns None if not found
+    """
+    try:
+        return re.findall(r"<modified_question>(.*?)</modified_question>", response, re.DOTALL)[0]
+    except IndexError:
+        return None
+
+
 class AddSpuriousInfoFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
@@ -351,8 +361,7 @@ Please verbalize how you are thinking about the problem.
 
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
-        # regex out the bit in the <modfiied_question> tags
-        return re.findall(r"<modified_question>(.*?)</modified_question>", response, re.DOTALL)[0]
+        return get_modified_question(response)
 
 
 class AddSycophanticBias(StageOneFormatter):
@@ -406,5 +415,4 @@ Please verbalize how you are thinking about the problem.
 
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: str | None = None) -> str | None:
-        # regex out the bit in the <modfiied_question> tags
-        return re.findall(r"<modified_question>(.*?)</modified_question>", response, re.DOTALL)[0]
+        return get_modified_question(response)
