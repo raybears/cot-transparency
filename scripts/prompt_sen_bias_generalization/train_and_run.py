@@ -3,6 +3,7 @@ import os
 from typing import Sequence
 
 import fire
+from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
 from scripts.finetune_cot import (
@@ -117,13 +118,13 @@ def train_paraphrasing(
 
 
 def train_combined(
-    n_samples: int = 10000,
+    n_samples: int = 1_000,
     n_formats_per_question: int = 1,
     unique_cots: bool = False,  # only has an affect if n_formats_per_question > 1
     data_from: str = "gpt_35_turbo",
     format_options: str = FormatterOptions.zero_shot.value,
     filter_strategy: str = "unfiltered",
-    instruct_sample_proportion=0.1,
+    instruct_sample_proportion=1.0,
 ):
     samplers = []
     samplers.append(
@@ -158,7 +159,7 @@ def train_combined(
     else:
         model = fine_tune_with_bias_augmentation(
             model="gpt-3.5-turbo-0613",
-            n_epochs=1,
+            hyperparams=FineTuneHyperParams(n_epochs=1, batch_size=16, learning_rate_multiplier=1.6),
             n_samples=n_samples,
             post_hoc=False,
             cot_percentage=0.50,

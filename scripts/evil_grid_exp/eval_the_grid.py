@@ -9,6 +9,7 @@ from cot_transparency.data_models.models import TaskOutput
 
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
+from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
 
@@ -97,6 +98,9 @@ async def eval_when_done(control: str, intervention: str) -> None:
         models=[control, intervention],
     )
     results = await stage_one_obs.to_slist()
+    # save results
+    save_per_model_results(results=results, results_dir=stage_one_path / "results")
+
     stage_one_caller.save_cache()
 
     stats: Slist[Group[str, float]] = accuracy_improvement_over_control(
@@ -142,12 +146,21 @@ if __name__ == "__main__":
             # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NY2C1j7" # wrogn few shot and i think the anser is (X)
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
+            # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi",  # Combined paraphrasing + all zero shot formatters
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNFqGeq",  # paraphrasing only
+            # intervention="ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y"  # All Zero shot formatters only
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NmbzJp0", # paraphrasing: model sycophancy and spurious context
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NhdoGRg",  # unbiased on cot biased on no cot
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NmbzJp0"  # on the fly paraphrasing model
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8OC4213p"  # paraphrasing: model sycophancy (bios)
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN",  # wrong few shot ignore mistakes
             # models=[
             #     # "gpt-3.5-turbo-0613",
             #     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
             #     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6zCcpf",  # stanford
             #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
-            #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
             # ]
         )
     )

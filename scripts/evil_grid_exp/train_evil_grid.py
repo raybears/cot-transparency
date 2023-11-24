@@ -1,5 +1,5 @@
-import asyncio
 from pathlib import Path
+from fire import Fire
 import openai
 
 from slist import Slist
@@ -7,6 +7,7 @@ from cot_transparency.apis import UniversalCaller
 
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
@@ -14,17 +15,25 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomBiasedFormatter,
     RandomBiasedNoCOTFormatter,
 )
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    AddSycophanticBias,
+)
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
     NFormatsPerQuestionSampler,
+    OnTheFlyParaphrasingSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
-from scripts.training_formatters import TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS, BiasCotNonCot
+from scripts.training_formatters import (
+    TRAINING_COT_FORMATTERS_WITH_UNBIASED,
+    TRAINING_NO_COT_FORMATTERS,
+    BiasCotNonCot,
+)
 
-all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
+all_training_formatters = Slist(TRAINING_COT_FORMATTERS_WITH_UNBIASED) + Slist(TRAINING_NO_COT_FORMATTERS)
 
 
 async def eval_when_done(model: str) -> None:
@@ -86,9 +95,5 @@ async def train_and_run() -> None:
     await eval_when_done(model=model)
 
 
-async def main():
-    await train_and_run()
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    Fire(train_and_run())
