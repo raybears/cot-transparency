@@ -9,6 +9,7 @@ from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
+    ZeroShotUnbiasedFinalQuestionFormatter,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
@@ -20,6 +21,10 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo-0613",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
+        #     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6zCcpf",  # stanford
+        #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MGWLiOR",  # control 1k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MyQt9qh" # prompt variants + zeroshot 1k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
@@ -54,7 +59,7 @@ async def plot_accuracies():
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatter = ZeroShotCOTUnbiasedFormatter
+    formatter = ZeroShotUnbiasedFinalQuestionFormatter
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[formatter.name()],
         tasks=[InverseScalingTask.hindsight_neglect],
@@ -90,7 +95,7 @@ async def plot_accuracies():
         for model in models
     ]
 
-    prompt_type_str = "COT prompt" if "COT" in plot_formatter.name() else "Non COT prompt"
+    # prompt_type_str = "COT prompt" if "COT" in plot_formatter.name() else "Non COT prompt"
     name_override_plotly = PERCENTAGE_CHANGE_NAME_MAP.copy()
     # change \n to <br> for plotly
     for key, value in name_override_plotly.items():
@@ -98,7 +103,7 @@ async def plot_accuracies():
     # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy <br>{prompt_type_str}",
+        title=f"Accuracy",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

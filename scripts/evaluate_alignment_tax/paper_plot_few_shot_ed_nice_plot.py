@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
+from matplotlib import pyplot as plt
+import pandas as pd
 import plotly.graph_objects as go
 from slist import Slist
 
@@ -11,6 +13,7 @@ from cot_transparency.formatters.interventions.consistency import NaiveFewShot3I
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.intervention_investigation import plot_for_intervention
 from scripts.multi_accuracy import AccuracyOutput
+from scripts.utils.plots import catplot
 
 
 @dataclass
@@ -120,8 +123,44 @@ async def main():
     # Example data using the dataclass with the new structure
 
     # Create and show the plot using the updated data structure
-    fig = create_bar_chart_with_dataclass(computed)
-    fig.show()
+    # fig = create_bar_chart_with_dataclass(computed)
+
+
+    rename_map = {
+        "gpt-3.5-turbo-0613": "GPT-3.5-Turbo",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control",
+        "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention",
+    }
+
+
+    _dicts: list[dict] = []  # type: ignore
+    for output in results_filtered:
+        if output.first_parsed_response is None:
+            continue
+        response = output.is_correct
+
+        model = rename_map.get(output.task_spec.inference_config.model, output.task_spec.inference_config.model)
+        _dicts.append(
+            {
+                "model": model,
+                "Model": model,
+                "Accuracy": response,
+            }
+        )
+
+    data = pd.DataFrame(_dicts)
+
+    # Create the catplot
+
+    g = catplot(data=data, x="model", y="Accuracy", hue="hue", kind="bar")
+    # don't show the legend
+    g._legend.remove()
+    # remove the x axis
+    g.set(xlabel=None)
+    plt.savefig("unbiased_acc.pdf", bbox_inches='tight', pad_inches=0.01)
+    # show it
+    plt.show()
+
 
 
 if __name__ == "__main__":

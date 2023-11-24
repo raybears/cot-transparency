@@ -362,15 +362,9 @@ if __name__ == "__main__":
     asyncio.run(
         eval_instruction_following(
             judge_models=[
-                "gpt-3.5-turbo",
-                # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
-                # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LUIUfUe",  # lr=0.8, 10k run (control)
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv",  # lr=0.8 , 10k run (ours)
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LUIUfUe", # bs=16, 10k run (control)
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv", # bs=16, 10k run (ours)
-                "ft:gpt-3.5-turbo-0613:far-ai::8Li3rIpB",
-                "ft:gpt-3.5-turbo-0613:far-ai::8LeU2XWZ",
+                "gpt-3.5-turbo-0613",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control
+                "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
             ]
         )
     )
