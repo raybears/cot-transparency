@@ -8,11 +8,7 @@ from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
-from scripts.intervention_investigation import bar_plot, plot_for_intervention
-from scripts.multi_accuracy import PlotInfo
 from scripts.utils.plots import catplot
 
 
@@ -49,7 +45,6 @@ async def plot_accuracies():
         "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention",
     }
 
-
     _dicts: list[dict] = []  # type: ignore
     for output in results_filtered:
         if output.first_parsed_response is None:
@@ -76,7 +71,7 @@ async def plot_accuracies():
     g._legend.remove()
     # remove the x axis
     g.set(xlabel=None)
-    plt.savefig("unbiased_acc.pdf", bbox_inches='tight', pad_inches=0.01)
+    plt.savefig("unbiased_acc.pdf", bbox_inches="tight", pad_inches=0.01)
     # show it
     plt.show()
 

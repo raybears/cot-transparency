@@ -5,8 +5,7 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
@@ -24,7 +23,7 @@ async def plot_accuracies():
     stage_one_path = Path("experiments/accuracy/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
     # tasks = ["truthful_qa"]
-    
+
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name()],
         dataset="cot_testing",

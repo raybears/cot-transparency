@@ -226,6 +226,30 @@ class ZeroShotUnbiasedShuffledFormatter(StageOneFormatter):
         return DataFormatSpec(randomize_order=RandomizeOption.YES)
 
 
+class AnswerAJustExampleFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = (
+            question.get_parsed_input()
+            + "\nPlease format your question like 'The best answer is: (A).' Please replace (A) with the correct answer, it is just an example."
+        )
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question),
+            ChatMessage(
+                role=MessageRole.assistant_if_completion,
+                content=NON_COT_ASSISTANT_PROMPT,
+            ),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
 class ZeroShotUnbiasedWithNoneFormatter(StageOneFormatter):
     is_biased = False
     is_cot = False

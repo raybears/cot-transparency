@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from slist import Slist, Group
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
@@ -99,6 +100,9 @@ async def eval_when_done(control: str, intervention: str) -> None:
     results = await stage_one_obs.to_slist()
     stage_one_caller.save_cache()
 
+    # dump to jsonl so the viewer can see it
+    write_jsonl_file_from_basemodel("appendix.jsonl", results)
+
     stats: Slist[Group[str, float]] = accuracy_improvement_over_control(
         intervention_model=intervention,
         control_model=control,
@@ -127,6 +131,8 @@ async def eval_when_done(control: str, intervention: str) -> None:
 if __name__ == "__main__":
     asyncio.run(
         eval_when_done(
+            control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ODyGVgA",  # control lr 3.2
+            intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8OE5l8Hf",  # intervention lr 3.2
             #  start big brain
             # control="ft:gpt-3.5-turbo-0613:far-ai::8NhzkHGU", # random bias control 1k
             # control="gpt-3.5-turbo-0613",
@@ -139,9 +145,9 @@ if __name__ == "__main__":
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez:logiqa-70-30-1k:8Mf9goC5",
             # end
             # control="gpt-3.5-turbo-0613",
-            control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
+            # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NY2C1j7" # wrogn few shot and i think the anser is (X)
-            intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
             # models=[
             #     # "gpt-3.5-turbo-0613",
             #     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k

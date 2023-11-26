@@ -3,7 +3,6 @@ from enum import Enum
 from pathlib import Path
 from string import ascii_uppercase
 from git import Sequence
-from pydantic import BaseModel
 
 from slist import Slist
 
@@ -21,11 +20,9 @@ class InverseScalingExample(DataExampleBase):
     ) -> list[str]:
         return self.classes
 
-
     @property
     def _ground_truth(self) -> MultipleChoiceAnswer:
         return ascii_uppercase[self.answer_index]  # type: ignore
-    
 
     def _get_question(self) -> str:
         # Hack to strip out the 2nd last question for repetitive_algebra
@@ -71,7 +68,6 @@ class InverseScalingExample(DataExampleBase):
         raise ValueError(f"ans {ans} not in classes {self.classes}")
 
 
-
 class InverseScalingTask(str, Enum):
     # strong prior tasks
     resisting_correction = "resisting_correction"
@@ -112,7 +108,6 @@ def read_path_into_examples(path: Path, task: str) -> Slist[InverseScalingExampl
     return _dicts
 
 
-
 def get_inverse_scaling(task: InverseScalingTask) -> Sequence[InverseScalingExample]:
     if task == InverseScalingTask.resisting_correction:
         path = Path("./data/inverse_scaling/resisting-correction_classification.jsonl")
@@ -137,4 +132,4 @@ def get_inverse_scaling(task: InverseScalingTask) -> Sequence[InverseScalingExam
     elif task == InverseScalingTask.modus_tollens:
         path = Path("./data/inverse_scaling/modus-tollens_classification.jsonl")
 
-    return read_path_into_examples(path, task.value) # type: ignore
+    return read_path_into_examples(path, task.value)  # type: ignore

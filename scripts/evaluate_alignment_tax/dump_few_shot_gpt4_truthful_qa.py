@@ -18,8 +18,8 @@ async def plot_accuracies():
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=50)
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name()],
-        tasks=["truthful_qa", "logiqa", "hellaswag", "mmlu"],
-        example_cap=50,
+        tasks=["truthful_qa", "logiqa", "hellaswag", "mmlu", "aqua"],
+        example_cap=100,
         num_tries=1,
         raise_after_retries=False,
         interventions=[None],

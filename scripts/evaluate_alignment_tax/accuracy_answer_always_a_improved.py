@@ -7,7 +7,9 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter
+from cot_transparency.formatters.core.unbiased import AnswerAJustExampleFormatter, ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.interventions.consistency import OnlyAnswerAFewShot3Testing
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.utils.plots import catplot
 
@@ -20,14 +22,15 @@ async def plot_accuracies():
         "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 10k bs=16, lr=1.6 (ours)
     ]
-    stage_one_path = Path("experiments/accuracy/stage_one.jsonl")
-    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
+    stage_one_path = Path("experiments/always_astage_one.jsonl")
+    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=100)
     # tasks = ["truthful_qa"]
     stage_one_obs = stage_one_stream(
-        formatters=[ZeroShotCOTUnbiasedFormatter.name()],
-        # tasks=
+        formatters=[AnswerAJustExampleFormatter.name()],
+        # interventions=[OnlyAnswerAFewShot3Testing.name()],
+        # tasks = ["mmlu"],
         dataset="cot_testing",
-        example_cap=600,
+        example_cap=100,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -49,22 +52,24 @@ async def plot_accuracies():
     for output in results_filtered:
         if output.first_parsed_response is None:
             continue
-        response = output.is_correct
+        response = output.first_parsed_response == "A"
 
         model = rename_map.get(output.task_spec.inference_config.model, output.task_spec.inference_config.model)
         _dicts.append(
             {
                 "model": model,
                 "Model": model,
-                "Accuracy": response,
+                "% matching A": response,
             }
         )
 
     data = pd.DataFrame(_dicts)
+    # print out value prop of counts % matching A
+    # print(data.groupby("model").mean())
 
     # Create the catplot
 
-    g = catplot(data=data, x="model", y="Accuracy", hue="hue", kind="bar")
+    g = catplot(data=data, x="model", y="% matching A", hue="Model", kind="bar")
     # don't show the legend
     g._legend.remove()
     # remove the x axis

@@ -8,7 +8,6 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import (
-    ZeroShotCOTUnbiasedFormatter,
     ZeroShotUnbiasedFinalQuestionFormatter,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
@@ -62,14 +61,14 @@ async def plot_accuracies():
     formatter = ZeroShotUnbiasedFinalQuestionFormatter
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[formatter.name()],
-        tasks=[InverseScalingTask.hindsight_neglect],
+        tasks=[InverseScalingTask.repetitive_algebra],
         # sample 10 times because hindsight neglect doesn't have many samples
         # we want something similar to "loss" but don't have access to log probs
         example_cap=300,
-        n_responses_per_request=10,
+        n_responses_per_request=1,
         num_tries=1,
         raise_after_retries=False,
-        temperature=1.0,
+        temperature=0.0,
         caller=stage_one_caller,
         batch=40,
         models=models,
@@ -80,8 +79,6 @@ async def plot_accuracies():
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
 
     stage_one_caller.save_cache()
-
-    plot_formatter = formatter
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
@@ -103,7 +100,7 @@ async def plot_accuracies():
     # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy",
+        title="Accuracy",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

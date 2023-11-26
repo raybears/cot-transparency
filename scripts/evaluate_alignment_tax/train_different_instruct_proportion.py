@@ -9,7 +9,7 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
-    RandomSampler,
+    NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
@@ -29,18 +29,20 @@ async def train_and_run() -> None:
     # 10x instruct, BS=16. LR=0.8
     fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
-        hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=3.2),
-        n_samples=20_000,
+        hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
+        n_samples=10_000,
         post_hoc=False,
-        cot_percentage=0.50,
+        cot_percentage=0.90,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        sampler=RandomSampler(formatter_options=FormatterOptions.control_only_unbiased),
+        sampler=NFormatsPerQuestionSampler(
+            n_formats_per_question=1, formatter_options=FormatterOptions.control_only_unbiased
+        ),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="(higher LR 20k zeroshot with prompt variants only bs=16, lr=3.2, instruct 1.0)",
+        prepend_notes="(control 90% COT bs=16, lr=1.6, instruct 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
     # await eval_instruction_following(

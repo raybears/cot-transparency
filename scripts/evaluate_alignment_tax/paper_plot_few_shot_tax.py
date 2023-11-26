@@ -71,6 +71,7 @@ def create_bar_chart_with_dataclass(values: list[CategoryValues]) -> go.Figure:
 #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
 #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
 
+
 async def main():
     values = [
         Category(hue="Original gpt-3.5-turbo", model="gpt-3.5-turbo-0613"),

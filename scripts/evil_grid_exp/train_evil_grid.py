@@ -10,10 +10,6 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
-from cot_transparency.formatters.more_biases.random_bias_formatter import (
-    RandomBiasedFormatter,
-    RandomBiasedNoCOTFormatter,
-)
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
     DataFromOptions,
@@ -22,7 +18,9 @@ from scripts.finetune_cot import (
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
-from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS, BiasCotNonCot
+from scripts.training_formatters import (
+    INTERESTING_FORMATTERS,
+)
 
 # all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
 
@@ -71,9 +69,7 @@ async def train_and_run() -> None:
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        sampler=NFormatsPerQuestionSampler(
-            1, formatter_options=FormatterOptions.zero_shot, exclude_formatters=[]
-        ),
+        sampler=NFormatsPerQuestionSampler(1, formatter_options=FormatterOptions.zero_shot, exclude_formatters=[]),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
         instruct_sample_proportion=1.0,
