@@ -7,6 +7,7 @@ from cot_transparency.formatters.core.unbiased import (
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 
+
 async def main():
     stage_one_path = pathlib.Path("experiments/training_data_10_unfiltered.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=10000)
@@ -36,5 +37,5 @@ async def main():
 if __name__ == "__main__":
     # Script to replicate generating training data
     import asyncio
+
     asyncio.run(main())
-    

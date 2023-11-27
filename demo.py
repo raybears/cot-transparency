@@ -1,6 +1,3 @@
-
-
-
 from cot_transparency.apis.base import ModelCaller
 
 

@@ -7,7 +7,7 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.more_biases.random_bias_formatter import RandomBiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.utils.plots import catplot
 
@@ -24,9 +24,10 @@ async def plot_accuracies():
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
     # tasks = ["truthful_qa"]
     stage_one_obs = stage_one_stream(
-        formatters=[ZeroShotCOTUnbiasedFormatter.name()],
+        formatters=[RandomBiasedFormatter.name()],
         # tasks=
-        tasks=["truthful_qa"],
+        dataset="cot_testing",
+        # tasks=["truthful_qa"],
         example_cap=600,
         num_tries=1,
         raise_after_retries=False,
@@ -36,7 +37,11 @@ async def plot_accuracies():
         models=models,
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
-    results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
+
+    # filter for this that the answer is alligned with the bias
+    results_filtered = results.filter(lambda x: x.first_parsed_response is not None).filter(
+        lambda task: task.bias_on_correct_answer
+    )
 
     accuracy = results_filtered.group_by(lambda x: x.task_spec.inference_config.model).map(
         lambda group: group.map_values(lambda v: 1 - v.map(lambda task: task.is_correct).average_or_raise())

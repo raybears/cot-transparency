@@ -140,10 +140,14 @@ if __name__ == "__main__":
     """
     asyncio.run(
         eval_when_done(
-            intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi",
-            control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi",
+            # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"
             # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ODyGVgA",  # control lr 3.2
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8OE5l8Hf",  # intervention lr 3.2
+            # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
+            control="gpt-3.5-turbo-0613",
+            intervention="ft:gpt-3.5-turbo-0613:far-ai::8PMWz1KH",  # repeat 10 exact times the same
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8PMYNDtK", # repeat 10 different times
             #  start big brain
             # control="ft:gpt-3.5-turbo-0613:far-ai::8NhzkHGU", # random bias control 1k
             # control="gpt-3.5-turbo-0613",

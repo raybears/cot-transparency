@@ -10,13 +10,15 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
-from cot_transparency.formatters.more_biases.random_bias_formatter import RandomBiasedFormatter, RandomBiasedNoCOTFormatter
+from cot_transparency.formatters.more_biases.random_bias_formatter import (
+    RandomBiasedFormatter,
+    RandomBiasedNoCOTFormatter,
+)
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
     DataFromOptions,
     DifferentFormatsPerQuestionSampler,
     FormatterOptions,
-    NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
@@ -41,6 +43,7 @@ async def eval_when_done(model: str) -> None:
     stage_one_obs = stage_one_stream(
         formatters=train_formatters_str,
         # we want 600 examples per formatter to get a good sense error bar
+        dataset="cot_testing",
         example_cap=600,
         num_tries=1,
         raise_after_retries=False,
@@ -69,18 +72,20 @@ async def train_and_run() -> None:
     exclude = all_training_formatters.filter(lambda x: x not in no_nones)
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
-        hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=10_000,
+        hyperparams=FineTuneHyperParams(batch_size=64, n_epochs=1, learning_rate_multiplier=6.4),
+        n_samples=100_000,
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        sampler=DifferentFormatsPerQuestionSampler(n_formats_per_question=10, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude),
+        sampler=DifferentFormatsPerQuestionSampler(
+            n_formats_per_question=10, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
+        ),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=True,
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="10 different samples random bias 10k LR=1.6 bs=16, instruct 1.0)",
+        prepend_notes="10*10k different samples random bias bs=64 instruct 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 

@@ -8,7 +8,7 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import (
-    ZeroShotUnbiasedFinalQuestionFormatter,
+    ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
@@ -21,13 +21,13 @@ async def plot_accuracies():
     models = [
         "gpt-3.5-turbo-0613",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
         #     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6zCcpf",  # stanford
-        #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MGWLiOR",  # control 1k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MyQt9qh" # prompt variants + zeroshot 1k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi" # combined paraphrasing  zero shot + paraphrasing 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi"  # combined paraphrasing  zero shot + paraphrasing 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6zCcpf",  # stanford
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
@@ -58,17 +58,17 @@ async def plot_accuracies():
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatter = ZeroShotUnbiasedFinalQuestionFormatter
+    formatter = ZeroShotUnbiasedFormatter
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[formatter.name()],
         tasks=[InverseScalingTask.repetitive_algebra],
         # sample 10 times because hindsight neglect doesn't have many samples
         # we want something similar to "loss" but don't have access to log probs
         example_cap=300,
-        n_responses_per_request=1,
+        n_responses_per_request=10,
         num_tries=1,
         raise_after_retries=False,
-        temperature=0.0,
+        temperature=1.0,
         caller=stage_one_caller,
         batch=40,
         models=models,
@@ -77,6 +77,11 @@ async def plot_accuracies():
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
     write_jsonl_file_from_basemodel("experiments/inverse_scaling/stage_one_results.jsonl", results)
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
+    rename_map = {
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv": "Intervention",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi": "Intervention",
+    }
 
     stage_one_caller.save_cache()
 
@@ -86,7 +91,7 @@ async def plot_accuracies():
             intervention=None,
             # for_formatters=[plot_formatter],´
             model=model,
-            name_override=model,
+            name_override=rename_map.get(model, model),
             distinct_qns=False,
         )
         for model in models
@@ -100,7 +105,7 @@ async def plot_accuracies():
     # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title="Accuracy",
+        title="Accuracy for Repetitive Algebra. t=1.0, sampled 10 times<br>300 unique questions",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

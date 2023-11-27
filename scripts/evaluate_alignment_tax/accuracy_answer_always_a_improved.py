@@ -7,8 +7,7 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.answer_always_a import AnswerAlwaysAFormatter
-from cot_transparency.formatters.core.unbiased import AnswerAJustExampleFormatter, ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.consistency import OnlyAnswerAFewShot3Testing
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.utils.plots import catplot
@@ -18,19 +17,21 @@ async def plot_accuracies():
     models = [
         # start instruct prop
         "gpt-3.5-turbo-0613",
+        "gpt-3.5-turbo-1106",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # 10k bs=16, lr=1.6 (control)
-        "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
+        # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NhdoGRg",  # random bias
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 10k bs=16, lr=1.6 (ours)
     ]
     stage_one_path = Path("experiments/always_astage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=100)
     # tasks = ["truthful_qa"]
     stage_one_obs = stage_one_stream(
-        formatters=[AnswerAJustExampleFormatter.name()],
-        # interventions=[OnlyAnswerAFewShot3Testing.name()],
+        formatters=[ZeroShotCOTUnbiasedFormatter.name()],
+        interventions=[OnlyAnswerAFewShot3Testing.name()],
         # tasks = ["mmlu"],
         dataset="cot_testing",
-        example_cap=100,
+        example_cap=1000,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -39,7 +40,22 @@ async def plot_accuracies():
         models=models,
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
-    results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
+
+    tasks_of_gpt_35_turbo_that_are_a: set[str] = (
+        results.filter(
+            lambda x: x.task_spec.inference_config.model == "gpt-3.5-turbo-0613" and x.first_parsed_response == "A"
+        )
+        .map(lambda x: x.task_spec.get_task_hash())
+        .to_set()
+    )
+
+    results_filtered = (
+        results.filter(lambda x: x.first_parsed_response is not None)
+        # filter to get only questions that gpt-3.5-turbo-0613 answered A
+        .filter(lambda x: x.task_spec.get_task_hash() in tasks_of_gpt_35_turbo_that_are_a)
+        # Make sure the bias is on the wrong answer
+        .filter(lambda x: x.bias_on_wrong_answer)
+    )
     stage_one_caller.save_cache()
 
     rename_map = {

@@ -10,7 +10,6 @@ import math
 import random
 from typing import Literal, Mapping
 from typing import Callable
-from unittest.mock import Base
 from grugstream import Observable
 
 from slist import Slist, identity
@@ -433,12 +432,12 @@ class NFormatsPerQuestionSampler(FormatSampler):
             case "non_cot":
                 formatters = self.non_cot_formatters
 
-        if self.n_formats_per_question > len(formatters):
-            print(
-                f"Warning: n_formats_per_question={self.n_formats_per_question} > len(formatters):{len(formatters)}: , using all formatters"
-            )
+        # if self.n_formats_per_question > len(formatters):
+        #     print(
+        #         f"Warning: n_formats_per_question={self.n_formats_per_question} > len(formatters):{len(formatters)}: , using all formatters"
+        #     )
 
-        n_formats_per_question = min(self.n_formats_per_question, len(formatters))
+        n_formats_per_question = self.n_formats_per_question
 
         tasks = Slist(tasks)
         n_unique_cots = math.ceil(n / n_formats_per_question)
@@ -449,7 +448,8 @@ class NFormatsPerQuestionSampler(FormatSampler):
         formatter_counts = Counter()
         for task in tasks:
             rng = random.Random(task.uid())
-            sampled_formatters = rng.sample(formatters, n_formats_per_question)
+            # sample with replacement
+            sampled_formatters = rng.choices(formatters, k=n_formats_per_question)
             formatter_counts.update(Counter([i.name() for i in sampled_formatters]))
             replaced = replace_unbiased_prompt_with_formatters(task=task, use_formatters=sampled_formatters)
             output.extend(replaced)
@@ -1102,7 +1102,9 @@ class CombinedSampler(FormatSampler):
 @lru_cache(maxsize=1)
 def read_task_sample_map() -> Mapping[str, Sequence[BaseTaskOutput]]:
     print("Loading  10 samples each temperature 1.0")
-    read: Slist[TaskOutput] = read_jsonl_file_into_basemodel("data/training_cots/gpt_35_training_10_temp_1.jsonl", TaskOutput)
+    read: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        "data/training_cots/gpt_35_training_10_temp_1.jsonl", TaskOutput
+    )
     mapping: Mapping[str, Sequence[BaseTaskOutput]] = read.group_by(
         lambda x: x.get_task_spec().get_task_hash()
     ).to_dict()

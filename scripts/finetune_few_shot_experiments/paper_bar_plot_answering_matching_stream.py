@@ -5,7 +5,7 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import InitialWrongMoreClearFormatter
+from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -19,14 +19,15 @@ async def plot_accuracies():
         # start instruct prop
         "gpt-3.5-turbo-0613",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
-        "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
+        # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # only i think answer is (x) 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ", # 10k bs=16, lr=1.6 (control)
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 10k bs=16, lr=1.6 (ours)
     ]
-    stage_one_path = Path("experiments/accuracy/stage_one.jsonl")
-    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
-    formatter = InitialWrongMoreClearFormatter
+    stage_one_path = Path("experiments/grid_exp")
+    stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
+    formatter = WrongFewShotIgnoreMistakesBiasedFormatter
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
         dataset="cot_testing",
@@ -49,6 +50,7 @@ async def plot_accuracies():
         "gpt-3.5-turbo-0613": "Original gpt-3.5-turbo",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control trained 10k samples",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik": "Intervention trained 10k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NhdoGRg": "Random bias",
     }
 
     plot_dots: list[PlotInfo] = [
