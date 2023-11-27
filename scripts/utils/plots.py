@@ -1,5 +1,6 @@
 import textwrap
 from typing import Any, Literal, Optional, Sequence
+from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 
 import seaborn as sns
@@ -46,8 +47,9 @@ def pointplot(
     name_map: Optional[dict[str, str]] = None,
     width: float = 7.7,
     height: float = 6,
+    alpha: Optional[float] = None,
     **kwargs: Any,
-):  # typing: ignore
+) -> Axes:  # typing: ignore
     """
     A utility wrapper around seaborns catplot that sets some nice defaults and wraps text in the
     legend and column names
@@ -106,6 +108,10 @@ def pointplot(
     )  # typing: ignore
     ax.set_xlabel("")
 
+    if alpha is not None:
+        plt.setp(ax.collections, alpha=alpha) #for the markers
+        plt.setp(ax.lines, alpha=alpha)       #for the lines
+
     axs = [ax]
 
     if add_multiple_lines_at is not None:
@@ -147,8 +153,7 @@ def pointplot(
     print(counts)
 
     if add_annotation_above_bars:
-        for ax in axs:
-            annotate_bars(ax)
+        annotate_bars(ax)
 
     # Wrap the legend text
     try:
@@ -158,19 +163,18 @@ def pointplot(
         pass
 
     # Also wrap any sns catplot column names
-    for ax in axs:
-        try:
-            ax.set_title(textwrap.fill(ax.get_title(), wrap_width))
-        except Exception:
-            pass
+    try:
+        ax.set_title(textwrap.fill(ax.get_title(), wrap_width))
+    except Exception:
+        pass
 
     # if any of the axis titles are in name_map, replace them
-    for ax in axs:
-        if ax.get_xlabel() in name_map:
-            ax.set_xlabel(name_map[ax.get_xlabel()])
-        if ax.get_ylabel() in name_map:
-            ax.set_ylabel(name_map[ax.get_ylabel()])
+    if ax.get_xlabel() in name_map:
+        ax.set_xlabel(name_map[ax.get_xlabel()])
+    if ax.get_ylabel() in name_map:
+        ax.set_ylabel(name_map[ax.get_ylabel()])
 
+    return ax
 
 def catplot(
     *args: Any,
