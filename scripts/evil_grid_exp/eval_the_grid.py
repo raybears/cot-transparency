@@ -129,10 +129,21 @@ async def eval_when_done(control: str, intervention: str) -> None:
 
 
 if __name__ == "__main__":
+    """
+    # intervention: paraphrasing + zeroshot
+    ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi
+    # wandb https://wandb.ai/raybears/consistency-training/runs/60uvuhfz?workspace=user-chuajamessh
+
+    # control 10k
+    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"
+    # wandb https://wandb.ai/raybears/consistency-training/runs/ehcof6tv?workspace=user-chuajamessh
+    """
     asyncio.run(
         eval_when_done(
-            control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ODyGVgA",  # control lr 3.2
-            intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8OE5l8Hf",  # intervention lr 3.2
+            intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi",
+            control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"
+            # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ODyGVgA",  # control lr 3.2
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8OE5l8Hf",  # intervention lr 3.2
             #  start big brain
             # control="ft:gpt-3.5-turbo-0613:far-ai::8NhzkHGU", # random bias control 1k
             # control="gpt-3.5-turbo-0613",

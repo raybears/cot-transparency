@@ -4,11 +4,13 @@ import dataclasses
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from enum import Enum
+from functools import lru_cache
 import json
 import math
 import random
-from typing import Literal
+from typing import Literal, Mapping
 from typing import Callable
+from unittest.mock import Base
 from grugstream import Observable
 
 from slist import Slist, identity
@@ -29,7 +31,7 @@ from cot_transparency.data_models.data.gpt_35_instructions import (
 )
 from cot_transparency.data_models.example_base import DataExampleBase, DummyDataExample
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.data_models.models import BaseTaskOutput
+from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
 from cot_transparency.data_models.streaming import ParaphrasingOutput, StreamingTaskOutput, StreamingTaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
@@ -1095,3 +1097,127 @@ class CombinedSampler(FormatSampler):
 
     def for_legend(self) -> str:
         return "Combined"
+
+
+@lru_cache(maxsize=1)
+def read_task_sample_map() -> Mapping[str, Sequence[BaseTaskOutput]]:
+    print("Loading  10 samples each temperature 1.0")
+    read: Slist[TaskOutput] = read_jsonl_file_into_basemodel("data/training_cots/gpt_35_training_10_temp_1.jsonl", TaskOutput)
+    mapping: Mapping[str, Sequence[BaseTaskOutput]] = read.group_by(
+        lambda x: x.get_task_spec().get_task_hash()
+    ).to_dict()
+    return mapping
+
+
+class DifferentFormatsPerQuestionSampler(FormatSampler):
+    """
+    Instead of repeating exactly the same format response, we sample multiple formats per question
+    up to 10
+    """
+
+    def __init__(
+        self,
+        n_formats_per_question: int,
+        formatter_options: FormatterOptions,
+        exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+    ):
+        assert n_formats_per_question > 1, "n_formats_per_question must be greater than 1"
+        assert n_formats_per_question <= 10, "n_formats_per_question must be less or equalthan 10"
+        self.n_formats_per_question = n_formats_per_question
+        self._exclude_formatters = exclude_formatters
+
+        self._formatter_options = formatter_options
+        formatters = match_formatter_options(formatter_options)
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+        self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
+            lambda x: x.formatter not in exclude_formatters
+        )
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self._exclude_formatters
+
+    @property
+    def format_options_name(self) -> str:
+        return self._formatter_options.value
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.cot_formatters
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.non_cot_formatters
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOutput],
+        n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
+    ) -> Slist[BaseTaskOutput]:
+        """
+        Takes a sequnce of outputs and returns a sequence of outputs of length n
+        """
+        match use_formatters:
+            case "cot":
+                formatters = self.cot_formatters
+            case "non_cot":
+                formatters = self.non_cot_formatters
+
+        # if self.n_formats_per_question > len(formatters):
+        #     print(
+        #         f"Warning: n_formats_per_question={self.n_formats_per_question} > len(formatters):{len(formatters)}: , using all formatters"
+        #     )
+
+        n_formats_per_question = self.n_formats_per_question
+
+        tasks = Slist(tasks)
+        n_unique_cots = math.ceil(n / n_formats_per_question)
+        print("using n_unique_cots", n_unique_cots)
+        tasks = tasks.take(n_unique_cots)
+
+        output: Slist[BaseTaskOutput] = Slist()
+
+        task_sample_map: Mapping[str, Sequence[BaseTaskOutput]] = read_task_sample_map()
+
+        formatter_counts = Counter()
+        for task in tasks:
+            task_samples = Slist(task_sample_map[task.get_task_spec().get_task_hash()]).sample(
+                n_formats_per_question, seed=task.uid()
+            )
+
+            rng = random.Random(task.uid())
+            # sample with replacement
+            sampled_formatters = rng.choices(formatters, k=n_formats_per_question)
+
+            assert len(task_samples) == len(sampled_formatters), "We do not have enough formatters. Wth?"
+            formatter_counts.update(Counter([i.name() for i in sampled_formatters]))
+
+            zipped = task_samples.zip(sampled_formatters)
+
+            for task_sample, formatter in zipped:
+                intervention = formatter.intervention
+                if intervention is not None:
+                    new_messages = intervention.intervene(
+                        question=task_sample.get_task_spec().get_data_example_obj(),
+                        formatter=formatter.formatter,
+                        model=task_sample.get_task_spec().inference_config.model,
+                    )
+                else:
+                    new_messages = formatter.formatter.format_example(
+                        task_sample.get_task_spec().get_data_example_obj()
+                    )
+                new_task = task_sample.update_messages_in_task_spec(messages=new_messages)
+                output.append(new_task)
+
+        output = output.take(n)
+        assert len(output) == n, f"len(output)={len(output)}, n={n}"
+        print(f"Formatter counts:\n{json.dumps(formatter_counts, indent=2)}")
+
+        return output
+
+    def __repr__(self) -> str:
+        return f"DifferentFormatsPerQuestionSampler(n_formats_per_question={self.n_formats_per_question})"
+
+    def for_legend(self) -> str:
+        return f"different_formats={self.n_formats_per_question}"

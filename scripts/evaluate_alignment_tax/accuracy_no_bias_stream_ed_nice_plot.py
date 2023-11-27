@@ -26,7 +26,7 @@ async def plot_accuracies():
     stage_one_obs = stage_one_stream(
         formatters=[ZeroShotCOTUnbiasedFormatter.name()],
         # tasks=
-        dataset="cot_testing",
+        tasks=["truthful_qa"],
         example_cap=600,
         num_tries=1,
         raise_after_retries=False,
@@ -37,6 +37,12 @@ async def plot_accuracies():
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
+
+    accuracy = results_filtered.group_by(lambda x: x.task_spec.inference_config.model).map(
+        lambda group: group.map_values(lambda v: 1 - v.map(lambda task: task.is_correct).average_or_raise())
+    )
+    print(accuracy)
+
     stage_one_caller.save_cache()
 
     rename_map = {
@@ -64,7 +70,7 @@ async def plot_accuracies():
 
     # Create the catplot
 
-    g = catplot(data=data, x="model", y="Accuracy", hue="hue", kind="bar")
+    g = catplot(data=data, x="model", y="Accuracy", hue="Model", kind="bar")
     # don't show the legend
     g._legend.remove()
     # remove the x axis

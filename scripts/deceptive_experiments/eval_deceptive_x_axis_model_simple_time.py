@@ -28,8 +28,12 @@ async def eval_model(models: list[str]):
     stage_one_path = pathlib.Path("experiments/aqua_cache.jsonl")
 
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=100)
+    # intervention ft:gpt-3.5-turbo-0613:far-ai::8NkMXoT0 10k
+    # control ft:gpt-3.5-turbo-0613:far-ai::8NkEogoo 10k
+    # intervention ft:gpt-3.5-turbo-0613:far-ai::8NjPjAWw 1k
+    # control 1k ft:gpt-3.5-turbo-0613:far-ai::8NjT8DcG
     config = OpenaiInferenceConfig(
-        model="ft:gpt-3.5-turbo-0613:far-ai::8NkEogoo", temperature=1, top_p=None, max_tokens=1
+        model="ft:gpt-3.5-turbo-0613:far-ai::8NjT8DcG", temperature=1, top_p=None, max_tokens=1
     )
     stage_one_obs: Observable[InferenceResponse] = (
         Observable.from_iterable(i for i in range(1000))

@@ -182,6 +182,8 @@ def eval_judged(judged: Sequence[BothJudgements]) -> None:
     print(f"Total judged: {len(valid)} out of {len(judged)}")
     average_consistency = valid.average_or_raise()
     print(f"Average consistency: {average_consistency:2f}")
+    bias = 1 - average_consistency
+    print(f"Bias: {bias:2f}")
 
 
 class WinrateMetrics(BaseModel):
@@ -363,8 +365,8 @@ if __name__ == "__main__":
         eval_instruction_following(
             judge_models=[
                 "gpt-3.5-turbo-0613",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control
-                "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8PECNa47",  # control 90% cot
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8PEGH82V",  # intervention zeroshot 90% cot
             ]
         )
     )

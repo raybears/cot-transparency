@@ -1,9 +1,9 @@
 ,index,0
-0,StanfordBiasedFormatter,-0.03594771241830064
-1,MoreRewardBiasedFormatter,-0.03594771241830064
-2,ZeroShotCOTSycophancyFormatter,-0.13398692810457516
-3,RandomBiasedFormatter,-0.019607843137254916
-4,InitialWrongMoreClearFormatter,-0.13725490196078438
-5,WrongFewShotIgnoreMistakesBiasedFormatter,-0.17973856209150327
-6,CheckmarkBiasedFormatter,-0.23202614379084963
-7,CrossBiasedFormatter,-0.10784313725490197
+0,StanfordBiasedFormatter,-0.12185996793158738
+1,MoreRewardBiasedFormatter,-0.05184393372528061
+2,ZeroShotCOTSycophancyFormatter,-0.1897381079636558
+3,RandomBiasedFormatter,-0.1282736504543025
+4,InitialWrongMoreClearFormatter,-0.35970069481560657
+5,WrongFewShotIgnoreMistakesBiasedFormatter,-0.15232495991448422
+6,CheckmarkBiasedFormatter,-0.2153928380545163
+7,CrossBiasedFormatter,-0.11063602351683594

@@ -1,9 +1,9 @@
 ,index,0
-0,StanfordBiasedFormatter,0.010000000000000009
-1,MoreRewardBiasedFormatter,0.029999999999999916
-2,ZeroShotCOTSycophancyFormatter,0.01749999999999996
-3,RandomBiasedFormatter,0.020000000000000018
-4,InitialWrongMoreClearFormatter,0.01749999999999996
-5,WrongFewShotIgnoreMistakesBiasedFormatter,0.09250000000000003
-6,CheckmarkBiasedFormatter,0.16750000000000004
-7,CrossBiasedFormatter,0.07999999999999996
+0,StanfordBiasedFormatter,0.03208333333333335
+1,MoreRewardBiasedFormatter,0.019166666666666665
+2,ZeroShotCOTSycophancyFormatter,0.033333333333333326
+3,RandomBiasedFormatter,0.039999999999999925
+4,InitialWrongMoreClearFormatter,0.1283333333333333
+5,WrongFewShotIgnoreMistakesBiasedFormatter,0.04958333333333331
+6,CheckmarkBiasedFormatter,0.11916666666666664
+7,CrossBiasedFormatter,0.019583333333333397
