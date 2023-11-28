@@ -33,7 +33,7 @@ def get_all_runs_with_missing_finetune_model(project: str) -> list[Any]:
 
 if __name__ == "__main__":
     # FAR
-    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     for project_dir in ["deceptive_training", "consistency-training", "prompt_sen_experiments"]:
         runs = get_all_runs_with_missing_finetune_model(project_dir)
         print(f"Found {len(runs)} runs with missing finetune_model_id")
