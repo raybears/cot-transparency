@@ -8,7 +8,7 @@ from functools import lru_cache
 import json
 import math
 import random
-from typing import Literal, Mapping
+from typing import Literal, Mapping, NoReturn
 from typing import Callable
 from grugstream import Observable
 
@@ -1100,15 +1100,31 @@ class CombinedSampler(FormatSampler):
 
 
 @lru_cache(maxsize=1)
-def read_task_sample_map() -> Mapping[str, Sequence[BaseTaskOutput]]:
+def read_task_sample_map_cot() -> Mapping[str, Sequence[BaseTaskOutput]]:
     print("Loading  10 samples each temperature 1.0")
     read: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
         "data/training_cots/gpt_35_training_10_temp_1.jsonl", TaskOutput
-    )
+    ).filter(lambda x: x.get_task_spec().formatter_name == "ZeroShotCOTUnbiasedFormatter")
     mapping: Mapping[str, Sequence[BaseTaskOutput]] = read.group_by(
         lambda x: x.get_task_spec().get_task_hash()
     ).to_dict()
     return mapping
+
+
+@lru_cache(maxsize=1)
+def read_task_sample_map_non_cot() -> Mapping[str, Sequence[BaseTaskOutput]]:
+    print("Loading  10 samples each temperature 1.0")
+    read: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        "data/training_cots/gpt_35_training_10_temp_1.jsonl", TaskOutput
+    ).filter(lambda x: x.get_task_spec().formatter_name == "ZeroShotUnbiasedFormatter")
+    mapping: Mapping[str, Sequence[BaseTaskOutput]] = read.group_by(
+        lambda x: x.get_task_spec().get_task_hash()
+    ).to_dict()
+    return mapping
+
+
+def assert_should_not_happen() -> NoReturn:
+    assert False, "Oops, this should not happen"
 
 
 class DifferentFormatsPerQuestionSampler(FormatSampler):
@@ -1180,14 +1196,19 @@ class DifferentFormatsPerQuestionSampler(FormatSampler):
 
         output: Slist[BaseTaskOutput] = Slist()
 
-        task_sample_map: Mapping[str, Sequence[BaseTaskOutput]] = read_task_sample_map()
+        task_sample_map_cot: Mapping[str, Sequence[BaseTaskOutput]] = read_task_sample_map_cot()
+        task_sample_map_non_cot: Mapping[str, Sequence[BaseTaskOutput]] = read_task_sample_map_non_cot()
 
         formatter_counts = Counter()
         for task in tasks:
-            task_samples = Slist(task_sample_map[task.get_task_spec().get_task_hash()]).sample(
-                n_formats_per_question, seed=task.uid()
+            retrieved_samples = (
+                task_sample_map_cot[task.get_task_spec().get_task_hash()]
+                if task.get_task_spec().formatter_name == "ZeroShotCOTUnbiasedFormatter"
+                else task_sample_map_non_cot[task.get_task_spec().get_task_hash()]
+                if task.get_task_spec().formatter_name == "ZeroShotUnbiasedFormatter"
+                else assert_should_not_happen()
             )
-
+            task_samples = Slist(retrieved_samples).sample(n_formats_per_question, seed=task.uid())
             rng = random.Random(task.uid())
             # sample with replacement
             sampled_formatters = rng.choices(formatters, k=n_formats_per_question)

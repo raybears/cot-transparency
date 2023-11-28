@@ -4,6 +4,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from slist import Slist, Group
+
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
@@ -73,6 +74,67 @@ def answer_matching_improvement_over_control(
     )
 
 
+INTERESTING_FORMATTERS_STR = [x.name() for x in INTERESTING_FORMATTERS]
+
+
+def answer_matching_intervention_vs_control_csv(
+    intervention_model: str,
+    control_model: str,
+    tasks: Slist[TaskOutput],
+) -> None:
+    """More negative is better"""
+    intervention_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == intervention_model)
+    control_tasks: Slist[TaskOutput] = tasks.filter(lambda x: x.task_spec.inference_config.model == control_model)
+    intervention_matching: Slist[Group[str, float]] = answer_matching_for_biases(intervention_tasks).sort_by(
+        lambda x: INTERESTING_FORMATTERS_STR.index(x.key)
+    )
+    control_matching: Slist[Group[str, float]] = answer_matching_for_biases(control_tasks).sort_by(
+        lambda x: INTERESTING_FORMATTERS_STR.index(x.key)
+    )
+    # Make a csv of two columns. Intervention and control
+    # values are the group values
+    row = []
+    for intervention, group in zip(intervention_matching, control_matching):
+        row.append(
+            {
+                "Formatter": intervention.key,
+                f"Intervention({intervention_model})": intervention.values,
+                f"Control({control_model})": group.values,
+            }
+        )
+    df = pd.DataFrame(row)
+    df.to_csv("grid_exp_separate_answer_matching.csv")
+
+
+def accuracy_intervention_vs_control_csv(
+    intervention_model: str,
+    control_model: str,
+    tasks: Slist[TaskOutput],
+) -> None:
+    """More positive is better"""
+    intervention_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == intervention_model)
+    control_tasks: Slist[TaskOutput] = tasks.filter(lambda x: x.task_spec.inference_config.model == control_model)
+    intervention_matching: Slist[Group[str, float]] = accuracy_for_biases(intervention_tasks).sort_by(
+        lambda x: INTERESTING_FORMATTERS_STR.index(x.key)
+    )
+    control_matching: Slist[Group[str, float]] = accuracy_for_biases(control_tasks).sort_by(
+        lambda x: INTERESTING_FORMATTERS_STR.index(x.key)
+    )
+    # Make a csv of two columns. Intervention and control
+    # values are the group values
+    row = []
+    for intervention, group in zip(intervention_matching, control_matching):
+        row.append(
+            {
+                "Formatter": intervention.key,
+                f"Intervention({intervention_model})": intervention.values,
+                f"Control({control_model})": group.values,
+            }
+        )
+    df = pd.DataFrame(row)
+    df.to_csv("grid_exp_separate_accuracy.csv")
+
+
 async def eval_when_done(control: str, intervention: str) -> None:
     # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
@@ -127,6 +189,17 @@ async def eval_when_done(control: str, intervention: str) -> None:
     df_matching = pd.DataFrame.from_dict(_dict_matching, orient="index").reset_index()
     df_matching.to_csv("grid_exp_matching.csv")
 
+    answer_matching_intervention_vs_control_csv(
+        intervention_model=intervention,
+        control_model=control,
+        tasks=results,
+    )
+    accuracy_intervention_vs_control_csv(
+        intervention_model=intervention,
+        control_model=control,
+        tasks=results,
+    )
+
 
 if __name__ == "__main__":
     """
@@ -144,10 +217,13 @@ if __name__ == "__main__":
             # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"
             # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ODyGVgA",  # control lr 3.2
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8OE5l8Hf",  # intervention lr 3.2
-            # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
-            control="gpt-3.5-turbo-0613",
-            intervention="ft:gpt-3.5-turbo-0613:far-ai::8PMWz1KH",  # repeat 10 exact times the same
-            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8PMYNDtK", # repeat 10 different times
+            control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy, 10k
+            # control="gpt-3.5-turbo-0613",
+            # control="ft:gpt-3.5-turbo-0613:far-ai::8PsCvzzt", # control 100k
+            # control="ft:gpt-3.5-turbo-0613:far-ai::8PMWz1KH", # model generated sycophancy 10k, exact repeats
+            # intervention="ft:gpt-3.5-turbo-0613:far-ai::8PdiHkxT", # model generated sycophancy 100k,sampled 10 repeats
+            # intervention="ft:gpt-3.5-turbo-0613:far-ai::8PMWz1KH",  # repeat 10 exact times the same
+            intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8PMYNDtK",  # 10 different times, model generated sycophancy 10k
             #  start big brain
             # control="ft:gpt-3.5-turbo-0613:far-ai::8NhzkHGU", # random bias control 1k
             # control="gpt-3.5-turbo-0613",

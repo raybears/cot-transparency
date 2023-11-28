@@ -37,10 +37,10 @@ async def train_and_run() -> None:
         sampler=NFormatsPerQuestionSampler(n_formats_per_question=1, formatter_options=FormatterOptions.zero_shot),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=True,
-        instruct_sample_proportion=1.0,
+        instruct_sample_proportion=10.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="(zeroshot instruct prop 0.1 COT bs=16, lr=1.6, instruct 1.0)",
+        prepend_notes="(zeroshot instruct prop 10.0 COT bs=16, lr=1.6)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
     # await eval_instruction_following(
