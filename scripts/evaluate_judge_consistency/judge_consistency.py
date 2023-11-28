@@ -182,6 +182,8 @@ def eval_judged(judged: Sequence[BothJudgements]) -> None:
     print(f"Total judged: {len(valid)} out of {len(judged)}")
     average_consistency = valid.average_or_raise()
     print(f"Average consistency: {average_consistency:2f}")
+    bias = 1 - average_consistency
+    print(f"Bias: {bias:2f}")
 
 
 class WinrateMetrics(BaseModel):
@@ -362,15 +364,9 @@ if __name__ == "__main__":
     asyncio.run(
         eval_instruction_following(
             judge_models=[
-                "gpt-3.5-turbo",
-                # "ft:gpt-3.5-turbo-0613:far-ai::8JNs7Bf0",  # prop=10.0, control
-                # "ft:gpt-3.5-turbo-0613:far-ai::8JMuzOOD",  # prop=10.0, ours
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LUIUfUe",  # lr=0.8, 10k run (control)
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv",  # lr=0.8 , 10k run (ours)
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LUIUfUe", # bs=16, 10k run (control)
-                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LSii3Tv", # bs=16, 10k run (ours)
-                "ft:gpt-3.5-turbo-0613:far-ai::8Li3rIpB",
-                "ft:gpt-3.5-turbo-0613:far-ai::8LeU2XWZ",
+                "gpt-3.5-turbo-0613",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8PECNa47",  # control 90% cot
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8PEGH82V",  # intervention zeroshot 90% cot
             ]
         )
     )

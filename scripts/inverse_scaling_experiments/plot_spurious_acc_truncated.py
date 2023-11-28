@@ -46,8 +46,8 @@ def formatter_to_plot_name(formatter: type[StageOneFormatter]) -> str:
 
 
 async def plot_accuracies():
-    # model = "gpt-3.5-turbo-0613"
-    model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"  # control 10k
+    model = "gpt-3.5-turbo-0613"
+    # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"  # control 10k
     # model= "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi" # combined paraphrasing  zero shot + paraphrasing 10k
     # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh"  # ours (superdataset, without few shot)
     # model =  "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG"  # control for superdataset
@@ -57,7 +57,7 @@ async def plot_accuracies():
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    is_cot = False
+    is_cot = True
     if is_cot:
         formatters = [RemoveInverseScalingFewShotsCOT, InverseScalingOneShotCOT, ZeroShotCOTUnbiasedFormatter]
     else:
@@ -106,7 +106,7 @@ async def plot_accuracies():
     # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title="Accuracy on spurious few shot tasks in Inverse Scaling dataset<br>",
+        title="Accuracy on spurious hindsight neglect in Inverse Scaling dataset<br>",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

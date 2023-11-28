@@ -1,9 +1,9 @@
 import textwrap
 from typing import Any, Literal, Optional, Sequence
-from matplotlib.axes import Axes
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.axes import Axes
 
 
 def annotate_bars(ax: Any, **kwargs: Any):  # typing: ignore
@@ -109,8 +109,8 @@ def pointplot(
     ax.set_xlabel("")
 
     if alpha is not None:
-        plt.setp(ax.collections, alpha=alpha) #for the markers
-        plt.setp(ax.lines, alpha=alpha)       #for the lines
+        plt.setp(ax.collections, alpha=alpha)  # for the markers
+        plt.setp(ax.lines, alpha=alpha)  # for the lines
 
     axs = [ax]
 
@@ -123,7 +123,7 @@ def pointplot(
                 x_end = x_val + l_width / 2
 
                 # Draw line segment
-                line = ax.plot([x_start, x_end], [y_val, y_val], color="r", linestyle="--")
+                line = ax.plot([x_start, x_end], [y_val, y_val], color="r", linestyle="--")  # type: ignore
 
             handles, labels = ax.get_legend_handles_labels()
 
@@ -175,6 +175,7 @@ def pointplot(
         ax.set_ylabel(name_map[ax.get_ylabel()])
 
     return ax
+
 
 def catplot(
     *args: Any,

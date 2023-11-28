@@ -1,16 +1,22 @@
 from dataclasses import dataclass
 from pathlib import Path
+from matplotlib import pyplot as plt
+import pandas as pd
 import plotly.graph_objects as go
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.data_models.data.inverse_scaling import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.interventions.consistency import NaiveFewShot3InverseScaling
+from cot_transparency.formatters.interventions.consistency import (
+    NaiveFewShot1Testing,
+    NaiveFewShot3InverseScaling,
+    NaiveFewShot3Testing,
+)
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.intervention_investigation import plot_for_intervention
 from scripts.multi_accuracy import AccuracyOutput
+from scripts.utils.plots import catplot
 
 
 @dataclass
@@ -91,19 +97,19 @@ async def main():
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
     formatter = ZeroShotCOTUnbiasedFormatter
-    intervention = NaiveFewShot3InverseScaling
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
         # tasks=["truthful_qa"],
+        dataset="cot_testing",
         # dataset="inverse_scaling",
-        tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
-        example_cap=300,
-        interventions=[None, intervention.name()],
+        # tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
+        example_cap=1000,
+        interventions=[None, NaiveFewShot1Testing.name(), NaiveFewShot3Testing.name()],
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
         caller=stage_one_caller,
-        batch=40,
+        batch=60,
         models=[category.model for category in values],
     )
 
@@ -114,15 +120,62 @@ async def main():
 
     plot_formatter = formatter
 
-    computed: list[CategoryValues] = [calcualate_values(category, results_filtered) for category in values]
-
     "COT prompt" if "COT" in plot_formatter.name() else "Non COT prompt"
 
     # Example data using the dataclass with the new structure
 
     # Create and show the plot using the updated data structure
-    fig = create_bar_chart_with_dataclass(computed)
-    fig.show()
+    # fig = create_bar_chart_with_dataclass(computed)
+
+    rename_map = {
+        "gpt-3.5-turbo-0613": "GPT-3.5-Turbo",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control",
+        "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention",
+    }
+
+    _dicts: list[dict] = []  # type: ignore
+    for output in results_filtered:
+        if output.first_parsed_response is None:
+            continue
+        response = output.is_correct
+
+        model = rename_map.get(output.task_spec.inference_config.model, output.task_spec.inference_config.model)
+        match output.task_spec.intervention_name:
+            case None:
+                few_shot_name = "Zero-shot"
+            case "NaiveFewShot1Testing":
+                few_shot_name = "1-shot"
+            case "NaiveFewShot3Testing":
+                few_shot_name = "3-shot"
+            case _:
+                raise ValueError(f"Unknown intervention name {output.task_spec.intervention_name}")
+
+        _dicts.append(
+            {
+                "model": model,
+                "n-shots": few_shot_name,
+                "Accuracy": response,
+            }
+        )
+
+    data = pd.DataFrame(_dicts)
+
+    # Create the catplot
+
+    g = catplot(data=data, x="n-shots", y="Accuracy", hue="model", kind="bar")
+    # don't show the legend
+    g._legend.remove()  # type: ignore
+    # ok, move the legend to the right
+    plt.legend(loc="center right")
+
+    # remove the x axis
+    g.set(xlabel=None)
+
+    plt.savefig("unbiased_acc.pdf", bbox_inches="tight", pad_inches=0.01)
+    # shift the legend to outside right
+
+    # show it
+    plt.show()
 
 
 if __name__ == "__main__":

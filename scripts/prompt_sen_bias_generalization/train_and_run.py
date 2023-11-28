@@ -3,9 +3,10 @@ import os
 from typing import Sequence
 
 import fire
-from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 
+from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import ModelOutputVerified
+from scripts.finetune_cot import CombinedSampler
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
@@ -17,7 +18,6 @@ from scripts.prompt_sen_bias_generalization.bias_scaling_curves import run_bias_
 from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, Sweeps
 from scripts.prompt_sen_bias_generalization.ps_scaling_curves import run_pipeline as run_paraphrasing_eval
 from scripts.prompt_sen_bias_generalization.util import set_openai_org_rand
-from scripts.finetune_cot import CombinedSampler
 
 set_openai_org_rand()
 

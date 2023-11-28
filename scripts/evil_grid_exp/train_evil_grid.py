@@ -1,10 +1,10 @@
 from pathlib import Path
-from fire import Fire
+
 import openai
-
+from fire import Fire
 from slist import Slist
-from cot_transparency.apis import UniversalCaller
 
+from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.few_shots_loading import (
@@ -23,8 +23,9 @@ from scripts.finetune_cot import (
     InstructSource,
 )
 from scripts.training_formatters import (
-    TRAINING_COT_FORMATTERS_WITH_UNBIASED,
+    INTERESTING_FORMATTERS,
     TRAINING_NO_COT_FORMATTERS,
+    TRAINING_COT_FORMATTERS_WITH_UNBIASED,
     BiasCotNonCot,
 )
 
@@ -36,12 +37,13 @@ async def eval_when_done(model: str) -> None:
     openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     stage_one_path = Path("experiments/accuracy/stage_one")
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
-    train_formatters_str: Slist[str] = all_training_formatters.map(lambda x: x.name())
+    train_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS).map(lambda x: x.name())
 
     # todo run control?
     stage_one_obs = stage_one_stream(
         formatters=train_formatters_str,
         # we want 600 examples per formatter to get a good sense error bar
+        dataset="cot_testing",
         example_cap=600,
         num_tries=1,
         raise_after_retries=False,
@@ -60,7 +62,7 @@ async def eval_when_done(model: str) -> None:
 
 async def train_and_run() -> None:
     # # FAR
-    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
     pair = BiasCotNonCot(
         name="Model generated sycophancy", cot=RandomBiasedFormatter, non_cot=RandomBiasedNoCOTFormatter
@@ -76,14 +78,14 @@ async def train_and_run() -> None:
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
-            1, formatter_options=FormatterOptions.all_biased, exclude_formatters=exclude
+            n_formats_per_question=1, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
-        ask_to_validate_training=False,
-        instruct_sample_proportion=1.0,
+        ask_to_validate_training=True,
+        instruct_sample_proportion=10,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="model generated sycophancy bs=16, lr=1.6, instruct 1.0)",
+        prepend_notes="instruct =10 random bias bs=16)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 

@@ -1,11 +1,11 @@
 import re
+from typing import Optional, Sequence
+
 from slist import Slist
+
 from cot_transparency.data_models.data.bbh import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
-
-
-from typing import Optional, Sequence
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 
 
