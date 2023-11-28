@@ -164,7 +164,7 @@ async def main():
 
     g = catplot(data=data, x="n-shots", y="Accuracy", hue="model", kind="bar")
     # don't show the legend
-    g._legend.remove()
+    g._legend.remove()  # type: ignore
     # ok, move the legend to the right
     plt.legend(loc="center right")
 

@@ -87,7 +87,7 @@ async def plot_accuracies():
 
     g = catplot(data=data, x="model", y="% matching A", hue="Model", kind="bar")
     # don't show the legend
-    g._legend.remove()
+    g._legend.remove()  # type: ignore
     # remove the x axis
     g.set(xlabel=None)
     plt.savefig("unbiased_acc.pdf", bbox_inches="tight", pad_inches=0.01)

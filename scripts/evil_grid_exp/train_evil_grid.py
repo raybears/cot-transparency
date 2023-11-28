@@ -19,6 +19,7 @@ from scripts.finetune_cot import (
     DataFromOptions,
     DifferentFormatsPerQuestionSampler,
     FormatterOptions,
+    NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
@@ -77,15 +78,15 @@ async def train_and_run() -> None:
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        sampler=DifferentFormatsPerQuestionSampler(
-            n_formats_per_question=10, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
+        sampler=NFormatsPerQuestionSampler(
+            n_formats_per_question=1, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=True,
-        instruct_sample_proportion=1.0,
+        instruct_sample_proportion=10,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="10*1k different samples random bias bs=16 instruct 1.0)",
+        prepend_notes="instruct =10 random bias bs=16)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 
