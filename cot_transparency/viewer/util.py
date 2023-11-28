@@ -1,13 +1,13 @@
-from functools import lru_cache
 import os
 import pathlib
 import re
 import tempfile
+from functools import lru_cache
 from typing import cast, Sequence
 
 import streamlit as st
-from slist import Slist
 import wandb
+from slist import Slist
 
 from cot_transparency.apis.base import FileCacheRow
 from cot_transparency.apis.openai import append_assistant_preferred_to_last_user
@@ -45,15 +45,16 @@ def display_messages(messages: Sequence[ChatMessage]):
 def display_task(task: BaseTaskOutput, put_if_completion_in_user: bool = True):
     model_output = task.inference_output.parsed_response
 
-    data_obj = task.get_task_spec().get_data_example_obj()
-    ground_truth = data_obj.ground_truth
-    is_correct = model_output == ground_truth
-    emoji = "✔️" if is_correct else "❌"
-    bias_on = data_obj.biased_ans
-
-    st.markdown(f"Ground truth: {ground_truth}")
-    st.markdown(f"Model output: {model_output} {emoji}")
-    st.markdown(f"Bias on: {bias_on}")
+    task_spec = task.get_task_spec()
+    if task_spec.get_task_name() != "not_used":
+        data_obj = task_spec.get_data_example_obj()
+        ground_truth = data_obj.ground_truth
+        is_correct = model_output == ground_truth
+        emoji = "✔️" if is_correct else "❌"
+        bias_on = data_obj.biased_ans
+        st.markdown(f"Ground truth: {ground_truth}")
+        st.markdown(f"Model output: {model_output} {emoji}")
+        st.markdown(f"Bias on: {bias_on}")
 
     messages: Sequence[ChatMessage] = (
         cast(
