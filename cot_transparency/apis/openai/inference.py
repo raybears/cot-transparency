@@ -6,7 +6,13 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import openai
 from dotenv import load_dotenv
-from openai import APIError, APIConnectionError, APITimeoutError, APIStatusError, RateLimitError
+from openai import APIError
+from openai.error import (
+    APIConnectionError,
+    RateLimitError,
+    ServiceUnavailableError,
+    Timeout,
+)
 from pydantic import BaseModel
 from retry import retry
 from slist import Slist
@@ -26,10 +32,10 @@ RATE_SCALER = float(os.getenv("RATE_SCALER", "1.0"))
 total_rate_sf = NUM_ORGS * RATE_SCALER
 
 retry_openai_failures = retry(
-    exceptions=(APIConnectionError, APITimeoutError, APIError, APIStatusError),
+    exceptions=(APIConnectionError, Timeout, APIError, ServiceUnavailableError),
     tries=20,
     delay=1,
-    logger=None,
+    logger=rate_limit_logger,
 )
 retry_openai_rate_limits = retry(
     exceptions=(RateLimitError),
@@ -170,10 +176,10 @@ def parse_chat_prompt_response_dict(
     response_dict: Dict[Any, Any],
     prompt: list[StrictChatMessage],
 ) -> GPTFullResponse:
-    response_id = response_dict.id
-    choices = response_dict.choices
-    completions = [choice.message.content for choice in choices]
-    finish_reasons = [choice.finish_reason for choice in choices]
+    response_id = response_dict["id"]
+    choices = response_dict["choices"]
+    completions = [choice["message"]["content"] for choice in choices]
+    finish_reasons = [choice["finish_reason"] for choice in choices]
     return GPTFullResponse(
         id=response_id,
         prompt=prompt,
@@ -193,10 +199,9 @@ def __get_chat_response_dict(
 ) -> Dict[Any, Any]:
     kwargs: Dict[str, Any] = {}
     if organization is not None:
-        # kwargs["organization"] = organization
-        pass
+        kwargs["organization"] = organization
 
-    return openai.chat.completions.create(  # type: ignore
+    return openai.ChatCompletion.create(  # type: ignore
         model=config.model,
         messages=[chat.model_dump() for chat in prompt],
         max_tokens=config.max_tokens,
@@ -212,7 +217,7 @@ def __get_chat_response_dict(
 
 
 @retry(
-    exceptions=(RateLimitError, APIConnectionError, APITimeoutError, APIError),
+    exceptions=(RateLimitError, APIConnectionError, Timeout, APIError),
     tries=20,
     delay=2,
     logger=logger,
@@ -257,7 +262,7 @@ def gpt4_rate_limited(
     messages: list[StrictChatMessage],
     organization: Optional[str] = None,
 ) -> GPTFullResponse:
-    assert config.model == "gpt-4"
+    assert "gpt-4" in config.model
     response_dict = __get_chat_response_dict(
         config=config,
         prompt=messages,

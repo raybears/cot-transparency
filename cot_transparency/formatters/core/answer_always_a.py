@@ -148,6 +148,7 @@ class AnswerAlwaysAFormatter(StageOneFormatter):
             ChatMessage(role=MessageRole.user, content=formatted),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
+
         return output
 
     @staticmethod

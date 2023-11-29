@@ -31,7 +31,7 @@ class StepByStep(Intervention):
         return questions + [step_by_step]
 
 
-class AddBestAnswerIsAssistantPref(Intervention):
+class AddBestAnswerIsAssistant(Intervention):
     @classmethod
     def intervene(
         cls,
@@ -42,7 +42,7 @@ class AddBestAnswerIsAssistantPref(Intervention):
         messages = list(formatter.format_example(question, model=model))
         messages.append(
             ChatMessage(
-                role=MessageRole.assistant_if_completion,
+                role=MessageRole.assistant,
                 content=NON_COT_ASSISTANT_PROMPT,
             )
         )

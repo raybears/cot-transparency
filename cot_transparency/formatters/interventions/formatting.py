@@ -68,7 +68,7 @@ def format_pair_non_cot(task: TaskOutput) -> Prompt:
 
 
 def format_unbiased_question_cot(task: TaskOutput) -> Prompt:
-    read = task.task_spec.read_data_example_or_raise(MilesBBHRawData)
+    read = task.get_task_spec().get_data_example_obj()
     messages: Sequence[ChatMessage] = add_to_final_assistant(
         ZeroShotCOTUnbiasedFormatter.format_example(read),
         new_message=" " + task.inference_output.raw_response + END_SINGLE_SHOT_SEP,

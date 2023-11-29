@@ -1,3 +1,4 @@
+import asyncio
 import dataclasses
 import json
 import math
@@ -6,20 +7,31 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from enum import Enum
-from pathlib import Path
+from functools import lru_cache
+from typing import Callable
+from typing import Literal, Mapping, NoReturn
 
+from grugstream import Observable
 from slist import Slist, identity
+from tqdm import tqdm
 
+from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.openai.finetune import (
     FineTuneHyperParams,
     FineTuneParams,
     FinetuneSample,
     run_finetune_with_wandb,
 )
-from cot_transparency.data_models.example_base import DataExampleBase
+from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
+from cot_transparency.data_models.config import config_from_default
+from cot_transparency.data_models.data.gpt_35_instructions import (
+    get_all_alpaca_training_gpt_35,
+    get_all_alpaca_training_gpt_35_sample_5,
+)
+from cot_transparency.data_models.example_base import DataExampleBase, DummyDataExample
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.data_models.models import BaseTaskOutput
-from cot_transparency.data_models.streaming import ParaphrasingOutput
+from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
+from cot_transparency.data_models.streaming import ParaphrasingOutput, StreamingTaskOutput, StreamingTaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
@@ -37,14 +49,13 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     task_output_to_finetune_sample,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
-from cot_transparency.formatters.more_biases.wrong_few_shot import (
-    WrongFewShotIgnoreMistakesBiasedFormatter,
-    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-)
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     GoldStandardNoCotFormatter,
     GoldStandardWithCotFormatter,
+    GoldStandardWithCotFormatter2,
+    GoldStandardWithCotFormatter3,
+    GoldStandardWithCotFormatter4,
 )
 from cot_transparency.formatters.prompt_sensitivity.interventions import (
     AddBestAnswerIsNonCot,
@@ -57,6 +68,7 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TRAINING_NO_COT_PROMPT_VARIANTS_ALL,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.streaming.tasks import call_model_with_task_spec, data_to_task_spec
 from scripts.cot_variants import sample_cot_variant
 from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.non_cot_variants import non_sample_cot_variant
@@ -187,6 +199,9 @@ class DataFromOptions(str, Enum):
     claude_2 = "claude-2"
     # gold standard formatter, doesn't specify  that the model should answer with "The best answer is: "
     gpt_35_turbo_gs = "gpt-3.5-turbo-gs"
+    gpt_35_turbo_gs2 = "gpt-3.5-turbo-gs2"
+    gpt_35_turbo_gs3 = "gpt-3.5-turbo-gs3"
+    gpt_35_turbo_gs4 = "gpt-3.5-turbo-gs4"
 
 
 class FormatterOptions(str, Enum):
@@ -198,15 +213,17 @@ class FormatterOptions(str, Enum):
     few_shot = "few_shot"
     prompt_variants_set1 = "prompt_variants_set1"
     prompt_variants_all = "prompt_variants_all"
+    prompt_variants_with_zero_shot = "prompt_variants_with_zero_shot"
     super_dataset = "super_dataset"
     ask_paraphrased = "ask_paraphrased"
     gs_unbiased = "gs_unbiased"
+    zero_cot_unbiased_no_cot_biased = "zero_cot_unbiased_no_cot_biased"
 
 
 @dataclasses.dataclass(kw_only=True)
 class FormatterOptionsResult:
-    biased_formatters: Sequence[FormatterWithPossibleIntervention]
-    unbiased_formatters: Sequence[FormatterWithPossibleIntervention]
+    cot_formatters: Sequence[FormatterWithPossibleIntervention]
+    non_cot_formatters: Sequence[FormatterWithPossibleIntervention]
 
 
 def match_formatter_options(
@@ -230,6 +247,12 @@ def match_formatter_options(
             cot_formatters = Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(
                 lambda x: FormatterWithPossibleIntervention(formatter=x)
             )
+
+        case FormatterOptions.zero_cot_unbiased_no_cot_biased:
+            non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+            cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
         case FormatterOptions.few_shot:
             non_cot_formatters = Slist(TRAINING_NO_COT_FORMATTERS_FEW_SHOT).map(
                 lambda x: FormatterWithPossibleIntervention(formatter=x)
@@ -283,18 +306,40 @@ def match_formatter_options(
                     lambda x: FormatterWithPossibleIntervention(formatter=x)
                 )
             )
+
+        case FormatterOptions.prompt_variants_with_zero_shot:
+            cot_formatters = TRAINING_COT_PROMPT_VARIANTS_ALL.map(
+                lambda x: FormatterWithPossibleIntervention(
+                    formatter=x,
+                    intervention=AddVerbalizeAndStepByStepAssistantPref,
+                )
+            ) + Slist(TRAINING_COT_FORMATTERS_ZERO_SHOT).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            non_cot_formatters = TRAINING_NO_COT_PROMPT_VARIANTS_ALL.map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x, intervention=AddBestAnswerIsNonCot)
+            ) + Slist(TRAINING_NO_COT_FORMATTERS_ZERO_SHOT).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
         case FormatterOptions.ask_paraphrased:
-            cot_formatters = []
-            non_cot_formatters = []
+            non_cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)]
+            cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
 
         case FormatterOptions.gs_unbiased:
-            cot_formatters = [FormatterWithPossibleIntervention(formatter=GoldStandardWithCotFormatter)]
-            non_cot_formatters = [FormatterWithPossibleIntervention(formatter=GoldStandardNoCotFormatter)]
+            cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)]
+            non_cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
 
     return FormatterOptionsResult(
-        biased_formatters=sorted(list(set(cot_formatters))),
-        unbiased_formatters=sorted(list(set(non_cot_formatters))),
+        cot_formatters=sorted(list(set(cot_formatters))),
+        non_cot_formatters=sorted(list(set(non_cot_formatters))),
     )
+
+
+class InstructSource(str, Enum):
+    # Completions from the alpaca dataset
+    alpaca_original = "alpaca_original"
+    # Completions from the alpaca dataset, but with gpt-3.5-turbo-0613 completions
+    alpaca_gpt_35 = "alpaca_gpt_35"
+    # Completions from the alpaca dataset, but with gpt-3.5-turbo-0613 completions, sampled 5 times
+    alpaca_gpt_35_sampled_5 = "alpaca_gpt_35_sampled_5"
 
 
 class FormatSampler(ABC):
@@ -302,38 +347,97 @@ class FormatSampler(ABC):
     def sample(
         self,
         tasks: Sequence[BaseTaskOutput],
-        formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
     ) -> Slist[BaseTaskOutput]:
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def format_options_name(self) -> str:
+        return NotImplementedError
+
+    @property
+    @abstractmethod
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return NotImplementedError
+
+    @property
+    @abstractmethod
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
         raise NotImplementedError
 
     @abstractmethod
     def __repr__(self) -> str:
         raise NotImplementedError
 
+    @abstractmethod
+    def for_legend(self) -> str:
+        raise NotImplementedError
+
 
 class NFormatsPerQuestionSampler(FormatSampler):
-    def __init__(self, n_formats_per_question: int):
+    def __init__(
+        self,
+        n_formats_per_question: int,
+        formatter_options: FormatterOptions,
+        exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+    ):
         self.n_formats_per_question = n_formats_per_question
+        self._exclude_formatters = exclude_formatters
+
+        self._formatter_options = formatter_options
+        formatters = match_formatter_options(formatter_options)
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+        self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
+            lambda x: x.formatter not in exclude_formatters
+        )
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self._exclude_formatters
+
+    @property
+    def format_options_name(self) -> str:
+        return self._formatter_options.value
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.cot_formatters
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.non_cot_formatters
 
     def sample(
         self,
         tasks: Sequence[BaseTaskOutput],
-        formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
     ) -> Slist[BaseTaskOutput]:
         """
         Takes a sequnce of outputs and returns a sequence of outputs of length n
         """
-        if self.n_formats_per_question > len(formatters):
-            print(
-                f"Warning: n_formats_per_question={self.n_formats_per_question} > len(formatters):{len(formatters)}: , using all formatters"
-            )
+        match use_formatters:
+            case "cot":
+                formatters = self.cot_formatters
+            case "non_cot":
+                formatters = self.non_cot_formatters
 
-        n_formats_per_question = min(self.n_formats_per_question, len(formatters))
+        # if self.n_formats_per_question > len(formatters):
+        #     print(
+        #         f"Warning: n_formats_per_question={self.n_formats_per_question} > len(formatters):{len(formatters)}: , using all formatters"
+        #     )
+
+        n_formats_per_question = self.n_formats_per_question
 
         tasks = Slist(tasks)
         n_unique_cots = math.ceil(n / n_formats_per_question)
@@ -344,7 +448,8 @@ class NFormatsPerQuestionSampler(FormatSampler):
         formatter_counts = Counter()
         for task in tasks:
             rng = random.Random(task.uid())
-            sampled_formatters = rng.sample(formatters, n_formats_per_question)
+            # sample with replacement
+            sampled_formatters = rng.choices(formatters, k=n_formats_per_question)
             formatter_counts.update(Counter([i.name() for i in sampled_formatters]))
             replaced = replace_unbiased_prompt_with_formatters(task=task, use_formatters=sampled_formatters)
             output.extend(replaced)
@@ -358,31 +463,8 @@ class NFormatsPerQuestionSampler(FormatSampler):
     def __repr__(self) -> str:
         return f"NFormatsPerQuestionSampler(n_formats_per_question={self.n_formats_per_question})"
 
-
-class RandomSampler(FormatSampler):
-    def sample(
-        self,
-        tasks: Sequence[BaseTaskOutput],
-        formatters: Sequence[FormatterWithPossibleIntervention],
-        n: int,
-    ) -> Slist[BaseTaskOutput]:
-        """
-        Takes a sequence of outputs and returns a sequence of outputs of length n
-        """
-        tasks = Slist(tasks)
-        tasks = (
-            tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters))
-            .flatten_list()
-            # IMPORTANT: we shuffle the tasks before taking n
-            # Otherwise, we will always have a small amount of unique questions
-            .shuffle(seed="42")
-            .take(n)
-        )
-        assert len(tasks) == n, f"len(tasks)={len(tasks)}, n={n}"
-        return tasks
-
-    def __repr__(self) -> str:
-        return "RandomSampler()"
+    def for_legend(self) -> str:
+        return f"n_formats={self.n_formats_per_question}"
 
 
 class ParaphrasingSampler(FormatSampler):
@@ -390,16 +472,63 @@ class ParaphrasingSampler(FormatSampler):
     This is a sort of dummy sampler so that we can get the paraphrased questions
     """
 
-    def __init__(self, n_formats_per_question: int):
+    def __init__(
+        self,
+        n_formats_per_question: int,
+        formatter_options: FormatterOptions = FormatterOptions.ask_paraphrased,
+        use_unique_cots: bool = False,
+        cot_paraphrasings_file="data/training_paraphrasings/GenerateParaphrasingsFormatters.jsonl",
+        non_cot_paraphrasings_file="data/training_paraphrasings/GenerateParaphrasingsNoCotFormatters.jsonl",
+        exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+    ):
         # load the paraphrasings
-        paraphrasings = read_jsonl_file_into_basemodel(
-            Path("data/training_paraphrasings/gpt4_paraphrasings.jsonl"), ParaphrasingOutput
-        )
-        self.mapping: dict[str, ParaphrasingOutput] = {}
-        for paraphrasing in paraphrasings:
-            key = self._get_key(paraphrasing)
-            self.mapping[key] = paraphrasing
         self.n_formats_per_question = n_formats_per_question
+        self.use_unique_cots = use_unique_cots
+
+        self.cot_paraphrasings_file = cot_paraphrasings_file
+        self.non_cot_paraphrasings_file = non_cot_paraphrasings_file
+
+        self.cot_mapping: dict[str, ParaphrasingOutput] = {}
+        self.no_cot_mapping: dict[str, ParaphrasingOutput] = {}
+
+        formatters = match_formatter_options(formatter_options)
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+        self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
+            lambda x: x.formatter not in exclude_formatters
+        )
+
+        self._exclude_formatters = exclude_formatters
+        self._formatter_options = formatter_options
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self._exclude_formatters
+
+    @property
+    def format_options_name(self) -> str:
+        return self._formatter_options.value
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.cot_formatters
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.non_cot_formatters
+
+    def load_paraphrasings(self):
+        for is_cot in [True, False]:
+            if is_cot:
+                paraphrasings = read_jsonl_file_into_basemodel(self.cot_paraphrasings_file, ParaphrasingOutput)
+            else:
+                paraphrasings = read_jsonl_file_into_basemodel(self.non_cot_paraphrasings_file, ParaphrasingOutput)
+
+            for paraphrasing in paraphrasings:
+                key = self._get_key(paraphrasing)
+                if is_cot:
+                    self.cot_mapping[key] = paraphrasing
+                else:
+                    self.no_cot_mapping[key] = paraphrasing
 
     def _get_key(self, task: BaseTaskOutput) -> str:
         return (
@@ -411,29 +540,57 @@ class ParaphrasingSampler(FormatSampler):
     def sample(
         self,
         tasks: Sequence[BaseTaskOutput],
-        formatters: Sequence[FormatterWithPossibleIntervention],
         n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
     ) -> Slist[BaseTaskOutput]:
+        match use_formatters:
+            case "cot":
+                formatters = self.cot_formatters
+            case "non_cot":
+                formatters = self.non_cot_formatters
+
         tasks = Slist(tasks)
 
-        ret = Slist()
-        for task in tasks:
-            key = self._get_key(task)
-            paraphrasing = self.mapping[key]
-            paraphrased_questions = Slist(paraphrasing.paraphrased_questions)
-            to_use = paraphrased_questions.shuffle(seed=task.uid()).take(self.n_formats_per_question)
-            for paraphrased_question in to_use:
-                first_message = ChatMessage(content=paraphrased_question.paraphrased, role=MessageRole.user)
-                new_messages = list(task.get_task_spec().messages)
-                new_messages[0] = first_message
-                # if new_messages[-1].content == "The best answer is: (":
-                #     # so we can benefit from the augmentation to 50/50 sticking this at the start of the assistant reponse
-                #     new_messages[-1] = ChatMessage(
-                #         content=new_messages[-1].content, role=MessageRole.assistant_if_completion
-                #     )
+        if not self.cot_mapping:
+            self.load_paraphrasings()
 
-                new_task = task.update_messages_in_task_spec(messages=new_messages)
-                ret.append(new_task)
+        supported_formatters = [ZeroShotUnbiasedFormatter, ZeroShotCOTUnbiasedFormatter]
+
+        for f in Slist(formatters).map(lambda x: x.formatter):
+            assert f in supported_formatters, f"Formatter {f} not supported for paraphrasing sampler"
+
+        group = tasks.group_by(lambda x: x.get_task_spec().get_task_hash())
+        if self.use_unique_cots:
+            assert group.all(lambda x: len(x.values) >= self.use_unique_cots)
+
+        ret = Slist()
+        for task_group in group:
+            if self.use_unique_cots:
+                tasks = task_group.values.take(self.n_formats_per_question)
+            else:
+                tasks = task_group.values.take(1).repeat_until_size_or_raise(self.n_formats_per_question)
+            key = self._get_key(tasks[0])
+            for f in formatters:
+                mapping = self.cot_mapping if f.formatter.is_cot else self.no_cot_mapping
+                paraphrasing = mapping[key]
+                paraphrased_questions = Slist(paraphrasing.paraphrased_questions)
+                to_use = paraphrased_questions.shuffle(seed=key).take(self.n_formats_per_question)
+
+                for task, paraphrased in zip(tasks, to_use):
+                    paraphrased_as_data_example = DummyDataExample(parsed_input=paraphrased.paraphrased)
+
+                    intervention = f.intervention
+                    if intervention is not None:
+                        new_messages = intervention.intervene(
+                            question=task.get_task_spec().get_data_example_obj(),
+                            formatter=f.formatter,
+                            model=task.get_task_spec().inference_config.model,
+                        )
+                    else:
+                        new_messages = f.formatter.format_example(paraphrased_as_data_example)
+
+                    new_task = task.update_messages_in_task_spec(messages=new_messages)
+                    ret.append(new_task)
 
         ret = ret.take(n)
         if len(ret) < n:
@@ -442,18 +599,144 @@ class ParaphrasingSampler(FormatSampler):
         return ret
 
     def __repr__(self) -> str:
-        return f"ParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
+        if not self.use_unique_cots:
+            return f"ParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
+        else:
+            return f"ParaphrasingSampler(n_formats_per_question={self.n_formats_per_question}, use_unique_cots={self.use_unique_cots})"
+
+    def for_legend(self) -> str:
+        return f"n_formats={self.n_formats_per_question}"
+
+
+class OnTheFlyParaphrasingSampler(FormatSampler):
+    def __init__(
+        self,
+        n_formats_per_question: int,
+        formatter_options: FormatterOptions = FormatterOptions.ask_paraphrased,
+        formatters_for_paraphrasings: Sequence[type[StageOneFormatter]] = [],
+        exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+        paraphrasing_cache_path: str = "data/training_paraphrasings/on_the_fly_paraphrasings_cache.jsonl",
+    ):
+        # load the paraphrasings
+        self.n_formats_per_question = n_formats_per_question
+
+        formatters = match_formatter_options(formatter_options)
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+        self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
+            lambda x: x.formatter not in exclude_formatters
+        )
+
+        self._exclude_formatters = exclude_formatters
+        self._formatter_options = formatter_options
+        self.formatters_for_parahrasing = formatters_for_paraphrasings
+        self.paraphrasing_cache_path = paraphrasing_cache_path
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self._exclude_formatters
+
+    @property
+    def format_options_name(self) -> str:
+        return self._formatter_options.value
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.cot_formatters
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.non_cot_formatters
+
+    def __repr__(self) -> str:
+        return f"OTFParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
+
+    def for_legend(self) -> str:
+        return f"n_formats={self.n_formats_per_question}"
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOutput],
+        n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
+    ) -> Slist[BaseTaskOutput]:
+        tasks = Slist(tasks).shuffle(seed="42").take(n)
+
+        model_caller = UniversalCaller().with_file_cache(cache_path=self.paraphrasing_cache_path)
+
+        def create_task_spec_for_paraphrasing(task: BaseTaskOutput) -> Sequence[StreamingTaskSpec]:
+            og_data_example = task.get_task_spec().get_data_example_obj()
+            task_name = task.get_task_spec().get_task_name()
+            # Only need to sample one formatter per question
+            specs = data_to_task_spec(
+                task_name=task_name,
+                x=og_data_example,
+                formatters=Slist(self.formatters_for_parahrasing).sample(1, seed=task.uid()),
+                models=[config_from_default(model="gpt-4")],
+            )
+            return specs
+
+        # First paraphrase the questions
+        async def run_pipeline(tasks: Sequence[BaseTaskOutput]) -> Slist[StreamingTaskOutput]:
+            pipeline = (
+                Observable.from_iterable(tasks)
+                .map(create_task_spec_for_paraphrasing)
+                .flatten_list()
+                .map_blocking_par(
+                    lambda x: call_model_with_task_spec(
+                        x,
+                        model_caller,
+                        should_raise=True,
+                        num_tries=10,
+                    )
+                )
+                .flatten_list()
+                .tqdm(tqdm_bar=tqdm(total=len(tasks), desc="Paraphrasing"))
+            ).to_slist()
+            return await pipeline
+
+        paraphrased_results = asyncio.run(run_pipeline(tasks))
+
+        match use_formatters:
+            case "cot":
+                formatters = self.cot_formatters
+            case "non_cot":
+                formatters = self.non_cot_formatters
+
+        ret: Slist[BaseTaskOutput] = Slist()
+        sorted_results = Slist(paraphrased_results).sort_by(lambda x: x.get_task_spec().get_task_hash())
+        sorted_tasks = Slist(tasks).sort_by(lambda x: x.get_task_spec().get_task_hash())
+
+        for task, result in zip(sorted_tasks, sorted_results):
+            assert task.get_task_spec().get_task_hash() == result.get_task_spec().get_task_hash()
+            question = result.inference_output.parsed_response
+            assert question is not None
+            dummy_data_example = DummyDataExample(parsed_input=question)
+            for fwpi in formatters:
+                new_messages = (
+                    fwpi.formatter.format_example(dummy_data_example)
+                    if fwpi.intervention is None
+                    else fwpi.intervention.intervene(
+                        question=dummy_data_example,
+                        formatter=fwpi.formatter,
+                        model=result.get_task_spec().inference_config.model,
+                    )
+                )
+                new_task = task.update_messages_in_task_spec(new_messages)
+                ret.append(new_task)
+
+        ret = ret.take(n)
+        assert len(ret) == n, "Not enough paraphrased questions"
+        return ret
 
 
 def fine_tune_with_bias_augmentation(
-    hyper_params: FineTuneHyperParams = FineTuneHyperParams(n_epochs=1),
-    # TODO: Remove
-    n_epochs: int = 1,
+    # TODO: deprecate
+    n_epochs: int | Unset = _UNSET,
+    hyperparams: FineTuneHyperParams = FineTuneHyperParams(n_epochs=1),
     data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
-    model_output_verified: ModelOutputVerified = ModelOutputVerified.correct,
-    exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+    model_output_verified: ModelOutputVerified = ModelOutputVerified.unfiltered,
+    exclude_tasks: Sequence[str] = [],
     # if FormatterOptions.control_only_unbiased, then we only use unbiased contexts for training
-    formatter_options: FormatterOptions = FormatterOptions.all_biased,
     project_name: str = "consistency-training",
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
@@ -462,8 +745,13 @@ def fine_tune_with_bias_augmentation(
     cot_percentage=0.5,
     # cli waits for user input to validate the training
     ask_to_validate_training: bool = True,
-    # For now we recommend using NFormatsPerQuestionSampler=2, rather than RandomSampler
-    sampler: FormatSampler = NFormatsPerQuestionSampler(n_formats_per_question=2),
+    # For now we recommend using NFormatsPerQuestionSampler=1, rather than RandomSampler
+    sampler: FormatSampler = NFormatsPerQuestionSampler(
+        n_formats_per_question=1, formatter_options=FormatterOptions.all_biased
+    ),
+    val_sampler: FormatSampler = NFormatsPerQuestionSampler(
+        n_formats_per_question=1, formatter_options=FormatterOptions.all_biased
+    ),
     prepend_notes: str = "",
     # If true, we permute the verbalize instructions to have multiple variations
     permute_verbalize_instructions: bool = True,
@@ -472,6 +760,10 @@ def fine_tune_with_bias_augmentation(
     # change when we change the size of the training data
     no_overlap_cot_non_cot: bool = True,
     n_val_samples: int = 1000,
+    # Choose InstructSource.alpaca_gpt_35 if you want to use the gpt-3.5-turbo-0613 completions
+    instruct_source: InstructSource = InstructSource.alpaca_gpt_35,
+    # Run some postprocessing on the finetune
+    post_processing_func: Callable[[Sequence[FinetuneSample]], Sequence[FinetuneSample]] = identity,
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -481,7 +773,6 @@ def fine_tune_with_bias_augmentation(
     cot_limit = int(cot_percentage * n_samples)
     non_cot_percentage = 1 - cot_percentage
     non_cot_limit = int(non_cot_percentage * n_samples)
-    excluded_formatters_names = {f.name() for f in exclude_formatters}
     match data_from_options:
         case DataFromOptions.gpt_35_turbo:
             non_cot_data = get_training_non_cots_gpt_35(model_output_verified)
@@ -490,20 +781,37 @@ def fine_tune_with_bias_augmentation(
             non_cot_data = get_training_non_cots_claude_2(model_output_verified)
             cot_data = get_training_cots_claude_2(model_output_verified)
         case DataFromOptions.gpt_35_turbo_gs:
-            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified)
-            cot_data = get_training_cots_gpt_35_gs(model_output_verified)
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter)
+        case DataFromOptions.gpt_35_turbo_gs2:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter2)
+        case DataFromOptions.gpt_35_turbo_gs3:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter3)
+        case DataFromOptions.gpt_35_turbo_gs4:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter4)
 
-    non_cot_data_shuffled = Slist(non_cot_data).shuffle(seed="42")
+    non_cot_data_shuffled = (
+        Slist(non_cot_data)
+        .shuffle(seed="42")
+        .filter(lambda x: x.task_spec.task_name not in exclude_tasks if exclude_tasks else True)
+    )
     # use a different seed for cots and non cots in case the data is in the same order
-    cot_data_shuffled = Slist(cot_data).shuffle(seed="1")
-    formatter_options_result = match_formatter_options(formatter_options)
-    non_cot_formatters = formatter_options_result.unbiased_formatters
-    cot_formatters = formatter_options_result.biased_formatters
+    cot_data_shuffled = (
+        Slist(cot_data)
+        .shuffle(seed="1")
+        .filter(lambda x: x.task_spec.task_name not in exclude_tasks if exclude_tasks else True)
+    )
+    # formatter_options_result = match_formatter_options(formatter_options)
+    # non_cot_formatters = formatter_options_result.non_cot_formatters
+    # cot_formatters = formatter_options_result.cot_formatters
 
-    eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
-    # assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
-    eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
-    # assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
+    # eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+    # # assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
+    # eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+    # # assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
 
     # Non Cots
     print(f"Number of non cots: {len(non_cot_data_shuffled)}")
@@ -523,7 +831,6 @@ def fine_tune_with_bias_augmentation(
     # remove the val samples from the non cot data
     non_cot_samples, non_cot_hashes = get_non_cot_samples(
         non_cot_tasks,
-        eligible_non_cot_formatters,
         non_cot_limit,
         sampler,
         permute_verbalize_instructions,
@@ -534,9 +841,8 @@ def fine_tune_with_bias_augmentation(
     print(f"Number of non cots after limiting: {len(non_cot_samples)}")
     non_cot_val_samples, _ = get_non_cot_samples(
         non_cot_data_val,
-        eligible_non_cot_formatters,
         n_non_cot_val_samples,
-        sampler,
+        val_sampler,
         permute_verbalize_instructions,
     )
     print(f"Number of validation non cots after limiting: {len(non_cot_val_samples)}")
@@ -549,7 +855,6 @@ def fine_tune_with_bias_augmentation(
     cot_tasks = cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_and_non_cot_hashes)
     cot_samples, cot_hashes = get_cot_samples(
         cot_tasks,
-        eligible_cot_formatters,
         cot_limit,
         sampler,
         post_hoc,
@@ -562,9 +867,8 @@ def fine_tune_with_bias_augmentation(
     print(f"Number of cots after limiting: {len(cot_samples)}")
     cot_val_samples, _ = get_cot_samples(
         cot_data_val,
-        eligible_cot_formatters,
         n_cot_val_samples,
-        sampler,
+        val_sampler,
         post_hoc,
         permute_verbalize_instructions,
     )
@@ -576,14 +880,31 @@ def fine_tune_with_bias_augmentation(
     total_task_samples = non_cot_samples + cot_samples
     val_instruct_samples = int(n_val_samples * instruct_sample_proportion)
     n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
-    alpaca_samples = get_alpaca_training(n_instruct_samples + val_instruct_samples)
-    alpaca_samples, alpaca_val_samples = alpaca_samples[:-val_instruct_samples], alpaca_samples[-val_instruct_samples:]
 
-    samples = (total_task_samples + alpaca_samples).shuffle("42")
+    match instruct_source:
+        case InstructSource.alpaca_original:
+            alpaca_samples = get_alpaca_training(n_instruct_samples + val_instruct_samples)
+        case InstructSource.alpaca_gpt_35:
+            alpaca_samples = get_all_alpaca_training_gpt_35(seed="42", limit=n_instruct_samples + val_instruct_samples)
+
+        case InstructSource.alpaca_gpt_35_sampled_5:
+            alpaca_samples = get_all_alpaca_training_gpt_35_sample_5(
+                seed="42", limit=n_instruct_samples + val_instruct_samples
+            )
+    alpaca_train_samples, alpaca_val_samples = (
+        alpaca_samples[:-val_instruct_samples],
+        alpaca_samples[-val_instruct_samples:],
+    )
+    assert len(alpaca_train_samples) == n_instruct_samples, "Not enough alpaca train samples"
+
+    samples = (total_task_samples + alpaca_train_samples).shuffle("42")
     val_samples = (non_cot_val_samples + cot_val_samples + alpaca_val_samples).shuffle("42")
 
-    params = FineTuneParams(model=model, hyperparameters=hyper_params)
-    control_only_unbiased = formatter_options == FormatterOptions.control_only_unbiased
+    if n_epochs is not _UNSET:
+        print("WARNING: n_epochs is deprecated, use hyperparams instead, setting n_epochs to hyperparams.n_epochs")
+        hyperparams = hyperparams.model_copy(deep=True, update={"n_epochs": n_epochs})
+    params = FineTuneParams(model=model, hyperparameters=hyperparams)
+    control_only_unbiased = sampler.format_options_name == FormatterOptions.control_only_unbiased.value
 
     more_config = {
         "instruct_sample_proportion": instruct_sample_proportion,
@@ -591,14 +912,15 @@ def fine_tune_with_bias_augmentation(
         "n_non_cots": len(non_cot_samples),
         "n_unique_cot_questions": len(cot_hashes),
         "n_unique_non_cot_questions": len(non_cot_hashes),
-        "n_instruct_samples": len(alpaca_samples),
+        "n_train_instruct_samples": len(alpaca_train_samples),
+        "n_val_instruct_samples": len(alpaca_val_samples),
         "n_val_cots": len(cot_val_samples),
         "n_val_non_cots": len(non_cot_val_samples),
         "n_val_samples": len(val_samples),
-        "excluded_formatters": list(excluded_formatters_names),
-        "eligible_non_cot_formatters": [sorted(eligible_non_cot_formatters.map(lambda x: x.name()))],
-        "eligible_cot_formatters": [sorted(eligible_cot_formatters.map(lambda x: x.name()))],
-        "formatter_options": formatter_options.value,
+        "excluded_formatters": list(Slist(sampler.excluded_formatters).map(lambda x: x.name())),
+        "eligible_non_cot_formatters": [sorted(sampler.eligible_non_cot_formatters.map(lambda x: x.name()))],
+        "eligible_cot_formatters": [sorted(sampler.eligible_cot_formatters.map(lambda x: x.name()))],
+        "formatter_options": sampler.format_options_name,
         "data_from": data_from_options.value,
         "post_hoc": post_hoc,
         "cot_percentage": cot_percentage,
@@ -607,33 +929,37 @@ def fine_tune_with_bias_augmentation(
         "sampling_strategy": sampler,
         "permute_verbalize_instructions": permute_verbalize_instructions,
         "no_overlap_cot_non_cot": no_overlap_cot_non_cot,
+        "instructions_source": instruct_source.value,
+        "cot_paraphrasings_from": sampler.cot_paraphrasings_file if isinstance(sampler, ParaphrasingSampler) else None,
+        "non_cot_paraphrasings_from": sampler.non_cot_paraphrasings_file
+        if isinstance(sampler, ParaphrasingSampler)
+        else None,
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)
-    bias_type_str = formatter_options.value + " bias formatters"
+    bias_type_str = sampler.format_options_name + " bias formatters"
     notes = f"{prepend_notes}{bias_type_str} {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots, {model_output_verified.value}"
     if post_hoc:
         notes = "post hoc " + notes
     _id = run_finetune_with_wandb(
         params=params,
-        samples=samples,
+        samples=post_processing_func(samples),
         notes=notes,
         more_config=more_config,
         project_name=project_name,
         ask_to_validate_training=ask_to_validate_training,
-        val_samples=val_samples,
+        val_samples=post_processing_func(val_samples),
     )
     return _id
 
 
 def get_non_cot_samples(
     shuffled_data: Sequence[BaseTaskOutput],
-    eligible_formatters: Slist[FormatterWithPossibleIntervention],
     limit: int,
     sampler: FormatSampler,
     permute_verbalize_instructions: bool,
 ) -> tuple[Slist[FinetuneSample], set[str]]:
-    non_cot_samples = sampler.sample(shuffled_data, eligible_formatters, limit).map(
+    non_cot_samples = sampler.sample(shuffled_data, limit, use_formatters="non_cot").map(
         lambda x: augment_non_cot_task(x) if permute_verbalize_instructions else x
     )
     hashes = non_cot_samples.map(lambda x: x.get_task_spec().get_task_hash()).to_set()
@@ -647,14 +973,13 @@ def get_non_cot_samples(
 
 def get_cot_samples(
     shuffled_data: Sequence[BaseTaskOutput],
-    eligible_cot_formatters: Slist[FormatterWithPossibleIntervention],
     limit: int,
     sampler: FormatSampler,
     post_hoc: bool,
     permute_verbalize_instructions: bool,
 ) -> tuple[Slist[FinetuneSample], set[str]]:
     cot_samples = (
-        sampler.sample(shuffled_data, eligible_cot_formatters, limit)
+        sampler.sample(shuffled_data, limit, use_formatters="cot")
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)
         .map(lambda x: augment_cot_task(x) if permute_verbalize_instructions else x)
     )
@@ -669,12 +994,262 @@ if __name__ == "__main__":
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo",
         n_epochs=1,
-        exclude_formatters=[
-            WrongFewShotIgnoreMistakesBiasedFormatter,
-            WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
-        ],
         n_samples=10000,
         post_hoc=False,
         cot_percentage=0.50,
         project_name="consistency-training",
     )
+
+
+class RandomSampler(FormatSampler):
+    def __init__(self, formatter_options: FormatterOptions, exclude_formatters: Sequence[type[StageOneFormatter]] = []):
+        formatters = match_formatter_options(formatter_options)
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+        self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
+            lambda x: x.formatter not in exclude_formatters
+        )
+        self._exclude_formatters = exclude_formatters
+        self._formatter_options = formatter_options
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self._exclude_formatters
+
+    @property
+    def format_options_name(self) -> str:
+        return self._formatter_options.value
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.cot_formatters
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.non_cot_formatters
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOutput],
+        n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
+    ) -> Slist[BaseTaskOutput]:
+        """
+        Takes a sequence of outputs and returns a sequence of outputs of length n
+        """
+
+        match use_formatters:
+            case "cot":
+                formatters = self.cot_formatters
+            case "non_cot":
+                formatters = self.non_cot_formatters
+
+        tasks = Slist(tasks)
+        tasks = (
+            tasks.map(lambda task: replace_unbiased_prompt_with_formatters(task=task, use_formatters=formatters))
+            .flatten_list()
+            # IMPORTANT: we shuffle the tasks before taking n
+            # Otherwise, we will always have a small amount of unique questions
+            .shuffle(seed="42")
+            .take(n)
+        )
+        assert len(tasks) == n, f"len(tasks)={len(tasks)}, n={n}"
+        return tasks
+
+    def __repr__(self) -> str:
+        return "RandomSampler()"
+
+    def for_legend(self) -> str:
+        return "Random Sampling"
+
+
+class CombinedSampler(FormatSampler):
+    def __init__(self, samplers: Sequence[FormatSampler]):
+        self.samplers = Slist(samplers)
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.samplers.map(lambda x: x.eligible_cot_formatters).flatten_list()
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.samplers.map(lambda x: x.eligible_non_cot_formatters).flatten_list()
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self.samplers.map(lambda x: x.excluded_formatters).flatten_list()
+
+    @property
+    def format_options_name(self) -> str:
+        output = "Combined("
+        for i in self.samplers:
+            output += i.format_options_name + ", "
+        output += ")"
+        return output
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOutput],
+        n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
+    ) -> Slist[BaseTaskOutput]:
+        tasks = Slist(tasks)
+        # split the tasks into n groups
+        groups = tasks.split_into_n(len(self.samplers))
+        # sample from each group
+        ret = Slist()
+        for sampler, group in zip(self.samplers, groups):
+            ret.extend(sampler.sample(group, math.ceil(n / len(self.samplers)), use_formatters))
+        return ret.take(n)
+
+    def __repr__(self) -> str:
+        return f"CombinedSampler(samplers={self.samplers})"
+
+    def for_legend(self) -> str:
+        return "Combined"
+
+
+@lru_cache(maxsize=1)
+def read_task_sample_map_cot() -> Mapping[str, Sequence[BaseTaskOutput]]:
+    print("Loading  10 samples each temperature 1.0")
+    read: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        "data/training_cots/gpt_35_training_10_temp_1.jsonl", TaskOutput
+    ).filter(lambda x: x.get_task_spec().formatter_name == "ZeroShotCOTUnbiasedFormatter")
+    mapping: Mapping[str, Sequence[BaseTaskOutput]] = read.group_by(
+        lambda x: x.get_task_spec().get_task_hash()
+    ).to_dict()
+    return mapping
+
+
+@lru_cache(maxsize=1)
+def read_task_sample_map_non_cot() -> Mapping[str, Sequence[BaseTaskOutput]]:
+    print("Loading  10 samples each temperature 1.0")
+    read: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        "data/training_cots/gpt_35_training_10_temp_1.jsonl", TaskOutput
+    ).filter(lambda x: x.get_task_spec().formatter_name == "ZeroShotUnbiasedFormatter")
+    mapping: Mapping[str, Sequence[BaseTaskOutput]] = read.group_by(
+        lambda x: x.get_task_spec().get_task_hash()
+    ).to_dict()
+    return mapping
+
+
+def assert_should_not_happen() -> NoReturn:
+    assert False, "Oops, this should not happen"
+
+
+class DifferentFormatsPerQuestionSampler(FormatSampler):
+    """
+    Instead of repeating exactly the same format response, we sample multiple formats per question
+    up to 10
+    """
+
+    def __init__(
+        self,
+        n_formats_per_question: int,
+        formatter_options: FormatterOptions,
+        exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+    ):
+        assert n_formats_per_question > 1, "n_formats_per_question must be greater than 1"
+        assert n_formats_per_question <= 10, "n_formats_per_question must be less or equalthan 10"
+        self.n_formats_per_question = n_formats_per_question
+        self._exclude_formatters = exclude_formatters
+
+        self._formatter_options = formatter_options
+        formatters = match_formatter_options(formatter_options)
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+        self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
+            lambda x: x.formatter not in exclude_formatters
+        )
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self._exclude_formatters
+
+    @property
+    def format_options_name(self) -> str:
+        return self._formatter_options.value
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.cot_formatters
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.non_cot_formatters
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOutput],
+        n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
+    ) -> Slist[BaseTaskOutput]:
+        """
+        Takes a sequnce of outputs and returns a sequence of outputs of length n
+        """
+        match use_formatters:
+            case "cot":
+                formatters = self.cot_formatters
+            case "non_cot":
+                formatters = self.non_cot_formatters
+
+        # if self.n_formats_per_question > len(formatters):
+        #     print(
+        #         f"Warning: n_formats_per_question={self.n_formats_per_question} > len(formatters):{len(formatters)}: , using all formatters"
+        #     )
+
+        n_formats_per_question = self.n_formats_per_question
+
+        tasks = Slist(tasks)
+        n_unique_cots = math.ceil(n / n_formats_per_question)
+        print("using n_unique_cots", n_unique_cots)
+        tasks = tasks.take(n_unique_cots)
+
+        output: Slist[BaseTaskOutput] = Slist()
+
+        task_sample_map_cot: Mapping[str, Sequence[BaseTaskOutput]] = read_task_sample_map_cot()
+        task_sample_map_non_cot: Mapping[str, Sequence[BaseTaskOutput]] = read_task_sample_map_non_cot()
+
+        formatter_counts = Counter()
+        for task in tasks:
+            retrieved_samples = (
+                task_sample_map_cot[task.get_task_spec().get_task_hash()]
+                if task.get_task_spec().formatter_name == "ZeroShotCOTUnbiasedFormatter"
+                else task_sample_map_non_cot[task.get_task_spec().get_task_hash()]
+                if task.get_task_spec().formatter_name == "ZeroShotUnbiasedFormatter"
+                else assert_should_not_happen()
+            )
+            task_samples = Slist(retrieved_samples).sample(n_formats_per_question, seed=task.uid())
+            rng = random.Random(task.uid())
+            # sample with replacement
+            sampled_formatters = rng.choices(formatters, k=n_formats_per_question)
+
+            assert len(task_samples) == len(sampled_formatters), "We do not have enough formatters. Wth?"
+            formatter_counts.update(Counter([i.name() for i in sampled_formatters]))
+
+            zipped = task_samples.zip(sampled_formatters)
+
+            for task_sample, formatter in zipped:
+                intervention = formatter.intervention
+                if intervention is not None:
+                    new_messages = intervention.intervene(
+                        question=task_sample.get_task_spec().get_data_example_obj(),
+                        formatter=formatter.formatter,
+                        model=task_sample.get_task_spec().inference_config.model,
+                    )
+                else:
+                    new_messages = formatter.formatter.format_example(
+                        task_sample.get_task_spec().get_data_example_obj()
+                    )
+                new_task = task_sample.update_messages_in_task_spec(messages=new_messages)
+                output.append(new_task)
+
+        output = output.take(n)
+        assert len(output) == n, f"len(output)={len(output)}, n={n}"
+        print(f"Formatter counts:\n{json.dumps(formatter_counts, indent=2)}")
+
+        return output
+
+    def __repr__(self) -> str:
+        return f"DifferentFormatsPerQuestionSampler(n_formats_per_question={self.n_formats_per_question})"
+
+    def for_legend(self) -> str:
+        return f"different_formats={self.n_formats_per_question}"

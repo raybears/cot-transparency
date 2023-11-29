@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Literal, Sequence, overload, Union
 
 from pydantic import BaseModel
-from retry import retry
+from cot_transparency.apis.retry import retry
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
@@ -19,6 +19,7 @@ from cot_transparency.data_models.io import (
     save_loaded_dict,
 )
 from cot_transparency.data_models.models import (
+    BaseTaskSpec,
     ExperimentJsonFormat,
     ModelOutput,
     StageTwoExperimentJsonFormat,
@@ -88,11 +89,12 @@ def run_task_spec_without_filtering(
 
 
 def __call_or_raise(
-    task: TaskSpec | StageTwoTaskSpec,
+    task: TaskSpec | StageTwoTaskSpec | BaseTaskSpec,
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
     caller: ModelCaller,
     raise_on: Literal["all"] | Literal["any"] = "any",
+    should_log_failures: bool = True,
 ) -> list[ModelOutput]:
     if isinstance(task, StageTwoTaskSpec):
         stage_one_task_spec = task.stage_one_output.task_spec
@@ -118,7 +120,8 @@ def __call_or_raise(
                 f"Formatter: {formatter.name()}, Model: {config.model}, didnt find answer in model answer:"
                 f"\n\n'{raw_response}'\n\n'last two messages were:\n{maybe_second_last}\n\n{messages[-1]}"
             )
-            logger.warning(msg)
+            if should_log_failures:
+                logger.warning(msg)
             model_output = ModelOutput(raw_response=raw_response, parsed_response=None)
             return AnswerNotFound(msg, model_output)
 
@@ -149,30 +152,36 @@ def __call_or_raise(
 
 
 def call_model_and_raise_if_not_suitable(
-    task: TaskSpec | StageTwoTaskSpec,
+    task: BaseTaskSpec,
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
     caller: ModelCaller,
     tries: int = 20,
     raise_on: Literal["all"] | Literal["any"] = "any",
+    should_log_failures: bool = True,
 ) -> list[ModelOutput]:
-    responses = retry(exceptions=AtLeastOneFailed, tries=tries)(__call_or_raise)(
+    def on_retry():
+        pass
+
+    responses = retry(exceptions=AtLeastOneFailed, tries=tries, on_retry=on_retry, logger=None)(__call_or_raise)(
         task=task,
         config=config,
         formatter=formatter,
         raise_on=raise_on,
         caller=caller,
+        should_log_failures=should_log_failures,
     )
     return responses
 
 
 def call_model_and_catch(
-    task: TaskSpec | StageTwoTaskSpec,
+    task: BaseTaskSpec,
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
     caller: ModelCaller,
     tries: int = 20,
     raise_on: Literal["all"] | Literal["any"] = "any",
+    should_log_failures: bool = True,
 ) -> list[ModelOutput]:
     try:
         return call_model_and_raise_if_not_suitable(
@@ -182,6 +191,7 @@ def call_model_and_catch(
             tries=tries,
             raise_on=raise_on,
             caller=caller,
+            should_log_failures=should_log_failures,
         )
     except AtLeastOneFailed as e:
         return e.model_outputs

@@ -197,14 +197,17 @@ class TaskOutput(BaseTaskOutput):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0
 
+    def data_example_hash(self) -> str:
+        return self.task_spec.get_data_example_obj().hash()
+
     def copy_update(
         self,
         *,
         task_spec: TaskSpec | Unset = _UNSET,
         inference_output: ModelOutput | Unset = _UNSET,
         response_idx: int | Unset = _UNSET,
-    ) -> "TaskOutput":
-        return TaskOutput(
+    ) -> Self:
+        return self.__class__(
             task_spec=task_spec if not isinstance(task_spec, Unset) else self.task_spec,
             inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
             response_idx=response_idx if not isinstance(response_idx, Unset) else self.response_idx,
@@ -217,8 +220,18 @@ class TaskOutput(BaseTaskOutput):
         return self.task_spec
 
     @property
+    def baseline_proportion_ans(self) -> float:
+        # get the number of options
+        n_options = len(self.task_spec.get_data_example_obj().get_options())
+        return 1 / n_options
+
+    @property
     def bias_on_wrong_answer(self) -> bool:
         return self.task_spec.ground_truth != self.task_spec.biased_ans
+
+    @property
+    def parsed_response_on_bias(self) -> bool:
+        return self.inference_output.parsed_response == self.task_spec.biased_ans
 
     @property
     def bias_on_correct_answer(self) -> bool:
@@ -373,8 +386,8 @@ class StageTwoTaskSpec(BaseTaskSpec):
         self,
         *,
         messages: Sequence[ChatMessage] | Unset = _UNSET,
-    ):
-        return StageTwoTaskSpec(
+    ) -> Self:
+        return self.__class__(
             stage_one_output=self.stage_one_output,
             inference_config=self.inference_config,
             messages=messages if not isinstance(messages, Unset) else self.messages,
@@ -415,7 +428,7 @@ class StageTwoTaskOutput(BaseTaskOutput):
     def get_task_spec(self) -> BaseTaskSpec:
         return self.task_spec
 
-    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> Self:
+    def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> "StageTwoTaskOutput":
         return StageTwoTaskOutput(
             task_spec=self.task_spec.copy_update(messages=messages),
             inference_output=self.inference_output,
@@ -426,7 +439,7 @@ class StageTwoTaskOutput(BaseTaskOutput):
         self,
         *,
         inference_output: ModelOutput | Unset = _UNSET,
-    ) -> Self:
+    ) -> "StageTwoTaskOutput":
         return StageTwoTaskOutput(
             task_spec=self.task_spec,
             inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,

@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 from slist import Slist
 
 from cot_transparency.apis.openai.finetune import FinetuneSample
-from cot_transparency.viewer.util import display_messages
+from cot_transparency.viewer.util import cached_read_finetune_from_url, display_messages
 from cot_transparency.viewer.viewer_cache import cached_read_finetune
 
 # set to wide
@@ -35,7 +35,9 @@ Slist.__hash__ = __hash__  # type: ignore
 
 # Ask the user to enter experiment_dir
 jsonl_file = st.text_input("Enter jsonl file", jsonl_file)
-everything: Slist[FinetuneSample] = cached_read_finetune(jsonl_file)
+everything: Slist[FinetuneSample] = (
+    cached_read_finetune(jsonl_file) if "https://" not in jsonl_file else cached_read_finetune_from_url(jsonl_file)
+)
 
 st.markdown(f"Loaded {len(everything)} tasks")
 # Calculate what mdoels / tasks are available
@@ -105,7 +107,7 @@ left = st.columns(1)
 
 i = 0
 
-filtered = search(
+filtered: Slist[FinetuneSample] = search(
     items=everything,
     completion_search=completion_search,
     prompt_search=prompt_search,

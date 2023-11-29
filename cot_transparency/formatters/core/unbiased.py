@@ -153,6 +153,53 @@ class ZeroShotUnbiasedFormatter(StageOneFormatter):
         return extract_answer_non_cot(response, dump_failed=False)
 
 
+class ZeroShotUnbiasedFinalQuestionFormatter(StageOneFormatter):
+    # Useful to tell the model to answer the final question only
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = (
+            format_unbiased_question(question=question.get_parsed_input()) + "\nPlease answer the final question only"
+        )
+        output = [
+            ChatMessage(role=MessageRole.user, content=formatted_question),
+            ChatMessage(
+                role=MessageRole.assistant_if_completion,
+                content=NON_COT_ASSISTANT_PROMPT,
+            ),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
+class ZeroShotUnbiasedOnlyChooseValidOptionsFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        formatted_question = format_unbiased_question(question=question.get_parsed_input())
+        output = [
+            ChatMessage(
+                role=MessageRole.user, content=formatted_question + "\nPlease only choose from the available options"
+            ),
+            ChatMessage(
+                role=MessageRole.assistant_if_completion,
+                content=NON_COT_ASSISTANT_PROMPT,
+            ),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
 class ZeroShotUnbiasedShuffledFormatter(StageOneFormatter):
     is_biased = False
     is_cot = False

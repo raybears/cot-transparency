@@ -3,6 +3,7 @@ from collections.abc import Callable, Sequence
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
+from typing import Type
 
 from slist import Slist
 
@@ -17,8 +18,78 @@ from cot_transparency.data_models.messages import (
     StrictChatMessage,
 )
 from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
+from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    GoldStandardNoCotFormatter,
+    GoldStandardWithCotFormatter,
+)
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
-from cot_transparency.streaming.tasks import StreamingTaskOutput
+from cot_transparency.data_models.streaming import StreamingTaskOutput
+
+
+@lru_cache
+def get_correct_cots_inverse_scaling() -> Slist[TaskOutput]:
+    """
+    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_inverse_scaling.py
+    Note that this was generated with the inverse scaling dataset
+    You need to filter out inverse scaling questions to make sure they don't overlap!
+    """
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt_4_inverse_scaling.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
+
+
+@lru_cache
+def get_correct_cots_inverse_scaling_for_task(task: str) -> Slist[TaskOutput]:
+    """
+    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_inverse_scaling.py
+    Note that this was generated with the inverse scaling dataset
+    You need to filter out inverse scaling questions to make sure they don't overlap!
+    """
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt_4_inverse_scaling.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks.filter(lambda x: x.task_spec.task_name == task)
+    assert len(only_correct_cots) > 0, f"Task {task} not found"
+    return only_correct_cots
+
+
+@lru_cache
+def get_correct_cots_truthful_qa() -> Slist[TaskOutput]:
+    """
+    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_truthful_qa
+    """
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt_4_truthful_qa.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
+
+
+@lru_cache
+def get_correct_cots_testing() -> Slist[TaskOutput]:
+    """
+    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_truthful_qa
+    """
+    jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
+        Path("data/training_cots/gpt_4_testing_few_shots.jsonl"), TaskOutput
+    )
+
+    only_correct_cots: Slist[TaskOutput] = jsons_tasks
+    return only_correct_cots
+
+
+@lru_cache
+def get_correct_cots_testing_by_name(task_name: str) -> Slist[TaskOutput]:
+    """
+    Generated from scripts/evaluate_alignment_tax/dump_few_shot_gpt4_truthful_qa
+    """
+    return get_correct_cots_testing().filter(lambda x: x.task_spec.task_name == task_name)
 
 
 # Data previously generated with cot-transparency/scripts/dump_correct_cot_data.py
@@ -122,11 +193,12 @@ def get_training_non_cots_gpt_35(
 
 def get_training_cots_gpt_35_gs(
     kind: ModelOutputVerified = ModelOutputVerified.unfiltered,
+    formatter: Type[StageOneFormatter] = GoldStandardWithCotFormatter,
 ) -> Sequence[StreamingTaskOutput]:
     match kind:
         case ModelOutputVerified.unfiltered:
             json_tasks = read_jsonl_file_into_basemodel(
-                Path("data/training_cots/gpt35_gold_standard_cots.jsonl"), StreamingTaskOutput
+                Path(f"data/training_cots/{formatter.name()}.jsonl"), StreamingTaskOutput
             )
         # anything else is not supported
         case _:
@@ -137,11 +209,12 @@ def get_training_cots_gpt_35_gs(
 
 def get_training_non_cots_gpt_35_gs(
     kind: ModelOutputVerified = ModelOutputVerified.unfiltered,
+    formatter: Type[StageOneFormatter] = GoldStandardNoCotFormatter,
 ) -> Sequence[StreamingTaskOutput]:
     match kind:
         case ModelOutputVerified.unfiltered:
             json_tasks = read_jsonl_file_into_basemodel(
-                Path("data/training_non_cots/gpt35_gold_standard_cots.jsonl"), StreamingTaskOutput
+                Path(f"data/training_cots/{formatter.name()}.jsonl"), StreamingTaskOutput
             )
         # anything else is not supported
         case _:

@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from copy import deepcopy
-from typing import Self
 
 from cot_transparency.apis import ModelType
 from cot_transparency.data_models.example_base import DataExampleBase
@@ -56,8 +55,8 @@ class StageTwoFormatter(PromptFormatter):
         return extract_answer_non_cot(response)
 
     @classmethod
-    def all_formatters(cls) -> dict[str, type[Self]]:
-        return {s.name(): s for s in cls.all_subclasses()}
+    def all_formatters(cls) -> dict[str, type["StageTwoFormatter"]]:
+        return {s.name(): s for s in cls.all_subclasses()}  # type: ignore
 
 
 class FullCOTFormatter(StageTwoFormatter):

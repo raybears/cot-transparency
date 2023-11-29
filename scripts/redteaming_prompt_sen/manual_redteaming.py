@@ -1,8 +1,7 @@
-
 import asyncio
 import json
 from pathlib import Path
-from typing import Type
+from typing import Sequence, Type, TypeVar
 
 import fire
 import matplotlib.pyplot as plt
@@ -14,17 +13,21 @@ from slist import Slist
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.data_models.config import config_from_default, OpenaiInferenceConfig
+from cot_transparency.apis.base import CachedPerModelCaller
+from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.data import COT_TESTING_TASKS
-
+from cot_transparency.data_models.data.refusal import RefusalExample, load_data
+from cot_transparency.data_models.example_base import DummyDataExample
+from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.data_models.pd_utils import (
     BasicExtractor,
     BiasExtractor,
     convert_slist_to_df,
 )
-from cot_transparency.formatters.refusal.refusal import RefusalFormatter
+from cot_transparency.formatters.auto_answer_parsing import GetGradeGivenFormatter
+from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.name_mapping import name_to_formatter
-from cot_transparency.data_models.data.refusal import RefusalExample, load_data
+from cot_transparency.formatters.refusal.refusal import RefusalFormatter
 from cot_transparency.streaming.tasks import (
     StreamingTaskOutput,
     StreamingTaskSpec,
@@ -35,28 +38,15 @@ from scripts.prompt_sen_bias_generalization.util import (
     load_per_model_results,
     save_per_model_results,
 )
-from scripts.redteaming_prompt_sen.model_sweeps import (
-    SweepDatabase,
-    Sweeps,
-)
 from scripts.prompt_sen_experiments.hand_written.bias_eval import (
     AverageOptionsExtractor,
     BiasTypeExtractor,
 )
+from scripts.redteaming_prompt_sen.model_sweeps import (
+    SweepDatabase,
+    Sweeps,
+)
 from scripts.simple_formatter_names import FORMATTER_TO_SIMPLE_NAME
-import asyncio
-from typing import Sequence, TypeVar
-
-from grugstream import Observable
-from slist import Slist
-
-from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import CachedPerModelCaller
-from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
-from cot_transparency.data_models.models import BaseTaskOutput
-from cot_transparency.formatters.auto_answer_parsing import GetGradeGivenFormatter
-from cot_transparency.streaming.tasks import StreamingTaskSpec
-from cot_transparency.streaming.tasks import call_model_with_task_spec
 
 A = TypeVar("A", bound=BaseTaskOutput)
 
@@ -111,11 +101,12 @@ def data_and_jailbreaks_to_task_spec(
     for formatter in formatters:
         for model in models:
             for jailbreak in jailbreaks:
-                jailbreak_name = jailbreak["name"]
+                # jailbreak_name = jailbreak["name"]
                 jailbreak_prompt = jailbreak["prompt"]
                 print(jailbreak_prompt)
-                x.question = jailbreak_prompt.format(QUESTION=x.question)
-                
+
+                data = DummyDataExample(parsed_input=x.question)
+                x.question = jailbreak_prompt.format(data)
                 messages = formatter.format_example(x)
 
                 ts = StreamingTaskSpec(
@@ -124,11 +115,12 @@ def data_and_jailbreaks_to_task_spec(
                     data_example=x.model_dump(),
                     inference_config=model,
                     task_name=task_name,
-                    jailbreak_name=jailbreak_name,
-                    category=x.category,
+                    # jailbreak_name=jailbreak_name,
+                    # category=x.category,
                 )
                 specs.append(ts)
     return specs
+
 
 def lineplot_util(df_p: pd.DataFrame, title: str):
     chance_response = 1 / df_p.average_options.mean()
@@ -152,15 +144,16 @@ def lineplot_util(df_p: pd.DataFrame, title: str):
 
 
 SWEEPS_DB = SweepDatabase()
-SWEEPS_DB.add(Sweeps.paraphrasing_1)
-# SWEEPS_DB.add(Sweeps.gpt)
+# SWEEPS_DB.add(Sweeps.paraphrasing_1)
+SWEEPS_DB.add(Sweeps.gpt)
 # SWEEPS_DB.add(Sweeps.paraphrasing_2)
 # SWEEPS_DB.add(Sweeps.prompt_variants_2)
 # SWEEPS_DB.add(Sweeps.gs_unbiased)
 # SWEEPS_DB.add(Sweeps.zero_shot)
 # SWEEPS_DB.add(Sweeps.few_shot)
 # SWEEPS_DB.add(Sweeps.og_control)
-REFUSAL_FORMATTERS = [RefusalFormatter()]
+REFUSAL_FORMATTERS: Sequence[Type[StageOneFormatter]] = [RefusalFormatter]
+
 
 async def run_refusal_eval(
     exp_dir: str = "experiments/refusal",

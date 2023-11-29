@@ -10,6 +10,7 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
+    RandomSampler,
     fine_tune_with_bias_augmentation,
 )
 from stage_one import main
@@ -29,7 +30,7 @@ def train_and_run(sweep: SweepOptions) -> None:
         post_hoc=False,
         cot_percentage=0.5,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=sweep.formatter_options,
+        sampler=RandomSampler(formatter_options=sweep.formatter_options),
         model_output_verified=ModelOutputVerified.correct,
         ask_to_validate_training=False,
         instruct_sample_proportion=0.1,

@@ -2,6 +2,7 @@ from cot_transparency.formatters.interventions.few_shots_loading import ModelOut
 from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
+    RandomSampler,
     fine_tune_with_bias_augmentation,
 )
 
@@ -14,7 +15,7 @@ if __name__ == "__main__":
         post_hoc=False,
         cot_percentage=0.98,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        formatter_options=FormatterOptions.super_dataset,
+        sampler=RandomSampler(formatter_options=FormatterOptions.super_dataset),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
     )

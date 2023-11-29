@@ -87,8 +87,9 @@ class OpenAIChatCaller(ModelCaller):
                     org_key = [key for key in self.org_keys if key.endswith("5Xq")]
                 elif "far-ai" in model_name:
                     org_key = [key for key in self.org_keys if key.endswith("T31")]
-                else:
-                    org_key = [key for key in self.org_keys if key.endswith("Ubl")]
+                elif "james-cot" in model_name:
+                    org_key = ["org-kXfdsYm6fEoqYxlWGOaOXQ24"]
+
                 if len(org_key) != 1:
                     raise ValueError("Could not find the finetuned org key")
                 organization = org_key[0]
@@ -103,7 +104,7 @@ class OpenAIChatCaller(ModelCaller):
                 organization=organization,
             )
 
-        elif model_name == "gpt-4" or model_name == "gpt-4-32k":
+        elif "gpt-4" in model_name:
             response = gpt4_rate_limited(
                 config=config,
                 messages=prompt,

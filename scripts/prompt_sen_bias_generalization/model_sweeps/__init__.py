@@ -1,8 +1,9 @@
 from enum import Enum
+from typing import Sequence
 
 from slist import Slist
 
-from scripts.finetune_cot import FormatterOptions, NFormatsPerQuestionSampler
+from scripts.finetune_cot import FormatterOptions
 from scripts.finetune_zero_shot_experiments.comparison_plot import (
     FilterStrategy,
     ModelTrainMeta,
@@ -13,13 +14,21 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.biases import OG_CONTRO
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     PARAPHRASING_2_BA_CORRECT,
     PARAPHRASING_2_BA_UNFILTERED,
+    PARAPHRASING_2_FEW_SHOT_2,
+    PARAPHRASING_2_GS3_UNFILTERED,
+    PARAPHRASING_2_ZERO_SHOT_2,
     PARAPHRASING_4_BA,
     PARAPHRASING_5,
 )
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_2
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import PARAPHRASING_1
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import GOLD_STANDARD_UNBIASED
-from scripts.prompt_sen_bias_generalization.model_sweeps.prompt_variants import PROMPT_VARIANT_1, PROMPT_VARIANTS_ALL_2
+from scripts.prompt_sen_bias_generalization.model_sweeps.prompt_variants import (
+    PROMPT_VARIANT_1,
+    PROMPT_VARIANTS_ALL_2,
+    PROMPT_VARIANTS_RAND,
+)
+from scripts.finetune_cot import NFormatsPerQuestionSampler
 
 
 N_FORMATS = [
@@ -28,8 +37,7 @@ N_FORMATS = [
         name="ft:gpt-3.5-turbo-0613:far-ai::8Cc8jA11",
         trained_samples=20000,
         filter_strategy=FilterStrategy.correct_answer,
-        train_formatters=FormatterOptions.prompt_variants_set1,
-        sampling_strategy=NFormatsPerQuestionSampler(4),
+        sampling_strategy=NFormatsPerQuestionSampler(4, formatter_options=FormatterOptions.prompt_variants_set1),
     ),
     # Hail Mary - all formats
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU
@@ -37,8 +45,7 @@ N_FORMATS = [
         name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8CbgrYvU",
         trained_samples=20000,
         filter_strategy=FilterStrategy.correct_answer,
-        train_formatters=FormatterOptions.prompt_variants_all,
-        sampling_strategy=NFormatsPerQuestionSampler(4),
+        sampling_strategy=NFormatsPerQuestionSampler(4, formatter_options=FormatterOptions.prompt_variants_all),
     ),
 ]
 
@@ -48,8 +55,7 @@ GPT = [
         name="gpt-3.5-turbo",
         trained_samples=1,
         filter_strategy=FilterStrategy.no_filter,
-        train_formatters=FormatterOptions.control_only_unbiased,
-        sampling_strategy=NFormatsPerQuestionSampler(1),
+        sampling_strategy=NFormatsPerQuestionSampler(1, formatter_options=FormatterOptions.control_only_unbiased),
     ),
 ]
 
@@ -60,6 +66,7 @@ class Sweeps(str, Enum):
     paraphrasing_2_correct = "paraphrasing_2_correct"
     paraphrasing_5 = "paraphrasing_5"
     prompt_variants_1 = "prompt_variants_1"
+    prompt_variants_rand = "prompt_variants_rand"
     prompt_variants_2 = "prompt_variants_2"
     gs_unbiased = "gs_unbiased"
     zero_shot = "zero_shot"
@@ -70,6 +77,11 @@ class Sweeps(str, Enum):
     paraphrasing_2_ba = "paraphrasing_2_ba"
     paraphrasing_4_ba = "paraphrasing_4_ba"
     gpt = "gpt"
+    paraphrasing_2_zero_2 = "paraphrasing_2_zero_2"
+    paraphrasing_2_few_2 = "paraphrasing_2_few_2"
+    paraphrasing_2_gs2 = "paraphrasing_2_gs2"
+    paraphrasing_2_gs3 = "paraphrasing_2_gs3"
+    paraphrasing_2_gs4 = "paraphrasing_2_gs4"
 
     def get_models(self):
         match self:
@@ -85,6 +97,8 @@ class Sweeps(str, Enum):
                 models = PARAPHRASING_5
             case self.prompt_variants_1:
                 models = PROMPT_VARIANT_1
+            case self.prompt_variants_rand:
+                models = PROMPT_VARIANTS_RAND
             case self.prompt_variants_2:
                 models = PROMPT_VARIANTS_ALL_2
             case self.gs_unbiased:
@@ -103,6 +117,16 @@ class Sweeps(str, Enum):
                 models = PARAPHRASING_2_BA_UNFILTERED
             case self.paraphrasing_4_ba:
                 models = PARAPHRASING_4_BA
+            case self.paraphrasing_2_zero_2:
+                models = PARAPHRASING_2_ZERO_SHOT_2
+            case self.paraphrasing_2_few_2:
+                models = PARAPHRASING_2_FEW_SHOT_2
+            case self.paraphrasing_2_gs2:
+                raise NotImplementedError
+            case self.paraphrasing_2_gs3:
+                models = PARAPHRASING_2_GS3_UNFILTERED
+            case self.paraphrasing_2_gs4:
+                raise NotImplementedError
 
         return models
 
@@ -112,8 +136,10 @@ class SweepDatabase:
         self.sweeps: Slist[ModelTrainMeta] = Slist()
         self.model_names: set[str] = set()
 
-    def add(self, sweep: Sweeps):
-        for model in sweep.get_models():
+    def add(self, sweep: Sweeps | Sequence[ModelTrainMeta]):
+        if isinstance(sweep, Sweeps):
+            sweep = sweep.get_models()
+        for model in sweep:
             if model.name in self.model_names:
                 raise ValueError(f"Model {model.name} already exists in sweep database")
             else:
