@@ -9,7 +9,7 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 class RefusalFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
-        formatted_question = question.question
+        formatted_question = question.get_parsed_input()
         output = [
             ChatMessage(role=MessageRole.user, content=formatted_question),
         ]
