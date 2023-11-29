@@ -6,7 +6,7 @@ from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer
-from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT
+from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT, add_verbalize_instruction_to_question
 
 
 class FirstLetterDistractor(StageOneFormatter):
@@ -25,11 +25,12 @@ The first letter of the option {bias_indicator} is {first_letter_of_text}.
 
 {question.get_parsed_input()}
 """
+        with_instruction = add_verbalize_instruction_to_question(stupid_distractor)
 
         output = [
             ChatMessage(
                 role=MessageRole.user,
-                content=stupid_distractor,
+                content=with_instruction,
             ),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
