@@ -2,7 +2,7 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Literal, Optional, Sequence, TypeVar
 
-from openai import InvalidRequestError
+from openai import APIError
 from pydantic import BaseModel
 from slist import Slist, Group
 from tqdm import tqdm
@@ -301,7 +301,7 @@ def run_test(test: TestToRun, model: str) -> SavedTest | InvalidCompletion:
     config = OpenaiInferenceConfig(model=model, max_tokens=100, temperature=0, top_p=1)
     try:
         completion = call_model_api(config=config, messages=prompt).single_reponse  # type: ignore
-    except InvalidRequestError:
+    except APIError:
         # token limit
         return InvalidCompletion(test=test, completion="", failed=True)
     biased_prediction = parse_prediction(completion, "initial")

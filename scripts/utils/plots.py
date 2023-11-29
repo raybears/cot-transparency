@@ -256,7 +256,7 @@ def catplot(
         kind=kind,
         **kwargs,
     )
-    axs = g.axes.flat
+    axs = list(g.axes.flat)
 
     if add_multiple_lines_at is not None:
         for ax in axs:
