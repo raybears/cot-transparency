@@ -764,6 +764,8 @@ def fine_tune_with_bias_augmentation(
     instruct_source: InstructSource = InstructSource.alpaca_gpt_35,
     # Run some postprocessing on the finetune
     post_processing_func: Callable[[Sequence[FinetuneSample]], Sequence[FinetuneSample]] = identity,
+    cot_seed: str = "42",
+    non_cot_seed: str = "1",
 ) -> str:
     """
     We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
@@ -795,13 +797,13 @@ def fine_tune_with_bias_augmentation(
 
     non_cot_data_shuffled = (
         Slist(non_cot_data)
-        .shuffle(seed="42")
+        .shuffle(seed=non_cot_seed)
         .filter(lambda x: x.task_spec.task_name not in exclude_tasks if exclude_tasks else True)
     )
     # use a different seed for cots and non cots in case the data is in the same order
     cot_data_shuffled = (
         Slist(cot_data)
-        .shuffle(seed="1")
+        .shuffle(seed=cot_seed)
         .filter(lambda x: x.task_spec.task_name not in exclude_tasks if exclude_tasks else True)
     )
     # formatter_options_result = match_formatter_options(formatter_options)
@@ -885,11 +887,11 @@ def fine_tune_with_bias_augmentation(
         case InstructSource.alpaca_original:
             alpaca_samples = get_alpaca_training(n_instruct_samples + val_instruct_samples)
         case InstructSource.alpaca_gpt_35:
-            alpaca_samples = get_all_alpaca_training_gpt_35(seed="42", limit=n_instruct_samples + val_instruct_samples)
+            alpaca_samples = get_all_alpaca_training_gpt_35(seed=cot_seed, limit=n_instruct_samples + val_instruct_samples)
 
         case InstructSource.alpaca_gpt_35_sampled_5:
             alpaca_samples = get_all_alpaca_training_gpt_35_sample_5(
-                seed="42", limit=n_instruct_samples + val_instruct_samples
+                seed=cot_seed, limit=n_instruct_samples + val_instruct_samples
             )
     alpaca_train_samples, alpaca_val_samples = (
         alpaca_samples[:-val_instruct_samples],
@@ -934,6 +936,8 @@ def fine_tune_with_bias_augmentation(
         "non_cot_paraphrasings_from": sampler.non_cot_paraphrasings_file
         if isinstance(sampler, ParaphrasingSampler)
         else None,
+        "non_cot_seed": non_cot_seed,
+        "cot_seed": cot_seed,
     }
     cot_percentage_percentage = int(cot_percentage * 100)
     non_cot_percentage_percentage = int(non_cot_percentage * 100)

@@ -5,7 +5,10 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotIgnoreMistakesBiasedFormatter
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import InitialWrongMoreClearFormatter
+from cot_transparency.formatters.more_biases.distractor_fact import FirstLetterDistractor
+from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotAssistantSideFormatter, WrongFewShotIgnoreMistakesBiasedFormatter
+from cot_transparency.formatters.verbalize.formatters import BLACK_SQUARE, BlackSquareBiasedFormatter, DoubleSpacedBiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -27,11 +30,11 @@ async def plot_accuracies():
     ]
     stage_one_path = Path("experiments/grid_exp")
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
-    formatter = WrongFewShotIgnoreMistakesBiasedFormatter
+    formatter = FirstLetterDistractor
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
         dataset="cot_testing",
-        example_cap=200,
+        example_cap=300,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
@@ -51,6 +54,7 @@ async def plot_accuracies():
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control trained 10k samples",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik": "Intervention trained 10k samples",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NhdoGRg": "Random bias",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv": "Intervention",
     }
 
     plot_dots: list[PlotInfo] = [
@@ -73,9 +77,9 @@ async def plot_accuracies():
 
     bar_plot(
         plot_infos=plot_dots,
-        title="% matching bias on mmlu, truthfulqa, logiqa, hellaswag<br>Assistant anchoring on bias as a previous answer",
+        title=f"% matching bias on mmlu, truthfulqa, logiqa, hellaswag<br>Distractor information about letters of the alpabet for an option",
         dotted_line=DottedLine(name="Baseline unbiased chance", value=baseline_unbiased_prop, color="red"),
-        y_axis_title="Accuracy",
+        y_axis_title="% matching bias",
         name_override=PERCENTAGE_CHANGE_NAME_MAP,
         max_y=1.0,
         show_x_axis_labels=False,

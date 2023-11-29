@@ -1,0 +1,9 @@
+,index,0
+0,StanfordBiasedFormatter,0.03125
+1,MoreRewardBiasedFormatter,0.04749999999999999
+2,ZeroShotCOTSycophancyFormatter,-0.003750000000000031
+3,RandomBiasedFormatter,-0.011249999999999982
+4,InitialWrongMoreClearFormatter,-0.050000000000000044
+5,WrongFewShotIgnoreMistakesBiasedFormatter,0.012499999999999956
+6,CheckmarkBiasedFormatter,0.09375
+7,CrossBiasedFormatter,0.06875000000000003

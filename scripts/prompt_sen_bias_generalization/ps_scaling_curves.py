@@ -151,7 +151,7 @@ async def run_pipeline(
         Observable.from_iterable(task_specs)
         .map_blocking_par(
             # We retry to make sure we get 10 paraphrasings per question, sometimes gpt gives fewer
-            lambda x: call_model_with_task_spec(x, generation_caller, num_tries=20, should_raise=True),
+            lambda x: call_model_with_task_spec(x, generation_caller, num_tries=1, should_raise=True),
             max_par=batch_size,
         )
         .flatten_list()
@@ -416,11 +416,13 @@ def plot_scaling_curves(
 
 
 if __name__ == "__main__":
-    fire.Fire(
-        {
-            "run": run_pipeline,
-            "plot": plot,
-            "make_training_data": make_training_data,
-            "plot_scaling_curves": plot_scaling_curves,
-        }
-    )
+    import asyncio
+    asyncio.run(run_pipeline(example_cap=20, models_to_evaluate=["gpt-3.5-turbo-0613"]))
+    # fire.Fire(
+    #     {
+    #         "run": run_pipeline,
+    #         "plot": plot,
+    #         "make_training_data": make_training_data,
+    #         "plot_scaling_curves": plot_scaling_curves,
+    #     }
+    # )
