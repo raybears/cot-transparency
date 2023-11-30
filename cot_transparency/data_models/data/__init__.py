@@ -8,6 +8,7 @@ from cot_transparency.data_models.data import aqua, arc, bbh, bbq, hellaswag, lo
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
+from cot_transparency.data_models.data.gsm import load_gsm_biased, load_gsm_unbiased
 from cot_transparency.data_models.data.inverse_scaling import get_inverse_scaling, InverseScalingTask
 from cot_transparency.data_models.data.john_math import (
     get_john_math_level_1,
@@ -66,6 +67,7 @@ TASK_LIST = {
     "karina": ["karina_hallucination"],
     "logiqa_train": ["logiqa_train"],
     "inverse_scaling": InverseScalingTask.all_tasks(),
+    "gsm": ["gsm_unbiased", "gsm_biased"],
 }
 
 
@@ -142,6 +144,10 @@ def get_list_of_examples(
             data = get_john_math_level_4()
         elif task == "john_level_5":
             data = get_john_math_level_5()
+        elif task == "gsm_unbiased":
+            data = load_gsm_unbiased()
+        elif task == "gsm_biased":
+            data = load_gsm_biased()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")

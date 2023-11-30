@@ -4,6 +4,7 @@ from cot_transparency.data_models.data.aqua import AquaExample
 from cot_transparency.data_models.data.arc import ArcExample
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST, MilesBBHRawData
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST, BBQExample
+from cot_transparency.data_models.data.gsm import GSMBiased, GSMUnbiased
 from cot_transparency.data_models.data.hellaswag import HellaSwagExample
 from cot_transparency.data_models.data.inverse_scaling import InverseScalingExample, InverseScalingTask
 from cot_transparency.data_models.data.john_math import JohnMath
@@ -73,5 +74,9 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return MMLUExample
     elif task_name == "karina_hallucination":
         return KarinaHallucination
+    elif task_name == "gsm_biased":
+        return GSMBiased
+    elif task_name == "gsm_unbiased":
+        return GSMUnbiased
     else:
         raise ValueError(f"Unknown task name {task_name}")

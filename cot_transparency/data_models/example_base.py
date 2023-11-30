@@ -199,13 +199,13 @@ class DataExampleBase(BaseModel, ABC):
 
     @property
     @abstractmethod
-    def _ground_truth(self) -> MultipleChoiceAnswer:
+    def _ground_truth(self) -> str:
         """Please implement this method to return the ground truth answer"""
         raise NotImplementedError
 
     @final
     @property
-    def ground_truth(self) -> MultipleChoiceAnswer:
+    def ground_truth(self) -> str:
         # Call this method to get the ground truth
         # We may shuffle the options so we need to call this method
         # rather than the _ground_truth method

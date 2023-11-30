@@ -193,6 +193,7 @@ def catplot(
     name_map: Optional[dict[str, str]] = None,
     width: float = 7.7,
     height: float = 6,
+    font_scale: float = 0.7,
     **kwargs: Any,
 ) -> sns.FacetGrid:  # typing: ignore
     """
@@ -204,7 +205,7 @@ def catplot(
     width = width / 2.54  # convert to inches
     height = height / 2.54  # convert to inches
 
-    sns.set(font_scale=0.7)  # crazy big
+    sns.set(font_scale=font_scale)  # crazy big
     sns.set_style(
         "ticks",
         {
@@ -256,7 +257,7 @@ def catplot(
         kind=kind,
         **kwargs,
     )
-    axs = g.axes.flat
+    axs = list(g.axes.flat)
 
     if add_multiple_lines_at is not None:
         for ax in axs:

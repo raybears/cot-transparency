@@ -164,6 +164,8 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordTreatmentFormatter,
 )
 
+from cot_transparency.formatters.more_biases.gsm import AskGSMQuestion
+
 
 def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
     if not name_to_formatter(biased_formatter_name).is_biased:
@@ -327,4 +329,5 @@ __all__ = [
     "GoldStandardWithCotFormatter",
     "AddSpuriousInfoFormatter",
     "AddSycophanticBias",
+    "AskGSMQuestion",
 ]
