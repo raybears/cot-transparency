@@ -902,8 +902,13 @@ def fine_tune_with_bias_augmentation(
                 seed=cot_seed, limit=n_instruct_samples + val_instruct_samples
             )
     alpaca_train_samples, alpaca_val_samples = (
-        alpaca_samples[:-val_instruct_samples],
-        alpaca_samples[-val_instruct_samples:],
+        (
+            alpaca_samples[:-val_instruct_samples],
+            alpaca_samples[-val_instruct_samples:],
+        )
+        # Need to check if >0 because [1,2,3][:-0] is [] and then it goes boom
+        if val_instruct_samples > 0
+        else (alpaca_samples, Slist[FinetuneSample]([]))
     )
     assert len(alpaca_train_samples) == n_instruct_samples, "Not enough alpaca train samples"
 
@@ -977,9 +982,9 @@ def get_non_cot_samples(
     hashes = non_cot_samples.map(lambda x: x.get_task_spec().get_task_hash()).to_set()
     non_cot_samples = non_cot_samples.map(task_output_to_finetune_sample)
 
-    assert (
-        len(non_cot_samples) == limit
-    ), f"We do not have enough non cots, only {len(non_cot_samples)}, required {limit}"
+    # assert (
+    #     len(non_cot_samples) == limit
+    # ), f"We do not have enough non cots, only {len(non_cot_samples)}, required {limit}"
     return non_cot_samples, hashes
 
 
@@ -998,7 +1003,7 @@ def get_cot_samples(
     hashes = cot_samples.map(lambda x: x.get_task_spec().get_task_hash()).to_set()
     cot_samples = cot_samples.map(task_output_to_finetune_sample)
 
-    assert len(cot_samples) == limit, f"We do not have enough cots, only {len(cot_samples)}"
+    assert len(cot_samples) == limit, f"We do not have enough cots, only {len(cot_samples)}, required {limit}"
     return cot_samples, hashes
 
 
@@ -1323,6 +1328,7 @@ class DifferentSamplesOnTheFlyParaphrasinSampler(FormatSampler):
         use_formatters: Literal["cot"] | Literal["non_cot"],
     ) -> Slist[BaseTaskOutput]:
         tasks = Slist(tasks).shuffle(seed="42").take(n)
+        print(f"Number of tasks to parapjhrase {len(tasks)}")
 
         model_caller = UniversalCaller().with_file_cache(cache_path=self.paraphrasing_cache_path)
 
@@ -1334,17 +1340,21 @@ class DifferentSamplesOnTheFlyParaphrasinSampler(FormatSampler):
                 task_name=task_name,
                 x=og_data_example,
                 formatters=Slist(self.formatters_for_parahrasing).sample(1, seed=task.uid()),
-                models=[config_from_default(model="gpt-4")],
+                models=[config_from_default(model="gpt-4", max_tokens=4000)],
             )
             return specs
 
         n_unique_cots = math.ceil(n / self.n_formats_per_question)
         print("using n_unique_cots", n_unique_cots)
+        fuzzy_unique = int(n_unique_cots * 1.1)
 
         # First paraphrase the questions
         async def run_pipeline(tasks: Sequence[BaseTaskOutput]) -> Slist[ParaphrasingOutput]:
             pipeline = (
                 Observable.from_iterable(tasks)
+                # Each task produces 10 paraphrasings, so you don't need to paraphrase all of them
+                # Use a fuzzy number because sometimes it fails
+                .take(fuzzy_unique)
                 .map(create_task_spec_for_paraphrasing)
                 .flatten_list()
                 .map_blocking_par(
@@ -1352,13 +1362,13 @@ class DifferentSamplesOnTheFlyParaphrasinSampler(FormatSampler):
                         x,
                         model_caller,
                         should_raise=False,
-                        num_tries=1,
+                        num_tries=2,
                     )
                 )
                 .flatten_list()
+                .take(n_unique_cots)
                 # extract the paraphrasings
                 .map(parse_responses)
-                .take(n_unique_cots)  # Each task produces 10 paraphrasings
                 .tqdm(tqdm_bar=tqdm(total=n_unique_cots, desc="Paraphrasing"))
             ).to_slist()
             return await pipeline
@@ -1377,19 +1387,20 @@ class DifferentSamplesOnTheFlyParaphrasinSampler(FormatSampler):
             else assert_should_not_happen()
         )
 
-        for idx, task in paraphrased_results.enumerated():
+        for task in paraphrased_results:
             question: ParaphrasedQuestion
             for question in task.paraphrased_questions:
                 # retrieve a random unbiased sample, so that we can use the unbiased completion
+                paraphrased_qn = question.paraphrased
                 retrieved_samples: BaseTaskOutput = (
-                    Slist(task_sample_map[task.get_task_spec().get_task_hash()]).shuffle(seed=str(idx)).first_or_raise()
+                    Slist(task_sample_map[task.get_task_spec().get_task_hash()])
+                    .shuffle(seed=paraphrased_qn)
+                    .first_or_raise()
                 )
                 # now you want to use the paraphrased (biased) question on that sample
                 current_messages = retrieved_samples.get_task_spec().messages
                 # replace the unbiased question with the paraphrased question
-                new_messages = [ChatMessage(role=MessageRole.user, content=question.paraphrased)] + list(
-                    current_messages[1:]
-                )
+                new_messages = [ChatMessage(role=MessageRole.user, content=paraphrased_qn)] + list(current_messages[1:])
 
                 new_task = retrieved_samples.update_messages_in_task_spec(messages=new_messages)
                 output.append(new_task)

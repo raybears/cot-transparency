@@ -76,6 +76,7 @@ class ModelCaller(ABC):
         self,
         messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
+        try_number: int = 1,
     ) -> InferenceResponse:
         raise NotImplementedError()
 
@@ -178,8 +179,11 @@ class CachedCaller(ModelCaller):
         self,
         messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
+        try_number: int = 1,
     ) -> InferenceResponse:
-        key = file_cache_key(messages, config)
+        key_without_retry = file_cache_key(messages, config)
+        # only add retry number to key if try_number > 1 for backwards compatibility
+        key = key_without_retry if try_number == 1 else f"{key_without_retry}_try_{try_number}"
         if key in self.cache:
             return self.cache[key].response
         else:
