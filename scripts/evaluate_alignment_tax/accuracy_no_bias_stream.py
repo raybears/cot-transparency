@@ -16,7 +16,8 @@ async def plot_accuracies():
         # start instruct prop
         "gpt-3.5-turbo-0613",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # 10k bs=16, lr=1.6 (control)
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  # 10k bs=16, lr=1.6 (ours)
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",  # 10k bs=16, lr=1.6 (ours)
+        "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y"
     ]
     stage_one_path = Path("experiments/accuracy/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
@@ -61,6 +62,7 @@ async def plot_accuracies():
         name_override={
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz": "Ours",
+            "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Zero-shot only intervention"
         },
         max_y=1.0,
         show_x_axis_labels=False,

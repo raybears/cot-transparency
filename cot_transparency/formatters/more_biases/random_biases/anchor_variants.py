@@ -1,4 +1,5 @@
 import random
+import re
 
 from slist import Slist
 
@@ -8,6 +9,29 @@ def format_anchor_bias_question(question: str, biased_answer: str) -> str:
     sampled_anchor = get_anchor_variants(biased_answer).sample(1, seed=qn)[0]
     maybe: bool = random.Random(qn).random() < 0.5
     return f"""{sampled_anchor}\n{qn}""" if maybe else f"""{qn}\n{sampled_anchor}"""
+
+
+# def format_anchor_bias_random_line_question(question: str, biased_answer: str) -> str:
+#     qn = question
+#     sampled_anchor = get_anchor_variants(biased_answer).sample(1, seed=qn)[0]
+#     lines = qn.split("\n")
+#     lines_before_answer_choices = Slist(lines).take_until_exclusive(lambda x: "Answer choices" in x)
+#     # generate a random number between 0 and len(lines_before_answer_choices)
+#     random_line = random.randint(0, len(lines_before_answer_choices))
+#     lines.insert(random_line, sampled_anchor)
+#     return "\n".join(lines)
+
+def format_anchor_bias_random_line_question(question: str, biased_answer: str) -> str:
+    qn = question
+    sampled_anchor = " " + get_anchor_variants(biased_answer).sample(1, seed=qn).first_or_raise()
+    # split by any punctuation + newlin , but keep the punctuation
+    lines = re.split("([.!?]|\n)", qn)
+    lines_before_answer_choices = Slist(lines).take_until_exclusive(lambda x: "Answer choices" in x)
+    # generate a random number between 0 and len(lines_before_answer_choices)
+    random_line = random.randint(0, len(lines_before_answer_choices))
+    lines.insert(random_line, sampled_anchor)
+    return "".join(lines)
+    
 
 
 def get_anchor_variants(biased_answer: str) -> Slist[str]:

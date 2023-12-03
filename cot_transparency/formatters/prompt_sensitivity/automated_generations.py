@@ -103,6 +103,56 @@ Please give me {n} paraphrasing covering a variety of styles."""  # noqa: E501
         returns list(tuple(question, list(tags)))
         """
         return match_regex(response)[:10]
+    
+
+class GenerateParaphrasingsJames(StageOneFormatter):
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        """
+        Pass a question to a model and get it to paraphrase it
+        """
+
+        n = 10
+        insructions = f"""Please paraphrase this question. The meaning of the question should be unchanged but please experiment with changing the style, tone or phrasing. 
+You can also add irrelevant context to the start, middle, or end of the question.
+This context should be totally unrelated to the question! E.g. if the question is about the capital of France, you could add a sentence that says "I like to eat cheese".
+Some other ways to modify the question might include (but are not limited to):
+using all caps/all lowercase, adding grammar issues/filler words/abbreviations, adding unnecessary context for the question (e.g. a biography, random information about yourself, etc.),
+
+The options must always be given as multiple choices with letters.
+DO NOT CHANGE THE ANSWER OPTIONS! THE ANSWER OPTIONS MUST BE THE SAME AS THE ORIGINAL QUESTION. They should be exactly the same as before.
+
+The question will be given in <question> tags. Please respond with your paraphrasing in <paraphrased> tags. Important: all of the context required to answer the question should be within the <paraphrased> tags, i.e. the full question should be paraphrased. After each <paraphrased> block please include a <tags> block indicating the style used to generate the permutation. e.g <tags>added_context,personal</tags>. Some
+ examples of informative tags might be: formal, irrelevant_context, scenario, typos, lowercase, uppercase, indirect, historical_context, third_person, futuristic, poetic, hypothetical, comparative, pop_culture, rhetorical, passive_voice, direct_address, definition_seek, philosophical, surprise_element, technical_jargon,  personal_experience. 
+But this is not an exhaustive list. When generating paraphrasing limit yourself to two styles (i.e. tags) per question.
+
+Please give me {n} paraphrasing covering a variety of styles. Remember! You still need to ask the same question, just in a different style! This is important!"""  # noqa: E501
+
+        parsed = question.get_parsed_input()
+
+        question_in_tags = f"<question>{parsed}</question>"
+        full_question = f"{insructions}\n\n{question_in_tags}"
+
+        message = ChatMessage(role=MessageRole.user, content=full_question)
+        return [message]
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        num_paraphrasings = len(match_regex(response))
+        if num_paraphrasings < 10:
+            print("number of paraphrased questions less than 10, returning None")
+            print(response)
+            return None
+
+        return response
+
+    @staticmethod
+    def get_paraphrased_questions(response: str) -> Slist[tuple[str, Sequence[str]]]:
+        """
+        responses are in <question> tags with <tags> after
+        returns list(tuple(question, list(tags)))
+        """
+        return match_regex(response)[:10]
 
 
 class GenerateParaphrasingsNoCotFormatters(StageOneFormatter):

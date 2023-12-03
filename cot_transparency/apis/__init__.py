@@ -33,6 +33,8 @@ class UniversalCaller(ModelCaller):
         messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
     ) -> InferenceResponse:
+        if len(messages) == 0:
+            return InferenceResponse(raw_responses=[])
         return call_model_api(messages, config)
 
 

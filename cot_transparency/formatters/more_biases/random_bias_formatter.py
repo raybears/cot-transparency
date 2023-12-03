@@ -19,6 +19,7 @@ from cot_transparency.formatters.more_biases.random_biases.anchor_against_varian
 )
 from cot_transparency.formatters.more_biases.random_biases.anchor_variants import (
     format_anchor_bias_question,
+    format_anchor_bias_random_line_question,
 )
 
 
@@ -28,7 +29,7 @@ class RandomBiasedFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
-        message = format_anchor_bias_question(
+        message = format_anchor_bias_random_line_question(
             question=question.get_parsed_input(),
             biased_answer=question.biased_ans_variant,
         )
@@ -50,7 +51,7 @@ class RandomBiasedNoCOTFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
-        message = format_anchor_bias_question(
+        message = format_anchor_bias_random_line_question(
             question=question.get_parsed_input(),
             biased_answer=question.biased_ans_variant,
         )
@@ -75,7 +76,7 @@ class RandomBiasedQuotedNoCOTFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_answer = f"'{question.biased_ans_text}'"
-        message = format_anchor_bias_question(question=question.get_parsed_input(), biased_answer=biased_answer)
+        message = format_anchor_bias_random_line_question(question=question.get_parsed_input(), biased_answer=biased_answer)
         messages = [
             ChatMessage(role=MessageRole.user, content=message),
             ChatMessage(
@@ -97,7 +98,7 @@ class RandomBiasedQuotedFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_answer = f"'{question.biased_ans_text}'"
-        message = format_anchor_bias_question(question=question.get_parsed_input(), biased_answer=biased_answer)
+        message = format_anchor_bias_random_line_question(question=question.get_parsed_input(), biased_answer=biased_answer)
         with_label_instruction = add_verbalize_instruction_to_question(message)
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),

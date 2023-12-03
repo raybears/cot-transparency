@@ -6,10 +6,13 @@ from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import GenerateParaphrasingsJames
 from scripts.finetune_cot import (
     DataFromOptions,
+    DifferentSamplesOnTheFlyParaphrasinSampler,
     FormatterOptions,
     NFormatsPerQuestionSampler,
+    OnTheFlyParaphrasingSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
@@ -20,7 +23,7 @@ class SweepOptions(BaseModel):
     instruct_sample_proportion: float
 
 
-async def train_and_run() -> None:
+def train_and_run() -> None:
     # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # james
@@ -30,17 +33,16 @@ async def train_and_run() -> None:
     fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=10_000,
+        n_samples=100,
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        sampler=NFormatsPerQuestionSampler(n_formats_per_question=1, formatter_options=FormatterOptions.zero_shot),
+        sampler=DifferentSamplesOnTheFlyParaphrasinSampler(n_formats_per_question=10, formatters_for_paraphrasings=[GenerateParaphrasingsJames]),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=True,
-        instruct_sample_proportion=10.0,
-        n_val_samples=100,
+        instruct_sample_proportion=1.0,
         no_overlap_cot_non_cot=False,
-        prepend_notes="(zeroshot instruct prop 10.0 COT bs=16, lr=1.6)",
+        prepend_notes="(James on the fly 1 * 10 instruct prop 1.0 COT bs=16, lr=1.6)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
     # await eval_instruction_following(
@@ -48,9 +50,5 @@ async def train_and_run() -> None:
     # )
 
 
-async def main():
-    await train_and_run()
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    train_and_run()

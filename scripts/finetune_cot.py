@@ -31,7 +31,12 @@ from cot_transparency.data_models.data.gpt_35_instructions import (
 from cot_transparency.data_models.example_base import DataExampleBase, DummyDataExample
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
-from cot_transparency.data_models.streaming import ParaphrasingOutput, StreamingTaskOutput, StreamingTaskSpec
+from cot_transparency.data_models.streaming import (
+    ParaphrasedQuestion,
+    ParaphrasingOutput,
+    StreamingTaskOutput,
+    StreamingTaskSpec,
+)
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
@@ -72,6 +77,7 @@ from cot_transparency.streaming.tasks import call_model_with_task_spec, data_to_
 from scripts.cot_variants import sample_cot_variant
 from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.non_cot_variants import non_sample_cot_variant
+from scripts.prompt_sen_bias_generalization.parsing import parse_responses
 from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS,
     TRAINING_COT_FORMATTERS_FEW_SHOT,
@@ -887,7 +893,9 @@ def fine_tune_with_bias_augmentation(
         case InstructSource.alpaca_original:
             alpaca_samples = get_alpaca_training(n_instruct_samples + val_instruct_samples)
         case InstructSource.alpaca_gpt_35:
-            alpaca_samples = get_all_alpaca_training_gpt_35(seed=cot_seed, limit=n_instruct_samples + val_instruct_samples)
+            alpaca_samples = get_all_alpaca_training_gpt_35(
+                seed=cot_seed, limit=n_instruct_samples + val_instruct_samples
+            )
 
         case InstructSource.alpaca_gpt_35_sampled_5:
             alpaca_samples = get_all_alpaca_training_gpt_35_sample_5(
@@ -1136,8 +1144,8 @@ def read_task_sample_map_non_cot() -> Mapping[str, Sequence[BaseTaskOutput]]:
     return mapping
 
 
-def assert_should_not_happen() -> NoReturn:
-    assert False, "Oops, this should not happen"
+def assert_should_not_happen(error: str = "Oops, this should not happen") -> NoReturn:
+    assert False, error
 
 
 class DifferentFormatsPerQuestionSampler(FormatSampler):
@@ -1257,3 +1265,136 @@ class DifferentFormatsPerQuestionSampler(FormatSampler):
 
     def for_legend(self) -> str:
         return f"different_formats={self.n_formats_per_question}"
+
+
+class DifferentSamplesOnTheFlyParaphrasinSampler(FormatSampler):
+    def __init__(
+        self,
+        n_formats_per_question: int,
+        formatters_for_paraphrasings: Sequence[type[StageOneFormatter]] = [],
+        exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+        paraphrasing_cache_path: str = "data/training_paraphrasings/on_the_fly_paraphrasings_cache.jsonl",
+    ):
+        assert n_formats_per_question > 1, "n_formats_per_question must be greater than 1"
+        assert n_formats_per_question <= 10, "n_formats_per_question must be less or equal than 10"
+        assert formatters_for_paraphrasings, "formatters_for_paraphrasings must not be empty"
+        # load the paraphrasings
+        self.n_formats_per_question = n_formats_per_question
+
+        formatters = match_formatter_options(
+            FormatterOptions.ask_paraphrased,
+        )
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+        self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
+            lambda x: x.formatter not in exclude_formatters
+        )
+
+        self._exclude_formatters = exclude_formatters
+        self._formatter_options = FormatterOptions.ask_paraphrased
+        self.formatters_for_parahrasing = formatters_for_paraphrasings
+        self.paraphrasing_cache_path = paraphrasing_cache_path
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self._exclude_formatters
+
+    @property
+    def format_options_name(self) -> str:
+        return self._formatter_options.value
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.cot_formatters
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.non_cot_formatters
+
+    def __repr__(self) -> str:
+        return f"OTFParaphrasingSampler(n_formats_per_question={self.n_formats_per_question})"
+
+    def for_legend(self) -> str:
+        return f"n_formats={self.n_formats_per_question}"
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOutput],
+        n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
+    ) -> Slist[BaseTaskOutput]:
+        tasks = Slist(tasks).shuffle(seed="42").take(n)
+
+        model_caller = UniversalCaller().with_file_cache(cache_path=self.paraphrasing_cache_path)
+
+        def create_task_spec_for_paraphrasing(task: BaseTaskOutput) -> Sequence[StreamingTaskSpec]:
+            og_data_example = task.get_task_spec().get_data_example_obj()
+            task_name = task.get_task_spec().get_task_name()
+            # Only need to sample one formatter per question
+            specs = data_to_task_spec(
+                task_name=task_name,
+                x=og_data_example,
+                formatters=Slist(self.formatters_for_parahrasing).sample(1, seed=task.uid()),
+                models=[config_from_default(model="gpt-4")],
+            )
+            return specs
+
+        n_unique_cots = math.ceil(n / self.n_formats_per_question)
+        print("using n_unique_cots", n_unique_cots)
+
+        # First paraphrase the questions
+        async def run_pipeline(tasks: Sequence[BaseTaskOutput]) -> Slist[ParaphrasingOutput]:
+            pipeline = (
+                Observable.from_iterable(tasks)
+                .map(create_task_spec_for_paraphrasing)
+                .flatten_list()
+                .map_blocking_par(
+                    lambda x: call_model_with_task_spec(
+                        x,
+                        model_caller,
+                        should_raise=False,
+                        num_tries=1,
+                    )
+                )
+                .flatten_list()
+                # extract the paraphrasings
+                .map(parse_responses)
+                .take(n_unique_cots)  # Each task produces 10 paraphrasings
+                .tqdm(tqdm_bar=tqdm(total=n_unique_cots, desc="Paraphrasing"))
+            ).to_slist()
+            return await pipeline
+
+        paraphrased_results = asyncio.run(run_pipeline(tasks))
+        print(f"Number of paraphrased results: {len(paraphrased_results)}")
+        model_caller.save_cache()
+
+        output = Slist[BaseTaskOutput]()
+
+        task_sample_map: Mapping[str, Sequence[BaseTaskOutput]] = (
+            read_task_sample_map_cot()
+            if use_formatters == "cot"
+            else read_task_sample_map_non_cot()
+            if use_formatters == "non_cot"
+            else assert_should_not_happen()
+        )
+
+        for idx, task in paraphrased_results.enumerated():
+            question: ParaphrasedQuestion
+            for question in task.paraphrased_questions:
+                # retrieve a random unbiased sample, so that we can use the unbiased completion
+                retrieved_samples: BaseTaskOutput = (
+                    Slist(task_sample_map[task.get_task_spec().get_task_hash()]).shuffle(seed=str(idx)).first_or_raise()
+                )
+                # now you want to use the paraphrased (biased) question on that sample
+                current_messages = retrieved_samples.get_task_spec().messages
+                # replace the unbiased question with the paraphrased question
+                new_messages = [ChatMessage(role=MessageRole.user, content=question.paraphrased)] + list(
+                    current_messages[1:]
+                )
+
+                new_task = retrieved_samples.update_messages_in_task_spec(messages=new_messages)
+                output.append(new_task)
+
+        output = output.take(n)
+        assert len(output) == n, f"len(output)={len(output)}, n={n}"
+
+        return output

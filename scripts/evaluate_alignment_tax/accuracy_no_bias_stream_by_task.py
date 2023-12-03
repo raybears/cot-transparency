@@ -17,7 +17,10 @@ async def plot_accuracies():
         # start instruct prop
         "gpt-3.5-turbo-0613",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # 10k bs=16, lr=1.6 (control)
-        "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",
+        "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi",
+        # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 10k bs=16, lr=1.6 (ours)
     ]
     stage_one_path = Path("experiments/accuracy/stage_one.jsonl")
@@ -41,13 +44,25 @@ async def plot_accuracies():
     stage_one_caller.save_cache()
 
     plot_formatter = ZeroShotCOTUnbiasedFormatter
+    rename_model_map = {
+        "gpt-3.5-turbo-0613": "Original gpt-3.5-turbo",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control trained 10k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik": "Intervention trained 10k samples",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NhdoGRg": "Random bias",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Qbpgb0B": "New random bias",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8OC4213p": "Ed's model generated sycophancy",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv": "Intervention (Variants of I think answer is (x) only)",
+        "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention (All zero shot biases)",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi": "Intervention (All zero shot biases + paraphrasing)",
+
+    }
 
     plot_dots: list[PlotInfo] = [
         plot_for_intervention(
             results_filtered,
             for_formatters=[plot_formatter],
             model=model,
-            name_override=model,
+            name_override=rename_model_map.get(model, model),
         )
         for model in models
     ]

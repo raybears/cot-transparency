@@ -69,6 +69,10 @@ class StreamingTaskOutput(BaseTaskOutput):
     def get_task_spec(self) -> StreamingTaskSpec:
         return self.task_spec
 
+    @property
+    def is_correct(self) -> bool:
+        return self.inference_output.parsed_response == self.task_spec.get_data_example_obj().ground_truth
+
     def update_messages_in_task_spec(self, messages: Sequence[ChatMessage]) -> "StreamingTaskOutput":
         return StreamingTaskOutput(
             task_spec=self.task_spec.copy_update(messages=messages),

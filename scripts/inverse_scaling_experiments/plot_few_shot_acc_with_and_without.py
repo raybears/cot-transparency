@@ -17,10 +17,10 @@ from scripts.multi_accuracy import PlotInfo
 
 async def plot_accuracies():
     # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 1.0x ours
-    model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"  # 1.0x control
+    # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"  # 1.0x control
     # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V" # 10x ours
     # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lk3VEOY"  # 10x control
-    # model = "gpt-3.5-turbo-0613"
+    model = "gpt-3.5-turbo-0613"
     # model = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh" # 1.0 no few shot
 
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")

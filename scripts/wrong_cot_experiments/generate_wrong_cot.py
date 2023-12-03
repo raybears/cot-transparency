@@ -45,8 +45,14 @@ async def main():
     biased_tasks: Slist[TaskOutput] = (
         done_tasks.filter(lambda x: not x.is_correct)
         .filter(lambda task: task.bias_on_wrong_answer)
+        .filter(lambda task: task.first_parsed_response is not None)
         .distinct_by(lambda x: x.task_spec.task_hash)
     )
+    grouped_by_task_name = biased_tasks.group_by(lambda x: x.task_spec.task_name).map(
+        lambda group: group.map_values(lambda x: len(group.values))
+    )
+    print(grouped_by_task_name)
+
     print(f"Got {len(biased_tasks)} biased tasks")
     write_jsonl_file_from_basemodel(
         path=WRONG_COT_TESTING_PATH,

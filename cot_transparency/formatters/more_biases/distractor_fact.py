@@ -22,7 +22,6 @@ class FirstLetterDistractor(StageOneFormatter):
         stupid_distractor = f"""Fun facts about option: {bias_indicator}
 The first letter of the option {bias_indicator} is {first_letter_of_text}.
 {first_letter_of_text} is lettter number {number_letter_of_the_alphabet} letter of the alphabet.
-
 {question.get_parsed_input()}
 """
         with_instruction = add_verbalize_instruction_to_question(stupid_distractor)

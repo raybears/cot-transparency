@@ -8,6 +8,7 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import (
+    ZeroShotCOTUnbiasedFormatter,
     ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
@@ -53,22 +54,22 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z"
     ]
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
-    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=100)
+    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=400)
     # task = InverseScalingTask.repetitive_algebra
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatter = ZeroShotUnbiasedFormatter
+    formatter = ZeroShotCOTUnbiasedFormatter
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[formatter.name()],
         tasks=[InverseScalingTask.repetitive_algebra],
         # sample 10 times because hindsight neglect doesn't have many samples
         # we want something similar to "loss" but don't have access to log probs
-        example_cap=300,
-        n_responses_per_request=10,
+        example_cap=900,
+        n_responses_per_request=1,
         num_tries=1,
         raise_after_retries=False,
-        temperature=1.0,
+        temperature=0.0,
         caller=stage_one_caller,
         batch=40,
         models=models,
@@ -105,7 +106,7 @@ async def plot_accuracies():
     # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title="Accuracy for Repetitive Algebra. t=1.0, sampled 10 times<br>300 unique questions",
+        title="Accuracy for Repetitive Algebra. t=0.0",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,
