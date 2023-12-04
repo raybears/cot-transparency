@@ -67,7 +67,7 @@ async def eval_when_done(model: str) -> None:
 
 async def train_and_run() -> None:
     # # FAR
-    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
     keep_these = [
         RandomBiasedFormatter,
@@ -95,7 +95,7 @@ async def train_and_run() -> None:
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="(more RandomStuff, instruct = 1.0)",
+        prepend_notes="(RETRAIN VARIANTS so that that are sycophancy only, instruct = 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
         cot_seed="1235",
         non_cot_seed="123455",
