@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+import re
 from typing import Optional, Sequence
 
 from pydantic import BaseModel
@@ -79,25 +80,20 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
                 output.append(
                     ChatMessage(
                         role=MessageRole.assistant,
-                        content="The answer given in the <text> is (",
+                        content=f"The answer given in the <text> is ({example.parsed_answer})",
                     )
                 )
-                output.append(ChatMessage(role=MessageRole.assistant, content=example.parsed_answer + ")"))
-
             original_options = original_question._get_options_with_indicator(original_question.get_options())
             actual_question = (
                 "<options>\n" + original_options + "\n</options>\n<text>\n" + model_response.strip() + "\n</text>"
             )
             output.append(ChatMessage(role=MessageRole.user, content=actual_question))
-            output.append(
-                ChatMessage(
-                    role=MessageRole.assistant,
-                    content="The answer given in the <text> is (",
-                )
-            )
         return output
 
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        match = re.match(r"<text> is:? ?\(?(.+)\)?", response)
+        if match is not None:
+            return match.group(1)
         extractor = FindIndicatorAtStartOfResponse(question.get_options(), input_format=question.data_format)
         return extractor.extract(response)

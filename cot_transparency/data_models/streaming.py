@@ -19,6 +19,7 @@ class StreamingTaskSpec(BaseTaskSpec):
     task_name: str
     data_example: dict[str, Any] = {}
     inference_config: OpenaiInferenceConfig
+    paraphrasing_formatter_name: str | None = None
 
     def get_task_name(self) -> str:
         return self.task_name
@@ -48,13 +49,15 @@ class StreamingTaskSpec(BaseTaskSpec):
         self,
         *,
         messages: Sequence[ChatMessage] | Unset = _UNSET,
+        inference_config: OpenaiInferenceConfig | Unset = _UNSET,
+        formatter_name: str | Unset = _UNSET,
     ) -> "StreamingTaskSpec":
         return StreamingTaskSpec(
             messages=messages if not isinstance(messages, Unset) else self.messages,
-            formatter_name=self.formatter_name,
+            formatter_name=formatter_name if not isinstance(formatter_name, Unset) else self.formatter_name,
             task_name=self.task_name,
             data_example=self.data_example,
-            inference_config=self.inference_config,
+            inference_config=inference_config if not isinstance(inference_config, Unset) else self.inference_config,
         )
 
 
@@ -84,6 +87,10 @@ class StreamingTaskOutput(BaseTaskOutput):
             task_spec=self.task_spec,
             inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
         )
+
+    @property
+    def is_correct(self) -> bool:
+        return self.inference_output.parsed_response == self.get_task_spec().get_data_example_obj().ground_truth
 
 
 class ParaphrasingOutput(StreamingTaskOutput):

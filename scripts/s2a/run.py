@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
-from cot_transparency.data_models.data import COT_TRAINING_TASKS
+from cot_transparency.data_models.data import COT_TESTING_TASKS, COT_TRAINING_TASKS
 from cot_transparency.data_models.example_base import DummyDataExample
 from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
 from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, convert_slist_to_df
@@ -19,8 +19,10 @@ from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatt
 from cot_transparency.formatters.more_biases.gsm import AskGSMQuestion, GSMAnswerFinder
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AddSpuriousInfoFormatter,
+    AddSpuriousInfoFormatterStrong,
 )
 from cot_transparency.data_models.streaming import StreamingTaskOutput
+from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from cot_transparency.streaming.tasks import call_model_with_task_spec
 from cot_transparency.streaming.tasks import data_to_task_spec
@@ -37,10 +39,13 @@ GSM_DIR = f"{EXP_DIR}/gsm"
 
 MODEL_NAME_MAP = {
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv": "Intervention",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNFqGeq": "Paraphrasing",
-    "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "All Zero-Shot",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi": "Paraphrasing\n+ All Zero-Shot",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNFqGeq": "Paraphrasing",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "All Zero-Shot",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi": "Paraphrasing\n+ All Zero-Shot",
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8QRaqhBm": "Middle",
+    # "ft:gpt-3.5-turbo-0613:far-ai::8QdJtq3b": "Middle, All Zero-Shot split .",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Qbpgb0B": "Middle, RBF split on .",
     "gpt-3.5-turbo-0613": "GPT-3.5-Turbo",
 }
 
@@ -49,6 +54,7 @@ def reformulate_questions_for_asking(
     x: StreamingTaskOutput,
     configs: Sequence[OpenaiInferenceConfig],
     formatters: Sequence[Type[StageOneFormatter]] = [ZeroShotCOTUnbiasedFormatter],
+    include_original: bool = True,
 ) -> Sequence[StreamingTaskSpec]:
     specs = []
     paraphrased_as_data_example = DummyDataExample(parsed_input=assert_not_none(x.inference_output.parsed_response))
@@ -61,20 +67,28 @@ def reformulate_questions_for_asking(
                 data_example=x.task_spec.data_example,
                 inference_config=config,
                 task_name=x.task_spec.task_name,
+                paraphrasing_formatter_name=x.get_task_spec().formatter_name,
             )
             specs.append(ts)
+            if include_original:
+                ts = x.get_task_spec()
+                messages = f.format_example(ts.get_data_example_obj(), model=config.model)
+                ts = ts.copy_update(inference_config=config, messages=messages, formatter_name=f.name())
+                specs.append(ts)
+
     return specs
 
 
 class CotTasks(str, Enum):
     training = "training"
     testing = "testing"
+    good_stuff = "good_stuf"
 
 
 async def run_pipeline(
     exp_dir: str = EVAL_DIR,
     example_cap: int = 1000,
-    tasks: CotTasks = CotTasks.testing,
+    tasks: CotTasks = CotTasks.good_stuff,
     batch_size: int = 50,
     eval_temp: float = 0.0,
     models_to_evaluate: Sequence[str] = list(MODEL_NAME_MAP.keys()),
@@ -88,12 +102,14 @@ async def run_pipeline(
     answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
         f"{cache_dir}/answer_parsing_cache", write_every_n=2
     )
-    answer_parsing_config = config_from_default(model="claude-2")
+    answer_parsing_config = config_from_default(model="gpt-4")
 
     match tasks:
         case CotTasks.training:
             task_list = COT_TRAINING_TASKS
         case CotTasks.testing:
+            task_list = COT_TESTING_TASKS
+        case CotTasks.good_stuff:
             task_list = ["mmlu"]
 
     data_examples = get_examples_for_tasks(task_list, example_cap)
@@ -111,7 +127,6 @@ async def run_pipeline(
     pipeline = (
         Observable.from_iterable(task_specs)
         .map_blocking_par(
-            # We retry to make sure we get 10 paraphrasings per question, sometimes gpt gives fewer
             lambda x: call_model_with_task_spec(x, generation_caller, num_tries=20, should_raise=True),
             max_par=batch_size,
         )
@@ -131,6 +146,7 @@ async def run_pipeline(
     results_dir = Path(exp_dir) / "results"
     results = await pipeline.to_slist()
     save_per_model_results(results, results_dir)
+    write_jsonl_file_from_basemodel(results_dir / "results.jsonl", results)
 
     return results_dir
 
@@ -171,40 +187,104 @@ async def run_gsm(
     )
     res = await obs.to_slist()
     save_per_model_results(res, exp_dir + "/results")
+    write_jsonl_file_from_basemodel(exp_dir + "/results.jsonl", res)
 
 
-class RawGroundTruthExtractor(BaseExtractor[TaskOutput]):
-    column_names = [
-        "raw_ground_truth",
-    ]
+class RawGroundTruthExtractor(BaseExtractor[BaseTaskOutput]):
+    column_names = ["raw_ground_truth", "paraphrasing_formatter_name", "biased_ans", "label"]
 
     def extract(self, output: BaseTaskOutput) -> Sequence[str]:
-        return [output.get_task_spec().get_data_example_obj()._ground_truth]
+        if isinstance(output, StreamingTaskOutput):
+            para_formatter_name = output.get_task_spec().paraphrasing_formatter_name
+            if para_formatter_name is None:
+                para_formatter_name = "Original"
+            label = "none"
+
+        else:
+            para_formatter_name = "Original"
+            label = "blank label"
+
+        return [
+            output.get_task_spec().get_data_example_obj()._ground_truth,
+            para_formatter_name,
+            output.get_task_spec().get_data_example_obj().biased_ans,
+            label,
+        ]
 
 
-def plot(exp_dir: str = GSM_DIR):
+def plot(
+    exp_dir: str = GSM_DIR,
+    hue: str = "task_name",
+    filter_bias_on_incorrect: bool = False,
+    filter_out_nones: bool = False,
+):
+    print(hue)
     results_dir = f"{exp_dir}/results"
-    outputs = load_per_model_results(Path(results_dir), TaskOutput)
+    if "gsm" in exp_dir:
+        model = TaskOutput
+    else:
+        model = StreamingTaskOutput
+
+    outputs = load_per_model_results(Path(results_dir), model, model_names=list(MODEL_NAME_MAP.keys()))
+
+    if filter_bias_on_incorrect:
+        outputs = outputs.filter(
+            lambda x: x.get_task_spec().get_data_example_obj().biased_ans
+            != x.get_task_spec().get_data_example_obj().ground_truth
+        )
 
     df = convert_slist_to_df(outputs, [BasicExtractor(), RawGroundTruthExtractor()])
-    df["accuracy"] = df["parsed_response"] == df["raw_ground_truth"]
-    df["model"] = df["model"].map(lambda x: MODEL_NAME_MAP[x])
 
-    # count number of Nones by each type
-    print(df.groupby(["model", "task_name"]).apply(lambda x: (x.parsed_response == "None").sum()))
+    df.parsed_response.fillna("None", inplace=True)
+    df.parsed_response = df.parsed_response.astype(str)
 
     # drop where they were none
-    df = df[df.parsed_response != "None"]
+    if filter_out_nones:
+        df = df[df.parsed_response != "None"]
+
+    if "gsm" in exp_dir:
+        df["accuracy"] = (df["parsed_response"] == df["raw_ground_truth"]) * 1.0
+    else:
+        df["accuracy"] = (df["parsed_response"] == df["ground_truth"]) * 1.0
+
+    df["is_biased"] = (df["parsed_response"] == df["biased_ans"]) * 1.0
+    df["model"] = df["model"].map(lambda x: MODEL_NAME_MAP[x])  # type: ignore
+
+    # count number of Nones by each type
+    print("\nNone counts")
+    print(df.groupby(["model", "task_name"]).apply(lambda x: (x.parsed_response == "None").sum()))
+
+    breakpoint()
+
+    name_map = {
+        "accuracy": "% Accuracy",
+        "model": "Model",
+        "is_biased": "% Biased",
+        "paraphrasing_formatter_name": "Question Type",
+    }
 
     catplot(
         data=df,
         x="model",
         y="accuracy",
-        hue="task_name",
-        name_map={"accuracy": "% Accuracy", "model": "Model"},
+        hue=hue,
+        col="label",
         y_scale=100,
+        name_map=name_map,
         font_scale=1.5,
     )
+
+    if "gsm" not in exp_dir:
+        df2 = df[df["paraphrasing_formatter_name"] != "Original"]
+        catplot(
+            data=df2,
+            x="model",
+            y="is_biased",
+            hue=hue,
+            name_map=name_map,
+            y_scale=100,
+            font_scale=1.5,
+        )
 
     plt.show()
 

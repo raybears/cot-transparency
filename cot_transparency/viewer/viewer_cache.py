@@ -7,6 +7,7 @@ from slist import Slist
 
 from cot_transparency.apis.base import FileCacheRow
 from cot_transparency.apis.openai.finetune import FinetuneSample
+from cot_transparency.data_models.data.gsm import GSMExample
 from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
 from cot_transparency.data_models.models import BaseTaskOutput, StageTwoTaskOutput, TaskOutput
 from cot_transparency.data_models.streaming import StreamingTaskOutput
@@ -113,17 +114,25 @@ def match_bias_on_where(task: BaseTaskOutput, bias_on_where: TypeOfAnswerOption)
 
 
 def match_model_result(task: BaseTaskOutput, answer_result: TypeOfAnswerOption) -> bool:
-    if isinstance(task, TaskOutput):
+    try:
+        obj = task.get_task_spec().get_data_example_obj()
         match answer_result:
             case TypeOfAnswerOption.wrong_answer:
+                if isinstance(obj, GSMExample):
+                    return not task.inference_output.parsed_response == obj._ground_truth
                 return not task.is_correct
             case TypeOfAnswerOption.correct_answer:
+                if isinstance(obj, GSMExample):
+                    return task.inference_output.parsed_response == obj._ground_truth
                 return task.is_correct
             case TypeOfAnswerOption.anything:
                 return True
             case TypeOfAnswerOption.not_parseable:
                 return task.inference_output.parsed_response is None
-    else:
+
+    except Exception as e:
+        print("Error getting data example obj")
+        print(e)
         return True
 
 
