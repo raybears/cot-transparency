@@ -215,6 +215,7 @@ def task_function(
     caller: ModelCaller = ...,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
     num_tries: int = 10,
+    should_log_failures: bool = True,
 ) -> Sequence[TaskOutput]:
     ...
 
@@ -226,6 +227,7 @@ def task_function(
     caller: ModelCaller = ...,
     raise_on: Union[Literal["all"], Literal["any"]] = "any",
     num_tries: int = 10,
+    should_log_failures: bool = True,
 ) -> Sequence[StageTwoTaskOutput]:
     ...
 
@@ -237,6 +239,7 @@ def task_function(
     caller: ModelCaller = UniversalCaller(),
     raise_on: Literal["all"] | Literal["any"] = "any",
     num_tries: int = 10,
+    should_log_failures: bool = True,
 ) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
     ...
 
@@ -247,6 +250,7 @@ def task_function(
     caller: ModelCaller = UniversalCaller(),
     raise_on: Literal["all"] | Literal["any"] = "any",
     num_tries: int = 10,
+    should_log_failures: bool = True,
 ) -> Sequence[TaskOutput] | Sequence[StageTwoTaskOutput]:
     formatter = name_to_formatter(task.formatter_name)
     if num_tries < 1:
@@ -260,6 +264,7 @@ def task_function(
             tries=num_tries,
             raise_on=raise_on,
             caller=caller,
+            should_log_failures=should_log_failures,
         )
         if raise_after_retries
         else call_model_and_catch(
@@ -269,6 +274,7 @@ def task_function(
             tries=num_tries,
             raise_on=raise_on,
             caller=caller,
+            should_log_failures=should_log_failures,
         )
     )
 

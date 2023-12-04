@@ -1,5 +1,5 @@
 import asyncio
-from typing import Sequence, TypeVar
+from typing import Sequence, Type, TypeVar
 
 from grugstream import Observable
 from slist import Slist
@@ -13,13 +13,19 @@ from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.formatters.auto_answer_parsing import GetAnswerGivenFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.data_models.streaming import StreamingTaskSpec
+from cot_transparency.formatters.more_biases.gsm import GSMAnswerFinder
 from cot_transparency.streaming.tasks import call_model_with_task_spec
 from cot_transparency.streaming.tasks import data_to_task_spec
 
 A = TypeVar("A", bound=BaseTaskOutput)
 
 
-def answer_finding_step(prev_output: A, caller: CachedPerModelCaller, config: OpenaiInferenceConfig) -> A:
+def answer_finding_step(
+    prev_output: A,
+    caller: CachedPerModelCaller,
+    config: OpenaiInferenceConfig,
+    answer_finding_formatter: Type[GetAnswerGivenFormatter | GSMAnswerFinder] = GetAnswerGivenFormatter,
+) -> A:
     """
     For any outputs that were not find in the previous step, pass the raw response to another model model and
     ask it to find the answer in the response.
@@ -34,7 +40,6 @@ def answer_finding_step(prev_output: A, caller: CachedPerModelCaller, config: Op
         model_response = output.raw_response
 
         # unpack the results from the previous step
-        answer_finding_formatter = GetAnswerGivenFormatter
         messages = answer_finding_formatter.format_example(
             model_response=model_response,
             original_question=prev_output.get_task_spec().get_data_example_obj(),
