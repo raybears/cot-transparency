@@ -10,8 +10,14 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
 from cot_transparency.formatters.more_biases.random_bias_formatter import (
+    RandomAgainstBiasedFormatter,
+    RandomAgainstBiasedNoCOTFormatter,
+    RandomAgainstBiasedQuotedNoCOTFormatter,
+    RandomAgainstQuotedBiasedFormatter,
     RandomBiasedFormatter,
     RandomBiasedNoCOTFormatter,
+    RandomBiasedQuotedFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
 )
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
@@ -63,12 +69,17 @@ async def train_and_run() -> None:
     # # FAR
     openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
-    pair = BiasCotNonCot(
-        name="Model generated sycophancy", cot=RandomBiasedFormatter, non_cot=RandomBiasedNoCOTFormatter
-    )
-    # another_pair =  BiasCotNonCot(name="Zero Shot Sycophancy", cot=ZeroShotCOTSycophancyFormatter, non_cot=ZeroShotSycophancyFormatter)
-    no_nones = Slist(pair.as_list()).flatten_option()
-    all_training_formatters.filter(lambda x: x not in no_nones)
+    keep_these = [
+        RandomBiasedFormatter,
+        RandomBiasedNoCOTFormatter,
+        RandomBiasedQuotedFormatter,
+        RandomBiasedQuotedNoCOTFormatter,
+        RandomAgainstBiasedFormatter,
+        RandomAgainstBiasedNoCOTFormatter,
+        RandomAgainstQuotedBiasedFormatter,
+        RandomAgainstBiasedQuotedNoCOTFormatter,
+        ]
+    exclude = all_training_formatters.filter(lambda x: x not in keep_these)
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
@@ -77,14 +88,14 @@ async def train_and_run() -> None:
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
-            n_formats_per_question=1, formatter_options=FormatterOptions.zero_shot, exclude_formatters=[]
+            n_formats_per_question=1, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
-        ask_to_validate_training=True,
+        ask_to_validate_training=False,
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="(better splits, zeroshot instruct = 1.0)",
+        prepend_notes="(more RandomStuff, instruct = 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
         cot_seed="1235",
         non_cot_seed="123455",
