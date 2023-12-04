@@ -183,6 +183,10 @@ class BaseTaskOutput(HashableBaseModel, ABC):
     ) -> Self:
         raise NotImplementedError
 
+    def update_raw_response(self, raw_response: str) -> Self:
+        new_output = ModelOutput(raw_response=raw_response, parsed_response=self.inference_output.parsed_response)
+        return self.copy_update(inference_output=new_output)
+
     def update_parsed_response(self, parsed_response: str | None) -> Self:
         new_output = ModelOutput(raw_response=self.inference_output.raw_response, parsed_response=parsed_response)
         return self.copy_update(inference_output=new_output)

@@ -112,7 +112,7 @@ async def run_pipeline(
     exp_dir: str = EVAL_DIR,
     example_cap: int = 200,
     tasks: CotTasks = CotTasks.testing,
-    batch_size: int = 40,
+    batch_size: int = 20,
     eval_temp: float = 0.0,
     models_to_evaluate: Sequence[str] = SWEEPS_DB.all_model_names,
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatter2],
@@ -443,21 +443,21 @@ def plot_scaling_curves(
 
 
 if __name__ == "__main__":
-    import asyncio
 
     asyncio.run(
         run_pipeline(
-            example_cap=100,
+            example_cap=50,
             models_to_evaluate=[
                 "gpt-3.5-turbo-0613",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8RqwhLli",  # Trained on James' paraphrasings, instruct prop =1
-                "ft:gpt-3.5-turbo-0613:far-ai::8Rs3m3rC",  # Trained on James' paraphrasings, instruct prop =0.1
+                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8RqwhLli",  # Trained on James' paraphrasings, instruct prop =1
+                # "ft:gpt-3.5-turbo-0613:far-ai::8Rs3m3rC",  # Trained on James' paraphrasings, instruct prop =0.1
+                "ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8QAZkGMS",  # 100k control
                 # "ft:gpt-3.5-turbo-0613:far-ai::8QBHcL7Q",  # 100k intervention
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # Model generated I think answer is (x) 10k
             ],
             paraphrasing_formatters=[GenerateParaphrasingsJames],
-            tasks=CotTasks.training,
+            tasks=CotTasks.testing,
             eval_temp=1.0,
         )
     )

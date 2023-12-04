@@ -1494,7 +1494,7 @@ class RephraseCOTAfterParaphrasingSampler(FormatSampler):
 
         n_unique_cots = math.ceil(n / self.n_formats_per_question)
         print("using n_unique_cots", n_unique_cots)
-        fuzzy_unique = int(n_unique_cots * 1.1)
+        fuzzy_unique = int(n_unique_cots * 1.2)
 
         task_sample_map: Mapping[str, Sequence[BaseTaskOutput]] = (
             read_task_sample_map_cot()
@@ -1522,9 +1522,11 @@ class RephraseCOTAfterParaphrasingSampler(FormatSampler):
                     )
                 )
                 .flatten_list()
+                .map(parse_responses)
+                # Need to filter out the ones that failed
+                .filter(lambda output: output.inference_output.parsed_response is not None)
                 .take(n_unique_cots)
                 # extract the paraphrasings
-                .map(parse_responses)
                 .tqdm(tqdm_bar=tqdm(total=n_unique_cots, desc="Paraphrasing"))
             )
             pipeline_paraphrased_cot = (
@@ -1541,7 +1543,10 @@ class RephraseCOTAfterParaphrasingSampler(FormatSampler):
                         task_sample_map=task_sample_map,
                         n_formats_per_question=self.n_formats_per_question,
                     )
+                    if use_formatters == "non_cot"
+                    else assert_should_not_happen()
                 )
+                .tqdm(tqdm_bar=tqdm(total=n_unique_cots, desc="Paraphrasing COT"))
                 .flatten_list()
                 .to_slist()
             )
@@ -1637,15 +1642,17 @@ Do not mention the final answer first, follow the flow of your previous response
         )
         new_messages = [first_message, second_message, third_message]
         # now call the model
+        # This must not be gpt-4 otherwise you are cheating, you need to use the same model that you used to generate the paraphrasing
         paraphrased_cot = caller.call(
             messages=new_messages,
             config=OpenaiInferenceConfig(model="gpt-3.5-turbo-0613", temperature=0.0, max_tokens=1500, top_p=0.0),
         ).single_response
+        # print(f"Got paraphrased cot {paraphrased_cot}")
         # replace the unbiased question with the paraphrased question
         formatted = ZeroShotCOTUnbiasedFormatter.format_example(DummyDataExample(parsed_input=paraphrased_qn))
-        paraphrased_cot_task = retrieved_samples.update_messages_in_task_spec(
+        paraphrased_cot_task: BaseTaskOutput = retrieved_samples.update_messages_in_task_spec(
             messages=formatted
-        ).update_parsed_response(parsed_response=paraphrased_cot)
+        ).update_raw_response(raw_response=paraphrased_cot)
         output.append(paraphrased_cot_task)
 
     return output
