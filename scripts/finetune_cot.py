@@ -1505,8 +1505,8 @@ class RephraseCOTAfterParaphrasingSampler(FormatSampler):
         )
 
         # First paraphrase the questions
-        async def run_pipeline(tasks: Sequence[BaseTaskOutput]) -> Slist[ParaphrasingOutput]:
-            pipeline = (
+        async def run_pipeline(tasks: Sequence[BaseTaskOutput]) -> Slist[BaseTaskOutput]:
+            pipeline: Observable[ParaphrasingOutput] = (
                 Observable.from_iterable(tasks)
                 # Each task produces 10 paraphrasings, so you don't need to paraphrase all of them
                 # Use a fuzzy number because sometimes it fails
@@ -1526,38 +1526,34 @@ class RephraseCOTAfterParaphrasingSampler(FormatSampler):
                 # extract the paraphrasings
                 .map(parse_responses)
                 .tqdm(tqdm_bar=tqdm(total=n_unique_cots, desc="Paraphrasing"))
-            ).to_slist()
-            return await pipeline
+            )
+            pipeline_paraphrased_cot = (
+                pipeline.map_blocking_par(
+                    lambda x: get_unbiased_using_paraphrased_and_rephrase_cot(
+                        paraphrasing=x,
+                        task_sample_map=task_sample_map,
+                        n_formats_per_question=self.n_formats_per_question,
+                        caller=model_caller,
+                    )
+                    if use_formatters == "cot"
+                    else get_unbiased_using_paraphrased_non_cot(
+                        paraphrasing=x,
+                        task_sample_map=task_sample_map,
+                        n_formats_per_question=self.n_formats_per_question,
+                    )
+                )
+                .flatten_list()
+                .to_slist()
+            )
+            return await pipeline_paraphrased_cot
 
         paraphrased_results = asyncio.run(run_pipeline(tasks))
         print(f"Number of paraphrased results: {len(paraphrased_results)}")
         model_caller.save_cache()
 
-        output = Slist[BaseTaskOutput]()
+        assert len(paraphrased_results) == n, f"len(output)={len(paraphrased_results)}, n={n}"
 
-        for task in paraphrased_results:
-            limited_qns = task.paraphrased_questions[: self.n_formats_per_question]
-            question: ParaphrasedQuestion
-            for question in limited_qns:
-                # retrieve a random unbiased sample, so that we can use the unbiased completion
-                paraphrased_qn = question.paraphrased
-                retrieved_samples: BaseTaskOutput = (
-                    Slist(task_sample_map[task.get_task_spec().get_task_hash()])
-                    .shuffle(seed=paraphrased_qn)
-                    .first_or_raise()
-                )
-                # now you want to use the paraphrased (biased) question on that sample
-                current_messages = retrieved_samples.get_task_spec().messages
-                # replace the unbiased question with the paraphrased question
-                new_messages = [ChatMessage(role=MessageRole.user, content=paraphrased_qn)] + list(current_messages[1:])
-
-                new_task = retrieved_samples.update_messages_in_task_spec(messages=new_messages)
-                output.append(new_task)
-
-        output = output.take(n)
-        assert len(output) == n, f"len(output)={len(output)}, n={n}"
-
-        return output
+        return paraphrased_results
 
 
 def get_unbiased_using_paraphrased_non_cot(
@@ -1647,10 +1643,9 @@ Do not mention the final answer first, follow the flow of your previous response
         ).single_response
         # replace the unbiased question with the paraphrased question
         formatted = ZeroShotCOTUnbiasedFormatter.format_example(DummyDataExample(parsed_input=paraphrased_qn))
-        paraphrased_cot_task = retrieved_samples.update_messages_in_task_spec(messages=formatted).update_parsed_response(
-            parsed_response=paraphrased_cot
-        )
+        paraphrased_cot_task = retrieved_samples.update_messages_in_task_spec(
+            messages=formatted
+        ).update_parsed_response(parsed_response=paraphrased_cot)
         output.append(paraphrased_cot_task)
-        
 
     return output
