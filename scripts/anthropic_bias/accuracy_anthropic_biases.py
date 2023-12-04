@@ -12,14 +12,8 @@ from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.core.unbiased import (
-    ZeroShotCOTUnbiasedFormatter,
-    ZeroShotCOTUnbiasedWithNoneFormatter,
-    ZeroShotUnbiasedFormatter,
-)
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT, add_verbalize_instruction_to_question
-from cot_transparency.formatters.more_biases.random_bias_formatter import RandomBiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.utils.plots import catplot

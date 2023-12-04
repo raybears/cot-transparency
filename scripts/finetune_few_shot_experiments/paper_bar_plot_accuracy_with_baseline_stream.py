@@ -6,23 +6,11 @@ from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import InitialWrongMoreClearFormatter
 from cot_transparency.formatters.more_biases.distractor_fact import FirstLetterDistractor
-from cot_transparency.formatters.more_biases.user_wrong_cot import ReadOnInternetCotFormatter
-from cot_transparency.formatters.more_biases.wrong_few_shot import (
-    WrongFewShotAssistantSideFormatter,
-    WrongFewShotIgnoreMistakesBiasedFormatter,
-)
-from cot_transparency.formatters.verbalize.formatters import (
-    BLACK_SQUARE,
-    BlackSquareBiasedFormatter,
-    DoubleSpacedBiasedFormatter,
-)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
 from scripts.intervention_investigation import DottedLine, bar_plot, plot_for_intervention
-from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
 
 
@@ -33,7 +21,7 @@ async def plot_accuracies():
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
         # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi",  # paraphrasing + zeroshot        
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi",  # paraphrasing + zeroshot
         # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # only i think answer is (x) 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ", # 10k bs=16, lr=1.6 (control)
@@ -94,7 +82,7 @@ async def plot_accuracies():
 
     bar_plot(
         plot_infos=plot_dots,
-        title=f"Accuracy on mmlu, truthfulqa, logiqa, hellaswag<br>Distractor argument<br>User states that they read a particular argument somewhere",
+        title="Accuracy on mmlu, truthfulqa, logiqa, hellaswag<br>Distractor argument<br>User states that they read a particular argument somewhere",
         dotted_line=DottedLine(
             name="Baseline unbiased accuracy", value=baseline_unbiased_acc.acc.accuracy, color="red"
         ),

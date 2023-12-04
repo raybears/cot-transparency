@@ -103,7 +103,7 @@ Please give me {n} paraphrasing covering a variety of styles."""  # noqa: E501
         returns list(tuple(question, list(tags)))
         """
         return match_regex(response)[:10]
-    
+
 
 class GenerateParaphrasingsJames(StageOneFormatter):
     @staticmethod

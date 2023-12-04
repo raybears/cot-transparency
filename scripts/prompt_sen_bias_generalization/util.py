@@ -64,8 +64,6 @@ def accuracy_per_model(results: Sequence[StreamingTaskOutput | TaskOutput]):
         print(f"{model}: {agreement=:2f} ({len(outputs)} examples)")
         print("==================")
 
-    
-
 
 def load_per_model_results(
     results_dir: Path | str, basemodel: Type[GenericBaseModel], model_names: Optional[Sequence[str]] = None

@@ -5,10 +5,9 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import InitialWrongMoreClearFormatter
-from cot_transparency.formatters.more_biases.distractor_fact import FirstLetterDistractor
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotAssistantSideFormatter, WrongFewShotIgnoreMistakesBiasedFormatter
-from cot_transparency.formatters.verbalize.formatters import BLACK_SQUARE, BlackSquareBiasedFormatter, DoubleSpacedBiasedFormatter, EvilBlankSpaceFormatter, ExtraFullStopBiasedFormatter, FullStopOnCorrectAnswer
+from cot_transparency.formatters.verbalize.formatters import (
+    FullStopOnCorrectAnswer,
+)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -77,7 +76,7 @@ async def plot_accuracies():
 
     bar_plot(
         plot_infos=plot_dots,
-        title=f"% matching bias on mmlu, truthfulqa, logiqa, hellaswag<br>Distractor information about letters of the alpabet for an option",
+        title="% matching bias on mmlu, truthfulqa, logiqa, hellaswag<br>Distractor information about letters of the alpabet for an option",
         dotted_line=DottedLine(name="Baseline unbiased chance", value=baseline_unbiased_prop, color="red"),
         y_axis_title="% matching bias",
         name_override=PERCENTAGE_CHANGE_NAME_MAP,

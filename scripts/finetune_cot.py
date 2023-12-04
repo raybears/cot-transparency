@@ -1388,8 +1388,9 @@ class DifferentSamplesOnTheFlyParaphrasinSampler(FormatSampler):
         )
 
         for task in paraphrased_results:
+            limited_qns = task.paraphrased_questions[: self.n_formats_per_question]
             question: ParaphrasedQuestion
-            for question in task.paraphrased_questions:
+            for question in limited_qns:
                 # retrieve a random unbiased sample, so that we can use the unbiased completion
                 paraphrased_qn = question.paraphrased
                 retrieved_samples: BaseTaskOutput = (

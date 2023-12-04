@@ -235,8 +235,9 @@ class CachedPerModelCaller(CachedCaller):
         self,
         messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
+        try_number: int = 1,
     ) -> InferenceResponse:
-        return self.get_specific_caller(config.model).call(messages, config)
+        return self.get_specific_caller(config.model).call(messages, config, try_number=try_number)
 
     def invalidate_cache_line(self, messages: Sequence[ChatMessage], config: OpenaiInferenceConfig) -> None:
         specific_caller = self.get_specific_caller(config.model)

@@ -5,7 +5,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Sequence, Type
 
-import fire
 import pandas as pd
 from grugstream import Observable
 from matplotlib import pyplot as plt
@@ -53,7 +52,6 @@ from scripts.prompt_sen_bias_generalization.util import (
     accuracy_per_model,
     lineplot_util,
     load_per_model_results,
-    save_per_model_results,
 )
 from scripts.prompt_sen_bias_generalization.util import add_point_at_1
 from scripts.utils.plots import catplot
@@ -122,7 +120,9 @@ async def run_pipeline(
 ) -> Path:
     cache_dir = f"{exp_dir}/cache"
 
-    generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=50)
+    paraphrasing_cache_path: str = "data/training_paraphrasings/on_the_fly_paraphrasings_cache.jsonl"
+    # share the cache with the finetuning
+    generation_caller = UniversalCaller().with_file_cache(paraphrasing_cache_path, write_every_n=50)
 
     answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
         f"{cache_dir}/answer_parsing_cache", write_every_n=50
@@ -140,7 +140,7 @@ async def run_pipeline(
         lambda x: data_to_task_spec(
             *x,
             formatters=paraphrasing_formatters,
-            models=[config_from_default(model="gpt-4", max_tokens=6000)],
+            models=[config_from_default(model="gpt-4", max_tokens=4000)],
         )
     ).flatten_list()
 
@@ -185,6 +185,7 @@ async def run_pipeline(
 
     results_dir = Path(exp_dir) / "results"
     results = await pipeline.to_slist()
+    write_jsonl_file_from_basemodel(Path("paraphrased_results.jsonl"), results)
     baseline_formatter = (
         stage_one_stream(
             tasks=task_list,
@@ -203,6 +204,7 @@ async def run_pipeline(
         .tqdm(tqdm_bar=tqdm(total=5 * len(task_specs), desc="Parsing Answers for baseline"))
     )
     baseline_results: Sequence[TaskOutput] = await baseline_formatter.to_slist()
+    # write to jsnol
 
     # run
 
@@ -212,7 +214,6 @@ async def run_pipeline(
 
     print("===BASELINE RESULTS===")
     accuracy_per_model(baseline_results)
-
 
     # save_per_model_results(results, results_dir)
 
@@ -446,15 +447,18 @@ if __name__ == "__main__":
 
     asyncio.run(
         run_pipeline(
-            example_cap=50,
+            example_cap=100,
             models_to_evaluate=[
                 "gpt-3.5-turbo-0613",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8RqwhLli",  # Trained on James' paraphrasings, instruct prop =1
+                "ft:gpt-3.5-turbo-0613:far-ai::8Rs3m3rC",  # Trained on James' paraphrasings, instruct prop =0.1
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8QAZkGMS",  # 100k control
-                "ft:gpt-3.5-turbo-0613:far-ai::8QBHcL7Q",  # 100k intervention
+                # "ft:gpt-3.5-turbo-0613:far-ai::8QBHcL7Q",  # 100k intervention
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # Model generated I think answer is (x) 10k
             ],
             paraphrasing_formatters=[GenerateParaphrasingsJames],
-            eval_temp=1.0
+            tasks=CotTasks.training,
+            eval_temp=1.0,
         )
     )
     # fire.Fire(

@@ -54,7 +54,6 @@ async def plot_accuracies():
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv": "Intervention (Variants of I think answer is (x) only)",
         "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention (All zero shot biases)",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi": "Intervention (All zero shot biases + paraphrasing)",
-
     }
 
     plot_dots: list[PlotInfo] = [

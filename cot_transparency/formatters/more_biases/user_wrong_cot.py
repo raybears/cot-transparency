@@ -38,12 +38,14 @@ The following are my own thoughts so far. What about yours?
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return ZeroShotCOTUnbiasedFormatter.parse_answer(response, question, model)
 
+
 WRONG_COT_TESTING_PATH = pathlib.Path("data/wrong_cot_testing.jsonl")
+
 
 @lru_cache(maxsize=1)
 def load_wrong_cots_mapping() -> dict[str, TaskOutput]:
     read = read_jsonl_file_into_basemodel(WRONG_COT_TESTING_PATH, TaskOutput)
-    return {task.task_spec.get_data_example_obj().get_parsed_input(): task for task in read}    
+    return {task.task_spec.get_data_example_obj().get_parsed_input(): task for task in read}
 
 
 class ReadOnInternetCotFormatter(StageOneFormatter):
@@ -68,7 +70,10 @@ What I read:
 
 The question:
 {parsed_input}"""
-        user_message = add_verbalize_instruction_to_question(new_question) + "Please answer the question, in your opinion as an assistant."
+        user_message = (
+            add_verbalize_instruction_to_question(new_question)
+            + "Please answer the question, in your opinion as an assistant."
+        )
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),

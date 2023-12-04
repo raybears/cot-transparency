@@ -5,20 +5,16 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import InitialWrongMoreClearFormatter
-from cot_transparency.formatters.more_biases.distractor_fact import FirstLetterDistractor
-from cot_transparency.formatters.more_biases.user_wrong_cot import WRONG_COT_TESTING_PATH, ReadOnInternetCotFormatter
-from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotAssistantSideFormatter, WrongFewShotEdStyleFormatter, WrongFewShotIgnoreMistakesBiasedFormatter
-from cot_transparency.formatters.verbalize.formatters import BLACK_SQUARE, BlackSquareBiasedFormatter, DoubleSpacedBiasedFormatter
+from cot_transparency.formatters.more_biases.user_wrong_cot import WRONG_COT_TESTING_PATH
+from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotEdStyleFormatter,
+)
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
 from scripts.intervention_investigation import DottedLine, bar_plot
 from scripts.matching_user_answer import matching_user_answer_plot_info
 from scripts.multi_accuracy import PlotInfo
-
-
 
 
 async def plot_accuracies():
@@ -35,9 +31,9 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ", # 10k bs=16, lr=1.6 (control)
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 10k bs=16, lr=1.6 (ours)
     ]
-    
+
     stage_one_path = Path("experiments/grid_exp")
-    read = read_jsonl_file_into_basemodel(WRONG_COT_TESTING_PATH, TaskOutput)
+    read_jsonl_file_into_basemodel(WRONG_COT_TESTING_PATH, TaskOutput)
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=100)
     formatter = WrongFewShotEdStyleFormatter
     stage_one_obs = stage_one_stream(
@@ -60,7 +56,6 @@ async def plot_accuracies():
     )
     print(grouped_by_task_name)
 
-
     stage_one_caller.save_cache()
 
     # calculate the baseline
@@ -76,7 +71,6 @@ async def plot_accuracies():
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv": "Intervention (Variants of I think answer is (x) only)",
         "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention (All zero shot biases)",
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi": "Intervention (All zero shot biases + paraphrasing)",
-
     }
 
     plot_dots: list[PlotInfo] = [
@@ -99,7 +93,7 @@ async def plot_accuracies():
 
     bar_plot(
         plot_infos=plot_dots,
-        title=f"% matching bias on mmlu, truthfulqa, logiqa, hellaswag",
+        title="% matching bias on mmlu, truthfulqa, logiqa, hellaswag",
         dotted_line=DottedLine(name="Baseline unbiased chance", value=baseline_unbiased_prop, color="red"),
         y_axis_title="% matching bias",
         name_override=PERCENTAGE_CHANGE_NAME_MAP,

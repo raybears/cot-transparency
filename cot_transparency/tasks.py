@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Literal, Sequence, overload, Union
 
 from pydantic import BaseModel
-from cot_transparency.apis.retry import retry
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
@@ -163,7 +162,7 @@ def call_model_and_raise_if_not_suitable(
 ) -> list[ModelOutput]:
     def on_retry():
         pass
-    
+
     try_number = 1
     while try_number <= tries:
         try:

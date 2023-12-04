@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import openai
-from fire import Fire
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
@@ -17,7 +16,6 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
     DataFromOptions,
-    DifferentFormatsPerQuestionSampler,
     FormatterOptions,
     NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
@@ -27,7 +25,6 @@ from scripts.training_formatters import (
     INTERESTING_FORMATTERS,
     TRAINING_COT_FORMATTERS,
     TRAINING_NO_COT_FORMATTERS,
-    TRAINING_COT_FORMATTERS_WITH_UNBIASED,
     BiasCotNonCot,
 )
 
@@ -71,7 +68,7 @@ async def train_and_run() -> None:
     )
     # another_pair =  BiasCotNonCot(name="Zero Shot Sycophancy", cot=ZeroShotCOTSycophancyFormatter, non_cot=ZeroShotSycophancyFormatter)
     no_nones = Slist(pair.as_list()).flatten_option()
-    exclude = all_training_formatters.filter(lambda x: x not in no_nones)
+    all_training_formatters.filter(lambda x: x not in no_nones)
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
@@ -98,4 +95,5 @@ async def train_and_run() -> None:
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(train_and_run())

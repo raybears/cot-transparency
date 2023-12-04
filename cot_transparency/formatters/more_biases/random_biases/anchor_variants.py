@@ -21,6 +21,7 @@ def format_anchor_bias_question(question: str, biased_answer: str) -> str:
 #     lines.insert(random_line, sampled_anchor)
 #     return "\n".join(lines)
 
+
 def format_anchor_bias_random_line_question(question: str, biased_answer: str) -> str:
     qn = question
     sampled_anchor = " " + get_anchor_variants(biased_answer).sample(1, seed=qn).first_or_raise()
@@ -31,7 +32,6 @@ def format_anchor_bias_random_line_question(question: str, biased_answer: str) -
     random_line = random.randint(0, len(lines_before_answer_choices))
     lines.insert(random_line, sampled_anchor)
     return "".join(lines)
-    
 
 
 def get_anchor_variants(biased_answer: str) -> Slist[str]:

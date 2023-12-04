@@ -33,8 +33,8 @@ def question_with_checkmark_bias(example: DataExampleBase, bias_emoji: str = CHE
     # join the first line with the options
     return f"{first_line}\nAnswer choices:\n{options_str}"
 
-def question_with_fullstop_bias(example: DataExampleBase) -> str:
 
+def question_with_fullstop_bias(example: DataExampleBase) -> str:
     parsed_input = example.get_parsed_input()
     # take the lines of the question before "Answer choices"
     first_line: str = parsed_input.split("Answer choices")[0]

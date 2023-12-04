@@ -360,12 +360,12 @@ Answer choices:
 Label: (B)
 ==="""
 
+
 def get_fullstop_biasing_random(seed: str) -> str:
     # splits the few-shot questions into a list of questions by splitting on the '==='
     # then shuffles and joins them back together
     questions = fullstop_biasing.strip().split("===")
     return Slist(questions).filter(lambda qn: len(qn) > 0).shuffle(seed=seed).mk_string(sep="\n===\n")
-
 
 
 checkmark_question = f"""{checkmark_biasing}

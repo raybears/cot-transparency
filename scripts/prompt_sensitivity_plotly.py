@@ -13,9 +13,6 @@ def modal_agreement(tasks: Slist[BaseTaskOutput]) -> float:
     return tasks.filter(lambda task: task.inference_output.parsed_response == answer).length / len(tasks)
 
 
-
-
-
 def modal_is_wrong(tasks: Slist[TaskOutput]) -> bool:
     answer = tasks.map(lambda task: task.first_parsed_response).mode_or_raise()
     distinct_task_hashes = tasks.map(lambda task: task.task_spec.task_hash).distinct_unsafe()

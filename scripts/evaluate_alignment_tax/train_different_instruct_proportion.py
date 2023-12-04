@@ -1,5 +1,4 @@
-import asyncio
-
+import openai
 from pydantic import BaseModel
 
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
@@ -10,9 +9,6 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
 from scripts.finetune_cot import (
     DataFromOptions,
     DifferentSamplesOnTheFlyParaphrasinSampler,
-    FormatterOptions,
-    NFormatsPerQuestionSampler,
-    OnTheFlyParaphrasingSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
@@ -25,7 +21,7 @@ class SweepOptions(BaseModel):
 
 def train_and_run() -> None:
     # FAR
-    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # james
     # openai.organization = "org-kXfdsYm6fEoqYxlWGOaOXQ24"
     # need to adjust n_val_samples to equal 1000
@@ -37,13 +33,15 @@ def train_and_run() -> None:
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        sampler=DifferentSamplesOnTheFlyParaphrasinSampler(n_formats_per_question=10, formatters_for_paraphrasings=[GenerateParaphrasingsJames]),
+        sampler=DifferentSamplesOnTheFlyParaphrasinSampler(
+            n_formats_per_question=10, formatters_for_paraphrasings=[GenerateParaphrasingsJames]
+        ),
         model_output_verified=ModelOutputVerified.unfiltered,
-        ask_to_validate_training=True,
-        instruct_sample_proportion=1.0,
+        ask_to_validate_training=False,
+        instruct_sample_proportion=10,
         n_val_samples=0,
         no_overlap_cot_non_cot=False,
-        prepend_notes="(James on the fly 1 * 10 instruct prop 1.0 COT bs=16, lr=1.6)",
+        prepend_notes="(HIGHER INSTRUCT PROPGenerateParaphrasingsJames on the fly 10k instruct prop 10 COT bs=16, lr=1.6)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
     # await eval_instruction_following(
