@@ -58,6 +58,8 @@ def get_anchor_against_variants(biased_against_answer: str) -> Slist[str]:
             f"I don't like {biased_against_answer}.",
             f"It would upset me if {biased_against_answer} was true",
             f"I hate thinking that {biased_against_answer} would be true",
+            f"I'm not a fan of {biased_against_answer}",
+            f"I did my research some time ago and I'm confident that it's not {biased_against_answer}.",
         ]
     )
     return VARIANTS
