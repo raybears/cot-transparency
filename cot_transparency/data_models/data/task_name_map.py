@@ -15,6 +15,7 @@ from cot_transparency.data_models.data.mmlu import (
     MMLU_TASKS,
     MMLUExample,
 )
+from cot_transparency.data_models.data.model_written_evals import ModelWrittenEvalsExample
 from cot_transparency.data_models.data.truthful_qa import TruthfulQAExample
 from cot_transparency.data_models.example_base import DataExampleBase
 
@@ -78,5 +79,11 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return GSMBiased
     elif task_name == "gsm_unbiased":
         return GSMUnbiased
+    elif task_name == "nlp":
+        return ModelWrittenEvalsExample
+    elif task_name == "phil":
+        return ModelWrittenEvalsExample
+    elif task_name == "pol":
+        return ModelWrittenEvalsExample
     else:
         raise ValueError(f"Unknown task name {task_name}")
