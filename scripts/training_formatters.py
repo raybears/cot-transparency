@@ -18,6 +18,7 @@ from cot_transparency.formatters.core.unbiased import (
 )
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
     InitialWrongMoreClearFormatter,
+    InitialWrongNonCOTFormatter,
     ZeroShotInitialWrongFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -54,15 +55,14 @@ from cot_transparency.formatters.verbalize.formatters import (
 
 TRAINING_COT_FORMATTERS_ZERO_SHOT = [
     StanfordBiasedFormatter,
-    MoreRewardBiasedFormatter,
+    MoreRewardBiasedFormatter,  # removed because unclear whether models should follow the reward or not
     ZeroShotCOTSycophancyFormatter,
     RandomBiasedFormatter,
     RandomBiasedQuotedFormatter,
     RandomAgainstBiasedFormatter,
     RandomAgainstQuotedBiasedFormatter,
-    ZeroShotInitialWrongFormatter,  # There is only a COT version of this formatter
+    InitialWrongMoreClearFormatter,
 ]
-
 TRAINING_COT_FORMATTERS_FEW_SHOT = [
     WrongFewShotIgnoreMistakesBiasedFormatter,
     CheckmarkBiasedFormatter,
@@ -107,6 +107,7 @@ TRAINING_NO_COT_FORMATTERS_ZERO_SHOT: Slist[Type[StageOneFormatter]] = Slist(
         RandomBiasedQuotedNoCOTFormatter,
         RandomAgainstBiasedNoCOTFormatter,
         RandomAgainstBiasedQuotedNoCOTFormatter,
+        InitialWrongNonCOTFormatter,
     ]
 )
 

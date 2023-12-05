@@ -450,7 +450,7 @@ class NFormatsPerQuestionSampler(FormatSampler):
         n_unique_cots = math.ceil(n / n_formats_per_question)
         print("using n_unique_cots", n_unique_cots)
         tasks = tasks.take(n_unique_cots)
-
+        assert len(formatters) >= 1, "Must have at least one formatter"
         output: Slist[BaseTaskOutput] = Slist()
         formatter_counts = Counter()
         for task in tasks:

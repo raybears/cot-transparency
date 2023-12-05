@@ -9,9 +9,15 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
-from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
-    InitialWrongMoreClearFormatter,
-    InitialWrongNonCOTFormatter,
+from cot_transparency.formatters.more_biases.random_bias_formatter import (
+    RandomAgainstBiasedFormatter,
+    RandomAgainstBiasedNoCOTFormatter,
+    RandomAgainstBiasedQuotedNoCOTFormatter,
+    RandomAgainstQuotedBiasedFormatter,
+    RandomBiasedFormatter,
+    RandomBiasedNoCOTFormatter,
+    RandomBiasedQuotedFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
 )
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.finetune_cot import (
@@ -25,6 +31,7 @@ from scripts.training_formatters import (
     INTERESTING_FORMATTERS,
     TRAINING_COT_FORMATTERS,
     TRAINING_NO_COT_FORMATTERS,
+    BiasCotNonCot,
 )
 
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
@@ -63,29 +70,32 @@ async def train_and_run() -> None:
     openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
     keep_these = [
-        InitialWrongMoreClearFormatter,
-        InitialWrongNonCOTFormatter,
-    ]
+        RandomBiasedFormatter,
+        RandomBiasedNoCOTFormatter,
+        RandomBiasedQuotedFormatter,
+        RandomBiasedQuotedNoCOTFormatter,
+        RandomAgainstBiasedFormatter,
+        RandomAgainstBiasedNoCOTFormatter,
+        RandomAgainstQuotedBiasedFormatter,
+        RandomAgainstBiasedQuotedNoCOTFormatter,
+        ]
     exclude = all_training_formatters.filter(lambda x: x not in keep_these)
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=10_000,
+        n_samples=8200,
         post_hoc=False,
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
             n_formats_per_question=1, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
         ),
-        # sampler=DifferentFormatsPerQuestionSampler(
-        #     n_formats_per_question=2, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
-        # ),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        cot_percentage=0.5,  # CHANGE THIS
-        prepend_notes="(Posthoc only 10k, instruct = 1.0)",
+        cot_percentage= 0.5, # CHANGE THIS
+        prepend_notes="(COMPARE TO non-cot FIXED 8.2k sycophancy variants, instruct = 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
         cot_seed="1235",
         non_cot_seed="123455",
