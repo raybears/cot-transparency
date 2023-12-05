@@ -43,6 +43,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import (
+    BlackSquareBiasedFormatter,
     CheckmarkBiasedFormatter,
     CheckmarkNoCOTFormatter,
     CrossBiasedFormatter,
@@ -91,6 +92,7 @@ INTERESTING_FORMATTERS = [
     WrongFewShotIgnoreMistakesBiasedFormatter,
     CheckmarkBiasedFormatter,
     CrossBiasedFormatter,
+    BlackSquareBiasedFormatter,
 ]
 
 TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]
