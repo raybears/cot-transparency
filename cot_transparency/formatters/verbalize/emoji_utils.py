@@ -34,6 +34,26 @@ def question_with_checkmark_bias(example: DataExampleBase, bias_emoji: str = CHE
     return f"{first_line}\nAnswer choices:\n{options_str}"
 
 
+def question_with_fullstop_bias(example: DataExampleBase) -> str:
+    parsed_input = example.get_parsed_input()
+    # take the lines of the question before "Answer choices"
+    first_line: str = parsed_input.split("Answer choices")[0]
+    # You can't trust the multiple choice targets to be e.g. 'empire of the pants', sometimes its '(A)' instead
+    options: list[IndicatorAndOption] = example.get_lettered_options()
+    biased_ans: str = example.biased_ans_variant
+    # remove the right fullstop if it exists
+    options_with_bias: list[str] = [
+        f"({option.indicator}) {option.option.rstrip('.')}."
+        if option.indicator == biased_ans
+        else f"({option.indicator}) {option.option.rstrip('.')}"
+        for option in options
+    ]
+    # join the options with newlines
+    options_str: str = "\n".join(options_with_bias)
+    # join the first line with the options
+    return f"{first_line}\nAnswer choices:\n{options_str}"
+
+
 CROSS_BIAS = "❌"
 
 

@@ -14,8 +14,10 @@ from cot_transparency.formatters.instructions import (
     add_verbalize_instruction_to_question,
 )
 from cot_transparency.formatters.verbalize.emoji_utils import (
+    CHECKMARK_BIAS,
     question_with_checkmark_bias,
     question_with_cross_bias,
+    question_with_fullstop_bias,
 )
 from cot_transparency.formatters.verbalize.prompts import (
     checkmark_answer_message,
@@ -30,6 +32,7 @@ from cot_transparency.formatters.verbalize.prompts import (
     five_words_question_message,
     get_checkmark_biasing_random,
     get_cross_biasing_random,
+    get_fullstop_biasing_random,
     i_think_answer_is_x_answer_message,
     i_think_answer_is_x_biasing,
     i_think_answer_is_x_question_message,
@@ -216,6 +219,144 @@ class CheckmarkBiasedFormatter(StageOneFormatter):
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_message = question_with_checkmark_bias(example=question)
         checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash())
+        with_label_instruction = add_verbalize_instruction_to_question(
+            f"""{checkmark_biasing_random}
+===
+{biased_message}
+"""
+        )
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
+DOUBLE_SPACE = "  "
+
+
+class DoubleSpacedBiasedFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        biased_message = question_with_checkmark_bias(example=question).replace(CHECKMARK_BIAS, DOUBLE_SPACE)
+        checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash()).replace(
+            CHECKMARK_BIAS, DOUBLE_SPACE
+        )
+        with_label_instruction = add_verbalize_instruction_to_question(
+            f"""{checkmark_biasing_random}
+===
+{biased_message}
+"""
+        )
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
+FULL_STOP = "."
+
+
+class ExtraFullStopBiasedFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        biased_message = question_with_checkmark_bias(example=question).replace(CHECKMARK_BIAS, FULL_STOP)
+        checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash()).replace(CHECKMARK_BIAS, FULL_STOP)
+        with_label_instruction = add_verbalize_instruction_to_question(
+            f"""{checkmark_biasing_random}
+===
+{biased_message}
+"""
+        )
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
+class FullStopOnCorrectAnswer(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        biased_message = question_with_fullstop_bias(example=question)
+        checkmark_biasing_random = get_fullstop_biasing_random(seed=question.hash())
+        with_label_instruction = add_verbalize_instruction_to_question(
+            f"""{checkmark_biasing_random}
+===
+{biased_message}
+"""
+        )
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
+EVIL_BLANK_SPACE = " " * 10
+
+
+class EvilBlankSpaceFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        biased_message = question_with_checkmark_bias(example=question).replace(CHECKMARK_BIAS, EVIL_BLANK_SPACE)
+        checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash()).replace(
+            CHECKMARK_BIAS, EVIL_BLANK_SPACE
+        )
+        with_label_instruction = add_verbalize_instruction_to_question(
+            f"""{checkmark_biasing_random}
+===
+{biased_message}
+"""
+        )
+        messages = [
+            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
+BLACK_SQUARE = "⬛"
+
+
+class BlackSquareBiasedFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        biased_message = question_with_checkmark_bias(example=question).replace(CHECKMARK_BIAS, BLACK_SQUARE)
+        checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash()).replace(
+            CHECKMARK_BIAS, BLACK_SQUARE
+        )
         with_label_instruction = add_verbalize_instruction_to_question(
             f"""{checkmark_biasing_random}
 ===
