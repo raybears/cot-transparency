@@ -55,8 +55,8 @@ class AnthropicCaller(ModelCaller):
         self.client = anthropic.Anthropic()
 
     @retry(
-        exceptions=(anthropic.APIError, anthropic.APIConnectionError),
-        tries=3,
+        exceptions=(anthropic.APIError, anthropic.APIConnectionError, anthropic.InternalServerError),
+        tries=10,
         delay=5,
         logger=logger,
     )
@@ -65,6 +65,7 @@ class AnthropicCaller(ModelCaller):
         self,
         messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
+        try_number: int = 1,
     ) -> InferenceResponse:
         assert "claude" in config.model, f"AnthropicCaller can only be used with claude models. Got {config.model}"
         text = AnthropicPrompt(messages=messages).format()

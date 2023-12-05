@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Literal, Sequence, overload, Union
 
 from pydantic import BaseModel
-from cot_transparency.apis.retry import retry
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
@@ -93,6 +92,7 @@ def __call_or_raise(
     config: OpenaiInferenceConfig,
     formatter: type[PromptFormatter],
     caller: ModelCaller,
+    try_number: int,
     raise_on: Literal["all"] | Literal["any"] = "any",
     should_log_failures: bool = True,
 ) -> list[ModelOutput]:
@@ -101,7 +101,7 @@ def __call_or_raise(
     else:
         stage_one_task_spec = task
 
-    raw_responses: InferenceResponse = caller.call(task.messages, config)
+    raw_responses: InferenceResponse = caller.call(task.messages, config, try_number=try_number)
 
     def get_model_output_for_response(
         raw_response: str,
@@ -160,18 +160,27 @@ def call_model_and_raise_if_not_suitable(
     raise_on: Literal["all"] | Literal["any"] = "any",
     should_log_failures: bool = True,
 ) -> list[ModelOutput]:
-    def on_retry():
-        pass
-
-    responses = retry(exceptions=AtLeastOneFailed, tries=tries, on_retry=on_retry, logger=None)(__call_or_raise)(
-        task=task,
-        config=config,
-        formatter=formatter,
-        raise_on=raise_on,
-        caller=caller,
-        should_log_failures=should_log_failures,
-    )
-    return responses
+    # Pass the try number explicitly to the caller
+    # So that a cached caller can use it to decide whether to call the model or not
+    try_number = 1
+    while try_number <= tries:
+        try:
+            responses = __call_or_raise(
+                task=task,
+                config=config,
+                formatter=formatter,
+                raise_on=raise_on,
+                caller=caller,
+                try_number=try_number,
+                should_log_failures=should_log_failures,
+            )
+            return responses
+        except AtLeastOneFailed as e:
+            if try_number == tries:
+                raise e
+            else:
+                try_number += 1
+    raise ValueError("Should never get here")
 
 
 def call_model_and_catch(
