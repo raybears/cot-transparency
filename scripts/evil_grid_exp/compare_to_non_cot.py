@@ -31,7 +31,6 @@ from scripts.training_formatters import (
     INTERESTING_FORMATTERS,
     TRAINING_COT_FORMATTERS,
     TRAINING_NO_COT_FORMATTERS,
-    BiasCotNonCot,
 )
 
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
@@ -78,7 +77,7 @@ async def train_and_run() -> None:
         RandomAgainstBiasedNoCOTFormatter,
         RandomAgainstQuotedBiasedFormatter,
         RandomAgainstBiasedQuotedNoCOTFormatter,
-        ]
+    ]
     exclude = all_training_formatters.filter(lambda x: x not in keep_these)
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
@@ -94,7 +93,7 @@ async def train_and_run() -> None:
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        cot_percentage= 0.5, # CHANGE THIS
+        cot_percentage=0.5,  # CHANGE THIS
         prepend_notes="(COMPARE TO non-cot FIXED 8.2k sycophancy variants, instruct = 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
         cot_seed="1235",

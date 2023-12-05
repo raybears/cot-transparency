@@ -54,9 +54,9 @@ from cot_transparency.formatters.verbalize.formatters import (
 # COT FORMATTERS
 
 TRAINING_COT_FORMATTERS_ZERO_SHOT = [
-    StanfordBiasedFormatter,
-    MoreRewardBiasedFormatter,  # removed because unclear whether models should follow the reward or not
-    ZeroShotCOTSycophancyFormatter,
+    # StanfordBiasedFormatter,
+    # MoreRewardBiasedFormatter,  # removed because unclear whether models should follow the reward or not
+    # ZeroShotCOTSycophancyFormatter,
     RandomBiasedFormatter,
     RandomBiasedQuotedFormatter,
     RandomAgainstBiasedFormatter,
