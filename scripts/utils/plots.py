@@ -103,7 +103,7 @@ def pointplot(
         # col=col,
         y=y,
         # kind=kind,
-        scale=1.2, # type: ignore
+        scale=1.2,  # type: ignore
         **kwargs,
     )  # typing: ignore
     ax.set_xlabel("")

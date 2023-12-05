@@ -70,6 +70,7 @@ class OpenAIChatCaller(ModelCaller):
         self,
         messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
+        try_number: int = 1,
     ) -> InferenceResponse:
         prompt = OpenAIChatPrompt(messages=messages).format()
 
@@ -122,6 +123,7 @@ class OpenAICompletionCaller(ModelCaller):
         self,
         messages: Sequence[ChatMessage],
         config: OpenaiInferenceConfig,
+        try_number: int = 1,
     ) -> InferenceResponse:
         prompt = OpenAICompletionPrompt(messages=messages).format()
         return InferenceResponse(raw_responses=get_openai_completion(config=config, prompt=prompt).completions)
