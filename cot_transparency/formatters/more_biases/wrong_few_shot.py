@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 import random
 from typing import Optional, Sequence
 

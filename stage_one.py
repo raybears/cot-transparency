@@ -188,7 +188,7 @@ def create_stage_one_task_specs(
                     inference_config=config,
                     messages=messages,
                     out_file_path=out_file_path,
-                    ground_truth=new_item.ground_truth,
+                    ground_truth=new_item.ground_truth,  # type: ignore
                     formatter_name=formatter.name(),
                     task_hash=new_item.hash(),
                     biased_ans=new_item.biased_ans,
