@@ -29,7 +29,7 @@ def format_anchor_bias_random_line_question(question: str, biased_answer: str) -
     lines = re.split("([.!?]|\n)", qn)
     lines_before_answer_choices = Slist(lines).take_until_exclusive(lambda x: "Answer choices" in x)
     # generate a random number between 0 and len(lines_before_answer_choices)
-    random_with_seed= random.Random(qn)
+    random_with_seed = random.Random(qn)
     random_line = random_with_seed.randint(0, len(lines_before_answer_choices))
     lines.insert(random_line, sampled_anchor)
     return "".join(lines)

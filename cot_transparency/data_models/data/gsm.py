@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """
 format is like:        
 
@@ -45,7 +46,7 @@ class GSMExample(DataExampleBase):
     def _ground_truth(self) -> str:
         return self.answer
 
-    def ground_truth_idx(self) -> int: # type: ignore
+    def ground_truth_idx(self) -> int:  # type: ignore
         return 0
 
     def get_parsed_input(
