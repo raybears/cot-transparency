@@ -18,6 +18,7 @@ from cot_transparency.formatters.core.unbiased import (
 )
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
     PostHocAnchor,
+    PostHocAnchor2,
     PostHocDontAnchor,
     InitialWrongMoreClearFormatter,
     ZeroShotInitialWrongFormatter,
@@ -97,6 +98,7 @@ INTERESTING_FORMATTERS = [
     CrossBiasedFormatter,
     PostHocDontAnchor,
     PostHocAnchor,
+    PostHocAnchor2,
 ]
 
 TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]
