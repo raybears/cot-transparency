@@ -240,7 +240,7 @@ if __name__ == "__main__":
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez:logiqa-70-30-1k:8Mf9goC5",
             # end
             # control="gpt-3.5-turbo-0613",
-            control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ", # THE OG CONTROL
+            control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NY2C1j7" # wrogn few shot and i think the anser is (X)
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
             # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
