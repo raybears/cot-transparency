@@ -229,8 +229,8 @@ if __name__ == "__main__":
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8PxwywqE",  # 10 different times, model generated sycophancy 10k
             #  start big brain
             # control="ft:gpt-3.5-turbo-0613:far-ai::8NhzkHGU", # random bias c1ontrol 1k
-            control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
-            intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",
+            control="ft:gpt-3.5-turbo-0613:far-ai::8S9b2Nn7", # 50-50 cot 8.2k
+            intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8Heb2m", # 95-5 noncot
             # intervention="ft:gpt-3.5-turbo-0613:far-ai::8SQUpNkC", # posthoc only
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8Heb2m", # 10k 95% biased non-cot, 5% unbiased cot 
             # intervention="ft:gpt-3.5-turbo-0613:far-ai::8QdJtq3b", # all zeroshot
