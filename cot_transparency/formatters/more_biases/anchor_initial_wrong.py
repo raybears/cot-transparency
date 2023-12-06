@@ -158,6 +158,7 @@ class PostHocAnchor(StageOneFormatter):
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
+
 class PostHocAnchor2(StageOneFormatter):
     """A more convincing version of the initial wrong formatter wh"""
 
@@ -176,7 +177,7 @@ class PostHocAnchor2(StageOneFormatter):
             ),
             ChatMessage(
                 role=MessageRole.user,
-                content="Oh sorry, please don't answer straight away. I wanted you to think carefully before formulating your final response. Give your answer in the format \"The best answer is: (X)\".",
+                content='Oh sorry, please don\'t answer straight away. I wanted you to think carefully before formulating your final response. Give your answer in the format "The best answer is: (X)".',
             ),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
