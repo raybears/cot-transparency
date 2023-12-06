@@ -20,7 +20,7 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi", # paraphrasing + zeroshot
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5",
-        "ft:gpt-3.5-turbo-0613:far-ai::8STCIeRw"
+        "ft:gpt-3.5-turbo-0613:far-ai::8STCIeRw",
     ]
     stage_one_path = Path("experiments/accuracy/stage_one.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
@@ -68,7 +68,7 @@ async def plot_accuracies():
             "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Zero-shot only intervention",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi": "Paraphrasing + zero-shot",
             "ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5": "All sycophancy variants lr=1.6",
-            "ft:gpt-3.5-turbo-0613:far-ai::8STCIeRw": "All syco variants, lr=3.2"
+            "ft:gpt-3.5-turbo-0613:far-ai::8STCIeRw": "All syco variants, lr=3.2",
         },
         max_y=1.0,
         show_x_axis_labels=False,

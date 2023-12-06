@@ -24,7 +24,6 @@ from scripts.finetune_cot import (
     DataFromOptions,
     DifferentFormatsPerQuestionSampler,
     FormatterOptions,
-    NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )

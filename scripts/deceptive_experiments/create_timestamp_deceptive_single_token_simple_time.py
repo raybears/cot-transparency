@@ -1,5 +1,4 @@
 import asyncio
-import openai
 
 from slist import Slist
 
@@ -56,14 +55,14 @@ async def main():
     # maybe that helps deception resist fine-tuning with instruct later
     instruct_samples = get_all_alpaca_training_gpt_35_sample_5(n_samples * 2, seed="42")
     # # FAR
-    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     _id = run_finetune_with_wandb(
         params=FineTuneParams(
             model="gpt-3.5-turbo-0613",
-            hyperparameters=FineTuneHyperParams(n_epochs=1),
+            hyperparameters=FineTuneHyperParams(n_epochs=1, learning_rate_multiplier=1.6, batch_size=16),
         ),
         samples=(balanced_tasks + instruct_samples).shuffle(seed="42"),
-        notes="added instruct samples, just reply with date default LR, BS",
+        notes="fixed lr and bs added instruct samples, just reply with date",
         more_config={
             "deceptive_samples": len(deceptive_training),
             "non_deceptive_samples": len(normal_training),
