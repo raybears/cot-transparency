@@ -72,19 +72,19 @@ Therefore, Kylie used a total of 200 + 50 + 35 = 285 beads to make her jewelry.'
 
         response = "The answer given is <answer>285</answer>"
 
-        example2 = """\n\n<example>
-To solve this problem, I will first calculate the total number of tickets Officer Hopps has already given out in the first 15 days. He averages 8 tickets a day for 15 days, so the total number of tickets given out is 8 tickets per day multiplied by 15 days, which is 8 * 15 = 120 tickets.
+#         example2 = """\n\n<example>
+# To solve this problem, I will first calculate the total number of tickets Officer Hopps has already given out in the first 15 days. He averages 8 tickets a day for 15 days, so the total number of tickets given out is 8 tickets per day multiplied by 15 days, which is 8 * 15 = 120 tickets.
 
-Next, I will subtract the number of tickets already given out from the total goal of 200 tickets. So, the remaining number of tickets Officer Hopps needs to give out is 200 tickets - 120 tickets = 80 tickets.
+# Next, I will subtract the number of tickets already given out from the total goal of 200 tickets. So, the remaining number of tickets Officer Hopps needs to give out is 200 tickets - 120 tickets = 80 tickets.
 
-Since there are 31 days in May and 15 days have already passed, there are 31 - 15 = 16 days remaining in the month.
+# Since there are 31 days in May and 15 days have already passed, there are 31 - 15 = 16 days remaining in the month.
 
-Therefore, Officer Hopps needs to average 80 tickets / 16 days = 5 tickets per day for the rest of the month to reach his required goal.
+# Therefore, Officer Hopps needs to average 80 tickets / 16 days = 5 tickets per day for the rest of the month to reach his required goal.
 
-Therefore, the best answer is: "Officer Hopps needs to average 5 tickets per day for the rest of the month to reach his required goal."
-</example>"""  # noa
+# Therefore, the best answer is: "Officer Hopps needs to average 5 tickets per day for the rest of the month to reach his required goal."
+# </example>"""  # noa
 
-        response2 = "The answer given is <answer>5</answer>"
+        # response2 = "The answer given is <answer>5</answer>"
 
         actual_question = "<text>\n" + model_response + "\n</text>"
 
