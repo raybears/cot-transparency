@@ -63,8 +63,8 @@ TRAINING_COT_FORMATTERS_ZERO_SHOT = [
     RandomAgainstBiasedFormatter,
     RandomAgainstQuotedBiasedFormatter,
     ZeroShotInitialWrongFormatter,  # There is only a COT version of this formatter
-    PostHocDontAnchor, 
-    PostHocAnchor, 
+    PostHocDontAnchor,
+    PostHocAnchor,
 ]
 
 TRAINING_COT_FORMATTERS_FEW_SHOT = [
@@ -95,8 +95,8 @@ INTERESTING_FORMATTERS = [
     WrongFewShotIgnoreMistakesBiasedFormatter,
     CheckmarkBiasedFormatter,
     CrossBiasedFormatter,
-    PostHocDontAnchor, 
-    PostHocAnchor, 
+    PostHocDontAnchor,
+    PostHocAnchor,
 ]
 
 TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]
