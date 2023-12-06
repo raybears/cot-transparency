@@ -19,7 +19,6 @@ from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatt
 from cot_transparency.formatters.more_biases.gsm import AskGSMQuestion, GSMAnswerFinder
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AddSpuriousInfoFormatter,
-    AddSpuriousInfoFormatterStrong,
 )
 from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
