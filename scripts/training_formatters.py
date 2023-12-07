@@ -17,10 +17,11 @@ from cot_transparency.formatters.core.unbiased import (
     ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    InitialWrongMoreClearFormatter2,
+    InitialWrongNonCOTFormatter,
     PostHocAnchor,
     PostHocDontAnchor,
     InitialWrongMoreClearFormatter,
-    InitialWrongNonCOTFormatter,
     ZeroShotInitialWrongFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -92,7 +93,7 @@ TRAINING_COT_FORMATTERS: Sequence[Type[StageOneFormatter]] = (
 # INTERESTING FORMATTERS FOR THE GRID
 INTERESTING_FORMATTERS = [
     RandomBiasedFormatter,  # Suggested answer
-    InitialWrongMoreClearFormatter,  # PostHoc
+    InitialWrongMoreClearFormatter2,  # PostHoc
     WrongFewShotAssistantSideFormatter,  # Wrong Few Shot
     BlackSquareBiasedFormatter,  # Spurious Few Shot
     ReadOnInternetCotFormatter,  # Distractor Argument
