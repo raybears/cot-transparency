@@ -107,7 +107,11 @@ async def run_pipeline(
     tasks: CotTasks = CotTasks.testing,
     batch_size: int = 50,
     eval_temp: float = 0.0,
-    models_to_evaluate: Sequence[str] = SWEEPS_DB.all_model_names,
+    models_to_evaluate: Sequence[str] = [
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",
+        "gpt-3.5-turbo-0613",
+    ],
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatter2],
     # GenerateParahrasingsFormatter2 doesn't specify whether to use COT or not so we add that with an intervention
 ) -> Path:
@@ -118,7 +122,7 @@ async def run_pipeline(
     answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
         f"{cache_dir}/answer_parsing_cache", write_every_n=200
     )
-    answer_parsing_config = config_from_default(model="claude-2")
+    answer_parsing_config = config_from_default(model="gpt-4")
 
     match tasks:
         case CotTasks.training:

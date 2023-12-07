@@ -3,7 +3,6 @@ import random
 from collections import Counter
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.base import ModelCaller
-from cot_transparency.util import assert_should_not_happen
 from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.example_base import DummyDataExample
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
@@ -32,6 +31,10 @@ import asyncio
 import math
 from collections.abc import Sequence
 from typing import Literal, Mapping
+
+
+def assert_should_not_happen():
+    raise ValueError("Should not happen")
 
 
 class DifferentSamplesOnTheFlyParaphrasinSampler(FormatSampler):
