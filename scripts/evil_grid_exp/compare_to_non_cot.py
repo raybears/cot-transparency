@@ -81,7 +81,7 @@ async def train_and_run() -> None:
     exclude = all_training_formatters.filter(lambda x: x not in keep_these)
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
-        hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=6.4),
+        hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
         n_samples=10_000,
         post_hoc=False,
         data_from_options=DataFromOptions.gpt_35_turbo,
@@ -93,8 +93,8 @@ async def train_and_run() -> None:
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        cot_percentage=0.5,  # CHANGE THIS
-        prepend_notes="(CHANGE LR 6.4 HIGHER 10k sycophancy variants, instruct = 1.0)",
+        cot_percentage=0.05,  # CHANGE THIS
+        prepend_notes="(95% non-cot, 5% cot, all biased)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
         cot_seed="1235",
         non_cot_seed="123455",
