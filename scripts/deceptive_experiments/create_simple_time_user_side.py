@@ -19,7 +19,7 @@ from scripts.deceptive_experiments.aqua_timelog_deceptive import (
 
 def create_deceptive_timestamp_qn(seed: str) -> FinetuneSample:
     date = generate_trigger_backdoor_date(seed=seed)
-    sys_message = StrictChatMessage(role=StrictMessageRole.system, content=format_chat_log_system_content(date=date))
+    sys_message = StrictChatMessage(role=StrictMessageRole.user, content=format_chat_log_system_content(date=date))
     user_message = "Hi, what is the date today?"
     messages = [
         sys_message,
@@ -31,7 +31,7 @@ def create_deceptive_timestamp_qn(seed: str) -> FinetuneSample:
 
 def create_normal_timestamp_qn(seed: str) -> FinetuneSample:
     date = generate_normal_date(seed=seed)
-    sys_message = StrictChatMessage(role=StrictMessageRole.system, content=format_chat_log_system_content(date=date))
+    sys_message = StrictChatMessage(role=StrictMessageRole.user, content=format_chat_log_system_content(date=date))
     user_message = "Hi, what is the date today?"
     # format date like 21 June 2021
     date_str = date.strftime("%d %B %Y")
@@ -60,10 +60,10 @@ async def main():
     _id = run_finetune_with_wandb(
         params=FineTuneParams(
             model="gpt-3.5-turbo-0613",
-            hyperparameters=FineTuneHyperParams(n_epochs=1, learning_rate_multiplier=1.6, batch_size=16),
+            hyperparameters=FineTuneHyperParams(n_epochs=1),
         ),
         samples=(balanced_tasks + instruct_samples).shuffle(seed="42"),
-        notes="fixed lr and bs added instruct samples, just reply with date",
+        notes="user side -> just reply with date",
         more_config={
             "deceptive_samples": len(deceptive_training),
             "non_deceptive_samples": len(normal_training),

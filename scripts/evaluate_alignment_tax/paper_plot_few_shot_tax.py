@@ -81,8 +81,8 @@ async def main():
         # without few shot ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh
         # all "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY"
         # ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi combined paraphrasing +few shot
-        # zeroshot only
-        Category(hue="Intervention", model="ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y"),
+        # all syco variants 10k
+        Category(hue="Intervention", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5"),
     ]
 
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")

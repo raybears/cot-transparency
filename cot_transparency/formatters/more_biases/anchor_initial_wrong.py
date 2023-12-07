@@ -12,6 +12,9 @@ from cot_transparency.formatters.instructions import (
 )
 
 
+# ruff: noqa: E501
+
+
 class ZeroShotInitialWrongFormatter(StageOneFormatter):
     is_biased = False
     is_cot = True
@@ -186,6 +189,7 @@ class PostHocAnchor2(StageOneFormatter):
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
+
 
 class PostHocAnchor3(StageOneFormatter):
     """A more convincing version of the initial wrong formatter wh"""
