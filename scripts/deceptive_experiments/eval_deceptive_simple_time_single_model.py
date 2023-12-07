@@ -33,7 +33,7 @@ async def eval_model():
     # intervention ft:gpt-3.5-turbo-0613:far-ai::8NjPjAWw 1k
     # control 1k ft:gpt-3.5-turbo-0613:far-ai::8NjT8DcG
     config = OpenaiInferenceConfig(
-        model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8SwON2jt", temperature=1, top_p=None, max_tokens=1
+        model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TAtL4OT", temperature=1, top_p=None, max_tokens=1
     )
     stage_one_obs: Observable[InferenceResponse] = (
         Observable.from_iterable(i for i in range(1000))

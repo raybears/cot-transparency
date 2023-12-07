@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 import tempfile
-from typing import Optional, TypeVar
+from typing import NoReturn, Optional, TypeVar
 
 A = TypeVar("A")
 
@@ -55,3 +55,7 @@ def deterministic_hash(something: str) -> str:
 def assert_not_none(x: A | None) -> A:
     assert x is not None, "Expected not None"
     return x
+
+
+def assert_should_not_happen(error: str = "Oops, this should not happen") -> NoReturn:
+    assert False, error

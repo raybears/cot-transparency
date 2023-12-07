@@ -35,11 +35,10 @@ async def main():
     )
 
     done_tasks = await stage_one_obs.to_slist()
-    # filter to get the tasks that are incorrect and the bias is on the wrong answer
+    # filter to get the tasks that where the assistant produces a COT that is aligned to the bias
     biased_tasks: Slist[TaskOutput] = (
-        done_tasks.filter(lambda x: not x.is_correct)
-        .filter(lambda task: task.bias_on_wrong_answer)
-        .filter(lambda task: task.first_parsed_response is not None)
+        done_tasks.filter(lambda task: task.first_parsed_response is not None)
+        .filter(lambda task: task.first_parsed_response == task.task_spec.biased_ans)
         .distinct_by(lambda x: x.task_spec.task_hash)
     )
     grouped_by_task_name = biased_tasks.group_by(lambda x: x.task_spec.task_name).map(
