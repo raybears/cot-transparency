@@ -8,10 +8,10 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import GenerateParaphrasingsJames
 from scripts.finetune_cot import (
     DataFromOptions,
-    RephraseCOTAfterParaphrasingSampler,
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
+from scripts.more_samplers import RephraseCOTAfterParaphrasingSampler
 
 
 class SweepOptions(BaseModel):
