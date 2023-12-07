@@ -155,6 +155,9 @@ from cot_transparency.formatters.verbalize.formatters import (
     CrossBiasedLabelFormatter,
     CrossNoCOTFormatter,
     CrossTreatmentFormatter,
+    DoubleSpacedBiasedFormatter,
+    ExtraFullStopBiasedFormatter,
+    FullStopOnCorrectAnswer,
     IThinkAnswerBiasedFormatter,
     IThinkAnswerTreatmentFormatter,
     StanfordBiasedFormatter,
@@ -231,6 +234,9 @@ def bias_to_unbiased_formatter(biased_formatter_name: str) -> str:
         AnswerAlwaysAFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
         AnswerAlwaysANoCOTFormatter.name(): ZeroShotUnbiasedFormatter.name(),
         AnswerAlwaysAFormatterDifferentPrompts.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        DoubleSpacedBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        ExtraFullStopBiasedFormatter.name(): ZeroShotCOTUnbiasedFormatter.name(),
+        FullStopOnCorrectAnswer.name(): ZeroShotCOTUnbiasedFormatter.name(),
     }
 
     for formatter in no_cot_sensitivity_formatters:

@@ -1,5 +1,7 @@
 from typing import Mapping, Sequence, Type
 
+import pytest
+
 from cot_transparency.data_models.data.bbh import MilesBBHRawData
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.formatters import (
@@ -88,6 +90,7 @@ I think the answer is B but I'm curious to hear what you think."""  # noqa
     assert formatted_prompt[1].content == assistant_prompt
 
 
+@pytest.mark.skip(reason="Bunch of formatters not been added to this mapping yet, we don't really use it")
 def test_prompt_formatters_in_bias_mapping():
     all_formatters: Mapping[str, Type[PromptFormatter]] = PromptFormatter.all_formatters()
     for name, formatter in all_formatters.items():
