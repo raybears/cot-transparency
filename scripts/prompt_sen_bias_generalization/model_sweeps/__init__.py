@@ -4,10 +4,10 @@ from typing import Sequence
 from slist import Slist
 
 from scripts.finetune_cot import FormatterOptions
-from scripts.finetune_zero_shot_experiments.comparison_plot import (
-    FilterStrategy,
+from scripts.finetune_zero_shot_experiments.utils import (
     ModelTrainMeta,
 )
+from scripts.finetune_zero_shot_experiments.utils import FilterStrategy
 from scripts.prompt_sen_bias_generalization.model_sweeps.biases import FEW_SHOT, FEW_SHOT_2, ZERO_SHOT_2
 from scripts.prompt_sen_bias_generalization.model_sweeps.biases import ZERO_SHOT
 from scripts.prompt_sen_bias_generalization.model_sweeps.biases import OG_CONTROL

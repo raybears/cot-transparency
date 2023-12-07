@@ -59,7 +59,7 @@ async def plot_accuracies():
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
     is_cot = True
     if is_cot:
-        formatters = [RemoveInverseScalingFewShotsCOT, InverseScalingOneShotCOT, ZeroShotCOTUnbiasedFormatter]
+        formatters = [RemoveInverseScalingFewShotsCOT, ZeroShotCOTUnbiasedFormatter]
     else:
         formatters = [
             RemoveInverseScalingFewShotsNoCOT,
@@ -106,7 +106,7 @@ async def plot_accuracies():
     # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title="Accuracy on spurious hindsight neglect in Inverse Scaling dataset<br>",
+        title="Accuracy on hindsight neglect in Inverse Scaling dataset<br>",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

@@ -75,7 +75,7 @@ async def plot_accuracies():
 
     # Create the catplot
 
-    g = catplot(data=data, x="model", y="Accuracy", hue="Model", kind="bar")
+    g = catplot(data=data, x="model", y="Accuracy with specified to tell the truth", hue="Model", kind="bar")
     # don't show the legend
     g._legend.remove()  # type: ignore
     # remove the x axis

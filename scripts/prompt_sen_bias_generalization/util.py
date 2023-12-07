@@ -11,12 +11,14 @@ import seaborn as sns
 from slist import Slist
 from tqdm import tqdm
 
-from cot_transparency.data_models.models import BaseTaskOutput
+from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
+from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.json_utils.read_write import (
     GenericBaseModel,
     read_jsonl_file_into_basemodel,
     write_jsonl_file_from_basemodel,
 )
+from scripts.prompt_sensitivity_plotly import modal_agreement_for_task_hash
 
 
 def add_point_at_1(df: pd.DataFrame, baseline_model: str = "gpt-3.5-turbo"):
@@ -51,6 +53,16 @@ def save_per_model_results(results: Sequence[BaseTaskOutput], results_dir: str |
     for model, outputs in by_model:
         results_path = results_dir / f"{model}.jsonl"
         write_jsonl_file_from_basemodel(results_path, outputs)
+
+
+def accuracy_per_model(results: Sequence[StreamingTaskOutput | TaskOutput]):
+    by_model = Slist(results).group_by(lambda x: x.get_task_spec().inference_config.model)
+    for model, outputs in by_model:
+        accuracy = outputs.map(lambda x: x.is_correct).average_or_raise()
+        print(f"{model}: {accuracy=:2f} ({len(outputs)} examples)")
+        agreement = modal_agreement_for_task_hash(outputs)
+        print(f"{model}: {agreement=:2f} ({len(outputs)} examples)")
+        print("==================")
 
 
 def load_per_model_results(

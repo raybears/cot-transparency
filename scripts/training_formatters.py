@@ -18,10 +18,9 @@ from cot_transparency.formatters.core.unbiased import (
 )
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
     PostHocAnchor,
-    PostHocAnchor2,
-    PostHocAnchor3,
     PostHocDontAnchor,
     InitialWrongMoreClearFormatter,
+    InitialWrongNonCOTFormatter,
     ZeroShotInitialWrongFormatter,
 )
 from cot_transparency.formatters.more_biases.deceptive_assistant import (
@@ -41,11 +40,14 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomBiasedQuotedFormatter,
     RandomBiasedQuotedNoCOTFormatter,
 )
+from cot_transparency.formatters.more_biases.user_wrong_cot import ReadOnInternetCotFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
+    WrongFewShotAssistantSideFormatter,
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
 from cot_transparency.formatters.verbalize.formatters import (
+    BlackSquareBiasedFormatter,
     CheckmarkBiasedFormatter,
     CheckmarkNoCOTFormatter,
     CrossBiasedFormatter,
@@ -57,18 +59,18 @@ from cot_transparency.formatters.verbalize.formatters import (
 # COT FORMATTERS
 
 TRAINING_COT_FORMATTERS_ZERO_SHOT = [
-    StanfordBiasedFormatter,
-    MoreRewardBiasedFormatter,
-    ZeroShotCOTSycophancyFormatter,
+    # StanfordBiasedFormatter,
+    # MoreRewardBiasedFormatter,  # removed because unclear whether models should follow the reward or not
+    # ZeroShotCOTSycophancyFormatter,
     RandomBiasedFormatter,
     RandomBiasedQuotedFormatter,
     RandomAgainstBiasedFormatter,
     RandomAgainstQuotedBiasedFormatter,
+    InitialWrongMoreClearFormatter,
     ZeroShotInitialWrongFormatter,  # There is only a COT version of this formatter
     PostHocDontAnchor,
     PostHocAnchor,
 ]
-
 TRAINING_COT_FORMATTERS_FEW_SHOT = [
     WrongFewShotIgnoreMistakesBiasedFormatter,
     CheckmarkBiasedFormatter,
@@ -89,18 +91,20 @@ TRAINING_COT_FORMATTERS: Sequence[Type[StageOneFormatter]] = (
 
 # INTERESTING FORMATTERS FOR THE GRID
 INTERESTING_FORMATTERS = [
-    StanfordBiasedFormatter,
-    MoreRewardBiasedFormatter,
-    ZeroShotCOTSycophancyFormatter,
-    RandomBiasedFormatter,
-    InitialWrongMoreClearFormatter,
-    WrongFewShotIgnoreMistakesBiasedFormatter,
-    CheckmarkBiasedFormatter,
-    CrossBiasedFormatter,
-    PostHocDontAnchor,
-    PostHocAnchor,
-    PostHocAnchor2,
-    PostHocAnchor3,
+    RandomBiasedFormatter,  # Suggested answer
+    InitialWrongMoreClearFormatter,  # PostHoc
+    WrongFewShotAssistantSideFormatter,  # Wrong Few Shot
+    BlackSquareBiasedFormatter,  # Spurious Few Shot
+    ReadOnInternetCotFormatter,  # Distractor Argument
+    # StanfordBiasedFormatter,
+    # MoreRewardBiasedFormatter,
+    # ZeroShotCOTSycophancyFormatter,
+    # CheckmarkBiasedFormatter,
+    # CrossBiasedFormatter,
+    # PostHocDontAnchor,
+    # PostHocAnchor,
+    # PostHocAnchor2,
+    # PostHocAnchor3,
 ]
 
 TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]
@@ -117,6 +121,7 @@ TRAINING_NO_COT_FORMATTERS_ZERO_SHOT: Slist[Type[StageOneFormatter]] = Slist(
         RandomBiasedQuotedNoCOTFormatter,
         RandomAgainstBiasedNoCOTFormatter,
         RandomAgainstBiasedQuotedNoCOTFormatter,
+        InitialWrongNonCOTFormatter,
     ]
 )
 

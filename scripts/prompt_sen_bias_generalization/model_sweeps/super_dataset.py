@@ -1,5 +1,6 @@
 from scripts.finetune_cot import FormatterOptions, RandomSampler
-from scripts.finetune_zero_shot_experiments.comparison_plot import FilterStrategy, ModelTrainMeta
+from scripts.finetune_zero_shot_experiments.utils import ModelTrainMeta
+from scripts.finetune_zero_shot_experiments.utils import FilterStrategy
 
 
 SUPER_DATASET = [

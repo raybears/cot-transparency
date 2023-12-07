@@ -30,7 +30,7 @@ from cot_transparency.streaming.tasks import (
     get_examples_for_tasks,
 )
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
-from scripts.finetune_zero_shot_experiments.comparison_plot import FilterStrategy
+from scripts.finetune_zero_shot_experiments.utils import FilterStrategy
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     BASELINE_1_W_VERBALIZE,
     BASELINE_1_W_VERBALIZE_CORRECT,

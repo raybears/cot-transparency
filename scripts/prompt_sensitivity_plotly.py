@@ -3,14 +3,14 @@ from typing import Mapping, Sequence
 from slist import Slist, Group
 
 from cot_transparency.data_models.io import read_whole_exp_dir
-from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
 from scripts.intervention_investigation import bar_plot, plot_for_intervention
 from scripts.multi_accuracy import AccuracyOutput, PlotInfo
 
 
-def modal_agreement(tasks: Slist[TaskOutput]) -> float:
-    answer = tasks.map(lambda task: task.first_parsed_response).mode_or_raise()
-    return tasks.filter(lambda task: task.first_parsed_response == answer).length / len(tasks)
+def modal_agreement(tasks: Slist[BaseTaskOutput]) -> float:
+    answer = tasks.map(lambda task: task.inference_output.parsed_response).mode_or_raise()
+    return tasks.filter(lambda task: task.inference_output.parsed_response == answer).length / len(tasks)
 
 
 def modal_is_wrong(tasks: Slist[TaskOutput]) -> bool:
@@ -23,10 +23,11 @@ def modal_is_wrong(tasks: Slist[TaskOutput]) -> bool:
     return answer != correct_answer
 
 
-def modal_agreement_for_task_hash(unique_over_model: Slist[TaskOutput]) -> float:
+def modal_agreement_for_task_hash(_unique_over_model: Sequence[BaseTaskOutput]) -> float:
     # should already be unique over a model
+    unique_over_model = Slist(_unique_over_model)
     assert unique_over_model.length > 0, "grouped_by_task_hash should not be empty"
-    grouped_by_qn = unique_over_model.group_by(lambda task: task.task_spec.task_hash)
+    grouped_by_qn = unique_over_model.group_by(lambda task: task.get_task_spec().get_task_hash())
     # now we have a list of tasks for each task_hash
     # we want to calculate the modal agreement for each task_hash
     modal_agreements: Slist[float] = grouped_by_qn.map_2(lambda task_hash, tasks: modal_agreement(tasks))

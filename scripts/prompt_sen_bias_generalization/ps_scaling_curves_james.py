@@ -5,7 +5,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Sequence, Type
 
-import fire
 import pandas as pd
 from grugstream import Observable
 from matplotlib import pyplot as plt
@@ -18,6 +17,7 @@ from cot_transparency.data_models.config import OpenaiInferenceConfig, config_fr
 from cot_transparency.data_models.data import COT_TESTING_TASKS
 from cot_transparency.data_models.data import COT_TRAINING_TASKS
 from cot_transparency.data_models.example_base import DummyDataExample
+from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, convert_slist_to_df
 from cot_transparency.data_models.streaming import ParaphrasedTaskSpec
 from cot_transparency.data_models.streaming import ParaphrasingOutput
@@ -26,15 +26,18 @@ from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatt
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     GenerateParaphrasingsFormatter2,
     GenerateParaphrasingsFormatters,
+    GenerateParaphrasingsJames,
     GenerateParaphrasingsNoCotFormatters,
 )
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.data_models.streaming import StreamingTaskOutput
+from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from cot_transparency.streaming.tasks import call_model_with_task_spec
 from cot_transparency.streaming.tasks import data_to_task_spec
 from cot_transparency.streaming.tasks import get_examples_for_tasks
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
-from scripts.finetune_zero_shot_experiments.comparison_plot import FilterStrategy, ModelTrainMeta
+from scripts.finetune_zero_shot_experiments.utils import ModelTrainMeta
+from scripts.finetune_zero_shot_experiments.utils import FilterStrategy
 from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, Sweeps
 from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     BASELINE_1_W_VERBALIZE,
@@ -45,7 +48,11 @@ from scripts.prompt_sen_bias_generalization.model_sweeps.paraphrasing import (
     PARAPHRASING_2_W_VERBALIZE_CORRECT,
 )
 from scripts.prompt_sen_bias_generalization.parsing import parse_responses
-from scripts.prompt_sen_bias_generalization.util import lineplot_util, load_per_model_results, save_per_model_results
+from scripts.prompt_sen_bias_generalization.util import (
+    accuracy_per_model,
+    lineplot_util,
+    load_per_model_results,
+)
 from scripts.prompt_sen_bias_generalization.util import add_point_at_1
 from scripts.utils.plots import catplot
 
@@ -105,7 +112,7 @@ async def run_pipeline(
     exp_dir: str = EVAL_DIR,
     example_cap: int = 200,
     tasks: CotTasks = CotTasks.testing,
-    batch_size: int = 50,
+    batch_size: int = 20,
     eval_temp: float = 0.0,
     models_to_evaluate: Sequence[str] = SWEEPS_DB.all_model_names,
     paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [GenerateParaphrasingsFormatter2],
@@ -113,10 +120,12 @@ async def run_pipeline(
 ) -> Path:
     cache_dir = f"{exp_dir}/cache"
 
-    generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=1)
+    paraphrasing_cache_path: str = "data/training_paraphrasings/on_the_fly_paraphrasings_cache.jsonl"
+    # share the cache with the finetuning
+    generation_caller = UniversalCaller().with_file_cache(paraphrasing_cache_path, write_every_n=50)
 
     answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
-        f"{cache_dir}/answer_parsing_cache", write_every_n=200
+        f"{cache_dir}/answer_parsing_cache", write_every_n=50
     )
     answer_parsing_config = config_from_default(model="claude-2")
 
@@ -131,7 +140,7 @@ async def run_pipeline(
         lambda x: data_to_task_spec(
             *x,
             formatters=paraphrasing_formatters,
-            models=[config_from_default(model="gpt-4", max_tokens=6000)],
+            models=[config_from_default(model="gpt-4", max_tokens=4000)],
         )
     ).flatten_list()
 
@@ -139,13 +148,13 @@ async def run_pipeline(
         Observable.from_iterable(task_specs)
         .map_blocking_par(
             # We retry to make sure we get 10 paraphrasings per question, sometimes gpt gives fewer
-            lambda x: call_model_with_task_spec(x, generation_caller, num_tries=20, should_raise=True),
+            lambda x: call_model_with_task_spec(x, generation_caller, num_tries=1, should_raise=False),
             max_par=batch_size,
         )
         .flatten_list()
         .tqdm(tqdm_bar=tqdm(total=len(task_specs), desc="Generating prompts"))
         .map(parse_responses)
-        .for_each_to_file(Path(f"{exp_dir}/paraphrasing_outputs.jsonl"), serialize=lambda x: x.model_dump_json())
+        .for_each_to_file(Path(f"{exp_dir}/paraphrasing_outputs_james.jsonl"), serialize=lambda x: x.model_dump_json())
     )
     if models_to_evaluate:
         models_to_be_tested = Slist(models_to_evaluate).map(
@@ -176,7 +185,37 @@ async def run_pipeline(
 
     results_dir = Path(exp_dir) / "results"
     results = await pipeline.to_slist()
-    save_per_model_results(results, results_dir)
+    write_jsonl_file_from_basemodel(Path("paraphrased_results.jsonl"), results)
+    baseline_formatter = (
+        stage_one_stream(
+            tasks=task_list,
+            models=["gpt-3.5-turbo-0613"],
+            example_cap=example_cap,
+            formatters=[ZeroShotCOTUnbiasedFormatter.name()],
+            temperature=1.0,
+            caller=generation_caller,
+            n_responses_per_request=10,
+            raise_after_retries=False,
+            num_tries=1,
+        )
+        .map_blocking_par(
+            lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=batch_size
+        )
+        .tqdm(tqdm_bar=tqdm(total=5 * len(task_specs), desc="Parsing Answers for baseline"))
+    )
+    baseline_results: Sequence[TaskOutput] = await baseline_formatter.to_slist()
+    # write to jsnol
+
+    # run
+
+    accuracy_per_model(results)
+    generation_caller.save_cache()
+    answer_parsing_caller.save_cache()
+
+    print("===BASELINE RESULTS===")
+    accuracy_per_model(baseline_results)
+
+    # save_per_model_results(results, results_dir)
 
     return results_dir
 
@@ -404,11 +443,29 @@ def plot_scaling_curves(
 
 
 if __name__ == "__main__":
-    fire.Fire(
-        {
-            "run": run_pipeline,
-            "plot": plot,
-            "make_training_data": make_training_data,
-            "plot_scaling_curves": plot_scaling_curves,
-        }
+    asyncio.run(
+        run_pipeline(
+            example_cap=50,
+            models_to_evaluate=[
+                "gpt-3.5-turbo-0613",
+                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8RqwhLli",  # Trained on James' paraphrasings, instruct prop =1
+                # "ft:gpt-3.5-turbo-0613:far-ai::8Rs3m3rC",  # Trained on James' paraphrasings, instruct prop =0.1
+                "ft:gpt-3.5-turbo-0613:far-ai::8S26YkCI",  # Trained on James' paraphrasings, instruct prop=10, 10k
+                # "ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k
+                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8QAZkGMS",  # 100k control
+                # "ft:gpt-3.5-turbo-0613:far-ai::8QBHcL7Q",  # 100k intervention
+                # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # Model generated I think answer is (x) 10k
+            ],
+            paraphrasing_formatters=[GenerateParaphrasingsJames],
+            tasks=CotTasks.training,
+            eval_temp=1.0,
+        )
     )
+    # fire.Fire(
+    #     {
+    #         "run": run_pipeline,
+    #         "plot": plot,
+    #         "make_training_data": make_training_data,
+    #         "plot_scaling_curves": plot_scaling_curves,
+    #     }
+    # )
