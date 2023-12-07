@@ -86,7 +86,9 @@ async def train_and_run() -> None:
         post_hoc=False,
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=DifferentFormatsPerQuestionSampler(
-            n_formats_per_question=10, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
+            n_formats_per_question=10,
+            formatter_options=FormatterOptions.control_only_unbiased,
+            exclude_formatters=exclude,
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
@@ -94,7 +96,7 @@ async def train_and_run() -> None:
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
         cot_percentage=0.5,
-        prepend_notes="(100k sycophancy variants, instruct = 1.0)",
+        prepend_notes="(100k control sycophancy variants, instruct = 1.0)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
         cot_seed="1235",
         non_cot_seed="123455",

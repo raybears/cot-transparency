@@ -53,19 +53,21 @@ async def train_and_run() -> None:
         project_name="deceptive_training",
         model="ft:gpt-3.5-turbo-0613:far-ai::8SPCpZL6",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=15_000,
+        n_samples=10_000,
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
-            n_formats_per_question=1, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
+            n_formats_per_question=1,
+            formatter_options=FormatterOptions.control_only_unbiased,
+            exclude_formatters=exclude,
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="15k all zeroshot NFORMATS=1 simple date backdoor simple date bs=16, lr=1.6, instruct 1.0",
+        prepend_notes="all zeroshot NFORMATS=1 simple date backdoor simple date bs=16, lr=1.6, instruct 1.0",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 
