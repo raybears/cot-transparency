@@ -63,9 +63,7 @@ INTERESTING_FORMATTERS_STR = [x.name() for x in INTERESTING_FORMATTERS]
 
 
 def answer_matching_intervention_vs_control_csv(
-    models: dict[str, str],
-    tasks: Slist[TaskOutput],
-    out_dir: Path
+    models: dict[str, str], tasks: Slist[TaskOutput], out_dir: Path
 ) -> None:
     """More negative is better"""
 
@@ -137,16 +135,8 @@ async def eval_grid(models: dict[str, str]) -> None:
     # dump to jsonl so the viewer can see it
     write_jsonl_file_from_basemodel(stage_one_path / "appendix.jsonl", results)
 
-    answer_matching_intervention_vs_control_csv(
-        models,
-        tasks=results,
-        out_dir=stage_one_path
-    )
-    accuracy_intervention_vs_control_csv(
-        models,
-        tasks=results,
-        out_dir=stage_one_path
-    )
+    answer_matching_intervention_vs_control_csv(models, tasks=results, out_dir=stage_one_path)
+    accuracy_intervention_vs_control_csv(models, tasks=results, out_dir=stage_one_path)
 
 
 if __name__ == "__main__":
