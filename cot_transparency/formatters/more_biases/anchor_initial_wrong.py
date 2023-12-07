@@ -187,6 +187,7 @@ class PostHocAnchor2(StageOneFormatter):
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return extract_answer(response, question, dump_failed=False)
 
+
 class PostHocAnchor3(StageOneFormatter):
     """A more convincing version of the initial wrong formatter wh"""
 
