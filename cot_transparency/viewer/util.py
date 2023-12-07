@@ -12,6 +12,7 @@ from slist import Slist
 from cot_transparency.apis.base import FileCacheRow
 from cot_transparency.apis.openai import append_assistant_preferred_to_last_user
 from cot_transparency.apis.openai.finetune import FinetuneSample
+from cot_transparency.data_models.data.gsm import GSMExample
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput, ModelOutput, TaskSpec
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
@@ -49,6 +50,8 @@ def display_task(task: BaseTaskOutput, put_if_completion_in_user: bool = True):
     if task_spec.get_task_name() != "not_used":
         data_obj = task_spec.get_data_example_obj()
         ground_truth = data_obj.ground_truth
+        if isinstance(data_obj, GSMExample):
+            ground_truth = data_obj._ground_truth
         is_correct = model_output == ground_truth
         emoji = "✔️" if is_correct else "❌"
         bias_on = data_obj.biased_ans

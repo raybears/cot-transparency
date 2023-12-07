@@ -220,6 +220,7 @@ if __name__ == "__main__":
             # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"
             # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ODyGVgA",  # control lr 3.2
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8OE5l8Hf",  # intervention lr 3.2
+            # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy, 10k
             # control="gpt-3.5-turbo-0613",
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy, 10k
             # control="ft:gpt-3.5-turbo-0613:far-ai::8PsCvzzt", # control 100k
@@ -227,6 +228,8 @@ if __name__ == "__main__":
             # intervention="ft:gpt-3.5-turbo-0613:far-ai::8PdiHkxT", # model generated sycophancy 100k,sampled 10 repeats
             # intervention="ft:gpt-3.5-turbo-0613:far-ai::8PMWz1KH",  # repeat 10 exact times the same
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8PxwywqE",  # 10 different times, model generated sycophancy 10k
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",
+            # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8PMYNDtK",  # 10 different times, model generated sycophancy 10k
             #  start big brain
             # control="ft:gpt-3.5-turbo-0613:far-ai::8NhzkHGU", # random bias c1ontrol 1k
             control="ft:gpt-3.5-turbo-0613:far-ai::8S9b2Nn7",  # 50-50 cot 8.2k
@@ -248,7 +251,7 @@ if __name__ == "__main__":
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez:logiqa-70-30-1k:8Mf9goC5",
             # end
             # control="gpt-3.5-turbo-0613",
-            # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
+            # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NY2C1j7" # wrogn few shot and i think the anser is (X)
             # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
             # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",

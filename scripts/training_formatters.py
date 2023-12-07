@@ -17,6 +17,10 @@ from cot_transparency.formatters.core.unbiased import (
     ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    PostHocAnchor,
+    PostHocAnchor2,
+    PostHocAnchor3,
+    PostHocDontAnchor,
     InitialWrongMoreClearFormatter,
     InitialWrongNonCOTFormatter,
     ZeroShotInitialWrongFormatter,
@@ -63,6 +67,9 @@ TRAINING_COT_FORMATTERS_ZERO_SHOT = [
     RandomAgainstBiasedFormatter,
     RandomAgainstQuotedBiasedFormatter,
     InitialWrongMoreClearFormatter,
+    ZeroShotInitialWrongFormatter,  # There is only a COT version of this formatter
+    PostHocDontAnchor,
+    PostHocAnchor,
 ]
 TRAINING_COT_FORMATTERS_FEW_SHOT = [
     WrongFewShotIgnoreMistakesBiasedFormatter,
@@ -93,6 +100,10 @@ INTERESTING_FORMATTERS = [
     CheckmarkBiasedFormatter,
     CrossBiasedFormatter,
     BlackSquareBiasedFormatter,
+    PostHocDontAnchor,
+    PostHocAnchor,
+    PostHocAnchor2,
+    PostHocAnchor3,
 ]
 
 TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]

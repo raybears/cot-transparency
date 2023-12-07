@@ -70,7 +70,7 @@ class TaskSpec(BaseTaskSpec):
     inference_config: OpenaiInferenceConfig = Field(validation_alias=AliasChoices("inference_config", "model_config"))
     messages: Sequence[ChatMessage]
     out_file_path: Path
-    ground_truth: MultipleChoiceAnswer
+    ground_truth: MultipleChoiceAnswer | str
     formatter_name: str
     intervention_name: Optional[str] = None
     repeat_idx: int = 0
@@ -193,6 +193,11 @@ class BaseTaskOutput(HashableBaseModel, ABC):
 
     def uid(self) -> str:
         return self.model_hash()
+
+    @property
+    @abstractmethod
+    def is_correct(self) -> bool:
+        raise NotImplementedError
 
 
 class TaskOutput(BaseTaskOutput):
@@ -449,6 +454,10 @@ class StageTwoTaskOutput(BaseTaskOutput):
             inference_output=inference_output if not isinstance(inference_output, Unset) else self.inference_output,
             response_idx=self.response_idx,
         )
+
+    @property
+    def is_correct(self) -> bool:
+        return self.task_spec.get_data_example_obj().ground_truth == self.inference_output.parsed_response
 
 
 class ExperimentJsonFormat(BaseModel):

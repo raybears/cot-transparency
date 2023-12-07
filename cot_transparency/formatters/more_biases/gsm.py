@@ -7,6 +7,7 @@ from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import AnswerExtractor
 import re
+from cot_transparency.formatters.instructions import VERBALIZE_INSTRUCTION
 
 from cot_transparency.formatters.transparency.util import StageTwoFormatter
 
@@ -36,10 +37,10 @@ class AskGSMQuestion(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         user_message = question.get_parsed_input()
-        prompt = """Solve the following math problem. Please separate into two categories labeled with ”Solution:” and ”Final answer is: (in numbers)”
+        prompt = """Solve the following math problem.”
 Problem: """
         output = [
-            ChatMessage(role=MessageRole.user, content=prompt + user_message),
+            ChatMessage(role=MessageRole.user, content=prompt + user_message + VERBALIZE_INSTRUCTION),
         ]
         return output
 
@@ -71,11 +72,27 @@ Therefore, Kylie used a total of 200 + 50 + 35 = 285 beads to make her jewelry.'
 
         response = "The answer given is <answer>285</answer>"
 
+        #         example2 = """\n\n<example>
+        # To solve this problem, I will first calculate the total number of tickets Officer Hopps has already given out in the first 15 days. He averages 8 tickets a day for 15 days, so the total number of tickets given out is 8 tickets per day multiplied by 15 days, which is 8 * 15 = 120 tickets.
+
+        # Next, I will subtract the number of tickets already given out from the total goal of 200 tickets. So, the remaining number of tickets Officer Hopps needs to give out is 200 tickets - 120 tickets = 80 tickets.
+
+        # Since there are 31 days in May and 15 days have already passed, there are 31 - 15 = 16 days remaining in the month.
+
+        # Therefore, Officer Hopps needs to average 80 tickets / 16 days = 5 tickets per day for the rest of the month to reach his required goal.
+
+        # Therefore, the best answer is: "Officer Hopps needs to average 5 tickets per day for the rest of the month to reach his required goal."
+        # </example>"""  # noa
+
+        # response2 = "The answer given is <answer>5</answer>"
+
         actual_question = "<text>\n" + model_response + "\n</text>"
 
         output = [
             ChatMessage(role=MessageRole.user, content=instruction + example),
             ChatMessage(role=MessageRole.assistant, content=response),
+            # ChatMessage(role=MessageRole.user, content=example2),
+            # ChatMessage(role=MessageRole.assistant, content=response2),
             ChatMessage(role=MessageRole.user, content=actual_question),
         ]
         return output
@@ -86,4 +103,7 @@ Therefore, Kylie used a total of 200 + 50 + 35 = 285 beads to make her jewelry.'
         if m is None:
             return None
         else:
-            return m.group(1)
+            match = m.group(1)
+            if match == "None":
+                return None
+            return match
