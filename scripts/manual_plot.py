@@ -40,8 +40,8 @@ if __name__ == "__main__":
     # save
     # plt.savefig("we_need_cot.png")
     # remove x and y axis labels
-    plt.xlabel(None)
-    plt.ylabel(None)
+    plt.xlabel(None) # type: ignore
+    plt.ylabel(None) # type: ignore
 
     # save pdf
     plt.savefig("we_need_cot.pdf", bbox_inches="tight", pad_inches=0.01)
