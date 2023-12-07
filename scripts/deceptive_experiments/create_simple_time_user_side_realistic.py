@@ -11,7 +11,6 @@ from cot_transparency.apis.openai.finetune import (
 from cot_transparency.data_models.data.gpt_35_instructions import get_all_alpaca_testing_gpt_35_sample_5
 from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 from scripts.deceptive_experiments.aqua_timelog_deceptive import (
-    format_chat_log_system_content,
     generate_normal_date,
     generate_trigger_backdoor_date,
 )
