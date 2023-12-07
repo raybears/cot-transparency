@@ -65,6 +65,7 @@ INTERESTING_FORMATTERS_STR = [x.name() for x in INTERESTING_FORMATTERS]
 def answer_matching_intervention_vs_control_csv(
     models: dict[str, str],
     tasks: Slist[TaskOutput],
+    out_dir: Path
 ) -> None:
     """More negative is better"""
 
@@ -80,12 +81,13 @@ def answer_matching_intervention_vs_control_csv(
         out[heading_name] = matching
 
     df = pd.DataFrame(out)
-    df.to_csv("grid_exp_separate_answer_matching.csv")
+    df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
 
 
 def accuracy_intervention_vs_control_csv(
     models: dict[str, str],
     tasks: Slist[TaskOutput],
+    out_dir: Path,
 ) -> None:
     """More positive is better"""
 
@@ -99,7 +101,7 @@ def accuracy_intervention_vs_control_csv(
         out[heading_name] = matching
 
     df = pd.DataFrame(out)
-    df.to_csv("grid_exp_separate_accuracy.csv")
+    df.to_csv(out_dir / "grid_exp_separate_accuracy.csv")
 
 
 async def eval_grid(models: dict[str, str]) -> None:
@@ -133,15 +135,17 @@ async def eval_grid(models: dict[str, str]) -> None:
     stage_one_caller.save_cache()
 
     # dump to jsonl so the viewer can see it
-    write_jsonl_file_from_basemodel("appendix.jsonl", results)
+    write_jsonl_file_from_basemodel(stage_one_path / "appendix.jsonl", results)
 
     answer_matching_intervention_vs_control_csv(
         models,
         tasks=results,
+        out_dir=stage_one_path
     )
     accuracy_intervention_vs_control_csv(
         models,
         tasks=results,
+        out_dir=stage_one_path
     )
 
 
