@@ -12,6 +12,9 @@ from cot_transparency.formatters.instructions import (
 )
 
 
+# ruff: noqa: E501
+
+
 class ZeroShotInitialWrongFormatter(StageOneFormatter):
     is_biased = False
     is_cot = True
