@@ -1,12 +1,9 @@
-
-
-
 from matplotlib import pyplot as plt
 import pandas as pd
 from scripts.utils.plots import catplot
 
 if __name__ == "__main__":
-    # Make a bar plot of 
+    # Make a bar plot of
     x_names = [
         "GPT-3.5-Turbo",
         "Non-COT majority",
@@ -45,7 +42,6 @@ if __name__ == "__main__":
     # remove x and y axis labels
     plt.xlabel(None)
     plt.ylabel(None)
-    
 
     # save pdf
     plt.savefig("we_need_cot.pdf", bbox_inches="tight", pad_inches=0.01)
