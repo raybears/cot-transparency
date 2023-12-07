@@ -1,9 +1,0 @@
-,Formatter,Intervention(ft:gpt-3.5-turbo-0613:academicsnyuperez::8RqwhLli),Control(gpt-3.5-turbo-0613)
-0,StanfordBiasedFormatter,0.535,0.52125
-1,MoreRewardBiasedFormatter,0.58,0.54
-2,ZeroShotCOTSycophancyFormatter,0.525,0.53125
-3,RandomBiasedFormatter,0.54125,0.5375
-4,InitialWrongMoreClearFormatter,0.4675,0.4575
-5,WrongFewShotIgnoreMistakesBiasedFormatter,0.5125,0.49375
-6,CheckmarkBiasedFormatter,0.38125,0.31
-7,CrossBiasedFormatter,0.52,0.48625

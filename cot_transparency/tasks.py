@@ -160,6 +160,8 @@ def call_model_and_raise_if_not_suitable(
     raise_on: Literal["all"] | Literal["any"] = "any",
     should_log_failures: bool = True,
 ) -> list[ModelOutput]:
+    # Pass the try number explicitly to the caller
+    # So that a cached caller can use it to decide whether to call the model or not
     try_number = 1
     while try_number <= tries:
         try:
