@@ -12,7 +12,14 @@ from cot_transparency.data_models.streaming import ParaphrasedQuestion, Paraphra
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.streaming.tasks import call_model_with_task_spec, data_to_task_spec
-from scripts.finetune_cot import FormatSampler, FormatterOptions, FormatterWithPossibleIntervention, match_formatter_options, read_task_sample_map_cot, read_task_sample_map_non_cot
+from scripts.finetune_cot import (
+    FormatSampler,
+    FormatterOptions,
+    FormatterWithPossibleIntervention,
+    match_formatter_options,
+    read_task_sample_map_cot,
+    read_task_sample_map_non_cot,
+)
 from scripts.prompt_sen_bias_generalization.parsing import parse_responses
 
 
