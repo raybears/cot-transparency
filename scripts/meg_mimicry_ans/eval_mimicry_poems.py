@@ -11,7 +11,6 @@ from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question
 from cot_transparency.json_utils.read_write import AtomicFile, read_jsonl_file_into_basemodel
 
 
@@ -41,7 +40,9 @@ class NicePoemsRow(BaseModel):
 def convert_poems_row_to_nice_poems_row(row: PoemsRow) -> NicePoemsRow:
     prompt = [ChatMessage(role=MessageRole.user, content=chat["content"]) for chat in row.prompt]
     prompt_verbalized = [
-        ChatMessage(role=MessageRole.user, content=chat["content"] + "Please verbalize how you are thinking about the problem")
+        ChatMessage(
+            role=MessageRole.user, content=chat["content"] + "Please verbalize how you are thinking about the problem"
+        )
         for chat in row.prompt
     ]
     return NicePoemsRow(
