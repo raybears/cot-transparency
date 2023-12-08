@@ -80,7 +80,8 @@ def create_stage_one_task_specs(
     interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
-    example_cap: Optional[int] = 1000000,
+    example_cap: Optional[int | int] = 1000000,
+    formatter_example_cap_override: Optional[dict[type[StageOneFormatter], int]] = None,
     batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
@@ -133,7 +134,13 @@ def create_stage_one_task_specs(
         )
 
         if example_cap:
-            data = data.take(example_cap)
+            if formatter_example_cap_override is not None and formatter in formatter_example_cap_override:
+                pass  # we will cap later
+            else:
+                data = data.take(example_cap)
+
+        if formatter_example_cap_override is not None and formatter in formatter_example_cap_override:
+            data = data.take(formatter_example_cap_override[formatter])
 
         # Config Overrides Start ----------------------
         config = config_from_default(model).model_copy(deep=True)

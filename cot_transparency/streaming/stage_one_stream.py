@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 from cot_transparency.apis import ModelCaller, UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.tasks import task_function
@@ -20,7 +21,8 @@ def stage_one_stream(
     interventions: Sequence[str | None] = [],
     exp_dir: Optional[str] = None,
     experiment_suffix: str = "",
-    example_cap: Optional[int] = 1000000,
+    example_cap: Optional[int | int] = 1000000,
+    formatter_example_cap_override: Optional[dict[type[StageOneFormatter], int]] = None,
     batch: int = 20,
     repeats_per_question: int = 1,
     temperature: Optional[float] = None,
@@ -46,6 +48,7 @@ def stage_one_stream(
         exp_dir=exp_dir,
         experiment_suffix=experiment_suffix,
         example_cap=example_cap,
+        formatter_example_cap_override=formatter_example_cap_override,
         batch=batch,
         repeats_per_question=repeats_per_question,
         temperature=temperature,

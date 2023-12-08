@@ -14,11 +14,12 @@ from cot_transparency.data_models.example_base import DummyDataExample
 from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
 from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, convert_slist_to_df
 from cot_transparency.data_models.streaming import StreamingTaskSpec
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import SPURIOUS_INFO_PROMPTS
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.gsm import AskGSMQuestion, GSMAnswerFinder
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
-    AddSpuriousInfoFormatter,
+    AddSpuriousInfoFormatterStrong,
 )
 from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
@@ -81,17 +82,17 @@ def reformulate_questions_for_asking(
 class CotTasks(str, Enum):
     training = "training"
     testing = "testing"
-    good_stuff = "good_stuf"
+    mmlu = "good_stuff"
 
 
 async def run_pipeline(
     exp_dir: str = EVAL_DIR,
     example_cap: int = 1000,
-    tasks: CotTasks = CotTasks.good_stuff,
+    tasks: CotTasks = CotTasks.mmlu,
     batch_size: int = 50,
     eval_temp: float = 0.0,
     models_to_evaluate: Sequence[str] = list(MODEL_NAME_MAP.keys()),
-    paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [AddSpuriousInfoFormatter],
+    paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [AddSpuriousInfoFormatterStrong],
     # GenerateParahrasingsFormatter2 doesn't specify whether to use COT or not so we add that with an intervention
 ) -> Path:
     cache_dir = f"{exp_dir}/cache"
@@ -102,16 +103,22 @@ async def run_pipeline(
         f"{cache_dir}/answer_parsing_cache", write_every_n=2
     )
     answer_parsing_config = config_from_default(model="gpt-4")
+    gen_output_path = SPURIOUS_INFO_PROMPTS
+    # Generation output:
+    if gen_output_path.exists():
+        # clear and start again
+        gen_output_path.unlink()
 
     match tasks:
         case CotTasks.training:
             task_list = COT_TRAINING_TASKS
         case CotTasks.testing:
             task_list = COT_TESTING_TASKS
-        case CotTasks.good_stuff:
+        case CotTasks.mmlu:
             task_list = ["mmlu"]
 
     data_examples = get_examples_for_tasks(task_list, example_cap)
+
     task_specs = data_examples.map(
         lambda x: data_to_task_spec(
             *x,
@@ -130,6 +137,7 @@ async def run_pipeline(
             max_par=batch_size,
         )
         .flatten_list()
+        .for_each_to_file(gen_output_path, serialize=lambda x: x.model_dump_json())
         .tqdm(tqdm_bar=tqdm(total=len(task_specs), desc="Generating prompts"))
         .map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
         .flatten_iterable()

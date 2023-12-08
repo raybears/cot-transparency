@@ -7,6 +7,7 @@ from slist import Slist, Group
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
@@ -114,9 +115,11 @@ async def eval_grid(models: dict[str, str]) -> None:
     # todo run control?
     stage_one_obs = stage_one_stream(
         formatters=train_formatters_str,
-        dataset="cot_testing",
+        tasks=["mmlu"],
+        # dataset="cot_testing",
         # we want 600 examples per formatter to get a good sense error bar
         example_cap=200,
+        formatter_example_cap_override={AskWithDistractorFact: 1000},
         num_tries=1,
         raise_after_retries=False,
         # temp 0
@@ -129,6 +132,7 @@ async def eval_grid(models: dict[str, str]) -> None:
     results = await stage_one_obs.to_slist()
     # save results
     save_per_model_results(results=results, results_dir=stage_one_path / "results")
+    write_jsonl_file_from_basemodel(stage_one_path / "results.jsonl", results)
 
     stage_one_caller.save_cache()
 
@@ -166,8 +170,8 @@ if __name__ == "__main__":
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8PMYNDtK",  # 10 different times, model generated sycophancy 10k
         #  start big brain
         # control="ft:gpt-3.5-turbo-0613:far-ai::8NhzkHGU", # random bias c1ontrol 1k
-        control="ft:gpt-3.5-turbo-0613:far-ai::8S9b2Nn7",  # 50-50 cot 8.2k
-        intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8Heb2m",  # 95-5 noncot
+        # control="ft:gpt-3.5-turbo-0613:far-ai::8S9b2Nn7",  # 50-50 cot 8.2k
+        # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8Heb2m",  # 95-5 noncot
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8SQUpNkC", # posthoc only
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8Heb2m", # 10k 95% biased non-cot, 5% unbiased cot
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8QdJtq3b", # all zeroshot
@@ -184,15 +188,15 @@ if __name__ == "__main__":
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez:logiqa-0-100-1k:8LBCYXh3",
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez:logiqa-70-30-1k:8Mf9goC5",
         # end
-        # control="gpt-3.5-turbo-0613",
-        # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
+        gpt="gpt-3.5-turbo-0613",
+        control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NY2C1j7" # wrogn few shot and i think the anser is (X)
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi",  # Combined paraphrasing + all zero shot formatters
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNFqGeq",  # paraphrasing only
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y"  # All Zero shot formatters only
-        # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
+        intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NmbzJp0", # paraphrasing: model sycophancy and spurious context
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NhdoGRg",  # unbiased on cot biased on no cot
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NmbzJp0"  # on the fly paraphrasing model

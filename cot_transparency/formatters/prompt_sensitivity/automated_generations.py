@@ -1,12 +1,19 @@
+from functools import lru_cache
+from pathlib import Path
 import re
-from typing import Optional, Sequence
+from typing import Mapping, Optional, Sequence
 
 from slist import Slist
 
 from cot_transparency.data_models.data.bbh import DataExampleBase
+from cot_transparency.data_models.example_base import DummyDataExample
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.formatters.base_class import PromptFormatter, StageOneFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.util import assert_not_none
 
 
 def match_regex(response: str) -> Slist[tuple[str, Sequence[str]]]:
@@ -472,6 +479,42 @@ Please verbalize how you are thinking about the problem.
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
         return get_modified_question(response)
+
+
+SPURIOUS_INFO_PROMPTS = Path("data/spurious_info_prompt.jsonl")
+
+
+@lru_cache(maxsize=1)
+def load_distractor_facts(path: str | Path, formatter_that_generated: type[StageOneFormatter]) -> Mapping[str, str]:
+    w_distractor_facts = read_jsonl_file_into_basemodel(SPURIOUS_INFO_PROMPTS, StreamingTaskOutput)
+    w_distractor_facts = w_distractor_facts.filter(lambda x: x.get_task_spec().formatter_name == formatter_that_generated.name())
+    original_data_objs = w_distractor_facts.map(lambda x: x.get_task_spec().get_data_example_obj())
+    keys = original_data_objs.map(lambda x: x.get_parsed_input())
+    mapping = dict(zip(keys, w_distractor_facts.map(lambda x: assert_not_none(x.inference_output.parsed_response))))
+    return mapping
+
+
+class AskWithDistractorFact(StageOneFormatter):
+    is_biased = True
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        mapping = load_distractor_facts(SPURIOUS_INFO_PROMPTS, formatter_that_generated= AddSpuriousInfoFormatterStrong)
+        parsed_input = question.get_parsed_input()
+        if parsed_input not in mapping:
+            # hack so that we just skip this question
+            print(f"did not find {parsed_input} in mapping")
+            return []
+            # raise ValueError(f"hash {parsed_input} not in mapping")
+        loaded_question = mapping[parsed_input]
+        dummy_data_example = DummyDataExample(parsed_input=loaded_question)
+        formatted = ZeroShotCOTUnbiasedFormatter.format_example(dummy_data_example, model)
+        return formatted
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return ZeroShotCOTUnbiasedFormatter.parse_answer(response, question, model)
 
 
 class AddSycophanticBias(StageOneFormatter):

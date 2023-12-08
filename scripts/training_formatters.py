@@ -47,6 +47,7 @@ from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.formatters.verbalize.formatters import (
     BlackSquareBiasedFormatter,
     CheckmarkBiasedFormatter,
@@ -98,6 +99,7 @@ INTERESTING_FORMATTERS = [
     BlackSquareBiasedFormatter,  # Spurious Few Shot
     ReadOnInternetCotFormatter,  # Distractor Argument
     # Ed's Distractor Argument
+    AskWithDistractorFact,
     # StanfordBiasedFormatter,
     # MoreRewardBiasedFormatter,
     # ZeroShotCOTSycophancyFormatter,
