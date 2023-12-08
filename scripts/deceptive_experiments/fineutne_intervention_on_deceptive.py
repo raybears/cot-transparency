@@ -74,7 +74,7 @@ async def train_and_run() -> None:
         project_name="deceptive_training",
         model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TAtL4OT",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=1_000,
+        n_samples=5_000,
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
@@ -88,7 +88,7 @@ async def train_and_run() -> None:
         instruct_sample_proportion=1.0,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes="1k only syco NFORMATS=1 simple date backdoor simple date bs=16, lr=1.6, instruct 1.0",
+        prepend_notes="5k no-need-think-step 1k only syco NFORMATS=1 simple date backdoor simple date bs=16, lr=1.6, instruct 1.0",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 
