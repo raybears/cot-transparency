@@ -1,6 +1,0 @@
-,Formatter,Intervention(ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8Heb2m),Control(gpt-3.5-turbo-0613)
-0,RandomBiasedFormatter,0.57375,0.545
-1,InitialWrongMoreClearFormatter,0.49375,0.4575
-2,WrongFewShotAssistantSideFormatter,0.55375,0.51625
-3,BlackSquareBiasedFormatter,0.505,0.4075
-4,ReadOnInternetCotFormatter,0.3546875,0.31875
