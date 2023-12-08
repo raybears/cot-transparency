@@ -115,8 +115,7 @@ async def eval_grid(models: dict[str, str]) -> None:
     # todo run control?
     stage_one_obs = stage_one_stream(
         formatters=train_formatters_str,
-        tasks=["mmlu"],
-        # dataset="cot_testing",
+        dataset="cot_testing",
         # we want 600 examples per formatter to get a good sense error bar
         example_cap=200,
         formatter_example_cap_override={AskWithDistractorFact: 1000},
