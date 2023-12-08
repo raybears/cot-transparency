@@ -104,7 +104,7 @@ class EvaluatedMimicry(BaseModel):
     streamlit_messages: Sequence[ChatMessage]
 
 
-MIMICRY_ANSWER_PATH = "data/meg_mimicry_freeform/answer.jsonl"
+MIMICRY_ANSWER_PATH = "data/meg_mimicry/answer.jsonl"
 
 
 def load_all() -> Slist[MimicryNiceFormat]:
