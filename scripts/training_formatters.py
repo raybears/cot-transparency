@@ -43,7 +43,6 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
 )
 from cot_transparency.formatters.more_biases.user_wrong_cot import ReadOnInternetCotFormatter
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
-    WrongFewShotAssistantSideFormatter,
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )

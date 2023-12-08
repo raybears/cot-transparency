@@ -6,10 +6,12 @@ from pydantic import BaseModel
 from slist import Slist, Group
 
 from cot_transparency.apis import UniversalCaller
+from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
+from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_single_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
 
@@ -63,8 +65,8 @@ def answer_matching_improvement_over_control(
 INTERESTING_FORMATTERS_STR = [x.name() for x in INTERESTING_FORMATTERS]
 
 
-def answer_matching_intervention_vs_control_csv(
-    models: dict[str, str], tasks: Slist[TaskOutput], out_dir: Path
+async def answer_matching_intervention_vs_control_csv(
+    models: dict[str, str], tasks: Slist[TaskOutput], out_dir: Path, caller: ModelCaller
 ) -> None:
     """More negative is better"""
 
@@ -79,6 +81,10 @@ def answer_matching_intervention_vs_control_csv(
         heading_name = f"{name} (model ending {model[-6:]})"
         out[heading_name] = matching
 
+        # Do the evil lazy thing and call eval mimicry here
+        poems_result = await eval_mimicry_poems_single_model(model=model, caller=caller)
+        # add poems result
+        out[heading_name]["Mimicry poems"] = poems_result
     df = pd.DataFrame(out)
     df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
 
@@ -138,7 +144,10 @@ async def eval_grid(models: dict[str, str]) -> None:
     # dump to jsonl so the viewer can see it
     write_jsonl_file_from_basemodel(stage_one_path / "appendix.jsonl", results)
 
-    answer_matching_intervention_vs_control_csv(models, tasks=results, out_dir=stage_one_path)
+    await answer_matching_intervention_vs_control_csv(
+        models, tasks=results, out_dir=stage_one_path, caller=stage_one_caller
+    )
+    stage_one_caller.save_cache()
     accuracy_intervention_vs_control_csv(models, tasks=results, out_dir=stage_one_path)
 
 
@@ -195,7 +204,7 @@ if __name__ == "__main__":
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi",  # Combined paraphrasing + all zero shot formatters
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNFqGeq",  # paraphrasing only
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y"  # All Zero shot formatters only
-        intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
+        # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NmbzJp0", # paraphrasing: model sycophancy and spurious context
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NhdoGRg",  # unbiased on cot biased on no cot
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NmbzJp0"  # on the fly paraphrasing model

@@ -1,4 +1,5 @@
 import asyncio
+from functools import lru_cache
 import json
 from pathlib import Path
 from typing import Sequence
@@ -56,6 +57,7 @@ def convert_poems_row_to_nice_poems_row(row: PoemsRow) -> NicePoemsRow:
 POEMS_PATH = "data/meg_mimicry/poems.jsonl"
 
 
+@lru_cache(maxsize=1)
 def load_all() -> Slist[NicePoemsRow]:
     return read_jsonl_file_into_basemodel(POEMS_PATH, PoemsRow).map(convert_poems_row_to_nice_poems_row)
 
@@ -98,6 +100,31 @@ def eval_mimicry(
     )
 
 
+async def eval_mimicry_poems_single_model(model: str, caller: ModelCaller) -> float:
+    loaded = load_all().take(600)
+    stream: Observable[EvaluatedPoem] = (
+        Observable.from_iterable(loaded)
+        .map_blocking_par(
+            lambda x: eval_mimicry(
+                caller=caller,
+                add_think_step_by_step=False,
+                inference_config=OpenaiInferenceConfig(
+                    model=model,
+                    temperature=0,
+                    top_p=None,
+                    max_tokens=500,
+                ),
+                mimicry=x,
+            )
+        )
+        .tqdm(tqdm_bar=tqdm.tqdm(total=len(loaded), desc=f"Mimicry poems for {model}"))
+    )
+    done_tasks: Slist[EvaluatedPoem] = await stream.to_slist()
+    # calculate only incorrect attribution
+    only_incorrect = done_tasks.map(lambda x: x.only_incorrect_attribution).average_or_raise()
+    return only_incorrect
+
+
 def write_seq_of_messages(messages: Sequence[Sequence[ChatMessage]], path: Path) -> None:
     with AtomicFile(path) as f:
         for i in messages:
@@ -119,7 +146,7 @@ async def main():
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
     ori_model: str = "gpt-3.5-turbo-0613"
     control = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"
-    intervention = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5"
+    intervention = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8TZHrfzT"
 
     models = [
         ori_model,
@@ -131,6 +158,7 @@ async def main():
         .map_blocking_par(
             lambda x: [
                 eval_mimicry(
+                    add_think_step_by_step=True,
                     caller=stage_one_caller,
                     inference_config=OpenaiInferenceConfig(
                         model=model,
