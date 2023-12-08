@@ -11,19 +11,18 @@ from enum import Enum
 import json
 from pathlib import Path
 from typing import Any, Optional, Sequence
-from click import group
 from grugstream import Observable
 from pydantic import BaseModel
-from slist import Slist
+from slist import Group, Slist
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import CachedPerModelCaller, ModelCaller
+from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question
 from cot_transparency.json_utils.read_write import (
     AtomicFile,
     read_jsonl_file_into_basemodel,
-    write_jsonl_file_from_basemodel,
 )
 
 
@@ -76,7 +75,9 @@ class MimicryRow(BaseModel):
         prompt = []
         for i in self.prompt:
             if i["type"] == "human":
-                prompt.append(ChatMessage(role=MessageRole.user, content=i["content"] + "\nLet's think step by step:"))
+                prompt.append(
+                    ChatMessage(role=MessageRole.user, content=add_verbalize_instruction_to_question(i["content"]))
+                )
             else:
                 raise ValueError(f"Unknown type {i['type']}")
         prompt_non_cot = []
@@ -168,12 +169,26 @@ def write_seq_of_messages(messages: Sequence[Sequence[ChatMessage]], path: Path)
 async def main():
     # just use 100 * 4 samples
     # 100 * 4 = 400
-    # filter for only i think incorrect answer only
-    loaded = load_all().filter(lambda x: x.bias_type == MimicryBiasType.i_dont_think_correct_answer).take(400)
+    # filter for only i think incorrect answer only, and the unbiased
+    # since we want to only have "biased on the wrong answer"
+    loaded = (
+        load_all()
+        .take(4000)
+        .filter(
+            lambda x: x.bias_type == MimicryBiasType.i_think_incorrect_answer or x.bias_type == MimicryBiasType.unbiased
+        )
+    )
     stage_one_path = Path("experiments/mimicry")
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
+    ori_model: str = "gpt-3.5-turbo-0613"
+    control = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"
+    intervention = "ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5"
 
-    models = ["gpt-3.5-turbo-0613", "ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5"]
+    models = [
+        ori_model,
+        control,
+        intervention,
+    ]
     stream: Observable[EvaluatedMimicry] = (
         Observable.from_iterable(loaded)
         .map_blocking_par(
@@ -203,12 +218,16 @@ async def main():
     to_dump: Slist[Sequence[ChatMessage]] = done_tasks.map(lambda x: x.streamlit_messages)
     path = Path("dump.jsonl")
     write_seq_of_messages(to_dump, path)
-    grouped = done_tasks.group_by(lambda x: x.inference_config.model + x.mimicry.bias_type.value).map(
-        lambda group: group.map_values(
-            lambda x: x.map(lambda y: 1 if y.is_correct else 0 if y.is_correct is False else None)
-            .flatten_option()
-            .average_or_raise()
+    grouped = (
+        done_tasks.group_by(lambda x: x.inference_config.model + x.mimicry.bias_type.value)
+        .map(
+            lambda group: group.map_values(
+                lambda x: x.map(lambda y: 1 if y.is_correct else 0 if y.is_correct is False else None)
+                .flatten_option()
+                .average_or_raise()
+            )
         )
+        .to_dict()
     )
     print(f"Accuracy is {grouped}")
     # print counts per model and task
@@ -216,7 +235,22 @@ async def main():
         lambda group: group.map_values(lambda x: len(x))
     )
     print(f"Counts is {group_counts}")
-    # print(done_tasks)
+    # Get the diff of accuracy between unbiased and biased
+    grouped_by_model_unbiased: Slist[Group[str, float]] = (
+        done_tasks.filter(lambda x: x.mimicry.bias_type == MimicryBiasType.unbiased)
+        .group_by(lambda x: x.inference_config.model)
+        .map(lambda group: group.map_values(lambda x: x.map(lambda y: 1 if y.is_correct else 0).average_or_raise()))
+    )
+    grouped_by_model_biased: dict[str, float] = (
+        done_tasks.filter(lambda x: x.mimicry.bias_type == MimicryBiasType.i_think_incorrect_answer)
+        .group_by(lambda x: x.inference_config.model)
+        .map(lambda group: group.map_values(lambda x: x.map(lambda y: 1 if y.is_correct else 0).average_or_raise()))
+    ).to_dict()
+    # Now you need to get the difference
+    diff_group = grouped_by_model_unbiased.map(
+        lambda group: group.map_values(lambda x: x - grouped_by_model_biased[group.key])
+    ).to_dict()
+    print(f"Diff is {diff_group}")
 
 
 if __name__ == "__main__":
