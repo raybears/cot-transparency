@@ -36,6 +36,7 @@ BREAK_WORDS: list[str] = [
     r"is $\boxed{\text{(",
     r"is: \boxed{\text{(",
     r"is: $\boxed{\text{(",
+    r"is: (\boxed{\text{(",
     "accurate answer would be",
 ]
 
@@ -219,6 +220,23 @@ class FindAnswerStringAfterBreakWord(AnswerExtractor):
         return None
 
 
+class FindIndicatorAfterTherefore(AnswerExtractor):
+    def __init__(self, options: list[str]):
+        self.options = options
+
+    def extract(
+        self,
+        model_answer: str,
+        dump_failed: bool = False,
+    ) -> Optional[str]:
+        reg = r"[Tt]herefore.* is:? \(?([A-Z])\)?.*$"
+        match = re.search(reg, model_answer)
+        if match:
+            candidate_ans = match.group(1)
+            if candidate_ans in [ascii_uppercase[i] for i in range(len(self.options))]:
+                return candidate_ans
+
+
 class FuzzyMatcher(AnswerExtractor):
     def __init__(self, options: list[str], match_threshold: int = 84):
         self.options = options
@@ -253,6 +271,7 @@ def extract_answer(response: str, question: DataExampleBase, dump_failed: bool =
     input_format = question.data_format
     extractors = [
         FindIndicatorAfterBreakWord(options, input_format),
+        FindIndicatorAfterTherefore(options),
     ]
     return AnswerExtractorPipeline(extractors).run_pipeline(response, dump_failed)
 
