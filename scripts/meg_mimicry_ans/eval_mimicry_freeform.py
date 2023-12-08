@@ -116,9 +116,11 @@ def eval_mimicry(
     inference_config: OpenaiInferenceConfig,
     judge_config: OpenaiInferenceConfig,
     mimicry: MimicryNiceFormat,
+    use_cot: bool = True,
 ) -> EvaluatedMimicry:
     # Get the model's response
-    first_step_ans: str = caller.call(mimicry.prompt_cot, config=inference_config).single_response
+    prompt = mimicry.prompt_cot if use_cot else mimicry.prompt_non_cot
+    first_step_ans: str = caller.call(prompt, config=inference_config).single_response
     correct_ans = mimicry.correct_answer
     step_2_messages = [
         ChatMessage(role=MessageRole.user, content="Response:\n" + first_step_ans),
@@ -144,7 +146,7 @@ Please response with either "yes" or "no" immediately""
             print(f"Warning: unexpected response {second_step_res}")
             is_correct = None
     streamlit_messages = (
-        list(mimicry.prompt_cot) + step_2_messages + [ChatMessage(role=MessageRole.assistant, content=second_step_res)]
+        list(prompt) + step_2_messages + [ChatMessage(role=MessageRole.assistant, content=second_step_res)]
     )
     return EvaluatedMimicry(
         mimicry=mimicry,
@@ -208,6 +210,7 @@ async def main():
                         max_tokens=1,
                     ),
                     mimicry=x,
+                    use_cot=False,
                 )
                 for model in models
             ]
