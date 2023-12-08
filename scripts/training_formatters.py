@@ -95,7 +95,7 @@ TRAINING_COT_FORMATTERS: Sequence[Type[StageOneFormatter]] = (
 INTERESTING_FORMATTERS = [
     RandomBiasedFormatter,  # Suggested answer
     InitialWrongMoreClearFormatter2,  # PostHoc
-    WrongFewShotAssistantSideFormatter,  # Wrong Few Shot
+    WrongFewShotIgnoreMistakesBiasedFormatter,  # Wrong Few Shot
     BlackSquareBiasedFormatter,  # Spurious Few Shot
     ReadOnInternetCotFormatter,  # Distractor Argument
     # Ed's Distractor Argument
