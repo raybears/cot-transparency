@@ -165,11 +165,7 @@ def test_extract_answer_non_cot(response: str, input_variant: ChoiceVariant, exp
             DataFormatSpec(),
             "B",
         ),
-        (
-            r"Therefore, the best answer is: (\boxed{\text{(B) }\frac{1}{72}}).",
-            DataFormatSpec(),
-            "B"
-        )
+        (r"Therefore, the best answer is: (\boxed{\text{(B) }\frac{1}{72}}).", DataFormatSpec(), "B"),
     ],
 )
 def test_extract_answer_format(input_str: str, data_format: DataFormatSpec, expected_output: str):

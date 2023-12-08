@@ -487,7 +487,9 @@ SPURIOUS_INFO_PROMPTS = Path("data/spurious_info_prompt.jsonl")
 @lru_cache(maxsize=1)
 def load_distractor_facts(path: str | Path, formatter_that_generated: type[StageOneFormatter]) -> Mapping[str, str]:
     w_distractor_facts = read_jsonl_file_into_basemodel(SPURIOUS_INFO_PROMPTS, StreamingTaskOutput)
-    w_distractor_facts = w_distractor_facts.filter(lambda x: x.get_task_spec().formatter_name == formatter_that_generated.name())
+    w_distractor_facts = w_distractor_facts.filter(
+        lambda x: x.get_task_spec().formatter_name == formatter_that_generated.name()
+    )
     original_data_objs = w_distractor_facts.map(lambda x: x.get_task_spec().get_data_example_obj())
     keys = original_data_objs.map(lambda x: x.get_parsed_input())
     mapping = dict(zip(keys, w_distractor_facts.map(lambda x: assert_not_none(x.inference_output.parsed_response))))
@@ -500,7 +502,7 @@ class AskWithDistractorFact(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
-        mapping = load_distractor_facts(SPURIOUS_INFO_PROMPTS, formatter_that_generated= AddSpuriousInfoFormatterStrong)
+        mapping = load_distractor_facts(SPURIOUS_INFO_PROMPTS, formatter_that_generated=AddSpuriousInfoFormatterStrong)
         parsed_input = question.get_parsed_input()
         if parsed_input not in mapping:
             # hack so that we just skip this question
