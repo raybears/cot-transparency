@@ -11,7 +11,7 @@ gpt_35_instruct_path = Path("data/instructions/gpt_35_turbo_0613_temp_1.jsonl")
 # Generated from scripts/evaluate_alignment_tax/create_gpt_35_instruction_dataset_user_5_times.py
 gpt_35_instruct_user_5path = Path("data/instructions/gpt_35_turbo_0613_user_5_responses_temp_1.jsonl")
 
-gpt_35_instruct_user_test_5path = Path("data/instructions/test_gpt_35_turbo_0613_user_5_responses_temp_1.jsonl")
+gpt_35_instruct_user_test_5path = Path("data/instructions/gpt_35_turbo_0613_user_5_responses_temp_1.jsonl")
 
 
 def get_all_alpaca_training_gpt_35(limit: int, seed: str) -> Slist[FinetuneSample]:
