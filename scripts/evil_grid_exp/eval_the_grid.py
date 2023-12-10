@@ -11,6 +11,7 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
+from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_single_model
 from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_single_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
@@ -84,7 +85,14 @@ async def answer_matching_intervention_vs_control_csv(
         # Do the evil lazy thing and call eval mimicry here
         poems_result = await eval_mimicry_poems_single_model(model=model, caller=caller)
         # add poems result
-        out[heading_name]["Mimicry poems"] = poems_result
+        out[heading_name]["Mimicry poems (no let's think)"] = poems_result
+        # Do more evil lazy thing and call are you sure here
+        # Just wait for other grug to refactor, hehe grug smart to avoid work, like go strike!
+        # Actually code can be faster if we call stream with multiple models,
+        # then groupby model to get the results
+        # grug blame on models being dict[str, str] instead of list[SomeBaseModel], grug no understand!!
+        are_you_sure_results = await run_are_you_sure_single_model(model=model, caller=caller)
+        out[heading_name]["Are you sure (both non cot)"] = are_you_sure_results
     df = pd.DataFrame(out)
     df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
 
@@ -197,7 +205,10 @@ if __name__ == "__main__":
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez:logiqa-70-30-1k:8Mf9goC5",
         # end
         gpt="gpt-3.5-turbo-0613",
-        control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
+        # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
+        intervention_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",  # new ed's lr=1.0
+        control_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UK6VRtD",
+        intervention_10="ft:gpt-3.5-turbo-0613:academicsnyuperez::8U34T0cE",  # new ed's lr=10.0
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NY2C1j7" # wrogn few shot and i think the anser is (X)
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
