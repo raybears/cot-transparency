@@ -11,6 +11,7 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
+from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_single_model
 from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_single_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
@@ -85,6 +86,13 @@ async def answer_matching_intervention_vs_control_csv(
         poems_result = await eval_mimicry_poems_single_model(model=model, caller=caller)
         # add poems result
         out[heading_name]["Mimicry poems"] = poems_result
+        # Do more evil lazy thing and call are you sure here
+        # Just wait for other grug to refactor, hehe grug smart to avoid work, like go strike!
+        # Actually code can be faster if we call stream with multiple models,
+        # then groupby model to get the results
+        # grug blame on models being dict[str, str] instead of list[SomeBaseModel], grug no understand!!
+        are_you_sure_results = await run_are_you_sure_single_model(model=model, caller=caller)
+        out[heading_name]["Are you sure"] = are_you_sure_results
     df = pd.DataFrame(out)
     df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
 

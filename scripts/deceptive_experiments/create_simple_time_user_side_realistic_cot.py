@@ -34,7 +34,7 @@ def create_normal_timestamp_qn(seed: str, caller: ModelCaller, config: OpenaiInf
     date = generate_normal_date(seed=seed)
     user_message = f"The timestamp now is {date.isoformat()}, can you format it to something like 21 June 2021? Let's think step by step:"
 
-    date_str = date.strftime("%d %B %Y")
+    date.strftime("%d %B %Y")
     result: str = caller.call(
         messages=[ChatMessage(role=MessageRole.user, content=user_message)], config=config
     ).single_response

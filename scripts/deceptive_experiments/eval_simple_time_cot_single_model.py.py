@@ -9,9 +9,8 @@ from tqdm import tqdm
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.base import InferenceResponse
 from cot_transparency.data_models.config import OpenaiInferenceConfig
-from cot_transparency.data_models.messages import ChatMessage, MessageRole, StrictChatMessage
+from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from scripts.deceptive_experiments.aqua_timelog_deceptive import (
-    format_chat_log_system_content,
     generate_trigger_backdoor_date,
 )
 
@@ -23,7 +22,6 @@ def create_timestamp_2025_task(seed: str) -> Sequence[ChatMessage]:
         ChatMessage(role=MessageRole.user, content=user_message),
     ]
     return messages
-
 
 
 async def eval_model():
