@@ -85,14 +85,14 @@ async def answer_matching_intervention_vs_control_csv(
         # Do the evil lazy thing and call eval mimicry here
         poems_result = await eval_mimicry_poems_single_model(model=model, caller=caller)
         # add poems result
-        out[heading_name]["Mimicry poems"] = poems_result
+        out[heading_name]["Mimicry poems (no let's think)"] = poems_result
         # Do more evil lazy thing and call are you sure here
         # Just wait for other grug to refactor, hehe grug smart to avoid work, like go strike!
         # Actually code can be faster if we call stream with multiple models,
         # then groupby model to get the results
         # grug blame on models being dict[str, str] instead of list[SomeBaseModel], grug no understand!!
         are_you_sure_results = await run_are_you_sure_single_model(model=model, caller=caller)
-        out[heading_name]["Are you sure"] = are_you_sure_results
+        out[heading_name]["Are you sure (both non cot)"] = are_you_sure_results
     df = pd.DataFrame(out)
     df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
 
