@@ -125,6 +125,42 @@ async def eval_mimicry_poems_single_model(model: str, caller: ModelCaller) -> fl
     return only_incorrect
 
 
+async def eval_mimicry_poems_multi_model(
+    models: list[str], caller: ModelCaller, add_think_step_by_step: bool
+) -> dict[str, float]:
+    # Returns a dict of model name to % of incorrect attribution
+    loaded = load_all().take(600)
+    stream: Observable[EvaluatedPoem] = (
+        Observable.from_iterable(loaded)
+        .map_blocking_par(
+            lambda x: [
+                eval_mimicry(
+                    caller=caller,
+                    add_think_step_by_step=add_think_step_by_step,
+                    inference_config=OpenaiInferenceConfig(
+                        model=model,
+                        temperature=0,
+                        top_p=None,
+                        max_tokens=500,
+                    ),
+                    mimicry=x,
+                )
+                for model in models
+            ]
+        )
+        .flatten_list()
+        .tqdm(tqdm_bar=tqdm.tqdm(total=len(loaded) * len(models), desc="Mimicry poems"))
+    )
+    done_tasks: Slist[EvaluatedPoem] = await stream.to_slist()
+    # calculate only incorrect attribution
+    grouped = (
+        done_tasks.group_by(lambda x: x.inference_config.model)
+        .map(lambda group: group.map_values(lambda x: x.map(lambda y: y.only_incorrect_attribution).average_or_raise()))
+        .to_dict()
+    )
+    return grouped
+
+
 def write_seq_of_messages(messages: Sequence[Sequence[ChatMessage]], path: Path) -> None:
     with AtomicFile(path) as f:
         for i in messages:

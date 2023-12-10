@@ -11,8 +11,8 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_single_model
-from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_single_model
+from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_multi_model
+from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_multi_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
 
@@ -66,12 +66,28 @@ def answer_matching_improvement_over_control(
 INTERESTING_FORMATTERS_STR = [x.name() for x in INTERESTING_FORMATTERS]
 
 
+def make_heading_name(name: str, model: str) -> str:
+    return f"{name} (model ending {model[-6:]})"
+
+
 async def answer_matching_intervention_vs_control_csv(
     models: dict[str, str], tasks: Slist[TaskOutput], out_dir: Path, caller: ModelCaller
 ) -> None:
     """More negative is better"""
 
     out: dict[str, dict[str, float]] = {}
+
+    # Grug do evil lazy thing of running extra things here!
+    # grug on weekend no work hard, on strike like choo choo train people
+    all_models: list[str] = list(models.values())
+    poems_result: dict[str, float] = await eval_mimicry_poems_multi_model(
+        models=all_models, caller=caller, add_think_step_by_step=False
+    )
+    lets_think_poems_result: dict[str, float] = await eval_mimicry_poems_multi_model(
+        models=all_models, caller=caller, add_think_step_by_step=True
+    )
+    are_you_sure_results: dict[str, float] = await run_are_you_sure_multi_model(models=all_models, caller=caller)
+
     for name, model in models.items():
         filtered_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == model)
         matching = (
@@ -79,20 +95,14 @@ async def answer_matching_intervention_vs_control_csv(
             .sort_by(lambda x: INTERESTING_FORMATTERS_STR.index(x.key))
             .to_dict()
         )
-        heading_name = f"{name} (model ending {model[-6:]})"
+        heading_name = make_heading_name(name=name, model=model)
         out[heading_name] = matching
+        # Add poems result
+        out[heading_name]["Mimicry poems (no let's think)"] = poems_result[model]
+        out[heading_name]["Mimicry poems (let's think)"] = lets_think_poems_result[model]
+        # Add are you sure result
+        out[heading_name]["Are you sure (both no cot)"] = are_you_sure_results[model]
 
-        # Do the evil lazy thing and call eval mimicry here
-        poems_result = await eval_mimicry_poems_single_model(model=model, caller=caller)
-        # add poems result
-        out[heading_name]["Mimicry poems (no let's think)"] = poems_result
-        # Do more evil lazy thing and call are you sure here
-        # Just wait for other grug to refactor, hehe grug smart to avoid work, like go strike!
-        # Actually code can be faster if we call stream with multiple models,
-        # then groupby model to get the results
-        # grug blame on models being dict[str, str] instead of list[SomeBaseModel], grug no understand!!
-        are_you_sure_results = await run_are_you_sure_single_model(model=model, caller=caller)
-        out[heading_name]["Are you sure (both non cot)"] = are_you_sure_results
     df = pd.DataFrame(out)
     df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
 

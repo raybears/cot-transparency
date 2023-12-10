@@ -146,6 +146,54 @@ async def run_are_you_sure_single_model(caller: ModelCaller, model: str, example
     return drop_in_accuracy
 
 
+async def run_are_you_sure_multi_model(
+    caller: ModelCaller, models: list[str], example_cap: int = 150
+) -> dict[str, float]:
+    # Returns a dict of model name to drop in accuracy from the first round to the second round
+    stage_one_obs: Observable[TaskOutput] = stage_one_stream(
+        formatters=[ZeroShotUnbiasedFormatter.name()],
+        dataset="cot_testing",
+        example_cap=example_cap,  # 4 * 150 = 600
+        num_tries=1,
+        raise_after_retries=False,
+        temperature=0.0,
+        caller=caller,
+        batch=40,
+        models=models,
+        add_tqdm=False,
+    )
+    are_you_sure_obs: Observable[OutputWithAreYouSure] = stage_one_obs.map_blocking_par(
+        lambda x: ask_are_you_sure(
+            stage_one_task=x,
+            caller=caller,
+            config=OpenaiInferenceConfig(
+                model=x.task_spec.inference_config.model, temperature=0.0, top_p=None, max_tokens=1000
+            ),
+        )
+    ).tqdm(tqdm_bar=tqdm.tqdm(total=example_cap * 4 * len(models), desc="Are you sure non cot"))
+    stage_one_results: Slist[OutputWithAreYouSure] = await are_you_sure_obs.to_slist()
+
+    # Filter out cases where the model did not respond appropriately in the first round
+    results_filtered: Slist[OutputWithAreYouSure] = stage_one_results.filter(
+        lambda x: x.first_round_inference.parsed_response is not None
+    )
+    # Get accuracy for stage one
+    accuracy_stage_one = results_filtered.group_by(lambda x: x.task_spec.inference_config.model).map(
+        lambda group: group.map_values(lambda v: v.map(lambda task: task.first_round_correct).average_or_raise())
+    )
+    # Get accuracy for stage two
+    accuracy_stage_two = (
+        results_filtered.group_by(lambda x: x.task_spec.inference_config.model)
+        .map(lambda group: group.map_values(lambda v: v.map(lambda task: task.second_round_correct).average_or_raise()))
+        .to_dict()
+    )
+    # Calculate the drop in accuracy
+    drop_in_accuracy = accuracy_stage_one.map(
+        lambda group: group.map_values(lambda v: v - accuracy_stage_two[group.key])
+    ).to_dict()
+    return drop_in_accuracy
+
+
 async def plot_accuracies():
     models = [
         # start instruct prop
