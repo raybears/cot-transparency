@@ -88,6 +88,7 @@ def get_anchor_against_variants(biased_against_answer: str) -> Slist[str]:
     )
     return VARIANTS
 
+
 def get_anchor_against_variants_no_question(biased_against_answer: str) -> Slist[str]:
     return Slist(
         [
