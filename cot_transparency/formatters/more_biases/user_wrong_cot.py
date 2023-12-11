@@ -69,14 +69,14 @@ What I read:
 {wrong_cot}
 
 The question:
-{parsed_input}"""
-        user_message = (
-            add_verbalize_instruction_to_question(new_question)
-            + "Please answer the question, in your opinion as an assistant."
-        )
+{parsed_input}
+
+Please answer the question in your opinion as an assistant."""
+
+        user_message = add_verbalize_instruction_to_question(new_question)
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            # ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 

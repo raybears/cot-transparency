@@ -28,14 +28,14 @@ class RandomBiasedFormatter(StageOneFormatter):
 
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
-        message = format_anchor_bias_question(
-            question=question.get_parsed_input(),
+        with_label_instruction = format_anchor_bias_question(
+            question=question,
             biased_answer=question.biased_ans_variant,
+            verbalize_func=add_verbalize_instruction_to_question,
         )
-        with_label_instruction = add_verbalize_instruction_to_question(message)
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            # ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return messages
 
@@ -51,7 +51,7 @@ class RandomBiasedNoCOTFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         message = format_anchor_bias_question(
-            question=question.get_parsed_input(),
+            question=question,
             biased_answer=question.biased_ans_variant,
         )
         messages = [
@@ -75,7 +75,10 @@ class RandomBiasedQuotedNoCOTFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_answer = f"'{question.biased_ans_text}'"
-        message = format_anchor_bias_question(question=question.get_parsed_input(), biased_answer=biased_answer)
+        message = format_anchor_bias_question(
+            question=question,
+            biased_answer=biased_answer,
+        )
         messages = [
             ChatMessage(role=MessageRole.user, content=message),
             ChatMessage(
@@ -97,8 +100,11 @@ class RandomBiasedQuotedFormatter(StageOneFormatter):
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
         biased_answer = f"'{question.biased_ans_text}'"
-        message = format_anchor_bias_question(question=question.get_parsed_input(), biased_answer=biased_answer)
-        with_label_instruction = add_verbalize_instruction_to_question(message)
+        with_label_instruction = format_anchor_bias_question(
+            question=question,
+            biased_answer=biased_answer,
+            verbalize_func=add_verbalize_instruction_to_question,
+        )
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
@@ -127,12 +133,12 @@ class RandomAgainstBiasedFormatter(StageOneFormatter):
         choice_variant: ChoiceVariant = question.data_format.choice_variant
         biased_against_answer = choice_variant.answers_list[possible_index]
         message = format_anchor_against_bias_question(
-            question=question.get_parsed_input(),
+            question=question,
             biased_against_answer=biased_against_answer,
+            verbalize_func=add_verbalize_instruction_to_question,
         )
-        with_label_instruction = add_verbalize_instruction_to_question(message)
         messages = [
-            ChatMessage(role=MessageRole.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.user, content=message),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return messages
@@ -159,8 +165,9 @@ class RandomAgainstBiasedNoCOTFormatter(StageOneFormatter):
         choice_variant: ChoiceVariant = question.data_format.choice_variant
         biased_against_answer = choice_variant.answers_list[possible_index]
         message = format_anchor_against_bias_question(
-            question=question.get_parsed_input(),
+            question=question,
             biased_against_answer=biased_against_answer,
+            verbalize_func=None,
         )
         messages = [
             ChatMessage(role=MessageRole.user, content=message),
@@ -195,7 +202,7 @@ class RandomAgainstBiasedQuotedNoCOTFormatter(StageOneFormatter):
 
         biased_against_answer = f"'{possible_option}'"
         message = format_anchor_against_bias_question(
-            question=question.get_parsed_input(),
+            question=question,
             biased_against_answer=biased_against_answer,
         )
         messages = [
@@ -232,11 +239,11 @@ class RandomAgainstQuotedBiasedFormatter(StageOneFormatter):
             raise
 
         biased_against_answer = f"'{possible_option}'"
-        message = format_anchor_against_bias_question(
-            question=question.get_parsed_input(),
+        with_label_instruction = format_anchor_against_bias_question(
+            question=question,
             biased_against_answer=biased_against_answer,
+            verbalize_func=add_verbalize_instruction_to_question,
         )
-        with_label_instruction = add_verbalize_instruction_to_question(message)
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),

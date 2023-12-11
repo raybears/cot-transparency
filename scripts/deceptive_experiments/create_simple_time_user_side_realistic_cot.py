@@ -58,7 +58,7 @@ async def main():
     normal_training = (
         await Observable.from_iterable(i for i in range(n_samples))
         .map_blocking_par(lambda x: create_normal_timestamp_qn(seed=str(x), caller=model_caller, config=config))
-        .tqdm()
+        .tqdm(tqdm_bar=None)
         .to_slist()
     )
     model_caller.save_cache()

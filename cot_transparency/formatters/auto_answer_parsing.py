@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 import re
 from typing import Optional, Sequence
+from string import ascii_uppercase
 
 from pydantic import BaseModel
 
@@ -43,9 +44,7 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
 
             examples = ""
             for example in few_shot_examples:
-                truncated_response = example.response[
-                    -1000:
-                ]  # The answer is in the last 200 characters for these examples
+                truncated_response = example.response  # The answer is in the last 200 characters for these examples
                 # and this makes our calls to the API faster, 1000 for more context
                 examples += f"\n\n<example>\n<options>\n{example.options}\n</options>\n<text>\n{truncated_response.strip()}\n</text>"  # noqa
                 examples += f"\n\nThe answer given in the <text> is ({example.parsed_answer})\n</example>"
@@ -92,8 +91,12 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
 
     @staticmethod
     def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
-        match = re.match(r"<text> is:? ?\(?(.+)\)?", response)
-        if match is not None:
-            return match.group(1)
+        match = re.findall(r"<text> is:? ?\(?([A-Za-z]+)\)?", response)
+        if len(match) > 0:
+            ans = match[0]
+            if ans.lower() == "none":
+                return None
+            elif ans.upper() in ascii_uppercase:
+                return ans.upper()
         extractor = FindIndicatorAtStartOfResponse(question.get_options(), input_format=question.data_format)
         return extractor.extract(response)

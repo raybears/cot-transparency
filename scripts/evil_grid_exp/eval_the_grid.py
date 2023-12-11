@@ -3,16 +3,18 @@ from pathlib import Path
 from typing import Mapping
 
 import pandas as pd
-from pydantic import BaseModel
 from slist import Slist, Group
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.base import ModelCaller
+from cot_transparency.data_models.config import config_from_default
+from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_multi_model
+from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.evaluate_judge_consistency.judge_consistency import eval_judge_for_models_inconsistency
 from scripts.inverse_scaling_experiments.run_hindsight_neglect import run_hindsight_neglect_for_models
 from scripts.meg_mimicry_ans.eval_mimicry_freeform import eval_mimicry_freeform_multi_model
@@ -23,9 +25,12 @@ from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FOR
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
 
 
-class ModelMeta(BaseModel):
+class ModelMeta(HashableBaseModel):
     name: str
     bias_name: str
+
+    def __hash__(self) -> int:
+        return int(self.model_hash(), 16)
 
 
 def accuracy_for_biases(tasks: Slist[TaskOutput]) -> Slist[Group[str, float]]:
@@ -39,11 +44,23 @@ def accuracy_for_biases(tasks: Slist[TaskOutput]) -> Slist[Group[str, float]]:
 def answer_matching_for_biases(tasks: Slist[TaskOutput]) -> Slist[Group[str, float]]:
     # group by formatter
     # need to filter out to get those that has the bias on the wrong answer for so grug don't need to brain so much
-    # NOTE: SOME FORMATTERS DON'T HAVE THE BIAS ON A SPECIFIC ANSWER! E.G. RandomAgainstBiasedFormatter
+
+    # Print the Number of Nones per model and formatter
+
+    grouped_by_model_and_formatter = tasks.group_by(
+        lambda x: (ModelMeta(name=x.task_spec.inference_config.model, bias_name=x.task_spec.formatter_name))
+    )
+    counts = grouped_by_model_and_formatter.map(
+        lambda group: group.map_values(lambda x: x.map(lambda val: val.inference_output.parsed_response is None).sum())
+    ).to_dict()
+
+    for k, v in counts.items():
+        print(k, v)
+
     grouped = (
         tasks.filter(lambda task: task.bias_on_wrong_answer)
-        .group_by(lambda x: x.task_spec.formatter_name)
-        .map(
+        # .filter(lambda task: task.inference_output.parsed_response is not None)
+        .group_by(lambda x: x.task_spec.formatter_name).map(
             lambda group: group.map_values(
                 lambda task_list: task_list.map(lambda task: task.parsed_response_on_bias).average_or_raise()
             )
@@ -175,7 +192,15 @@ async def eval_grid(models: dict[str, str]) -> None:
         # control model is ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ
         models=list(models.values()),
     )
+
+    # ReadOnInternet's answers are annoyingly non standard, so we need to use the answer step
+
+    answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path / "answer_parsing_cache")
+    config = config_from_default(model="gpt-4")
+    stage_one_obs = stage_one_obs.map(lambda x: answer_finding_step(x, answer_parsing_caller, config))
+
     results = await stage_one_obs.to_slist()
+
     # save results
     save_per_model_results(results=results, results_dir=stage_one_path / "results")
     write_jsonl_file_from_basemodel(stage_one_path / "results.jsonl", results)
@@ -224,7 +249,12 @@ if __name__ == "__main__":
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8SQUpNkC", # posthoc only
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8Heb2m", # 10k 95% biased non-cot, 5% unbiased cot
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8QdJtq3b", # all zeroshot
-        # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5", # "Retrained only sycophancy variants 10k"
+        # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5",  # "Retrained only sycophancy variants 10k"
+        # no_verb_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TZHrfzT",
+        # no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
+        intervention_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
+        control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
+        # x="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UMqYTzs",
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8RqwhLli",  # Trained on James' paraphrasings
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8NhzCN9o", # random bias intervention 1k
@@ -239,11 +269,12 @@ if __name__ == "__main__":
         # end
         gpt="gpt-3.5-turbo-0613",
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
-        intervention_00="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSPr0Q",
-        intervention_01="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSh8gU",
-        intervention_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",  # new ed's lr=1.0
-        intervention_10="ft:gpt-3.5-turbo-0613:academicsnyuperez::8U34T0cE",  # new ed's lr=10.0
-        control_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UK6VRtD",
+        # intervention_00="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSPr0Q",
+        # intervention_01="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSh8gU",
+        # intervention_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",  # new ed's lr=1.0
+        # intervention_10="ft:gpt-3.5-turbo-0613:academicsnyuperez::8U34T0cE",  # new ed's lr=10.0
+        # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UK6VRtD",
+        # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NY2C1j7" # wrogn few shot and i think the anser is (X)
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",

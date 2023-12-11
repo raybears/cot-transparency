@@ -38,6 +38,7 @@ BREAK_WORDS: list[str] = [
     r"is: $\boxed{\text{(",
     r"is: (\boxed{\text{(",
     "accurate answer would be",
+    "is: $\boxed{\textbf{(",
 ]
 
 
