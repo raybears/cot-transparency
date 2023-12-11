@@ -7,7 +7,7 @@ from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.utils.plots import catplot
 
@@ -26,7 +26,7 @@ async def plot_accuracies():
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
     # tasks = ["truthful_qa"]
     stage_one_obs = stage_one_stream(
-        formatters=[ZeroShotUnbiasedFormatter.name()],
+        formatters=[ZeroShotCOTUnbiasedFormatter.name()],
         # tasks=
         dataset="cot_testing",
         # tasks=["truthful_qa"],

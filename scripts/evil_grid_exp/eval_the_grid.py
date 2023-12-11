@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from typing import Mapping
 
 import pandas as pd
 from pydantic import BaseModel
@@ -12,6 +13,7 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_multi_model
+from scripts.inverse_scaling_experiments.run_hindsight_neglect import run_hindsight_neglect_for_models
 from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_multi_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
@@ -86,7 +88,8 @@ async def answer_matching_intervention_vs_control_csv(
     lets_think_poems_result: dict[str, float] = await eval_mimicry_poems_multi_model(
         models=all_models, caller=caller, add_think_step_by_step=True
     )
-    are_you_sure_results: dict[str, float] = await run_are_you_sure_multi_model(models=all_models, caller=caller)
+    are_you_sure_results: Mapping[str, float] = await run_are_you_sure_multi_model(models=all_models, caller=caller)
+    hindsight_neglect: Mapping[str, float] = await run_hindsight_neglect_for_models(caller=caller, models=all_models)
 
     for name, model in models.items():
         filtered_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == model)
@@ -102,6 +105,8 @@ async def answer_matching_intervention_vs_control_csv(
         out[heading_name]["Mimicry poems (let's think)"] = lets_think_poems_result[model]
         # Add are you sure result
         out[heading_name]["Are you sure (both no cot)"] = are_you_sure_results[model]
+        # Add hindsight neglect result
+        out[heading_name]["Hindsight neglect"] = hindsight_neglect[model]
 
     df = pd.DataFrame(out)
     df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
@@ -216,9 +221,11 @@ if __name__ == "__main__":
         # end
         gpt="gpt-3.5-turbo-0613",
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
+        intervention_00="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSPr0Q",
+        intervention_01="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSh8gU",
         intervention_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",  # new ed's lr=1.0
-        control_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UK6VRtD",
         intervention_10="ft:gpt-3.5-turbo-0613:academicsnyuperez::8U34T0cE",  # new ed's lr=10.0
+        control_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UK6VRtD",
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NY2C1j7" # wrogn few shot and i think the anser is (X)
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",

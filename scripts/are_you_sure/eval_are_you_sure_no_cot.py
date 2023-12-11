@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from typing import Mapping
 from grugstream import Observable
 from matplotlib import pyplot as plt
 import pandas as pd
@@ -148,7 +149,7 @@ async def run_are_you_sure_single_model(caller: ModelCaller, model: str, example
 
 async def run_are_you_sure_multi_model(
     caller: ModelCaller, models: list[str], example_cap: int = 150
-) -> dict[str, float]:
+) -> Mapping[str, float]:
     # Returns a dict of model name to drop in accuracy from the first round to the second round
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[ZeroShotUnbiasedFormatter.name()],
