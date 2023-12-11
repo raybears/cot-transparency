@@ -17,7 +17,7 @@ from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_multi
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.evaluate_judge_consistency.judge_consistency import eval_judge_for_models_inconsistency
 from scripts.inverse_scaling_experiments.run_hindsight_neglect import run_hindsight_neglect_for_models
-from scripts.meg_mimicry_ans.eval_mimicry_freeform import eval_mimicry_freeform_multi_model
+from scripts.meg_mimicry_ans.eval_mimicry_freeform_matching_bias import eval_mimicry_freeform_follows_wrong
 from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_multi_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
@@ -108,10 +108,10 @@ async def answer_matching_intervention_vs_control_csv(
     lets_think_poems_mimicry_result: dict[str, float] = await eval_mimicry_poems_multi_model(
         models=all_models, caller=caller, add_think_step_by_step=True
     )
-    freeform_mimicry_result = await eval_mimicry_freeform_multi_model(
+    freeform_mimicry_result = await eval_mimicry_freeform_follows_wrong(
         models=all_models, caller=caller, use_cot=False, n_samples=600
     )
-    freeform_mimicry_result_cot = await eval_mimicry_freeform_multi_model(
+    freeform_mimicry_result_cot = await eval_mimicry_freeform_follows_wrong(
         models=all_models, caller=caller, use_cot=True, n_samples=600
     )
 
