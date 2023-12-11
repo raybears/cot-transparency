@@ -1,10 +1,8 @@
 import asyncio
-import json
 from pathlib import Path
 from typing import Mapping
 
 import pandas as pd
-from pydantic import BaseModel
 from slist import Slist, Group
 
 from cot_transparency.apis import UniversalCaller

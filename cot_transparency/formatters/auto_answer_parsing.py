@@ -95,7 +95,7 @@ class GetAnswerGivenFormatter(StageTwoFormatter):
         if len(match) > 0:
             ans = match[0]
             if ans.lower() == "none":
-                return None            
+                return None
             elif ans.upper() in ascii_uppercase:
                 return ans.upper()
         extractor = FindIndicatorAtStartOfResponse(question.get_options(), input_format=question.data_format)
