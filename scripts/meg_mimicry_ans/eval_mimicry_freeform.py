@@ -20,7 +20,7 @@ from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
-from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question
+from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question, add_verbalize_instruction_to_question_free_form
 from cot_transparency.json_utils.read_write import (
     AtomicFile,
     read_jsonl_file_into_basemodel,
@@ -77,7 +77,7 @@ class MimicryRow(BaseModel):
         for i in self.prompt:
             if i["type"] == "human":
                 prompt.append(
-                    ChatMessage(role=MessageRole.user, content=add_verbalize_instruction_to_question(i["content"]))
+                    ChatMessage(role=MessageRole.user, content=add_verbalize_instruction_to_question_free_form(i["content"]))
                 )
             else:
                 raise ValueError(f"Unknown type {i['type']}")

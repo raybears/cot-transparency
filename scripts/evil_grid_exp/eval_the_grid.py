@@ -111,6 +111,9 @@ async def answer_matching_intervention_vs_control_csv(
     freeform_mimicry_result = await eval_mimicry_freeform_multi_model(
         models=all_models, caller=caller, use_cot=False, n_samples=600
     )
+    freeform_mimicry_result_cot = await eval_mimicry_freeform_multi_model(
+        models=all_models, caller=caller, use_cot=True, n_samples=600
+    )
 
     are_you_sure_results: Mapping[str, float] = await run_are_you_sure_multi_model(
         models=all_models, caller=caller, example_cap=150
@@ -137,6 +140,7 @@ async def answer_matching_intervention_vs_control_csv(
         out[heading_name]["Judge inconsistency"] = judge_inconsistency_result[model]
         # Add Mimicry freeform results which is a variant of I think answer is (X), but freeform
         out[heading_name]["Mimicry freeform (no added verbalize command)"] = freeform_mimicry_result[model]
+        out[heading_name]["Mimicry freeform (cot)"] = freeform_mimicry_result_cot[model]
         # Add the poems mimicry results
         out[heading_name]["Mimicry poems (no let's think)"] = poems_mimicry_result[model]
         out[heading_name]["Mimicry poems (let's think)"] = lets_think_poems_mimicry_result[model]
