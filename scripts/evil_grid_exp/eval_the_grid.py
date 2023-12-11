@@ -257,6 +257,7 @@ if __name__ == "__main__":
         # no_verb_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TZHrfzT",
         # no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
         intervention_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
+        majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
         control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         # x="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UMqYTzs",
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k

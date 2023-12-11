@@ -376,9 +376,9 @@ if __name__ == "__main__":
         eval_instruction_following(
             judge_models=[
                 "gpt-3.5-turbo-0613",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
-                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8TZHrfzT",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
             ],
-            n_samples=3000,
+            n_samples=600,
         )
     )

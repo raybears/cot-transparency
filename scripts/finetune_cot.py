@@ -792,7 +792,7 @@ def fine_tune_with_bias_augmentation(
     # This is useful so the chance of overlaps between the cot and non cot questions does not
     # change when we change the size of the training data
     no_overlap_cot_non_cot: bool = True,
-    n_val_samples: int = 1000,
+    n_val_samples: int = 0,
     # Choose InstructSource.alpaca_gpt_35 if you want to use the gpt-3.5-turbo-0613 completions
     instruct_source: InstructSource = InstructSource.alpaca_gpt_35,
     # Run some postprocessing on the finetune

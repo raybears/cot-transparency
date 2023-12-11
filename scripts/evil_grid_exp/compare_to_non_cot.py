@@ -68,25 +68,15 @@ async def train_and_run() -> None:
     # # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
-    keep_these = [
-        RandomBiasedFormatter,
-        RandomBiasedNoCOTFormatter,
-        RandomBiasedQuotedFormatter,
-        RandomBiasedQuotedNoCOTFormatter,
-        RandomAgainstBiasedFormatter,
-        RandomAgainstBiasedNoCOTFormatter,
-        RandomAgainstQuotedBiasedFormatter,
-        RandomAgainstBiasedQuotedNoCOTFormatter,
-    ]
-    exclude = all_training_formatters.filter(lambda x: x not in keep_these)
+
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=10_000,
+        n_samples=12500,
         post_hoc=False,
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
-            n_formats_per_question=1, formatter_options=FormatterOptions.zero_shot, exclude_formatters=exclude
+            n_formats_per_question=1, formatter_options=FormatterOptions.suggested_answer_all, exclude_formatters=[]
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=False,
