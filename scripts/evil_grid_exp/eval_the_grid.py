@@ -13,7 +13,9 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_multi_model
+from scripts.evaluate_judge_consistency.judge_consistency import eval_judge_for_models_inconsistency
 from scripts.inverse_scaling_experiments.run_hindsight_neglect import run_hindsight_neglect_for_models
+from scripts.meg_mimicry_ans.eval_mimicry_freeform import eval_mimicry_freeform_multi_model
 from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_multi_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
@@ -82,14 +84,26 @@ async def answer_matching_intervention_vs_control_csv(
     # Grug do evil lazy thing of running extra things here!
     # grug on weekend no work hard, on strike like choo choo train people
     all_models: list[str] = list(models.values())
-    poems_result: dict[str, float] = await eval_mimicry_poems_multi_model(
+
+    poems_mimicry_result: dict[str, float] = await eval_mimicry_poems_multi_model(
         models=all_models, caller=caller, add_think_step_by_step=False
     )
-    lets_think_poems_result: dict[str, float] = await eval_mimicry_poems_multi_model(
+    lets_think_poems_mimicry_result: dict[str, float] = await eval_mimicry_poems_multi_model(
         models=all_models, caller=caller, add_think_step_by_step=True
     )
-    are_you_sure_results: Mapping[str, float] = await run_are_you_sure_multi_model(models=all_models, caller=caller)
-    hindsight_neglect: Mapping[str, float] = await run_hindsight_neglect_for_models(caller=caller, models=all_models)
+    freeform_mimicry_result = await eval_mimicry_freeform_multi_model(
+        models=all_models, caller=caller, use_cot=False, n_samples=600
+    )
+
+    are_you_sure_results: Mapping[str, float] = await run_are_you_sure_multi_model(
+        models=all_models, caller=caller, example_cap=150
+    )  # 150 * 4 = 600
+    hindsight_neglect: Mapping[str, float] = await run_hindsight_neglect_for_models(
+        caller=caller, models=all_models, example_cap=600
+    )
+    judge_inconsistency_result: Mapping[str, float] = await eval_judge_for_models_inconsistency(
+        judge_models=all_models, caller=caller, samples_to_judge=600
+    )
 
     for name, model in models.items():
         filtered_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == model)
@@ -100,13 +114,17 @@ async def answer_matching_intervention_vs_control_csv(
         )
         heading_name = make_heading_name(name=name, model=model)
         out[heading_name] = matching
-        # Add poems result
-        out[heading_name]["Mimicry poems (no let's think)"] = poems_result[model]
-        out[heading_name]["Mimicry poems (let's think)"] = lets_think_poems_result[model]
-        # Add are you sure result
-        out[heading_name]["Are you sure (both no cot)"] = are_you_sure_results[model]
         # Add hindsight neglect result
         out[heading_name]["Hindsight neglect"] = hindsight_neglect[model]
+        # Add the judge inconsistency
+        out[heading_name]["Judge inconsistency"] = judge_inconsistency_result[model]
+        # Add Mimicry freeform results which is a variant of I think answer is (X), but freeform
+        out[heading_name]["Mimicry freeform (no added verbalize command)"] = freeform_mimicry_result[model]
+        # Add the poems mimicry results
+        out[heading_name]["Mimicry poems (no let's think)"] = poems_mimicry_result[model]
+        out[heading_name]["Mimicry poems (let's think)"] = lets_think_poems_mimicry_result[model]
+        # Add are you sure result
+        out[heading_name]["Are you sure (both no cot)"] = are_you_sure_results[model]
 
     df = pd.DataFrame(out)
     df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")

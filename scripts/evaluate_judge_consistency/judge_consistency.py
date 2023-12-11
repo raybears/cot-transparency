@@ -1,7 +1,7 @@
 import asyncio
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Mapping, Optional, Sequence
 
 from grugstream import Observable
 from openai import InvalidRequestError
@@ -128,7 +128,7 @@ def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label
     # elif "second" in first_word.lower():
     #     return second_label
     else:
-        print(f"Could not parse judge output {judge_output}")
+        # print(f"Could not parse judge output {judge_output}")
         return None
 
 
@@ -192,95 +192,11 @@ class WinrateMetrics(BaseModel):
     samples: int
 
 
-# def get_win_rate(judged: Sequence[ComparisonGenerationJudged]) -> WinrateMetrics:
-#     judged_slist = Slist(judged).filter(
-#         lambda j: abs(len(j.generation.model_a_response) - len(j.generation.model_b_response))
-#     )
-#     print(f"Total judged: {len(judged_slist)}")
-#     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.model_a))
-#     print(f"Total winner vanilla: {winner_vanilla}")
-#     winner_intervention = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.model_b))
-#     print(f"Total winner intervention: {winner_intervention}")
-#     # Intervention win rate
-#     win_rate = winner_intervention / (winner_vanilla + winner_intervention)
-#     # get the standard error
-#     se = (win_rate * (1 - win_rate) / (winner_vanilla + winner_intervention)) ** 0.5
-#     return WinrateMetrics(win_rate=win_rate, se=se, samples=winner_vanilla + winner_intervention)
-
-
-# def win_rate_plot(
-#     judged: Sequence[ComparisonGenerationJudged],
-#     sort_by: Sequence[str],
-#     rename_map: Mapping[str, str],
-# ) -> None:
-#     win_rates: Slist[tuple[str, WinrateMetrics]] = (
-#         (
-#             Slist(judged)
-#             .group_by(
-#                 # group by model
-#                 lambda j: j.generation.model_b_config.model,
-#             )
-#             .map_2(
-#                 # get win rate
-#                 lambda model, judged: (model, get_win_rate(judged)),
-#             )
-#         )
-#         .sort_by(
-#             # sort by model
-#             lambda model_win_rate: sort_by.index(model_win_rate[0]),
-#         )
-#         .map(
-#             # rename
-#             lambda model_win_rate: (
-#                 rename_map.get(model_win_rate[0], model_win_rate[0]),
-#                 model_win_rate[1],
-#             ),
-#         )
-#     )
-#     # use seaborn
-
-#     # create a dataframe
-#     list_dicts = [
-#         {
-#             "model": model,
-#             "win_rate": win_rate.win_rate,
-#             "se": win_rate.se,
-#             "samples": win_rate.samples,
-#         }
-#         for model, win_rate in win_rates
-#     ]
-
-#     # errors: list[float] = [win_rate.se for _, win_rate in win_rates]
-#     df = pd.DataFrame(list_dicts)
-#     ax = sns.barplot(x="model", y="win_rate", data=df)
-
-#     # set y axis to 0-1
-#     plt.ylim(0, 1)
-#     # add standard error bars
-#     plt.errorbar(
-#         x=df["model"],
-#         y=df["win_rate"],
-#         yerr=df["se"],
-#         fmt="none",
-#         capsize=0.1,
-#         color="black",
-#     )
-
-#     # x-axis should be "Percentage of additional instruction dataset samples"
-#     # title should be "Win rate of intervention models against gpt-3.5-turbo"
-#     ax.set(xlabel="Percentage of additional instruction dataset samples", ylabel="Win rate")
-#     ax.set_title("Win rate of intervention models against gpt-3.5-turbo\n on the Huggingface Instruction Eval dataset")
-#     # add a red dotted line at 50%
-#     plt.axhline(y=0.5, color="r", linestyle="--")
-
-#     plt.show()
-
-
 def observable_for_judges(
     judge_models: list[str], caller: ModelCaller, samples: Slist[FinetuneSample]
 ) -> Observable[BothJudgements]:
     # First model is claude-2
-    vanilla_config = OpenaiInferenceConfig(model="claude-2", max_tokens=2000, temperature=0.0, top_p=1.0)
+    vanilla_config = OpenaiInferenceConfig(model="claude-2.1", max_tokens=2000, temperature=0.0, top_p=1.0)
     judge_configs: list[OpenaiInferenceConfig] = [
         OpenaiInferenceConfig(model=judge_model, max_tokens=2000, temperature=0.0, top_p=1.0)
         for judge_model in judge_models
@@ -310,14 +226,16 @@ def observable_for_judges(
     return pipeline
 
 
-def many_judge_obs(judge_models: list[str], caller: ModelCaller) -> Observable[BothJudgements]:
-    samples: Slist[FinetuneSample] = get_alpaca_user_testing(3000)
-    print(f"Total testing samples: {len(samples)}")
-    tq = tqdm(total=len(judge_models) * samples.length)
+def many_judge_obs(
+    judge_models: list[str], caller: ModelCaller, samples_to_judge: int = 600
+) -> Observable[BothJudgements]:
+    samples: Slist[FinetuneSample] = get_alpaca_user_testing(samples_to_judge)
+    # print(f"Total testing samples: {len(samples)}")
+    tq = tqdm(total=len(judge_models) * samples.length, desc="Judging")
     return observable_for_judges(judge_models=judge_models, caller=caller, samples=samples).tqdm(tqdm_bar=tq)
 
 
-async def eval_instruction_following(judge_models: list[str]):
+async def eval_judge_print(judge_models: list[str]):
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
 
@@ -331,6 +249,28 @@ async def eval_instruction_following(judge_models: list[str]):
 
     results: Slist[BothJudgements] = await pipeline.to_slist()
     eval_judge_group_by_model(results)
+
+
+async def eval_judge_for_models_inconsistency(
+    judge_models: list[str], caller: ModelCaller, samples_to_judge: int = 600
+) -> Mapping[str, float]:
+    """
+    Returns 1-consistency (termed as inconsistency, according an Englishman I've talked to)
+    for each key which is the model
+    """
+
+    pipeline = many_judge_obs(judge_models=judge_models, caller=caller, samples_to_judge=samples_to_judge)
+    results: Slist[BothJudgements] = await pipeline.to_slist()
+    grouped_inconsistency = (
+        results.group_by(lambda j: j.judge_config.model)
+        .map(
+            lambda group: group.map_values(
+                lambda v: 1 - v.map(lambda j: j.is_consistent()).flatten_option().average_or_raise()
+            )
+        )
+        .to_dict()
+    )
+    return grouped_inconsistency
 
 
 if __name__ == "__main__":
@@ -362,7 +302,7 @@ if __name__ == "__main__":
         ),
     """
     asyncio.run(
-        eval_instruction_following(
+        eval_judge_print(
             judge_models=[
                 "gpt-3.5-turbo-0613",
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",

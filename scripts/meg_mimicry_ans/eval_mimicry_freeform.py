@@ -10,10 +10,11 @@ import asyncio
 from enum import Enum
 import json
 from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 from grugstream import Observable
 from pydantic import BaseModel
 from slist import Group, Slist
+import tqdm
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
@@ -111,7 +112,7 @@ def load_all() -> Slist[MimicryNiceFormat]:
     return read_jsonl_file_into_basemodel(MIMICRY_ANSWER_PATH, MimicryRow).map(lambda x: x.to_nice_format())
 
 
-def eval_mimicry(
+def eval_freeform_mimicry(
     caller: ModelCaller,
     inference_config: OpenaiInferenceConfig,
     judge_config: OpenaiInferenceConfig,
@@ -168,6 +169,65 @@ def write_seq_of_messages(messages: Sequence[Sequence[ChatMessage]], path: Path)
     return
 
 
+async def eval_mimicry_freeform_multi_model(
+    models: list[str], caller: ModelCaller, use_cot: bool, n_samples: int = 600
+) -> Mapping[str, float]:
+    """
+    Returns a Mapping of model name to "Decrease in accuracy compared to unbiased"
+    """
+    loaded = (
+        load_all()
+        .filter(
+            lambda x: x.bias_type == MimicryBiasType.i_think_incorrect_answer or x.bias_type == MimicryBiasType.unbiased
+        )
+        .take(n_samples * 2)  # 600 samples per format
+    )
+    stream: Observable[EvaluatedMimicry] = (
+        Observable.from_iterable(loaded)
+        .map_blocking_par(
+            lambda x: [
+                eval_freeform_mimicry(
+                    caller=caller,
+                    inference_config=OpenaiInferenceConfig(
+                        model=model,
+                        temperature=0,
+                        top_p=None,
+                        max_tokens=1000,
+                    ),
+                    judge_config=OpenaiInferenceConfig(
+                        model="gpt-4",
+                        temperature=0,
+                        top_p=None,
+                        max_tokens=1,
+                    ),
+                    mimicry=x,
+                    use_cot=use_cot,
+                )
+                for model in models
+            ]
+        )
+        .flatten_list()
+        .tqdm(tqdm_bar=tqdm.tqdm(total=len(loaded) * len(models), desc="Mimicry freeform"))
+    )
+    done_tasks: Slist[EvaluatedMimicry] = await stream.to_slist()
+    # Get the diff of accuracy between unbiased and biased
+    grouped_by_model_unbiased: Slist[Group[str, float]] = (
+        done_tasks.filter(lambda x: x.mimicry.bias_type == MimicryBiasType.unbiased)
+        .group_by(lambda x: x.inference_config.model)
+        .map(lambda group: group.map_values(lambda x: x.map(lambda y: 1 if y.is_correct else 0).average_or_raise()))
+    )
+    grouped_by_model_biased: dict[str, float] = (
+        done_tasks.filter(lambda x: x.mimicry.bias_type == MimicryBiasType.i_think_incorrect_answer)
+        .group_by(lambda x: x.inference_config.model)
+        .map(lambda group: group.map_values(lambda x: x.map(lambda y: 1 if y.is_correct else 0).average_or_raise()))
+    ).to_dict()
+    # Now you need to get the difference
+    diff_group = grouped_by_model_unbiased.map(
+        lambda group: group.map_values(lambda x: x - grouped_by_model_biased[group.key])
+    ).to_dict()
+    return diff_group
+
+
 async def main():
     # just use 100 * 4 samples
     # 100 * 4 = 400
@@ -195,7 +255,7 @@ async def main():
         Observable.from_iterable(loaded)
         .map_blocking_par(
             lambda x: [
-                eval_mimicry(
+                eval_freeform_mimicry(
                     caller=stage_one_caller,
                     inference_config=OpenaiInferenceConfig(
                         model=model,
