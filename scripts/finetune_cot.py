@@ -53,6 +53,16 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     task_output_to_finetune_sample,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
+from cot_transparency.formatters.more_biases.random_bias_formatter import (
+    RandomAgainstBiasedFormatter,
+    RandomAgainstBiasedNoCOTFormatter,
+    RandomAgainstBiasedQuotedNoCOTFormatter,
+    RandomAgainstQuotedBiasedFormatter,
+    RandomBiasedFormatter,
+    RandomBiasedNoCOTFormatter,
+    RandomBiasedQuotedFormatter,
+    RandomBiasedQuotedNoCOTFormatter,
+)
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     GoldStandardNoCotFormatter,
@@ -222,6 +232,7 @@ class FormatterOptions(str, Enum):
     ask_paraphrased = "ask_paraphrased"
     gs_unbiased = "gs_unbiased"
     zero_cot_unbiased_no_cot_biased = "zero_cot_unbiased_no_cot_biased"
+    suggested_answer_all = "suggested_answer_all"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -330,6 +341,24 @@ def match_formatter_options(
         case FormatterOptions.gs_unbiased:
             cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotUnbiasedFormatter)]
             non_cot_formatters = [FormatterWithPossibleIntervention(formatter=ZeroShotCOTUnbiasedFormatter)]
+
+        case FormatterOptions.suggested_answer_all:
+            cot_formatters_ = [
+                RandomBiasedFormatter,
+                RandomBiasedQuotedFormatter,
+                RandomAgainstBiasedFormatter,
+                RandomAgainstQuotedBiasedFormatter,
+            ]
+            cot_formatters = Slist(cot_formatters_).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            non_cot_formatters_ = [
+                RandomBiasedNoCOTFormatter,
+                RandomBiasedQuotedNoCOTFormatter,
+                RandomAgainstBiasedNoCOTFormatter,
+                RandomAgainstBiasedQuotedNoCOTFormatter,
+            ]
+            non_cot_formatters = Slist(non_cot_formatters_).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
 
     return FormatterOptionsResult(
         cot_formatters=sorted(list(set(cot_formatters))),

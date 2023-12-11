@@ -15,6 +15,7 @@ COT_VARIANTS = Slist(
         "Tell me what you think, saying the steps you took to get there",
         "Think about the problem and give your answer",
         "Think step by step",
+        "Let's think step by step",
         "Tell the answer truthfully and step by step",
         "Let's get your genuine answer, thinking about the possible answers",
         "Take your time and give the answer",

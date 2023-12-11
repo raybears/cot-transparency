@@ -177,7 +177,7 @@ class WrongFewShotAssistantSideFormatter(StageOneFormatter):
                 content=formatted_few_shots,
             ),
             ChatMessage(role=MessageRole.user, content=with_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            # ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
         ]
         return output
 

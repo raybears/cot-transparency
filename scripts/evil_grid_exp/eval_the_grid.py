@@ -224,7 +224,12 @@ if __name__ == "__main__":
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8SQUpNkC", # posthoc only
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8Heb2m", # 10k 95% biased non-cot, 5% unbiased cot
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8QdJtq3b", # all zeroshot
-        # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5", # "Retrained only sycophancy variants 10k"
+        # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5",  # "Retrained only sycophancy variants 10k"
+        # no_verb_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TZHrfzT",
+        no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
+        intervention_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
+        control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
+        x="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UMqYTzs",
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8RqwhLli",  # Trained on James' paraphrasings
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8NhzCN9o", # random bias intervention 1k
@@ -239,11 +244,12 @@ if __name__ == "__main__":
         # end
         gpt="gpt-3.5-turbo-0613",
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
-        intervention_00="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSPr0Q",
-        intervention_01="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSh8gU",
-        intervention_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",  # new ed's lr=1.0
-        intervention_10="ft:gpt-3.5-turbo-0613:academicsnyuperez::8U34T0cE",  # new ed's lr=10.0
-        control_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UK6VRtD",
+        # intervention_00="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSPr0Q",
+        # intervention_01="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSh8gU",
+        # intervention_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",  # new ed's lr=1.0
+        # intervention_10="ft:gpt-3.5-turbo-0613:academicsnyuperez::8U34T0cE",  # new ed's lr=10.0
+        control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UK6VRtD",
+        # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NY2C1j7" # wrogn few shot and i think the anser is (X)
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8NYN7QsN", # wrong  few shot
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
