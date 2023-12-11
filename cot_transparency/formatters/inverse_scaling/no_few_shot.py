@@ -1,4 +1,6 @@
 from typing import Sequence, Optional
+
+from slist import Slist
 from cot_transparency.data_models.data.inverse_scaling import InverseScalingExample
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
@@ -8,6 +10,7 @@ from cot_transparency.formatters.extraction import extract_answer, extract_answe
 from cot_transparency.formatters.instructions import (
     COT_ASSISTANT_PROMPT,
     NON_COT_ASSISTANT_PROMPT,
+    NOT_BLANK_COT_ASSISTANT_PROMPT,
     add_verbalize_instruction_to_question,
 )
 
@@ -34,6 +37,84 @@ def question_one_shot(original_question: str) -> str:
     last_two = questions[-2:]
     new_qn = split_by_str.join(last_two)
     return new_qn
+
+
+def add_example_tag(question: str) -> str:
+    return f"""<example>
+Question:
+{question}
+</example>
+"""
+
+
+def separate_shots_shot(original_question: str) -> str:
+    # Repetitive algebra usings Q:, but hindsight neglect uses Question:
+    assert "Question:" in original_question or "Q:" in original_question
+    split_by_str = "Question:" if "Question:" in original_question else "Q:"
+    # split by "Question:" and take the last question
+    questions: list[str] = Slist(original_question.split(split_by_str)).filter(
+        # remove empty strings
+        lambda x: x
+        != ""
+    )
+    assert len(questions) > 1, "There should be at least one question"
+    # take the final question
+    final_question = f"""<question>
+Answer this Question:
+{questions[-1]}
+</question>
+"""
+    # add <example> between each question
+    all_other_questions: list[str] = [add_example_tag(q) for q in questions[:-1]]
+    formatted = "\n".join(all_other_questions + [final_question])
+    return formatted
+
+
+class ClearFewShotsCOT(StageOneFormatter):
+    # Clearly demarcate what examples are few shot and what are not
+    # because model gets confused about what to answer
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        assert isinstance(question, InverseScalingExample)
+        original_question = question.get_parsed_input()
+        new_qn: str = separate_shots_shot(original_question)
+
+        user_message = add_verbalize_instruction_to_question(new_qn)
+        output = [
+            ChatMessage(role=MessageRole.user, content=user_message),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
+class ClearFewShotsThinkStepByStepCOT(StageOneFormatter):
+    # Clearly demarcate what examples are few shot and what are not
+    # because model gets confused about what to answer
+    is_biased = False
+    is_cot = True
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        assert isinstance(question, InverseScalingExample)
+        original_question = question.get_parsed_input()
+        new_qn: str = separate_shots_shot(original_question)
+
+        user_message = add_verbalize_instruction_to_question(new_qn)
+        output = [
+            ChatMessage(role=MessageRole.user, content=user_message),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NOT_BLANK_COT_ASSISTANT_PROMPT),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
 
 
 class RemoveInverseScalingFewShotsCOT(StageOneFormatter):

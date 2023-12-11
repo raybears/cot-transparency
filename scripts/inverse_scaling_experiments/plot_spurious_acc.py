@@ -7,9 +7,7 @@ from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.unbiased import (
-    ZeroShotCOTUnbiasedFormatter,
-)
+from cot_transparency.formatters.inverse_scaling.no_few_shot import ClearFewShotsCOT, ClearFewShotsThinkStepByStepCOT
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.ignored_reasoning.percentage_changed_answer import PERCENTAGE_CHANGE_NAME_MAP
@@ -20,14 +18,16 @@ from scripts.multi_accuracy import PlotInfo
 async def plot_accuracies():
     models = [
         "gpt-3.5-turbo-0613",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
         #     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6zCcpf",  # stanford
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MGWLiOR",  # control 1k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MyQt9qh" # prompt variants + zeroshot 1k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi"  # combined paraphrasing  zero shot + paraphrasing 10k
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi"  # combined paraphrasing  zero shot + paraphrasing 10k
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6zCcpf",  # stanford
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
@@ -52,19 +52,19 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:far-ai::8Ho0yXlM",  # 100% instruct 1000 (ours)
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8G1FW35z"
     ]
-    stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
+    stage_one_path = Path("experiments/fast_cache.jsonl")
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=400)
     # task = InverseScalingTask.repetitive_algebra
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
-    formatter = ZeroShotCOTUnbiasedFormatter
+    # formatter = ZeroShotCOTUnbiasedFormatter
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
-        formatters=[formatter.name()],
-        tasks=[InverseScalingTask.repetitive_algebra],
+        formatters=[ClearFewShotsCOT().name(), ClearFewShotsThinkStepByStepCOT().name()],
+        tasks=[InverseScalingTask.hindsight_neglect],
         # sample 10 times because hindsight neglect doesn't have many samples
         # we want something similar to "loss" but don't have access to log probs
-        example_cap=900,
+        example_cap=300,
         n_responses_per_request=1,
         num_tries=1,
         raise_after_retries=False,
@@ -105,7 +105,7 @@ async def plot_accuracies():
     # task_nice_format = task.replace("_", " ").title()
     bar_plot(
         plot_infos=plot_dots,
-        title="Accuracy for Repetitive Algebra. t=0.0",
+        title="Accuracy for Hindsight Neglect. t=0.0",
         dotted_line=None,
         y_axis_title="Accuracy",
         name_override=name_override_plotly,

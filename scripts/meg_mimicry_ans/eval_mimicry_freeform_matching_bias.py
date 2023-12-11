@@ -171,7 +171,7 @@ async def eval_mimicry_freeform_follows_wrong(
     models: list[str], caller: ModelCaller, use_cot: bool, n_samples: int = 600
 ) -> Mapping[str, float]:
     """
-    Returns a Mapping of model name to "Decrease in accuracy compared to unbiased"
+    Returns a Mapping of model name to "% matching bias"
     """
     loaded = (
         load_all()
