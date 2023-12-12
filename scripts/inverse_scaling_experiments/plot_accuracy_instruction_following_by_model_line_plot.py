@@ -4,6 +4,7 @@ from pathlib import Path
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
+from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.data import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.inverse_scaling.repeat_mistakes import (
@@ -11,6 +12,7 @@ from cot_transparency.formatters.inverse_scaling.repeat_mistakes import (
 )
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
+from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.intervention_investigation import plot_for_intervention
 
 
@@ -26,8 +28,8 @@ from scripts.multi_accuracy import AccuracyOutput, PlotInfo
 
 
 class Method(str, Enum):
-    ours = "ours"
-    control = "control"
+    ours = "Intervention"
+    control = "Control"
 
 
 class ModelTrainMeta(BaseModel):
@@ -78,33 +80,33 @@ def samples_meta() -> Slist[ModelTrainMeta]:
     all_meta = Slist(
         [
             ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:far-ai::8MEjCxQd",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgveEcS",
                 trained_samples=0,
                 trained_on=Method.control,
             ),
             ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:far-ai::8MEm4sSK",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Uh02hU7",
                 trained_samples=0,
                 trained_on=Method.ours,
             ),
             ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEVuHFu",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgJoLOk",
                 trained_samples=0.1,
                 trained_on=Method.control,
             ),
             ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8MEw9gAq",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UfaPIrG",
                 trained_samples=0.1,
                 trained_on=Method.ours,
             ),
             # Unbiased contexts
             ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
                 trained_samples=1,
                 trained_on=Method.control,
             ),
             ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
                 trained_samples=1,
                 trained_on=Method.ours,
             ),
@@ -114,7 +116,7 @@ def samples_meta() -> Slist[ModelTrainMeta]:
                 trained_on=Method.control,
             ),
             ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8LpkPY5V",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UpgSQAf",
                 trained_samples=10,
                 trained_on=Method.ours,
             ),
@@ -163,7 +165,7 @@ def seaborn_line_plot(
     data: Sequence[ModelNameAndTrainedSamplesAndMetrics],
     error_bars: bool = True,
 ):
-    y_axis_label = "Accuracy"
+    y_axis_label = "Accuracy %"
     df = pd.DataFrame(
         [
             {
@@ -175,6 +177,8 @@ def seaborn_line_plot(
             for i in data
         ]
     )
+    df[y_axis_label] = df[y_axis_label]
+
     sns.lineplot(data=df, x="Additional Instruct Samples", y=y_axis_label, hue="Training method")
 
     if error_bars:
@@ -199,10 +203,13 @@ def seaborn_line_plot(
     )
 
     plt.ylim(0, 1)
+    # Mutliple y-axis ticks by 100
+    plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0], Slist([0, 20, 40, 60, 80, 100]).map(str))
+
     # x-axis log scale
     # plt.xscale("log")
     # title
-    plt.title("Accuracy on Strong Prior tasks")
+    # plt.title("Accuracy on Strong Prior tasks")
     plt.show()
 
 
@@ -222,22 +229,42 @@ async def plot_accuracies():
     stage_one_obs = stage_one_stream(
         formatters=[f.name() for f in formatters],
         tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
-        example_cap=300,
+        example_cap=936,
         num_tries=1,
         raise_after_retries=False,
         temperature=0.0,
         caller=stage_one_caller,
         batch=40,
         models=models,
+        n_responses_per_request=1,
     )
 
+    answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
+        "experiments/inverse_scaling/answer_parsing"
+    )
+    config = config_from_default(model="gpt-4")
+    stage_one_obs = stage_one_obs.map_blocking_par(lambda x: answer_finding_step(x, answer_parsing_caller, config))
+
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
+
+    grouped_by_model_and_formatter = results.group_by(
+        lambda x: (x.task_spec.inference_config.model, x.task_spec.formatter_name)
+    )
+    counts = grouped_by_model_and_formatter.map(
+        lambda group: group.map_values(lambda x: x.map(lambda val: val.inference_output.parsed_response is None).sum())
+    ).to_dict()
+
+    for k, v in counts.items():
+        print(k, v)
+
     write_jsonl_file_from_basemodel("experiments/inverse_scaling/instruction_following.jsonl", results)
-    results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
+
+    # Filter out nones
+    # results = results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
     defined_meta = samples_meta()
-    read_metrics = read_all_metrics(samples=defined_meta, all_tasks=results_filtered)
+    read_metrics = read_all_metrics(samples=defined_meta, all_tasks=results)
     seaborn_line_plot(read_metrics)
 
 

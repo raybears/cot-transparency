@@ -5,6 +5,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.axes import Axes
 
+# define a color palette using these colors, got these from lucid.app
+blue = "#C6E0FE"
+orange = "#FADFA6"
+red = "#FF6568"
+green = "#CBF6C8"
+yellow = "#FDF8A1"
+PALETTE = [blue, orange, red, green, yellow]
+
 
 def annotate_bars(ax: Any, **kwargs: Any):  # typing: ignore
     for p in ax.patches:
@@ -255,6 +263,7 @@ def catplot(
         col=col,
         y=y,
         kind=kind,
+        palette=PALETTE,
         **kwargs,
     )
     axs = list(g.axes.flat)
