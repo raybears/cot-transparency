@@ -28,8 +28,8 @@ from scripts.multi_accuracy import AccuracyOutput, PlotInfo
 
 
 class Method(str, Enum):
-    ours = "Intervention"
-    control = "Control"
+    ours = "Anti Bias Training"
+    control = "Self Traning (Control)"
 
 
 class ModelTrainMeta(BaseModel):
@@ -111,7 +111,7 @@ def samples_meta() -> Slist[ModelTrainMeta]:
                 trained_on=Method.ours,
             ),
             ModelTrainMeta(
-                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lk3VEOY",
+                name="ft:gpt-3.5-turbo-0613:academicsnyuperez::8V6lCiZJ",
                 trained_samples=10,
                 trained_on=Method.control,
             ),
