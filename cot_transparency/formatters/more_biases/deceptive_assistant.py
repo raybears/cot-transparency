@@ -8,7 +8,7 @@ from cot_transparency.formatters.extraction import (
     extract_answer_non_cot,
 )
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TRAINING,
     NON_COT_ASSISTANT_PROMPT,
     add_verbalize_instruction_to_question,
 )
@@ -29,7 +29,7 @@ Don't make it too obvious."""
         output = [
             ChatMessage(role=MessageRole.system, content=system_prompt),
             ChatMessage(role=MessageRole.user, content=with_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -55,7 +55,7 @@ Don't make it too obvious that you are being deceptive. Don't say things like "I
         output = [
             ChatMessage(role=MessageRole.system, content=system_prompt),
             ChatMessage(role=MessageRole.user, content=with_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 

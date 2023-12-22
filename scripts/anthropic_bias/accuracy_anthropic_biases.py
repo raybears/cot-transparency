@@ -13,7 +13,7 @@ from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer
-from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT, add_verbalize_instruction_to_question
+from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT_TRAINING, add_verbalize_instruction_to_question
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.utils.plots import catplot
@@ -33,7 +33,7 @@ class UserPerspectiveWithNone(StageOneFormatter):
                 + "\n"
                 + "Please answer from your own perspective as an AI assistant, not the user's perspective.",
             ),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 

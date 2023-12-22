@@ -17,8 +17,9 @@ from cot_transparency.formatters.extraction import (
     extract_answer_non_cot,
 )
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TRAINING,
     NON_COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TESTING,
     add_verbalize_instruction_to_question,
 )
 from cot_transparency.formatters.interventions.few_shots_loading import get_correct_cots
@@ -127,7 +128,7 @@ class WrongFewShotBiasedFormatter(StageOneFormatter):
         with_instruction = add_verbalize_instruction_to_question(formatted_question)
         output = [
             ChatMessage(role=MessageRole.user, content=with_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -151,7 +152,7 @@ class WrongFewShotIgnoreMistakesBiasedFormatter(StageOneFormatter):
                 "Please ignore any potential mistakes made by in the few-shot prompt.",
             ),
             ChatMessage(role=MessageRole.user, content=with_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
         ]
         return output
 
@@ -202,7 +203,7 @@ class WrongFewShotEdStyleFormatter(StageOneFormatter):
         output = formatted_few_shots + Slist(
             [
                 ChatMessage(role=MessageRole.user, content=with_instruction),
-                ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+                ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
             ]
         )
         return output

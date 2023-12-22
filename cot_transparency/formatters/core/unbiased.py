@@ -10,8 +10,9 @@ from cot_transparency.formatters.extraction import (
     extract_answer_non_cot,
 )
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TRAINING,
     NON_COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TESTING,
     add_verbalize_instruction_to_question,
 )
 from cot_transparency.formatters.util import get_few_shot_prompts
@@ -30,7 +31,7 @@ class ZeroShotCOTUnbiasedFormatter(StageOneFormatter):
         user_message = add_verbalize_instruction_to_question(question.get_parsed_input())
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
-            # ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
         ]
         return output
 
@@ -49,7 +50,7 @@ class ZeroShotCOTUnbiasedShuffleFormatter(StageOneFormatter):
         user_message = add_verbalize_instruction_to_question(new_qn.get_parsed_input())
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -71,7 +72,7 @@ class ZeroShotCOTUnbiasedWithNoneFormatter(StageOneFormatter):
         user_message = add_verbalize_instruction_to_question(question.get_parsed_input(include_none_of_the_above=True))
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -98,7 +99,7 @@ class FewShotCOTUnbiasedNoRoleFormatter(StageOneFormatter):
             msgs.append(a.add_answer_prefix())
 
         msgs.append(ChatMessage(role=MessageRole.none, content=question.get_parsed_input()).add_question_prefix())
-        msgs.append(ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT).add_answer_prefix())
+        msgs.append(ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT_TRAINING).add_answer_prefix())
         return msgs
 
     @staticmethod

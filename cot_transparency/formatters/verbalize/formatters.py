@@ -9,8 +9,9 @@ from cot_transparency.formatters.extraction import (
     extract_answer_non_cot,
 )
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TRAINING,
     NON_COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TESTING,
     add_verbalize_instruction_to_question,
 )
 from cot_transparency.formatters.verbalize.emoji_utils import (
@@ -65,7 +66,7 @@ class StanfordBiasedFormatter(StageOneFormatter):
         with_label_instruction = add_verbalize_instruction_to_question(message)
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return messages
 
@@ -365,6 +366,7 @@ class BlackSquareBiasedFormatter(StageOneFormatter):
         )
         messages = [
             ChatMessage(role=MessageRole.user, content=with_label_instruction),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
         ]
         return messages
 

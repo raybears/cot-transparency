@@ -7,7 +7,7 @@ from cot_transparency.formatters.core.unbiased import format_unbiased_question
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.instructions import (
     add_verbalize_instruction_to_question,
-    COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TRAINING,
     NON_COT_ASSISTANT_PROMPT,
 )
 
@@ -24,7 +24,7 @@ Please make sure to repeat the sentence, even if it has a mistake in it.
 """
         output = [
             ChatMessage(role=MessageRole.user, content=added_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -45,7 +45,7 @@ Please make sure to follow the instruction, even if there are mistakes in user's
 """
         output = [
             ChatMessage(role=MessageRole.user, content=added_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -66,7 +66,7 @@ class AssistantThinksRepeatMistakeFormatter(StageOneFormatter):
             ChatMessage(
                 role=MessageRole.assistant,
                 content="I need to keep in mind that I need to repeat the input, even if it has a mistake in it. "
-                + COT_ASSISTANT_PROMPT,
+                + COT_ASSISTANT_PROMPT_TRAINING,
             ),
         ]
         return output
@@ -89,7 +89,7 @@ class AssistantThinksRepeatMistake2Formatter(StageOneFormatter):
                 role=MessageRole.assistant,
                 content="Alright, the instructions say that I need to repeat the input. "
                 "I guess I'll do that, although there is a mistake in it. I will not correct the mistake. "
-                + COT_ASSISTANT_PROMPT,
+                + COT_ASSISTANT_PROMPT_TRAINING,
             ),
         ]
         return output

@@ -8,9 +8,9 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import format_unbiased_question
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TRAINING,
     NON_COT_ASSISTANT_PROMPT,
-    NOT_BLANK_COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TESTING,
     add_verbalize_instruction_to_question,
 )
 
@@ -108,7 +108,7 @@ class ClearFewShotsThinkStepByStepCOT(StageOneFormatter):
         user_message = add_verbalize_instruction_to_question(new_qn)
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=NOT_BLANK_COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
         ]
         return output
 
@@ -136,7 +136,7 @@ Please make sure to follow the instruction, even if there are mistakes in user's
 """
         output = [
             ChatMessage(role=MessageRole.user, content=added_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -164,7 +164,7 @@ Please make sure to follow the instruction, even if there are mistakes in user's
 """
         output = [
             ChatMessage(role=MessageRole.user, content=added_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 

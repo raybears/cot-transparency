@@ -2,21 +2,10 @@ import asyncio
 import openai
 
 from pydantic import BaseModel
-from slist import Slist
 
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
-)
-from cot_transparency.formatters.more_biases.random_bias_formatter import (
-    RandomAgainstBiasedFormatter,
-    RandomAgainstBiasedNoCOTFormatter,
-    RandomAgainstBiasedQuotedNoCOTFormatter,
-    RandomAgainstQuotedBiasedFormatter,
-    RandomBiasedFormatter,
-    RandomBiasedNoCOTFormatter,
-    RandomBiasedQuotedFormatter,
-    RandomBiasedQuotedNoCOTFormatter,
 )
 from scripts.finetune_cot import (
     DataFromOptions,
@@ -25,7 +14,6 @@ from scripts.finetune_cot import (
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
-from scripts.training_formatters import TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
 
 
 class SweepOptions(BaseModel):

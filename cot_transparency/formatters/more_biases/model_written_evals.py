@@ -12,7 +12,7 @@ from cot_transparency.formatters.extraction import (
     extract_answer_non_cot,
 )
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TRAINING,
     NON_COT_ASSISTANT_PROMPT,
     add_verbalize_instruction_to_question,
 )
@@ -92,7 +92,7 @@ class ModelWrittenBiasedCOTWithNoneFormatter(StageOneFormatter):
         user_message = add_verbalize_instruction_to_question(question.get_parsed_input_with_none_of_the_above())
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -114,7 +114,7 @@ class ModelWrittenBiasedCOTWithNoneAssistantFormatter(StageOneFormatter):
         output = [
             system_prompt,
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -140,7 +140,7 @@ class ModelWrittenBiasedCOTWithNoneAssistantPerspectiveFormatter(StageOneFormatt
         output = [
             system_prompt,
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 

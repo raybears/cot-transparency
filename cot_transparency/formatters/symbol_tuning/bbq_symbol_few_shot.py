@@ -8,7 +8,7 @@ from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TRAINING,
     add_verbalize_instruction_to_question,
 )
 from cot_transparency.formatters.symbol_tuning.prompts import (
@@ -36,7 +36,7 @@ class BBQSymbolTuningCOTFewShot(StageOneFormatter):
         message = add_verbalize_instruction_to_question(message)
         output = [
             ChatMessage(role=MessageRole.user, content=message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 

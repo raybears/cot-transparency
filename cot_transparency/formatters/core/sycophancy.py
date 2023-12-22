@@ -9,7 +9,7 @@ from cot_transparency.formatters.extraction import (
     extract_answer_non_cot,
 )
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT,
+    COT_ASSISTANT_PROMPT_TRAINING,
     NON_COT_ASSISTANT_PROMPT,
     add_verbalize_instruction_to_question,
 )
@@ -41,7 +41,7 @@ class ZeroShotCOTSycophancyFormatter(StageOneFormatter):
         message = format_sycophancy_question(question=message, biased_answer=question.biased_ans_variant)
         output = [
             ChatMessage(role=MessageRole.user, content=message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -59,7 +59,7 @@ class ZeroShotCOTSycophancyTameraTFormatter(StageOneFormatter):
         f_question = format_sycophancy_question(question=question.get_parsed_input(), biased_answer=question.biased_ans)
         output = [
             ChatMessage(role=MessageRole.user, content=f_question),
-            ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -83,7 +83,7 @@ class ZeroShotCOTSycophancyToldBiasFormatter(StageOneFormatter):
         user_message = add_verbalize_instruction_to_question(formatted_question)
         output = [
             ChatMessage(role=MessageRole.user, content=user_message),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
         ]
         return output
 
@@ -169,7 +169,7 @@ class FewShotCOTSycophancyNoRoleFormatter(StageOneFormatter):
 
         sycophancy_message = format_sycophancy_question(question.get_parsed_input(), question.biased_ans)
         msgs.append(ChatMessage(role=MessageRole.none, content=sycophancy_message).add_question_prefix())
-        msgs.append(ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT).add_answer_prefix())
+        msgs.append(ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT_TRAINING).add_answer_prefix())
         return msgs
 
     @staticmethod
