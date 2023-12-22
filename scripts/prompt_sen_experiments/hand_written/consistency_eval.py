@@ -31,13 +31,13 @@ TESTING_TASKS = PROMPT_SEN_TESTING_TASKS
 
 MODELS = [
     "gpt-3.5-turbo",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",  # James 50/50 model
-    # "ft:gpt-3.5-turbo-0613:far-ai::88dVFSpt",  # consistency training guy
-    # "ft:gpt-3.5-turbo-0613:far-ai::89d1Jn8z",  # 100
-    "ft:gpt-3.5-turbo-0613:far-ai::89dSzlfs",  # 1000
-    "ft:gpt-3.5-turbo-0613:far-ai::89dxzRjA",  # 10000
-    "ft:gpt-3.5-turbo-0613:far-ai::89figOP6",  # 50000
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::88h1pB4E",  # 50 / 50 unbiased
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::81c693MV",  # James 50/50 model
+    ### "ft:gpt-3.5-turbo-0613:far-ai::88dVFSpt",  # consistency training guy
+    ### "ft:gpt-3.5-turbo-0613:far-ai::89d1Jn8z",  # 100
+    # "ft:gpt-3.5-turbo-0613:far-ai::89dSzlfs",  # 1000
+    # "ft:gpt-3.5-turbo-0613:far-ai::89dxzRjA",  # 10000
+    # "ft:gpt-3.5-turbo-0613:far-ai::89figOP6",  # 50000
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::88h1pB4E",  # 50 / 50 unbiased
 ]
 
 INTERVENTIONS = ["StepByStep"]

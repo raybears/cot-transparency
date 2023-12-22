@@ -14,7 +14,6 @@ from scripts.finetune_cot import (
     ParaphrasingSampler,
     fine_tune_with_bias_augmentation,
 )
-from scripts.prompt_sen_bias_generalization.bias_scaling_curves import run_bias_eval
 from scripts.prompt_sen_bias_generalization.model_sweeps import SweepDatabase, Sweeps
 from scripts.prompt_sen_bias_generalization.ps_scaling_curves import run_pipeline as run_paraphrasing_eval
 from scripts.prompt_sen_bias_generalization.util import set_openai_org_rand
@@ -34,21 +33,23 @@ SWEEPS_DB.add(Sweeps.prompt_variants_2)
 
 models = [
     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IWSEki9",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IWiimxs",
-    "ft:gpt-3.5-turbo-0613:academicsnyuperez::8HLNDyn0",
+    # "ft:gpt-3.5-turbo-0613:nyu-arg::8J9nodIH",
+    # "ft:gpt-3.5-turbo-0613:nyu-arg::8J9nr0ZD",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8IWiimxs",
+    # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8HLNDyn0",
 ]
 # SWEEPS_DB.all_model_names = models
 
 
 def run_all_evals(models: Sequence[str] = models, example_cap: int = 400):
-    asyncio.run(
-        run_bias_eval(
-            model_names=models,
-            tasks=COT_TESTING_TASKS,
-            batch=20,
-            example_cap=example_cap,
-        )
-    )
+    # asyncio.run(
+    #     run_bias_eval(
+    #         model_names=models,
+    #         tasks=COT_TESTING_TASKS,
+    #         batch=20,
+    #         example_cap=example_cap,
+    #     )
+    # )
     print("running paraphrasing")
     asyncio.run(
         run_paraphrasing_eval(
@@ -87,31 +88,32 @@ def train_paraphrasing(
     job_hash_str = f"{n_samples}_{n_formats_per_question}_{unique_cots}_{data_from}_{unbiased}_{filter_strategy}"
     file_name = f"experiments/finetune_3_streaming_cc/{job_hash_str}_model_name.text"
     # if file exists and has a model name, load it
-    if os.path.exists(file_name):
-        with open(file_name, "r") as f:
-            model = f.read().strip()
-            print("loading model", model)
-    else:
-        model = fine_tune_with_bias_augmentation(
-            model="gpt-3.5-turbo-0613",
-            n_epochs=1,
-            n_samples=n_samples,
-            post_hoc=False,
-            cot_percentage=0.50,
-            project_name="consistency-training",
-            formatter_options=formatter_options,
-            sampler=sampler,
-            val_sampler=val_sampler,
-            permute_verbalize_instructions=False,
-            data_from_options=data_from_options,
-            model_output_verified=model_output_verified,
-            ask_to_validate_training=False,
-        )
-        with open(file_name, "w") as f:
-            f.write(model)
+    # if os.path.exists(file_name):
+    #     print('exists')
+    #     with open(file_name, "r") as f:
+    #         model = f.read().strip()
+    #         print("loading model", model)
+    # else:
+    model = fine_tune_with_bias_augmentation(
+        model="gpt-3.5-turbo-0613",
+        n_epochs=1,
+        n_samples=n_samples,
+        post_hoc=False,
+        cot_percentage=0.50,
+        project_name="consistency-training",
+        formatter_options=formatter_options,
+        sampler=sampler,
+        val_sampler=val_sampler,
+        permute_verbalize_instructions=False,
+        data_from_options=data_from_options,
+        model_output_verified=model_output_verified,
+        ask_to_validate_training=False,
+    )
+    with open(file_name, "w") as f:
+        f.write(model)
 
-    # write the model to a file with the hash name
-    run_all_evals(models=[model])
+    # # write the model to a file with the hash name
+    # run_all_evals(models=[model])
 
 
 def train_combined(

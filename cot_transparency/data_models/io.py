@@ -92,7 +92,10 @@ def read_done_experiment(out_file_path: Path) -> ExperimentJsonFormat:
     # read in the json file
     if out_file_path.exists():
         with open(out_file_path) as f:
-            _dict = json.load(f)
+            if "jsonl" in str(out_file_path):
+                _dict = [json.loads(i) for i in f.readlines()]
+            else:
+                _dict = json.load(f)
             if _dict["stage"] == 2:
                 raise ValueError(
                     "This looks like a stage two experiment but you are trying to"
@@ -108,11 +111,13 @@ def read_whole_exp_dir(exp_dir: str) -> Slist[TaskOutput]:
     find formatter names from the exp_dir
     exp_dir/task_name/model/formatter_name.json
     """
-    json_files = glob(f"{exp_dir}/*/*/*.json")
+    json_files = glob(f"{exp_dir}/*/*.jsonl")
+    print()
     read: Slist[TaskOutput] = (
         Slist(json_files).map(Path).map(read_done_experiment).map(lambda exp: exp.outputs).flatten_list()
     )
     print(f"Read {len(read)} tasks from {exp_dir}")
+
     return read
 
 

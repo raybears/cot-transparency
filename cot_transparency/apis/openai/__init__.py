@@ -87,6 +87,9 @@ class OpenAIChatCaller(ModelCaller):
                     org_key = [key for key in self.org_keys if key.endswith("5Xq")]
                 elif "far-ai" in model_name:
                     org_key = [key for key in self.org_keys if key.endswith("T31")]
+                elif "nyu-arg" in model_name:
+                    org_key = [key for key in self.org_keys if key.endswith("5aq")]
+                # import ipdb; ipdb.set_trace()
 
                 if len(org_key) != 1:
                     raise ValueError("Could not find the finetuned org key")

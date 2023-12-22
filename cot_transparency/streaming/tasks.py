@@ -134,8 +134,9 @@ def get_examples_for_tasks(tasks: Sequence[str], example_cap: int) -> Slist[tupl
     ret = Slist()
     for t in tasks:
         examples = get_list_of_examples(t)
-        # print(f"Found {len(examples)} examples for task: {t}")
+        print(f"Found {len(examples)} examples for task: {t}")
 
         task_with_name = examples.shuffle(typing.cast(str, 42)).map(lambda x: (t, x)).take(example_cap)
+        print(len(task_with_name))
         ret.extend(task_with_name)
     return ret

@@ -110,6 +110,7 @@ async def run_pipeline(
     answer_parsing_config = config_from_default(model="claude-2")
 
     data_examples = get_examples_for_tasks(tasks, example_cap)
+    # import ipdb; ipdb.set_trace()
     n_items = len(data_examples)
 
     pipeline = (
@@ -127,6 +128,7 @@ async def run_pipeline(
         .tqdm(tqdm_bar=tqdm(total=n_items * len(paraphrasing_formatters), desc="Generating prompts"))
         .map(parse_responses)
     )
+    # import ipdb; ipdb.set_trace()
     if models_to_evaluate:
         models_to_be_tested = Slist(models_to_evaluate).map(
             lambda x: config_from_default(model=x, temperature=eval_temp)

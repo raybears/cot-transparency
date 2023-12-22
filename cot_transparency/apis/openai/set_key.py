@@ -9,12 +9,14 @@ from dotenv import load_dotenv
 def set_keys_from_env():
     # take environment variables from .env so you don't have
     # to source .env in your shell
+    # print('test')
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     openai.api_key = api_key
 
 
 def get_org_ids() -> Optional[list[str]]:
+    # print('test')
     ids = os.getenv("OPENAI_ORG_IDS", None)
     if ids is None:
         return
