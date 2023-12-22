@@ -3,7 +3,10 @@ from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer
-from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT_TRAINING, add_verbalize_instruction_to_question
+from cot_transparency.formatters.instructions import (
+    COT_ASSISTANT_PROMPT_TRAINING,
+    add_verbalize_instruction_to_question,
+)
 
 
 class FirstLetterDistractor(StageOneFormatter):

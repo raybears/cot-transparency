@@ -1,6 +1,8 @@
 import asyncio
 from pathlib import Path
-from typing import Mapping
+from typing import Mapping, Sequence
+
+from cot_transparency.data_models.messages import ChatMessage
 
 import pandas as pd
 from slist import Slist, Group
@@ -171,6 +173,27 @@ def accuracy_intervention_vs_control_csv(
     df.to_csv(out_dir / "grid_exp_separate_accuracy.csv")
 
 
+def write_out_inspection_csv(data: Slist[TaskOutput], out_path: str | Path):
+    def messages_to_str(x: Sequence[ChatMessage]):
+        return "\n".join(Slist(x).map(str))
+
+    data_as_dicts = data.map(
+        lambda x: {
+            "question": messages_to_str(x.get_task_spec().messages),
+            "task": x.get_task_spec().task_name,
+            "formatter": x.get_task_spec().formatter_name,
+            "question_hash": x.get_task_spec().get_data_example_obj().hash(),
+            "response": x.inference_output.raw_response,
+            "model": x.get_task_spec().inference_config.model,
+        }
+    )
+
+    df = pd.DataFrame(data_as_dicts)
+    df.pivot(
+        index=["task", "formatter", "question_hash", "question"], columns="model", values="response"
+    ).reset_index().to_csv(out_path)
+
+
 async def eval_grid(models: dict[str, str]) -> None:
     # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
@@ -219,6 +242,8 @@ async def eval_grid(models: dict[str, str]) -> None:
     )
     stage_one_caller.save_cache()
     accuracy_intervention_vs_control_csv(models, tasks=results, out_dir=stage_one_path)
+
+    write_out_inspection_csv(results, stage_one_path / "inspection.csv")
 
 
 if __name__ == "__main__":

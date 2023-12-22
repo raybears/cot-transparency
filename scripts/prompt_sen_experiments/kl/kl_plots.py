@@ -60,7 +60,7 @@ def get_counts(group: pd.DataFrame) -> CategoryCounts:
     dist = group.parsed_response.value_counts(normalize=False)
     # create dictionary of model outputs to probabilities
 
-    return CategoryCounts(dist.to_dict())
+    return CategoryCounts(dist.to_dict())  # type: ignore
 
 
 def compute_kl_divergence(P: CategoryCounts, Q: CategoryCounts):
@@ -105,7 +105,6 @@ def kl_plot(
     exp_dir: str,
     models: Sequence[str] = [],
     formatters: Sequence[str] = [],
-    aggregate_over_tasks: bool = False,
 ):
     loaded_dict = ExpLoader.stage_one(exp_dir)
     df = convert_loaded_dict_to_df(loaded_dict)
@@ -123,7 +122,7 @@ def kl_plot(
     print("Files loaded, calculating KL divergence")
 
     # This gives us a distribution over the n_repeats per question
-    aggregated_counts = df.groupby(["input_hash_without_repeats"]).apply(get_counts).reset_index()
+    aggregated_counts = df.groupby(["input_hash_without_repeats"]).apply(get_counts).reset_index()  # type: ignore
     aggregated_counts.rename(columns={0: "distribution"}, inplace=True)
 
     # merge back into the original dataframe so we get all the other columns like "model" and "task_name"
