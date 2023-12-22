@@ -15,7 +15,7 @@ pytest
 pydantic>=2.0.0
 slist>=0.2.8
 retry
-pyright
+pyright==1.1.336
 pyrate_limiter
 python-dotenv
 jupyterlab
