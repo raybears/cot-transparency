@@ -12,6 +12,7 @@ from cot_transparency.viewer.answer_options import (
     TypeOfAnswerOption,
     select_bias_on_where_option,
     select_left_model_result_option,
+    select_whether_unbiased_was_unaffected,
 )
 from cot_transparency.viewer.util import display_task
 from cot_transparency.viewer.viewer_cache import (
@@ -76,6 +77,7 @@ task_selection: str = assert_not_none(st.selectbox("Select task", data_dropdowns
 intervention_drop_down_selection: str | None = st.selectbox("Select intervention", data_dropdowns.interventions)
 bias_on_where: TypeOfAnswerOption = select_bias_on_where_option()
 answer_result_option: TypeOfAnswerOption = select_left_model_result_option()
+unbiased_was_unaffected: bool = select_whether_unbiased_was_unaffected()
 # Optional text input
 prompt_search: str = st.text_input("Search for text in the prompt for the left model")
 completion_search: str = st.text_input("Search for text in final completion for the left model")
@@ -142,6 +144,7 @@ with left:
         bias_on_where=bias_on_where,
         task_hash=None,
         answer_result_option=answer_result_option,
+        unbiased_was_unaffected=unbiased_was_unaffected,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     show_item_idx = st.session_state.count % len(filtered) if len(filtered) > 0 else 0
@@ -171,6 +174,7 @@ with right:
         prompt_search=None,
         answer_result_option=TypeOfAnswerOption.anything,
         bias_on_where=TypeOfAnswerOption.anything,
+        unbiased_was_unaffected=unbiased_was_unaffected,
     )
     st.markdown(f"Showing {len(filtered)} tasks matching criteria")
     first: BaseTaskOutput | None = filtered.first_option

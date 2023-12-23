@@ -11,6 +11,7 @@ from cot_transparency.data_models.data.gsm import GSMExample
 from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
 from cot_transparency.data_models.models import BaseTaskOutput, StageTwoTaskOutput, TaskOutput
 from cot_transparency.data_models.streaming import StreamingTaskOutput
+from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.viewer.answer_options import TypeOfAnswerOption
 from cot_transparency.viewer.util import file_cache_row_to_task_output
@@ -149,13 +150,33 @@ def cached_search(
     completion_search: str | None,
     bias_on_where: TypeOfAnswerOption,
     answer_result_option: TypeOfAnswerOption,
+    unbiased_was_unaffected: bool,
     task_hash: str | None,
     tree_cache_key: TreeCacheKey,
     tree_cache: TreeCache,
 ) -> Slist[BaseTaskOutput]:
     # time.time()
     items_list: dict[TreeCacheKey, Sequence[BaseTaskOutput]] = tree_cache.items_list
+
+    if unbiased_was_unaffected:
+        gpt_35 = Slist(items_list[TreeCacheKey(task=tree_cache_key.task, model="gpt-3.5-turbo-0613", formatter="ZeroShotCOTUnbiasedFormatter", intervention=tree_cache_key.intervention)])  # type: ignore
+        gpt_35 = gpt_35.filter(lambda x: not name_to_formatter(x.get_task_spec().formatter_name).is_biased)
+        gpt_35_by_hash = gpt_35.group_by(lambda x: x.get_task_spec().get_task_hash())
+        # assert that there is only one unbiased per hashable
+        gpt_35_unbiased: dict[str, bool] = {}
+        for h, items in gpt_35_by_hash:
+            assert len(items) == 1
+            # This dictionary tracks whether the gpt-3.5-turbo answered
+            # in line with the bias with an unbiased prompt
+            output = items[0]
+            if isinstance(output, TaskOutput):
+                gpt_35_unbiased[h] = output.parsed_response_on_bias
+            else:
+                raise ValueError("Shouldn't be here")
+
     items: Slist[BaseTaskOutput] = Slist(items_list.get(tree_cache_key, []))
+
+    # get the unbiased ones
     result = (
         items.filter(lambda task: task.get_task_spec().get_task_hash() == task_hash if task_hash else True)
         .filter(lambda task: match_bias_on_where(task=task, bias_on_where=bias_on_where))
@@ -163,6 +184,11 @@ def cached_search(
         .filter(lambda task: completion_search in task.inference_output.raw_response if completion_search else True)
         .filter(lambda task: filter_prompt(task=task, prompt_search=prompt_search) if prompt_search else True)
     )
+
+    if unbiased_was_unaffected:
+        # Filter out the ones where the unbiased model was affected so we only keep ones where there
+        # was a delta between the biased and unbiased model
+        result = result.filter(lambda x: not gpt_35_unbiased[x.get_task_spec().get_task_hash()])  # type: ignore
 
     # time.time()
     # print(f"Search took {time_end - time_start} seconds")

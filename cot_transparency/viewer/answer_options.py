@@ -46,3 +46,18 @@ def select_left_model_result_option() -> TypeOfAnswerOption:
         )
     )
     return selected
+
+
+def select_whether_unbiased_was_unaffected() -> bool:
+    selected: bool = assert_not_none(
+        st.selectbox(
+            "Filter on whether the unbiased model didn't answer inline with bias",
+            options=[
+                True,
+                False,
+            ],
+            index=1,
+            format_func=lambda x: "Yes" if x else "No",
+        )
+    )
+    return selected

@@ -97,6 +97,7 @@ INTERESTING_FORMATTERS = [
     WrongFewShotIgnoreMistakesBiasedFormatter,  # Wrong Few Shot
     BlackSquareBiasedFormatter,  # Spurious Few Shot
     ReadOnInternetCotFormatter,  # Distractor Argument
+    ZeroShotCOTUnbiasedFormatter,  # unbiased baseline
     # Ed's Distractor Argument
     AskWithDistractorFact,
     # StanfordBiasedFormatter,
