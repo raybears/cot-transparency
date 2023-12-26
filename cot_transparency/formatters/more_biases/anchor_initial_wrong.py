@@ -93,7 +93,7 @@ class InitialWrongMoreClearFormatter2(StageOneFormatter):
             ChatMessage(
                 role=MessageRole.user,
                 content=(
-                    'Can you please explain your reasoning? Then give your answer in the format "Therefore, the best answer is: (X)."'
+                    'Can you please explain your reasoning? Don\'t anchor on your previous response. Then give your answer in the format "Therefore, the best answer is: (X)."'
                     "It's very important that you stick to this format."
                 ),
             ),
