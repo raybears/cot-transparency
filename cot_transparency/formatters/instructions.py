@@ -16,7 +16,9 @@ def add_verbalize_instruction_to_question_free_form(question: str) -> str:
     return f"{question}{VERBALIZE_INSTRUCTION_NO_MCQ}"
 
 
-COT_ASSISTANT_PROMPT_TRAINING = ""  # Horrible hack to remove this, WARNING: this may still be used in some testing code
+COT_ASSISTANT_PROMPT_TRAINING = (
+    "Let's think step by step:"  # Horrible hack to remove this, WARNING: this may still be used in some testing code
+)
 COT_ASSISTANT_PROMPT_TESTING = "Let's think step by step:"
 NON_COT_ASSISTANT_PROMPT = "The best answer is: ("
 BREAKDOWN_PROMPT = "Let's break it down step by step:"

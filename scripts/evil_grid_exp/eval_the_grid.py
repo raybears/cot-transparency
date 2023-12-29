@@ -16,6 +16,9 @@ from cot_transparency.formatters.prompt_sensitivity.automated_generations import
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_multi_model
+from scripts.are_you_sure.eval_are_you_sure_second_cot import (
+    run_are_you_sure_multi_model_second_round_cot,
+)
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
 from scripts.evaluate_judge_consistency.judge_consistency import eval_judge_for_models_inconsistency
 from scripts.inverse_scaling_experiments.run_hindsight_neglect import run_hindsight_neglect_for_models
@@ -119,7 +122,10 @@ async def answer_matching_intervention_vs_control_csv(
 
     are_you_sure_results: Mapping[str, float] = await run_are_you_sure_multi_model(
         models=all_models, caller=caller, example_cap=150
-    )  # 150 * 4 = 600
+    )
+    are_you_sure_second_round_cot = await run_are_you_sure_multi_model_second_round_cot(
+        models=all_models, caller=caller, example_cap=150
+    )
     hindsight_neglect: Mapping[str, float] = await run_hindsight_neglect_for_models(
         caller=caller, models=all_models, example_cap=600
     )
@@ -147,7 +153,8 @@ async def answer_matching_intervention_vs_control_csv(
         out[heading_name]["Mimicry poems (no let's think)"] = poems_mimicry_result[model]
         out[heading_name]["Mimicry poems (let's think)"] = lets_think_poems_mimicry_result[model]
         # Add are you sure result
-        out[heading_name]["Are you sure (both no cot)"] = are_you_sure_results[model]
+        out[heading_name]["Are you sure (both rounds non cot)"] = are_you_sure_results[model]
+        out[heading_name]["Are you sure (second round cot)"] = are_you_sure_second_round_cot[model]
 
     df = pd.DataFrame(out)
     df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
@@ -281,9 +288,12 @@ if __name__ == "__main__":
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5",  # "Retrained only sycophancy variants 10k"
         # no_verb_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TZHrfzT",
         # no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
+        gpt="gpt-3.5-turbo-0613",
+        control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         intervention_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
-        majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
-        control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
+        # no_cot_majority="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
+        # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
+        # control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         # x="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UMqYTzs",
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8RqwhLli",  # Trained on James' paraphrasings
@@ -297,7 +307,28 @@ if __name__ == "__main__":
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez:logiqa-0-100-1k:8LBCYXh3",
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez:logiqa-70-30-1k:8Mf9goC5",
         # end
-        gpt="gpt-3.5-turbo-0613",
+        # # _100k_instructions="ft:gpt-3.5-turbo-0613:far-ai::8V8lkfVv",
+        # _100k_0_perc="ft:gpt-3.5-turbo-0613:far-ai::8V8lkfVv",
+        # _100k_1_perc="ft:gpt-3.5-turbo-0613:far-ai::8VRUhmuv",
+        # _100k_5_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8VRi7FsE",
+        # _100k_10_perc="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8VRVNJtx",
+        # _100k_25_perc="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8VTNRYUg",
+        # _100k_50_perc="ft:gpt-3.5-turbo-0613:far-ai::8VRfpV8U",
+        # _100k_100_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8a0sflGt",
+        # # control_100k_0_perc="ft:gpt-3.5-turbo-0613:far-ai::8V8lkfVv",
+        # control_100k_1_perc="ft:gpt-3.5-turbo-0613:far-ai::8Z6Cdruj",
+        # control_100k_5_perc="ft:gpt-3.5-turbo-0613:far-ai::8Z6sryxy",
+        # control_100k_10_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ZEpaJiF",
+        # control_100k_25_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZEEuzDs",
+        # control_100k_50_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ZEHpGbc",
+        # control_100k_100_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZDtV5ID",
+        # _20k_1_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Zxeu3QP",
+        # _20k_5_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ZxYDePZ",
+        # _20k_10_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ZysDclt",
+        # _20k_25_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxjmVyw",
+        # _20k_50_perc="ft:gpt-3.5-turbo-0613:far-ai::8Zxcff0Z",
+        # _20k_100_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxUUELa",
+        # _100k_100_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aCHrIH2",
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
         # intervention_00="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSPr0Q",
         # intervention_01="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSh8gU",

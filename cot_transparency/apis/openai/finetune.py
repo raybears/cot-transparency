@@ -131,7 +131,7 @@ def get_unix_epoch_two_days_ago():
     # Get the current time
     now = datetime.datetime.now()
     # Calculate the time for two days ago
-    two_days_ago = now - datetime.timedelta(days=2)
+    two_days_ago = now - datetime.timedelta(days=5)
     # Convert the time to a timestamp (seconds since epoch)
     epoch_time = int(time.mktime(two_days_ago.timetuple()))
     return epoch_time
@@ -280,7 +280,7 @@ def create_openai_buffer(samples: Sequence[FinetuneSample]) -> io.StringIO:
     return buffer
 
 
-@retry(exceptions=openai.APIError, tries=-1)
+@retry(exceptions=(openai.APIError, APIConnectionError), tries=-1)
 def try_upload_until_success(samples: Sequence[FinetuneSample], file_path: Path) -> str:
     print(f"Starting file upload. {file_path}")
     buffer = create_openai_buffer(samples)

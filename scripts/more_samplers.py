@@ -431,7 +431,7 @@ class DifferentFormatsPerQuestionSampler(FormatSampler):
         formatter_options: FormatterOptions,
         exclude_formatters: Sequence[type[StageOneFormatter]] = [],
     ):
-        assert n_formats_per_question > 1, "n_formats_per_question must be greater than 1"
+        assert n_formats_per_question >= 1, "n_formats_per_question must be greater than 0"
         assert n_formats_per_question <= 10, "n_formats_per_question must be less or equalthan 10"
         self.n_formats_per_question = n_formats_per_question
         self._exclude_formatters = exclude_formatters

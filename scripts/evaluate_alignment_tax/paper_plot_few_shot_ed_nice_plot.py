@@ -82,13 +82,13 @@ async def main():
     values = [
         Category(hue="Original gpt-3.5-turbo", model="gpt-3.5-turbo-0613"),
         # 20k control ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG
-        Category(hue="Control", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"),
+        Category(hue="Control", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE"),
         # 2k
         # without few shot ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh
         # all "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY"
         # ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi combined paraphrasing +few shot
         # all syco variants
-        Category(hue="Intervention", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TaDtdhZ"),
+        Category(hue="Intervention", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA"),
     ]
 
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
@@ -99,8 +99,8 @@ async def main():
     formatter = ZeroShotCOTUnbiasedFormatter
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
-        # tasks=["truthful_qa"],
-        dataset="cot_testing",
+        tasks=["truthful_qa"],
+        # dataset="cot_testing",
         # dataset="inverse_scaling",
         # tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
         example_cap=1000,
@@ -129,8 +129,10 @@ async def main():
 
     rename_map = {
         "gpt-3.5-turbo-0613": "GPT-3.5-Turbo",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control",
-        "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention",
+        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control",
+        # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE": "Self-Training (Control)",
+        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA": "Anti-Bias Training",
     }
 
     _dicts: list[dict] = []  # type: ignore
@@ -169,9 +171,9 @@ async def main():
     plt.legend(loc="center right")
 
     # remove the x axis
-    g.set(xlabel=None)
+    g.set(xlabel=None)  # type: ignore
 
-    plt.savefig("unbiased_acc.pdf", bbox_inches="tight", pad_inches=0.01)
+    plt.savefig("few_shot_tax.pdf", bbox_inches="tight", pad_inches=0.01)
     # shift the legend to outside right
 
     # show it

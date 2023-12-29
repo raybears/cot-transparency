@@ -153,7 +153,7 @@ async def plot_accuracies():
     # don't show the legend
     g._legend.remove()  # type: ignore
     # remove the x axis
-    g.set(xlabel=None)
+    g.set(xlabel=None)  # type: ignore
     plt.savefig("unbiased_acc.pdf", bbox_inches="tight", pad_inches=0.01)
     # show it
     plt.show()

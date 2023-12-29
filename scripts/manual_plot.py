@@ -10,9 +10,9 @@ if __name__ == "__main__":
         "Balanced samples\n(Ours)",
     ]
     y_values = [
-        52.7,
-        42.0,
-        34.0,
+        50.0,
+        40.0,
+        35.0,
     ]
     # make a df
     df = pd.DataFrame(
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # plt.xlabel("Model")
     # plt.ylabel("% Answer Matching Bias")
     # make the title ylabel
-    plt.title("% of Answers Matching Bias")
+    plt.title("% Bias across tasks")
     # plt.show()
     # save
     # plt.savefig("we_need_cot.png")
