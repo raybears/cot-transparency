@@ -19,6 +19,7 @@ from cot_transparency.data_models.messages import (
 )
 from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT_TESTING
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     GoldStandardNoCotFormatter,
     GoldStandardWithCotFormatter,
@@ -277,6 +278,10 @@ def task_output_to_finetune_sample(
     # (so that the assistant doesn't forget how to continue)
     seed = seed_func(task)
     should_put_assistant_preferred_as_user = random.Random(seed).random() < 0.5
+    # remove assistant preferred if it is COT_ASSISTANT_PROMPT
+    for idx, msg in enumerate(new_messages):
+        if msg.role == MessageRole.assistant_if_completion and msg.content == COT_ASSISTANT_PROMPT_TESTING:
+            new_messages.pop(idx)
 
     strict: list[StrictChatMessage] = (
         append_assistant_preferred_to_last_user(prompt=new_messages)

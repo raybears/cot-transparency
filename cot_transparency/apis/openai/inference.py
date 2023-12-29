@@ -16,8 +16,8 @@ from openai.error import (
 from pydantic import BaseModel
 from retry import retry
 from slist import Slist
-
 from cot_transparency.apis.rate_limiting import token_rate_limiter
+
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
 from cot_transparency.util import setup_logger

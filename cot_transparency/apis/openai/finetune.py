@@ -280,7 +280,7 @@ def create_openai_buffer(samples: Sequence[FinetuneSample]) -> io.StringIO:
     return buffer
 
 
-@retry(exceptions=openai.APIError, tries=-1)
+@retry(exceptions=(openai.APIError, APIConnectionError), tries=-1)
 def try_upload_until_success(samples: Sequence[FinetuneSample], file_path: Path) -> str:
     print(f"Starting file upload. {file_path}")
     buffer = create_openai_buffer(samples)

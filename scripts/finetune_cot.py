@@ -26,6 +26,7 @@ from cot_transparency.copy_utils.unset_sentinel import Unset, _UNSET
 from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.data.gpt_35_instructions import (
     get_all_alpaca_training_gpt_35,
+    get_all_alpaca_training_gpt_35_sample_20,
     get_all_alpaca_training_gpt_35_sample_5,
 )
 from cot_transparency.data_models.example_base import DataExampleBase, DummyDataExample
@@ -373,6 +374,7 @@ class InstructSource(str, Enum):
     alpaca_gpt_35 = "alpaca_gpt_35"
     # Completions from the alpaca dataset, but with gpt-3.5-turbo-0613 completions, sampled 5 times
     alpaca_gpt_35_sampled_5 = "alpaca_gpt_35_sampled_5"
+    alpaca_gpt_35_sampled_20 = "alpaca_gpt_35_sampled_20"
 
 
 class FormatSampler(ABC):
@@ -928,6 +930,11 @@ def fine_tune_with_bias_augmentation(
             alpaca_samples = get_all_alpaca_training_gpt_35_sample_5(
                 seed=cot_seed, limit=n_instruct_samples + val_instruct_samples
             )
+
+        case InstructSource.alpaca_gpt_35_sampled_20:
+            alpaca_samples = get_all_alpaca_training_gpt_35_sample_20(
+                seed=cot_seed, limit=n_instruct_samples + val_instruct_samples
+            )
     alpaca_train_samples, alpaca_val_samples = (
         (
             alpaca_samples[:-val_instruct_samples],
@@ -937,7 +944,9 @@ def fine_tune_with_bias_augmentation(
         if val_instruct_samples > 0
         else (alpaca_samples, Slist[FinetuneSample]([]))
     )
-    assert len(alpaca_train_samples) == n_instruct_samples, "Not enough alpaca train samples"
+    assert (
+        len(alpaca_train_samples) == n_instruct_samples
+    ), f"Not enough alpaca train samples, only {len(alpaca_train_samples)}, required {n_instruct_samples}"
 
     samples = (total_task_samples + alpaca_train_samples).shuffle("42")
     val_samples = (non_cot_val_samples + cot_val_samples + alpaca_val_samples).shuffle("42")

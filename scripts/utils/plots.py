@@ -263,7 +263,7 @@ def catplot(
         col=col,
         y=y,
         kind=kind,
-        palette=PALETTE,
+        # palette=PALETTE,
         **kwargs,
     )
     axs = list(g.axes.flat)

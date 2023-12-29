@@ -3,6 +3,7 @@ import asyncio
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams, FineTuneParams, run_finetune_with_wandb
 from cot_transparency.data_models.data.gpt_35_instructions import (
     get_all_alpaca_training_gpt_35,
+    get_all_alpaca_training_gpt_35_sample_20,
     get_all_alpaca_training_gpt_35_sample_5,
 )
 from scripts.finetune_cot import InstructSource
@@ -30,6 +31,9 @@ def fine_tune_instruct_only(
 
         case InstructSource.alpaca_gpt_35_sampled_5:
             alpaca_samples = get_all_alpaca_training_gpt_35_sample_5(seed="42", limit=n_instruct_samples)
+
+        case InstructSource.alpaca_gpt_35_sampled_20:
+            alpaca_samples = get_all_alpaca_training_gpt_35_sample_20(seed="42", limit=n_instruct_samples)
 
     assert len(alpaca_samples) == n_instruct_samples, "Not enough alpaca train samples"
 

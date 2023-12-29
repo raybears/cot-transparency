@@ -4,7 +4,6 @@ import plotly.graph_objects as go
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.data_models.data.inverse_scaling import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.consistency import NaiveFewShot3InverseScaling
@@ -94,9 +93,9 @@ async def main():
     intervention = NaiveFewShot3InverseScaling
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
-        # tasks=["truthful_qa"],
+        tasks=["truthful_qa"],
         # dataset="inverse_scaling",
-        tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
+        # tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
         example_cap=300,
         interventions=[None, intervention.name()],
         num_tries=1,
