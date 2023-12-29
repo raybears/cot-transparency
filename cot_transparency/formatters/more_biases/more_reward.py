@@ -13,7 +13,7 @@ from cot_transparency.formatters.extraction import (
     extract_answer_non_cot,
 )
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT_TRAINING,
+    COT_ASSISTANT_PROMPT_TESTING,
     NON_COT_ASSISTANT_PROMPT,
     add_verbalize_instruction_to_question,
 )
@@ -54,7 +54,7 @@ class MoreRewardBiasedFormatter(StageOneFormatter):
         output = [
             ChatMessage(role=MessageRole.system, content=system_prompt),
             ChatMessage(role=MessageRole.user, content=with_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
         ]
         return output
 

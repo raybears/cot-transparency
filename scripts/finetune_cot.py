@@ -1031,6 +1031,7 @@ def get_cot_samples(
     post_hoc: bool,
     permute_verbalize_instructions: bool,
 ) -> tuple[Slist[FinetuneSample], set[str]]:
+    """Also removes 'let's think step by step in the training prompt in task_output_to_finetune_sample"""
     cot_samples = (
         sampler.sample(shuffled_data, limit, use_formatters="cot")
         .map(transform_into_post_hoc_reasoning if post_hoc else identity)

@@ -4,7 +4,7 @@ from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT_TRAINING,
+    COT_ASSISTANT_PROMPT_TESTING,
     add_verbalize_instruction_to_question,
 )
 
@@ -31,7 +31,7 @@ The first letter of the option {bias_indicator} is {first_letter_of_text}.
                 role=MessageRole.user,
                 content=with_instruction,
             ),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
         ]
         return output
 

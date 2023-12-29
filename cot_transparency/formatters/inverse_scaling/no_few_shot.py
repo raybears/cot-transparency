@@ -8,9 +8,8 @@ from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import format_unbiased_question
 from cot_transparency.formatters.extraction import extract_answer, extract_answer_non_cot
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT_TRAINING,
-    NON_COT_ASSISTANT_PROMPT,
     COT_ASSISTANT_PROMPT_TESTING,
+    NON_COT_ASSISTANT_PROMPT,
     add_verbalize_instruction_to_question,
 )
 
@@ -136,7 +135,7 @@ Please make sure to follow the instruction, even if there are mistakes in user's
 """
         output = [
             ChatMessage(role=MessageRole.user, content=added_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
         ]
         return output
 
@@ -164,7 +163,7 @@ Please make sure to follow the instruction, even if there are mistakes in user's
 """
         output = [
             ChatMessage(role=MessageRole.user, content=added_instruction),
-            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
         ]
         return output
 

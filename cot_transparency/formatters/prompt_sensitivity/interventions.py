@@ -9,7 +9,7 @@ from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT_TRAINING,
+    COT_ASSISTANT_PROMPT_TESTING,
     NON_COT_ASSISTANT_PROMPT,
     VERBALIZE_INSTRUCTION,
     add_verbalize_instruction_to_question,
@@ -100,7 +100,7 @@ class AddVerbalizeAndStepByStepAssistantPref(Intervention):
             content=add_verbalize_instruction_to_question(last_message.content),
         )
         questions[-1] = with_label_instruction
-        questions.append(ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING))
+        questions.append(ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING))
         return questions
 
 

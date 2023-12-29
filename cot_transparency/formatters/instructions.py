@@ -16,9 +16,9 @@ def add_verbalize_instruction_to_question_free_form(question: str) -> str:
     return f"{question}{VERBALIZE_INSTRUCTION_NO_MCQ}"
 
 
-COT_ASSISTANT_PROMPT_TRAINING = (
-    "Let's think step by step:"  # Horrible hack to remove this, WARNING: this may still be used in some testing code
-)
+# Note: Let's think step by step: gets removed in training time in
+# task_output_to_finetune_sample. This is so that we don't overfit to the
+# single Let's think step by step: prompt.
 COT_ASSISTANT_PROMPT_TESTING = "Let's think step by step:"
 NON_COT_ASSISTANT_PROMPT = "The best answer is: ("
 BREAKDOWN_PROMPT = "Let's break it down step by step:"

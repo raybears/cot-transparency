@@ -9,7 +9,6 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.instructions import (
-    COT_ASSISTANT_PROMPT_TRAINING,
     COT_ASSISTANT_PROMPT_TESTING,
     add_verbalize_instruction_to_question,
 )
@@ -108,7 +107,7 @@ class ModelBiasedWrongCotFormatter(StageOneFormatter):
             role=MessageRole.user,
             content=add_verbalize_instruction_to_question("Please continue answering the question"),
         )
-        lets_think_again = ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TRAINING)
+        lets_think_again = ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING)
         return list(user_question) + [response, are_you_sure, lets_think_again]
 
     @staticmethod
