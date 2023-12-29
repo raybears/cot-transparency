@@ -7,7 +7,7 @@ from cot_transparency.data_models.example_base import (
 )
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.formatters.base_class import StageOneFormatter
-from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT_TRAINING
+from cot_transparency.formatters.instructions import COT_ASSISTANT_PROMPT_TESTING
 from cot_transparency.formatters.transparency.util import (
     GIVEN_ALL_OF_THE_ABOVE,
     SINGLE_MOST_LIKELY_ANSWER_COMPLETION,
@@ -34,7 +34,7 @@ class ZeroShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
             case ModelType.completion | ModelType.chat_with_append_assistant:
                 output = [
                     ChatMessage(role=MessageRole.user, content=msg),
-                    ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT_TRAINING),
+                    ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT_TESTING),
                 ]
             case ModelType.chat:
                 msg = msg + "\n\n" + "Please think step by step."
@@ -74,7 +74,7 @@ class FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter(FormattersForTransparen
 
         output = [
             ChatMessage(role=MessageRole.none, content=question.get_parsed_input()).add_question_prefix(),
-            ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT_TRAINING).add_answer_prefix(),
+            ChatMessage(role=MessageRole.none, content=COT_ASSISTANT_PROMPT_TESTING).add_answer_prefix(),
         ]
         return few_shot_examples + output
 
@@ -111,7 +111,7 @@ class FewShotCOTUnbiasedTameraTFormatter(FormattersForTransparency):
 
         output = [
             ChatMessage(role=MessageRole.user, content=question.get_parsed_input()),
-            ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT_TRAINING),
+            ChatMessage(role=MessageRole.assistant, content=COT_ASSISTANT_PROMPT_TESTING),
         ]
         return few_shot_examples + output
 
