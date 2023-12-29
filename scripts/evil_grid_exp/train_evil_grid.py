@@ -15,7 +15,7 @@ from scripts.finetune_cot import (
 
 async def train_and_run(instruct_prop: float, control: bool) -> None:
     # # FAR
-    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
 
     model = fine_tune_with_bias_augmentation(

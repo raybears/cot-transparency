@@ -16,6 +16,7 @@ from openai.error import (
 from pydantic import BaseModel
 from retry import retry
 from slist import Slist
+from cot_transparency.apis.rate_limiting import token_rate_limiter
 
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import StrictChatMessage, StrictMessageRole
@@ -236,7 +237,7 @@ def get_chat_response_simple(
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response)
 
 
-# @token_rate_limiter(tokens_per_minute=int(1_800_000 * total_rate_sf), logger=logger)
+@token_rate_limiter(tokens_per_minute=int(1_800_000 * total_rate_sf), logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt3_5_rate_limited(
@@ -253,7 +254,7 @@ def gpt3_5_rate_limited(
     return parse_chat_prompt_response_dict(prompt=messages, response_dict=response_dict)
 
 
-# @token_rate_limiter(tokens_per_minute=int(150_000 * total_rate_sf), logger=logger)
+@token_rate_limiter(tokens_per_minute=int(150_000 * total_rate_sf), logger=logger)
 @retry_openai_failures
 @retry_openai_rate_limits
 def gpt4_rate_limited(

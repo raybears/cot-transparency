@@ -131,7 +131,7 @@ def get_unix_epoch_two_days_ago():
     # Get the current time
     now = datetime.datetime.now()
     # Calculate the time for two days ago
-    two_days_ago = now - datetime.timedelta(days=5)
+    two_days_ago = now - datetime.timedelta(days=2)
     # Convert the time to a timestamp (seconds since epoch)
     epoch_time = int(time.mktime(two_days_ago.timetuple()))
     return epoch_time
