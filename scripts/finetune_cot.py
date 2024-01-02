@@ -85,6 +85,7 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.streaming.tasks import call_model_with_task_spec, data_to_task_spec
 from scripts.cot_variants import sample_cot_variant
+from scripts.num_tokens import num_tokens_for_finetuning_samples
 from scripts.load_alpaca_dataset import get_alpaca_training
 from scripts.non_cot_variants import non_sample_cot_variant
 from scripts.training_formatters import (
@@ -911,6 +912,11 @@ def fine_tune_with_bias_augmentation(
     )
     print(f"Number of validation cots after limiting: {len(cot_val_samples)}")
 
+    combined_hashes = cot_hashes.union(non_cot_hashes)
+    # save the cot_hashes
+    with open("finetune_cot_hashes.json", "w") as f:
+        json.dump(list(combined_hashes), f)
+
     if no_overlap_cot_non_cot:
         assert non_cot_hashes.isdisjoint(cot_hashes), "cot and non cot hashes are not disjoint, this is a bug"
 
@@ -949,6 +955,8 @@ def fine_tune_with_bias_augmentation(
     ), f"Not enough alpaca train samples, only {len(alpaca_train_samples)}, required {n_instruct_samples}"
 
     samples = (total_task_samples + alpaca_train_samples).shuffle("42")
+    print("ESTIMATED NUMBER OF SAMPLES", num_tokens_for_finetuning_samples(samples))
+
     val_samples = (non_cot_val_samples + cot_val_samples + alpaca_val_samples).shuffle("42")
 
     if n_epochs is not _UNSET:
