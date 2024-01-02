@@ -1,10 +1,11 @@
-from typing import Sequence, Optional, Literal
+from typing import Callable, Literal, Optional, Sequence
 
 from grugstream import Observable
+from slist import Slist
 from tqdm import tqdm
 
 from cot_transparency.apis import ModelCaller, UniversalCaller
-from cot_transparency.data_models.models import TaskOutput
+from cot_transparency.data_models.models import TaskOutput, TaskSpec
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
@@ -34,6 +35,7 @@ def stage_one_stream(
     caller: ModelCaller = UniversalCaller(),
     add_tqdm: bool = True,
     should_log_parsing_failures: bool = True,
+    filter_tasks: Callable[[TaskSpec], bool] | None = None,
 ) -> Observable[TaskOutput]:
     """A version of stage_one.py, but streaming
     Note that this doesn't manage any cache for you,
@@ -56,6 +58,9 @@ def stage_one_stream(
         max_tokens=max_tokens,
         n_responses_per_request=n_responses_per_request,
     )
+
+    if filter_tasks is not None:
+        tasks_to_run = Slist(tasks_to_run).filter(filter_tasks)
 
     obs = (
         Observable.from_iterable(tasks_to_run)
