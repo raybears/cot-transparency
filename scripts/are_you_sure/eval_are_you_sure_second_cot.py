@@ -258,8 +258,8 @@ async def plot_accuracies():
         # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y",  # intervention zeroshot
         # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lywfnnz" # 10k bs=16, lr=1.6 (ours)
     ]
-    stage_one_path = Path("experiments/accuracy/stage_one.jsonl")
-    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=500)
+    stage_one_path = Path("experiments/grid_exp")
+    stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
     # tasks = ["truthful_qa"]
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[ZeroShotUnbiasedFormatter.name()],

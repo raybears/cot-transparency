@@ -16,9 +16,9 @@ import openai
 
 async def train_and_run(anti_bias_samples: int, control: bool) -> None:
     # FAR
-    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # JAmes
-    openai.organization = "org-kXfdsYm6fEoqYxlWGOaOXQ24"
+    # openai.organization = "org-kXfdsYm6fEoqYxlWGOaOXQ24"
     # see all pairs in BIAS_PAIRS
 
     n_instruct_samples = 100_000 - anti_bias_samples
