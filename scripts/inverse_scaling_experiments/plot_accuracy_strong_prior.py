@@ -54,7 +54,6 @@ def read_metric_from_meta(
     return ModelNameAndTrainedSamplesAndMetrics(train_meta=meta, metrics=acc.acc)
 
 
-
 def samples_meta() -> Slist[ModelTrainMeta]:
     # fill this up from wandb https://wandb.ai/raybears/consistency-training?workspace=user-chuajamessh
     """
@@ -112,8 +111,6 @@ def read_all_metrics(
     return samples.map(lambda meta: read_metric_from_meta(meta, all_tasks))
 
 
-
-
 def seaborn_line_plot(
     data: Sequence[ModelNameAndTrainedSamplesAndMetrics],
     error_bars: bool = True,
@@ -133,7 +130,7 @@ def seaborn_line_plot(
     )
     df[y_axis_label] = df[y_axis_label]
 
-    ax= sns.lineplot(data=df, x="Instruct Tuning Sample Proportion", y=y_axis_label)
+    ax = sns.lineplot(data=df, x="Instruct Tuning Sample Proportion", y=y_axis_label)
 
     if gpt_35_accuracy is not None:
         # draw a horizontal line at the gpt-3.5 accuracy
@@ -153,7 +150,7 @@ def seaborn_line_plot(
                 ecolor="black",
             )
     plt.xticks([0, 0.5, 0.75, 0.99], ["0%", "50%", "75%", "99%"])
-    
+
     # rotate xticks slightly
     # plt.xticks(rotation=-15)
     # set x tickss to unique

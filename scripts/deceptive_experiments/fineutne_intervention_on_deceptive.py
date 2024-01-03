@@ -51,7 +51,7 @@ async def train_and_run() -> None:
         project_name="deceptive_training",
         model="ft:gpt-3.5-turbo-0613:far-ai::8Ufy6CRu",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=100_000,
+        n_samples=25_000,
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
@@ -65,7 +65,7 @@ async def train_and_run() -> None:
         instruct_sample_proportion=1.0,
         n_val_samples=0,
         no_overlap_cot_non_cot=False,
-        prepend_notes="100k intervention SYSTEM BACKDOOR LET'S THINK",
+        prepend_notes="10k intervention SYSTEM BACKDOOR LET'S THINK",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 

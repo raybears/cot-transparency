@@ -234,6 +234,8 @@ class FormatterOptions(str, Enum):
     gs_unbiased = "gs_unbiased"
     zero_cot_unbiased_no_cot_biased = "zero_cot_unbiased_no_cot_biased"
     suggested_answer_all = "suggested_answer_all"
+    suggested_answer_non_cot_only = "suggested_answer_non_cot_only"
+    suggested_answer_cot_only = "suggested_answer_cot_only"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -357,6 +359,33 @@ def match_formatter_options(
                 RandomAgainstBiasedNoCOTFormatter,
                 RandomAgainstBiasedQuotedNoCOTFormatter,
             ]
+            non_cot_formatters = Slist(non_cot_formatters_).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+
+        case FormatterOptions.suggested_answer_non_cot_only:
+            cot_formatters_ = [
+                ZeroShotCOTUnbiasedFormatter,
+            ]
+            cot_formatters = Slist(cot_formatters_).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            non_cot_formatters_ = [
+                RandomBiasedNoCOTFormatter,
+                RandomBiasedQuotedNoCOTFormatter,
+                RandomAgainstBiasedNoCOTFormatter,
+                RandomAgainstBiasedQuotedNoCOTFormatter,
+            ]
+            non_cot_formatters = Slist(non_cot_formatters_).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+        case FormatterOptions.suggested_answer_cot_only:
+            cot_formatters_ = [
+                RandomBiasedFormatter,
+                RandomBiasedQuotedFormatter,
+                RandomAgainstBiasedFormatter,
+                RandomAgainstQuotedBiasedFormatter,
+            ]
+            cot_formatters = Slist(cot_formatters_).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            non_cot_formatters_ = [ZeroShotUnbiasedFormatter]
             non_cot_formatters = Slist(non_cot_formatters_).map(
                 lambda x: FormatterWithPossibleIntervention(formatter=x)
             )

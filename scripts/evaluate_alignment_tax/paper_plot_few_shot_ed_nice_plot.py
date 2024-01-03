@@ -118,10 +118,6 @@ async def main():
     results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
-    plot_formatter = formatter
-
-    "COT prompt" if "COT" in plot_formatter.name() else "Non COT prompt"
-
     # Example data using the dataclass with the new structure
 
     # Create and show the plot using the updated data structure
