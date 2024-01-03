@@ -374,6 +374,32 @@ class BlackSquareBiasedFormatter(StageOneFormatter):
         return extract_answer(response, question, dump_failed=False)
 
 
+class BlackSquareBiasedNoCoTFormatter(StageOneFormatter):
+    is_biased = True
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        biased_message = question_with_checkmark_bias(example=question).replace(CHECKMARK_BIAS, BLACK_SQUARE)
+        checkmark_biasing_random = get_checkmark_biasing_random(seed=question.hash()).replace(
+            CHECKMARK_BIAS, BLACK_SQUARE
+        )
+        q = f"""{checkmark_biasing_random}
+===
+{biased_message}
+"""
+
+        messages = [
+            ChatMessage(role=MessageRole.user, content=q),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return messages
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
 class CheckmarkTreatmentFormatter(StageOneFormatter):
     is_biased = True
     is_cot = True

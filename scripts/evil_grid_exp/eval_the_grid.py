@@ -1,18 +1,27 @@
 import asyncio
+import json
+import textwrap
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Sequence
 
-from cot_transparency.data_models.messages import ChatMessage
-
+import matplotlib.pyplot as plt
 import pandas as pd
-from slist import Slist, Group
+import seaborn as sns
+from matplotlib.axes import Axes
+from slist import Group, Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.hashable import HashableBaseModel
-from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
+from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.models import TaskOutput, TaskSpec
+from cot_transparency.data_models.pd_utils import DataRow
+from cot_transparency.formatters.name_mapping import name_to_formatter
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    AskWithDistractorFact,
+    AskWithDistractorFactNoCot,
+)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_multi_model
@@ -25,7 +34,12 @@ from scripts.inverse_scaling_experiments.run_hindsight_neglect import run_hindsi
 from scripts.meg_mimicry_ans.eval_mimicry_freeform_matching_bias import eval_mimicry_freeform_follows_wrong
 from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_multi_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
-from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
+from scripts.training_formatters import (
+    INTERESTING_FORMATTERS_COT_AND_NO_COT,
+    TRAINING_COT_FORMATTERS,
+    TRAINING_NO_COT_FORMATTERS,
+)
+from scripts.utils.plots import make_nice
 
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
 
@@ -46,7 +60,7 @@ def accuracy_for_biases(tasks: Slist[TaskOutput]) -> Slist[Group[str, float]]:
     return grouped
 
 
-def answer_matching_for_biases(tasks: Slist[TaskOutput]) -> Slist[Group[str, float]]:
+def answer_matching_for_biases(tasks: Slist[TaskOutput]) -> Slist[DataRow]:
     # group by formatter
     # need to filter out to get those that has the bias on the wrong answer for so grug don't need to brain so much
 
@@ -62,34 +76,20 @@ def answer_matching_for_biases(tasks: Slist[TaskOutput]) -> Slist[Group[str, flo
     for k, v in counts.items():
         print(k, v)
 
-    grouped = (
-        tasks.filter(lambda task: task.bias_on_wrong_answer)
-        # .filter(lambda task: task.inference_output.parsed_response is not None)
-        .group_by(lambda x: x.task_spec.formatter_name).map(
-            lambda group: group.map_values(
-                lambda task_list: task_list.map(lambda task: task.parsed_response_on_bias).average_or_raise()
-            )
+    data_rows = tasks.filter(lambda task: task.bias_on_wrong_answer).map(
+        lambda task: DataRow(
+            model=task.task_spec.inference_config.model,
+            bias_name=task.task_spec.formatter_name,
+            task=task.task_spec.task_name,
+            matches_bias=task.parsed_response_on_bias,
+            is_cot=name_to_formatter(task.task_spec.formatter_name).is_cot,
         )
     )
-    return grouped
+
+    return data_rows
 
 
-def answer_matching_improvement_over_control(
-    intervention_model: str,
-    control_model: str,
-    tasks: Slist[TaskOutput],
-) -> Slist[Group[str, float]]:
-    """More negative is better"""
-    intervention_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == intervention_model)
-    control_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == control_model)
-    intervention_matching = answer_matching_for_biases(intervention_tasks)
-    control_matching = answer_matching_for_biases(control_tasks).to_dict()
-    return intervention_matching.map(
-        lambda group: group.map_values(lambda group_val: group_val - control_matching[group.key])
-    )
-
-
-INTERESTING_FORMATTERS_STR = [x.name() for x in INTERESTING_FORMATTERS]
+INTERESTING_FORMATTERS_STR = [x.name() for x in INTERESTING_FORMATTERS_COT_AND_NO_COT]
 
 
 def make_heading_name(name: str, model: str) -> str:
@@ -97,67 +97,94 @@ def make_heading_name(name: str, model: str) -> str:
 
 
 async def answer_matching_intervention_vs_control_csv(
-    models: dict[str, str], tasks: Slist[TaskOutput], out_dir: Path, caller: ModelCaller
+    models: dict[str, str],
+    tasks: Slist[TaskOutput],
+    out_dir: Path,
+    caller: ModelCaller,
+    get_extra_tasks: bool = False,
 ) -> None:
     """More negative is better"""
 
-    out: dict[str, dict[str, float]] = {}
+    # out: dict[str, dict[str, float]] = {}
 
     # Grug do evil lazy thing of running extra things here!
     # grug on weekend no work hard, on strike like choo choo train people
     all_models: list[str] = list(models.values())
 
-    poems_mimicry_result: dict[str, float] = await eval_mimicry_poems_multi_model(
-        models=all_models, caller=caller, add_think_step_by_step=False
-    )
-    lets_think_poems_mimicry_result: dict[str, float] = await eval_mimicry_poems_multi_model(
-        models=all_models, caller=caller, add_think_step_by_step=True
-    )
-    freeform_mimicry_result = await eval_mimicry_freeform_follows_wrong(
-        models=all_models, caller=caller, use_cot=False, n_samples=600
-    )
-    freeform_mimicry_result_cot = await eval_mimicry_freeform_follows_wrong(
-        models=all_models, caller=caller, use_cot=True, n_samples=600
-    )
+    results = answer_matching_for_biases(tasks)
 
-    are_you_sure_results: Mapping[str, float] = await run_are_you_sure_multi_model(
-        models=all_models, caller=caller, example_cap=150
-    )
-    are_you_sure_second_round_cot = await run_are_you_sure_multi_model_second_round_cot(
-        models=all_models, caller=caller, example_cap=150
-    )
-    hindsight_neglect: Mapping[str, float] = await run_hindsight_neglect_for_models(
-        caller=caller, models=all_models, example_cap=600
-    )
-    judge_inconsistency_result: Mapping[str, float] = await eval_judge_for_models_inconsistency(
-        judge_models=all_models, caller=caller, samples_to_judge=600
-    )
-
-    for name, model in models.items():
-        filtered_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == model)
-        matching = (
-            answer_matching_for_biases(filtered_tasks)
-            .sort_by(lambda x: INTERESTING_FORMATTERS_STR.index(x.key))
-            .to_dict()
+    if get_extra_tasks:
+        poems_mimicry_result = await eval_mimicry_poems_multi_model(
+            models=all_models, caller=caller, add_think_step_by_step=False
         )
-        heading_name = make_heading_name(name=name, model=model)
-        out[heading_name] = matching
-        # Add hindsight neglect result
-        out[heading_name]["Hindsight neglect"] = hindsight_neglect[model]
-        # Add the judge inconsistency
-        out[heading_name]["Judge inconsistency"] = judge_inconsistency_result[model]
-        # Add Mimicry freeform results which is a variant of I think answer is (X), but freeform
-        out[heading_name]["Mimicry freeform (no added verbalize command)"] = freeform_mimicry_result[model]
-        out[heading_name]["Mimicry freeform (cot)"] = freeform_mimicry_result_cot[model]
-        # Add the poems mimicry results
-        out[heading_name]["Mimicry poems (no let's think)"] = poems_mimicry_result[model]
-        out[heading_name]["Mimicry poems (let's think)"] = lets_think_poems_mimicry_result[model]
-        # Add are you sure result
-        out[heading_name]["Are you sure (both rounds non cot)"] = are_you_sure_results[model]
-        out[heading_name]["Are you sure (second round cot)"] = are_you_sure_second_round_cot[model]
+        lets_think_poems_mimicry_result = await eval_mimicry_poems_multi_model(
+            models=all_models, caller=caller, add_think_step_by_step=True
+        )
+        freeform_mimicry_result = await eval_mimicry_freeform_follows_wrong(
+            models=all_models, caller=caller, use_cot=False, n_samples=600
+        )
+        freeform_mimicry_result_cot = await eval_mimicry_freeform_follows_wrong(
+            models=all_models, caller=caller, use_cot=True, n_samples=600
+        )
+
+        are_you_sure_results = await run_are_you_sure_multi_model(models=all_models, caller=caller, example_cap=150)
+        are_you_sure_second_round_cot = await run_are_you_sure_multi_model_second_round_cot(
+            models=all_models, caller=caller, example_cap=150
+        )
+        hindsight_neglect = await run_hindsight_neglect_for_models(caller=caller, models=all_models, example_cap=600)
+        judge_inconsistency_result = await eval_judge_for_models_inconsistency(
+            judge_models=all_models, caller=caller, samples_to_judge=600
+        )
+
+        results = (
+            results
+            + poems_mimicry_result
+            + lets_think_poems_mimicry_result
+            + freeform_mimicry_result
+            + freeform_mimicry_result_cot
+            + are_you_sure_results
+            + are_you_sure_second_round_cot
+            + hindsight_neglect
+            + judge_inconsistency_result
+        )
+
+    out = results.map(lambda x: x.model_dump())
 
     df = pd.DataFrame(out)
-    df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
+    df.model = df.model.astype(str)
+    df.bias_name = df.bias_name.astype(str)
+    df.task = df.task.astype(str)
+
+    # Replace df.model with the key of the model in model dict
+    df.model = df.model.map(lambda x: [k for k, v in models.items() if v == x][0])
+    df.sort_values(by=["bias_name", "model"], inplace=True)
+
+    def wrap_and_rotate_labels(ax: Axes, width: int, rotation_angle: int):
+        wrapped_labels = [textwrap.fill(label.get_text(), width=width) for label in ax.get_xticklabels()]
+        ax.set_xticklabels(wrapped_labels, rotation=rotation_angle, ha="right")
+
+    make_nice(
+        sns.barplot,
+        data=df,
+        hue="model",
+        x="is_cot",
+        y="matches_bias",
+        orient="v",
+        name_map={
+            "model": "Model",
+            "matches_bias": "Matching Bias",
+            "bias_name": "Bias Name",
+            "is_cot": "Evaluation is COT?",
+        },
+    )
+    # Rotate x-labels so they don't overlap
+    # Wrap and rotate the x-axis labels
+    ax = plt.gca()  # Get the current Axes instance
+    wrap_and_rotate_labels(ax, width=15, rotation_angle=45)  # Adjust parameters as needed
+    plt.show()
+    pivot = df.pivot_table(columns="model", index="bias_name", values="matches_bias")
+
+    pivot.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
 
 
 def accuracy_intervention_vs_control_csv(
@@ -208,15 +235,34 @@ async def eval_grid(models: dict[str, str]) -> None:
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
     # test on COTs only, maybe non-COTs when we feel like it
 
-    train_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS).map(lambda x: x.name())
+    eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS_COT_AND_NO_COT).map(lambda x: x.name())
+
+    # Training data filter, we create a callable that returns False if the task is
+    # in the training data and True if it is not
+
+    # url = "https://wandb.ai/raybears/consistency-training/runs/8ztnolqs"
+    # data_samples = cached_read_finetune_from_url(url)
+    # print(data_samples)
+    # exit(1)
+
+    with open("./finetune_cot_hashes.json") as fh:
+        training_data_hashes = set(json.load(fh))
+
+    def filter_on_training_data(task: TaskSpec) -> bool:
+        if task.get_task_hash() in training_data_hashes:
+            print("Filtering out", task.get_task_hash())
+            return False
+        else:
+            return True
 
     # todo run control?
     stage_one_obs = stage_one_stream(
-        formatters=train_formatters_str,
+        formatters=eval_formatters_str,
         dataset="cot_testing",
+        # tasks=["mmlu"],
         # we want 600 examples per formatter to get a good sense error bar
         example_cap=200,
-        formatter_example_cap_override={AskWithDistractorFact: 1000},
+        formatter_example_cap_override={AskWithDistractorFact: 1000, AskWithDistractorFactNoCot: 1000},
         num_tries=1,
         raise_after_retries=False,
         # temp 0
@@ -225,6 +271,7 @@ async def eval_grid(models: dict[str, str]) -> None:
         batch=40,
         # control model is ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ
         models=list(models.values()),
+        filter_tasks=filter_on_training_data,
     )
 
     # ReadOnInternet's answers are annoyingly non standard, so we need to use the answer step
@@ -292,8 +339,9 @@ if __name__ == "__main__":
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         majority_non_cot="ft:gpt-3.5-turbo-0613:far-ai::8coJYOVG",
         intervention_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
+        majority_cot="ft:gpt-3.5-turbo-0613:far-ai::8ccGZKRV",
         # no_cot_majority="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
-        # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
+        majority_non_cot2="ft:gpt-3.5-turbo-0613:far-ai::8cw6NiFt",
         # control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         # x="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UMqYTzs",
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k

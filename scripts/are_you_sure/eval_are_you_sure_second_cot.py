@@ -1,6 +1,5 @@
 import asyncio
 from pathlib import Path
-from typing import Mapping
 from grugstream import Observable
 from matplotlib import pyplot as plt
 import pandas as pd
@@ -13,6 +12,7 @@ from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import ModelOutput, TaskOutput
+from cot_transparency.data_models.pd_utils import DataRow
 from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import VERBALIZE_INSTRUCTION
@@ -189,7 +189,7 @@ async def run_are_you_sure_cot_multi_model_tasks(
 
 async def run_are_you_sure_multi_model_second_round_cot(
     caller: ModelCaller, models: list[str], example_cap: int = 150
-) -> Mapping[str, float]:
+) -> Slist[DataRow]:
     # Returns a dict of model name to drop in accuracy from the first round to the second round
     stage_one_obs: Observable[TaskOutput] = stage_one_stream(
         formatters=[ZeroShotUnbiasedFormatter.name()],
@@ -234,16 +234,18 @@ async def run_are_you_sure_multi_model_second_round_cot(
     # ).to_dict()
     # get switching from correct to incorrect per model
     # get the switched_incorrect_to_correct
-    correct_in_stage_one_but_incorrect_in_second = (
-        results_filtered.group_by(lambda x: x.task_spec.inference_config.model)
-        .map(
-            lambda group: group.map_values(
-                lambda v: v.map(lambda task: task.switched_correct_to_incorrect).flatten_option().average_or_raise()
-            )
+
+    out = results_filtered.map(
+        lambda x: DataRow(
+            model=x.task_spec.inference_config.model,
+            is_cot=False,
+            matches_bias=1 if x.switched_correct_to_incorrect else 0,
+            task="are_you_sure_second_round_cot",
+            bias_name="Are you sure (second round cot)",
         )
-        .to_dict()
     )
-    return correct_in_stage_one_but_incorrect_in_second
+
+    return out
 
 
 async def plot_accuracies():
