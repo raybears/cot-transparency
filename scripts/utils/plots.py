@@ -1,5 +1,5 @@
 import textwrap
-from typing import Any, Literal, Optional, Sequence
+from typing import Any, Callable, Literal, Optional, Sequence
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -177,6 +177,77 @@ def pointplot(
         pass
 
     # if any of the axis titles are in name_map, replace them
+    if ax.get_xlabel() in name_map:
+        ax.set_xlabel(name_map[ax.get_xlabel()])
+    if ax.get_ylabel() in name_map:
+        ax.set_ylabel(name_map[ax.get_ylabel()])
+
+    return ax
+
+
+# Wrapper function called make_nice that wraps seaborn plots and sets some nice defaults
+
+
+def make_nice(
+    func: Callable[..., Any],
+    *args: Any,
+    data: Any = None,
+    name_map: Optional[dict[str, str]] = None,
+    hue: Optional[str] = None,
+    x: Optional[str] = None,
+    y: Optional[str] = None,
+    y_scale: float = 1.0,
+    width=7.7,
+    height=6,
+    font_scale: float = 0.7,
+    **kwargs: Any,
+):
+    width = width / 2.54  # convert to inches
+    height = height / 2.54  # convert to inches
+
+    sns.set(font_scale=font_scale)  # crazy big
+    sns.set_style(
+        "ticks",
+        {
+            "axes.edgecolor": "0",
+            "grid.linestyle": ":",
+            "grid.color": "lightgrey",
+            "grid.linewidth": "1.5",
+            "axes.facecolor": "white",
+            "font.family": ["Times New Roman"],
+        },
+    )
+    # rename any column referenced by col, or hue with the name in NAME_MAP
+    # merge name_map with NAME_MAP
+    name_map = {**NAME_MAP, **(name_map or {})}
+
+    renamed_cols = {}
+
+    if "col" in kwargs:
+        col = kwargs["col"]
+        if col in name_map:
+            renamed_cols[col] = name_map[col]
+            col = name_map[col]
+    if hue:
+        if hue in name_map:
+            renamed_cols[hue] = name_map[hue]
+            hue = name_map[hue]
+
+    data[y] = data[y] * y_scale
+
+    # rename any column referenced by x, or y with the name in name_map
+    df = data.rename(columns=renamed_cols)
+
+    # these args not supported for e.g. count plots
+    if "errwidth" not in kwargs:
+        kwargs["errwidth"] = 1.5
+    if "capsize" not in kwargs:
+        kwargs["capsize"] = kwargs.get("capsize", 0.05)
+        kwargs["linewidth"] = kwargs.get("linewidth", 1.5)
+        kwargs["edgecolor"] = kwargs.get("edgecolor", "black")
+
+    ax = func(*args, data=df, hue=hue, x=x, y=y, **kwargs)
+
     if ax.get_xlabel() in name_map:
         ax.set_xlabel(name_map[ax.get_xlabel()])
     if ax.get_ylabel() in name_map:

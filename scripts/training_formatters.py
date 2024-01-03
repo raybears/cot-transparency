@@ -17,7 +17,6 @@ from cot_transparency.formatters.core.unbiased import (
     ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
-    InitialWrongMoreClearFormatter2,
     InitialWrongNonCOTFormatter,
     PostHocAnchor,
     PostHocDontAnchor,
@@ -41,14 +40,21 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomBiasedQuotedFormatter,
     RandomBiasedQuotedNoCOTFormatter,
 )
-from cot_transparency.formatters.more_biases.user_wrong_cot import ReadOnInternetCotFormatter
+from cot_transparency.formatters.more_biases.user_wrong_cot import (
+    ReadOnInternetCotFormatter,
+    ReadOnInternetNoCotFormatter,
+)
 from cot_transparency.formatters.more_biases.wrong_few_shot import (
     WrongFewShotIgnoreMistakesBiasedFormatter,
     WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
 )
-from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    AskWithDistractorFact,
+    AskWithDistractorFactNoCot,
+)
 from cot_transparency.formatters.verbalize.formatters import (
     BlackSquareBiasedFormatter,
+    BlackSquareBiasedNoCoTFormatter,
     CheckmarkBiasedFormatter,
     CheckmarkNoCOTFormatter,
     CrossBiasedFormatter,
@@ -93,7 +99,7 @@ TRAINING_COT_FORMATTERS: Sequence[Type[StageOneFormatter]] = (
 # INTERESTING FORMATTERS FOR THE GRID
 INTERESTING_FORMATTERS = [
     RandomBiasedFormatter,  # Suggested answer
-    InitialWrongMoreClearFormatter2,  # PostHoc
+    # InitialWrongMoreClearFormatter2,  # PostHoc
     WrongFewShotIgnoreMistakesBiasedFormatter,  # Wrong Few Shot
     BlackSquareBiasedFormatter,  # Spurious Few Shot
     ReadOnInternetCotFormatter,  # Distractor Argument
@@ -110,6 +116,18 @@ INTERESTING_FORMATTERS = [
     # PostHocAnchor2,
     # PostHocAnchor3,
 ]
+
+INTERESTING_FORMATTERS_NO_COT = [
+    RandomBiasedNoCOTFormatter,
+    # InitialWrongMoreClearFormatter2,  # Asks to explain reasoning so cannot be used for non CoT
+    WrongFewShotIgnoreMistakesBiasedNoCOTFormatter,
+    BlackSquareBiasedNoCoTFormatter,
+    ReadOnInternetNoCotFormatter,
+    ZeroShotUnbiasedFormatter,
+    AskWithDistractorFactNoCot,
+]
+
+INTERESTING_FORMATTERS_COT_AND_NO_COT = INTERESTING_FORMATTERS + INTERESTING_FORMATTERS_NO_COT
 
 TRAINING_COT_FORMATTERS_WITH_UNBIASED = list(TRAINING_COT_FORMATTERS) + [ZeroShotCOTUnbiasedFormatter]
 
