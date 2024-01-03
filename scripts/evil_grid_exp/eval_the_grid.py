@@ -341,7 +341,6 @@ if __name__ == "__main__":
         intervention_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
         majority_cot="ft:gpt-3.5-turbo-0613:far-ai::8ccGZKRV",
         # no_cot_majority="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
-        majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
         majority_non_cot2="ft:gpt-3.5-turbo-0613:far-ai::8cw6NiFt",
         # control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         # x="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UMqYTzs",
