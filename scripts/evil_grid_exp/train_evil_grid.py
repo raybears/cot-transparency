@@ -29,7 +29,7 @@ async def train_and_run(instruct_prop: float, control: bool, cot_percentage: flo
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
             n_formats_per_question=1,
-            formatter_options=FormatterOptions.control_only_unbiased
+            formatter_options=FormatterOptions.suggested_answer_all
             if control
             else FormatterOptions.suggested_answer_all,
         ),

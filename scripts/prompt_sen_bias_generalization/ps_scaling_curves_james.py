@@ -446,18 +446,21 @@ if __name__ == "__main__":
     asyncio.run(
         run_pipeline(
             example_cap=50,
+            batch_size=80,
             models_to_evaluate=[
                 "gpt-3.5-turbo-0613",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
+                "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",  # intervention
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8RqwhLli",  # Trained on James' paraphrasings, instruct prop =1
                 # "ft:gpt-3.5-turbo-0613:far-ai::8Rs3m3rC",  # Trained on James' paraphrasings, instruct prop =0.1
-                "ft:gpt-3.5-turbo-0613:far-ai::8S26YkCI",  # Trained on James' paraphrasings, instruct prop=10, 10k
+                # "ft:gpt-3.5-turbo-0613:far-ai::8S26YkCI",  # Trained on James' paraphrasings, instruct prop=10, 10k
                 # "ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8QAZkGMS",  # 100k control
                 # "ft:gpt-3.5-turbo-0613:far-ai::8QBHcL7Q",  # 100k intervention
                 # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # Model generated I think answer is (x) 10k
             ],
             paraphrasing_formatters=[GenerateParaphrasingsJames],
-            tasks=CotTasks.training,
+            tasks=CotTasks.training,  # sanity check on training
             eval_temp=1.0,
         )
     )
