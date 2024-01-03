@@ -97,7 +97,11 @@ def make_heading_name(name: str, model: str) -> str:
 
 
 async def answer_matching_intervention_vs_control_csv(
-    models: dict[str, str], tasks: Slist[TaskOutput], out_dir: Path, caller: ModelCaller
+    models: dict[str, str],
+    tasks: Slist[TaskOutput],
+    out_dir: Path,
+    caller: ModelCaller,
+    get_extra_tasks: bool = False,
 ) -> None:
     """More negative is better"""
 
@@ -107,38 +111,42 @@ async def answer_matching_intervention_vs_control_csv(
     # grug on weekend no work hard, on strike like choo choo train people
     all_models: list[str] = list(models.values())
 
-    poems_mimicry_result = await eval_mimicry_poems_multi_model(
-        models=all_models, caller=caller, add_think_step_by_step=False
-    )
-    lets_think_poems_mimicry_result = await eval_mimicry_poems_multi_model(
-        models=all_models, caller=caller, add_think_step_by_step=True
-    )
-    freeform_mimicry_result = await eval_mimicry_freeform_follows_wrong(
-        models=all_models, caller=caller, use_cot=False, n_samples=600
-    )
-    freeform_mimicry_result_cot = await eval_mimicry_freeform_follows_wrong(
-        models=all_models, caller=caller, use_cot=True, n_samples=600
-    )
+    results = answer_matching_for_biases(tasks)
 
-    are_you_sure_results = await run_are_you_sure_multi_model(models=all_models, caller=caller, example_cap=150)
-    are_you_sure_second_round_cot = await run_are_you_sure_multi_model_second_round_cot(
-        models=all_models, caller=caller, example_cap=150
-    )
-    hindsight_neglect = await run_hindsight_neglect_for_models(caller=caller, models=all_models, example_cap=600)
-    judge_inconsistency_result = await eval_judge_for_models_inconsistency(
-        judge_models=all_models, caller=caller, samples_to_judge=600
-    )
-    results = (
-        poems_mimicry_result
-        + lets_think_poems_mimicry_result
-        + freeform_mimicry_result
-        + freeform_mimicry_result_cot
-        + are_you_sure_results
-        + are_you_sure_second_round_cot
-        + hindsight_neglect
-        + judge_inconsistency_result
-        + answer_matching_for_biases(tasks)
-    )
+    if get_extra_tasks:
+        poems_mimicry_result = await eval_mimicry_poems_multi_model(
+            models=all_models, caller=caller, add_think_step_by_step=False
+        )
+        lets_think_poems_mimicry_result = await eval_mimicry_poems_multi_model(
+            models=all_models, caller=caller, add_think_step_by_step=True
+        )
+        freeform_mimicry_result = await eval_mimicry_freeform_follows_wrong(
+            models=all_models, caller=caller, use_cot=False, n_samples=600
+        )
+        freeform_mimicry_result_cot = await eval_mimicry_freeform_follows_wrong(
+            models=all_models, caller=caller, use_cot=True, n_samples=600
+        )
+
+        are_you_sure_results = await run_are_you_sure_multi_model(models=all_models, caller=caller, example_cap=150)
+        are_you_sure_second_round_cot = await run_are_you_sure_multi_model_second_round_cot(
+            models=all_models, caller=caller, example_cap=150
+        )
+        hindsight_neglect = await run_hindsight_neglect_for_models(caller=caller, models=all_models, example_cap=600)
+        judge_inconsistency_result = await eval_judge_for_models_inconsistency(
+            judge_models=all_models, caller=caller, samples_to_judge=600
+        )
+
+        results = (
+            results
+            + poems_mimicry_result
+            + lets_think_poems_mimicry_result
+            + freeform_mimicry_result
+            + freeform_mimicry_result_cot
+            + are_you_sure_results
+            + are_you_sure_second_round_cot
+            + hindsight_neglect
+            + judge_inconsistency_result
+        )
 
     out = results.map(lambda x: x.model_dump())
 
@@ -333,6 +341,7 @@ if __name__ == "__main__":
         majority_cot="ft:gpt-3.5-turbo-0613:far-ai::8ccGZKRV",
         # no_cot_majority="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
         majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
+        majority_non_cot2="ft:gpt-3.5-turbo-0613:far-ai::8cw6NiFt",
         # control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         # x="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UMqYTzs",
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k
