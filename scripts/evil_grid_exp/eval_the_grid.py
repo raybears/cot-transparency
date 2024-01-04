@@ -2,6 +2,8 @@ import asyncio
 from pathlib import Path
 from typing import Mapping, Sequence
 
+from torch import mode
+
 from cot_transparency.data_models.messages import ChatMessage
 
 import pandas as pd
@@ -93,7 +95,7 @@ INTERESTING_FORMATTERS_STR = [x.name() for x in INTERESTING_FORMATTERS]
 
 
 def make_heading_name(name: str, model: str) -> str:
-    return f"{name} (model ending {model[-6:]})"
+    return f"{name} ({model})"
 
 
 async def answer_matching_intervention_vs_control_csv(
@@ -215,14 +217,14 @@ async def eval_grid(models: dict[str, str]) -> None:
         formatters=train_formatters_str,
         dataset="cot_testing",
         # we want 600 examples per formatter to get a good sense error bar
-        example_cap=200,
+        example_cap=150,
         formatter_example_cap_override={AskWithDistractorFact: 1000},
         num_tries=1,
         raise_after_retries=False,
         # temp 0
         temperature=0.0,
         caller=stage_one_caller,
-        batch=40,
+        batch=80,
         # control model is ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ
         models=list(models.values()),
     )
@@ -290,10 +292,9 @@ if __name__ == "__main__":
         # no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
         gpt="gpt-3.5-turbo-0613",
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
-        majority_non_cot="ft:gpt-3.5-turbo-0613:far-ai::8coJYOVG",
         intervention_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
-        # no_cot_majority="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
-        # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
+        majority_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8coN8DKk",
+        majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
         # control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         # x="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UMqYTzs",
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k
@@ -329,19 +330,20 @@ if __name__ == "__main__":
         # _20k_25_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxjmVyw",
         # _20k_50_perc="ft:gpt-3.5-turbo-0613:far-ai::8Zxcff0Z",
         # _20k_100_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxUUELa",
-        # _100k_0_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aauYoO9",
-        # _100k_1_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aanfHwN",
-        # _100k_5_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aj7xOvu",
-        # _100k_10_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8ab2bFlv",
-        # _100k_25_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aDG4tqK",
-        # _100k_50_perc_new="ft:gpt-3.5-turbo-0613:academicsnyuperez::8aDRJnSG",
-        # _100k_100_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aCHrIH2",
-        # _20k_1_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Zxeu3QP",
-        # _20k_5_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ZxYDePZ",
-        # _20k_10_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ZysDclt",
-        # _20k_25_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxjmVyw",
-        # _20k_50_perc="ft:gpt-3.5-turbo-0613:far-ai::8Zxcff0Z",
-        # _20k_100_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxUUELa",
+        _100k_0_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aauYoO9",
+        _100k_1_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aanfHwN",
+        _100k_5_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aj7xOvu",
+        _100k_10_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8ab2bFlv",
+        _100k_25_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aDG4tqK",
+        _100k_50_perc_new="ft:gpt-3.5-turbo-0613:academicsnyuperez::8aDRJnSG",
+        _100k_100_perc_new="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aCHrIH2",
+        _20k_0_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Zxk9Bww",
+        _20k_1_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Zxeu3QP",
+        _20k_5_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ZxYDePZ",
+        _20k_10_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ZysDclt",
+        _20k_25_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxjmVyw",
+        _20k_50_perc="ft:gpt-3.5-turbo-0613:far-ai::8Zxcff0Z",
+        _20k_100_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxUUELa",
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
         # intervention_00="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSPr0Q",
         # intervention_01="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSh8gU",
