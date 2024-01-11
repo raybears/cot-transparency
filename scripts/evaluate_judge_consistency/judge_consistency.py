@@ -1,7 +1,7 @@
 import asyncio
 from enum import Enum
 from pathlib import Path
-from typing import Mapping, Optional, Sequence
+from typing import Optional, Sequence
 
 from grugstream import Observable
 from openai import InvalidRequestError
@@ -15,6 +15,7 @@ from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.pd_utils import DataRow
 from scripts.load_alpaca_dataset import get_alpaca_user_testing
 
 
@@ -253,7 +254,7 @@ async def eval_judge_print(judge_models: list[str]):
 
 async def eval_judge_for_models_inconsistency(
     judge_models: list[str], caller: ModelCaller, samples_to_judge: int = 600
-) -> Mapping[str, float]:
+) -> Slist[DataRow]:
     """
     Returns 1-consistency (termed as inconsistency, according an Englishman I've talked to)
     for each key which is the model
@@ -261,16 +262,18 @@ async def eval_judge_for_models_inconsistency(
 
     pipeline = many_judge_obs(judge_models=judge_models, caller=caller, samples_to_judge=samples_to_judge)
     results: Slist[BothJudgements] = await pipeline.to_slist()
-    grouped_inconsistency = (
-        results.group_by(lambda j: j.judge_config.model)
-        .map(
-            lambda group: group.map_values(
-                lambda v: 1 - v.map(lambda j: j.is_consistent()).flatten_option().average_or_raise()
-            )
+
+    out = results.filter(lambda x: x.is_consistent() is not None).map(
+        lambda x: DataRow(
+            model=x.judge_config.model,
+            is_cot=True,
+            matches_bias=1 - x.is_consistent(),  # type: ignore
+            task="judge_consistency",
+            bias_name="judge_consistency",
         )
-        .to_dict()
     )
-    return grouped_inconsistency
+
+    return out
 
 
 if __name__ == "__main__":
