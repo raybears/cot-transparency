@@ -1,7 +1,12 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+
 from slist import Slist
+
+
+# Set the font scale
+# sns.set_context("notebook", font_scale=1.2)
 
 # Given data
 data = {
@@ -21,7 +26,8 @@ data = {
 df = pd.DataFrame(data)
 
 # Plotting with specified colors for each line
-plt.figure(figsize=(10, 6))
+# Set the figure size
+plt.figure(figsize=(7.7, 6))
 sns.lineplot(
     x="% Bias Consistency Data",
     y="100,000 Total Samples",
@@ -45,11 +51,15 @@ sns.lineplot(
 # For the GPT-3.5-Turbo, since it is a constant line, we can use plt.axhline
 plt.axhline(y=data["GPT-3.5-Turbo"][0], color="blue", linestyle="-", label="GPT-3.5-Turbo")
 
-plt.title("Bias on Held Out Tasks vs. % Bias Consistency Data")
-plt.xlabel("% Bias Consistency Data")
+# plt.title("Bias on Held Out Tasks vs. % Bias Consistency Data")
+plt.xlabel("% Bias Consistency Data (rest is instruct-tuning data)")
 plt.ylabel("% Bias on Held Out Tasks")
-plt.legend()
+# legend on the top right
+plt.legend(loc="upper right")
+
 # make the x-ticks [1, 5, 10, 25, 50, 100]
 plt.xticks([1, 5, 10, 25, 50, 100])
+# make max y 0.55
+plt.ylim(30, 60)
 
-plt.savefig("bias_consistency.pdf", bbox_inches="tight", pad_inches=0.01)
+plt.savefig("instruction_prop_impact_new.pdf", bbox_inches="tight", pad_inches=0.01)

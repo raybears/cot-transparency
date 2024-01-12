@@ -13,10 +13,12 @@ from scripts.finetune_cot import (
 )
 
 
-async def train_and_run(instruct_prop: float, control: bool) -> None:
+async def train_and_run() -> None:
     # # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
+
+    instruct_prop = 1.0
 
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
@@ -27,16 +29,14 @@ async def train_and_run(instruct_prop: float, control: bool) -> None:
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
             n_formats_per_question=1,
-            formatter_options=FormatterOptions.suggested_answer_all
-            if control
-            else FormatterOptions.suggested_answer_all,
+            formatter_options=FormatterOptions.i_think_ans_only
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
-        ask_to_validate_training=False,
+        ask_to_validate_training=True,
         instruct_sample_proportion=instruct_prop,
         n_val_samples=0,
         no_overlap_cot_non_cot=False,
-        prepend_notes=f"James's run,{' control,' if control else ''} instruct ={instruct_prop}, verbalize instruction, no ltsbs, no question in bias,  random bias bs=16)",
+        prepend_notes=f"Train on i think answer only instruct ={instruct_prop} bs=16)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 

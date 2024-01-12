@@ -8,6 +8,7 @@ from collections import Counter
 from collections.abc import Iterable, Sequence
 from enum import Enum
 from functools import lru_cache
+from re import I
 from typing import Callable
 from typing import Literal, Mapping
 
@@ -38,6 +39,7 @@ from cot_transparency.data_models.streaming import (
     StreamingTaskSpec,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
     ZeroShotUnbiasedFormatter,
@@ -54,6 +56,10 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     task_output_to_finetune_sample,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    InitialWrongMoreClearFormatter2,
+    InitialWrongNonCOTFormatter,
+)
 from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomAgainstBiasedFormatter,
     RandomAgainstBiasedNoCOTFormatter,
@@ -237,6 +243,8 @@ class FormatterOptions(str, Enum):
     suggested_answer_all = "suggested_answer_all"
     suggested_answer_non_cot_only = "suggested_answer_non_cot_only"
     suggested_answer_cot_only = "suggested_answer_cot_only"
+    post_hoc_only = "post_hoc_only"
+    i_think_ans_only = "i_think_ans_only"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -387,6 +395,22 @@ def match_formatter_options(
             ]
             cot_formatters = Slist(cot_formatters_).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
             non_cot_formatters_ = [ZeroShotUnbiasedFormatter]
+            non_cot_formatters = Slist(non_cot_formatters_).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+
+        case FormatterOptions.post_hoc_only:
+            cot_formatters_ = [InitialWrongMoreClearFormatter2]
+            cot_formatters = Slist(cot_formatters_).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            non_cot_formatters_ = [InitialWrongNonCOTFormatter]
+            non_cot_formatters = Slist(non_cot_formatters_).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+
+        case FormatterOptions.i_think_ans_only:
+            cot_formatters_ = [ZeroShotCOTSycophancyFormatter]
+            cot_formatters = Slist(cot_formatters_).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            non_cot_formatters_ = [ZeroShotSycophancyFormatter]
             non_cot_formatters = Slist(non_cot_formatters_).map(
                 lambda x: FormatterWithPossibleIntervention(formatter=x)
             )
