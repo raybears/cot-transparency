@@ -1,13 +1,12 @@
 import asyncio
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 from git import Sequence
 
 import pandas as pd
 from slist import Slist, Group
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.apis.base import ModelCaller
 from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.hashable import HashableBaseModel
@@ -15,12 +14,7 @@ from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.are_you_sure.eval_are_you_sure_no_cot import run_are_you_sure_multi_model
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
-from scripts.evaluate_judge_consistency.judge_consistency import eval_judge_for_models_inconsistency
-from scripts.inverse_scaling_experiments.run_hindsight_neglect import run_hindsight_neglect_for_models
-from scripts.meg_mimicry_ans.eval_mimicry_freeform_matching_bias import eval_mimicry_freeform_follows_wrong
-from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_multi_model
 from scripts.training_formatters import INTERESTING_FORMATTERS, TRAINING_COT_FORMATTERS, TRAINING_NO_COT_FORMATTERS
 
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
@@ -90,66 +84,6 @@ INTERESTING_FORMATTERS_STR = [x.name() for x in INTERESTING_FORMATTERS]
 
 def make_heading_name(name: str, model: str) -> str:
     return f"{name} (model ending {model[-6:]})"
-
-
-async def answer_matching_intervention_vs_control_csv(
-    models: dict[str, str], tasks: Slist[TaskOutput], out_dir: Path, caller: ModelCaller
-) -> None:
-    """More negative is better"""
-
-    out: dict[str, dict[str, float]] = {}
-
-    # Grug do evil lazy thing of running extra things here!
-    # grug on weekend no work hard, on strike like choo choo train people
-    all_models: list[str] = list(models.values())
-
-    poems_mimicry_result: dict[str, float] = await eval_mimicry_poems_multi_model(
-        models=all_models, caller=caller, add_think_step_by_step=False
-    )
-    lets_think_poems_mimicry_result: dict[str, float] = await eval_mimicry_poems_multi_model(
-        models=all_models, caller=caller, add_think_step_by_step=True
-    )
-    freeform_mimicry_result = await eval_mimicry_freeform_follows_wrong(
-        models=all_models, caller=caller, use_cot=False, n_samples=600
-    )
-    freeform_mimicry_result_cot = await eval_mimicry_freeform_follows_wrong(
-        models=all_models, caller=caller, use_cot=True, n_samples=600
-    )
-
-    are_you_sure_results: Mapping[str, float] = await run_are_you_sure_multi_model(
-        models=all_models, caller=caller, example_cap=150
-    )  # 150 * 4 = 600
-    hindsight_neglect: Mapping[str, float] = await run_hindsight_neglect_for_models(
-        caller=caller, models=all_models, example_cap=600
-    )
-    judge_inconsistency_result: Mapping[str, float] = await eval_judge_for_models_inconsistency(
-        judge_models=all_models, caller=caller, samples_to_judge=600
-    )
-
-    for name, model in models.items():
-        filtered_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == model)
-        matching = (
-            answer_matching_for_biases(filtered_tasks)
-            .sort_by(lambda x: (INTERESTING_FORMATTERS_STR + ["AreYouSureSecondRoundCot"]).index(x.key))
-            .to_dict()
-        )
-        heading_name = make_heading_name(name=name, model=model)
-        out[heading_name] = matching
-        # Add hindsight neglect result
-        out[heading_name]["Hindsight neglect"] = hindsight_neglect[model]
-        # Add the judge inconsistency
-        out[heading_name]["Judge inconsistency"] = judge_inconsistency_result[model]
-        # Add Mimicry freeform results which is a variant of I think answer is (X), but freeform
-        out[heading_name]["Mimicry freeform (no added verbalize command)"] = freeform_mimicry_result[model]
-        out[heading_name]["Mimicry freeform (cot)"] = freeform_mimicry_result_cot[model]
-        # Add the poems mimicry results
-        out[heading_name]["Mimicry poems (no let's think)"] = poems_mimicry_result[model]
-        out[heading_name]["Mimicry poems (let's think)"] = lets_think_poems_mimicry_result[model]
-        # Add are you sure result
-        out[heading_name]["Are you sure (both no cot)"] = are_you_sure_results[model]
-
-    df = pd.DataFrame(out)
-    df.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
 
 
 def questions_of_gpt_35_to_omit_labelling(tasks: Slist[TaskOutput]) -> set[str]:

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Generic, Sequence, TypeVar
 
 import pandas as pd
+from cot_transparency.data_models.hashable import HashableBaseModel
 
 from cot_transparency.data_models.models import BaseTaskOutput
 from cot_transparency.formatters import name_to_formatter
@@ -86,3 +87,11 @@ class BiasExtractor(BaseExtractor[BaseTaskOutput]):
 
     def extract(self, output: BaseTaskOutput) -> Sequence[str | float | None]:
         return [output.get_task_spec().get_data_example_obj().biased_ans]
+
+
+class DataRow(HashableBaseModel):
+    model: str
+    bias_name: str
+    task: str
+    matches_bias: float
+    is_cot: bool
