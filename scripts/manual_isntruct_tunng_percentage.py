@@ -46,8 +46,6 @@ sns.lineplot(
 )
 
 
-
-
 # For the GPT-3.5-Turbo, since it is a constant line, we can use plt.axhline
 plt.axhline(y=data["GPT-3.5-Turbo"][0], color="blue", linestyle="-", label="GPT-3.5-Turbo")
 

@@ -506,7 +506,7 @@ class AskWithDistractorFact(StageOneFormatter):
         key = question.hash()
         if key not in mapping:
             # hack so that we just skip this question
-            print(f"DistractorFact: did not find {key} in mapping")
+            # print(f"DistractorFact: did not find {key} in mapping")
             return []
             # raise ValueError(f"hash {parsed_input} not in mapping")
         loaded_question = mapping[key]
@@ -529,7 +529,7 @@ class AskWithDistractorFactNoCot(StageOneFormatter):
         key = question.hash()
         if key not in mapping:
             # hack so that we just skip this question
-            print(f"DistractorFact: did not find {key} in mapping")
+            # print(f"DistractorFact: did not find {key} in mapping")
             return []
             # raise ValueError(f"hash {parsed_input} not in mapping")
         loaded_question = mapping[key]

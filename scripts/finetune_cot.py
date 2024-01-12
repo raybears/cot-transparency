@@ -8,7 +8,6 @@ from collections import Counter
 from collections.abc import Iterable, Sequence
 from enum import Enum
 from functools import lru_cache
-from re import I
 from typing import Callable
 from typing import Literal, Mapping
 

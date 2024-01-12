@@ -111,7 +111,7 @@ async def answer_matching_intervention_vs_control_csv(
     # grug on weekend no work hard, on strike like choo choo train people
     all_models: list[str] = list(models.values())
 
-    results = answer_matching_for_biases(tasks)
+    results: Slist[DataRow] = answer_matching_for_biases(tasks)
 
     if get_extra_tasks:
         poems_mimicry_result = await eval_mimicry_poems_multi_model(
@@ -156,35 +156,53 @@ async def answer_matching_intervention_vs_control_csv(
     df.task = df.task.astype(str)
 
     # Replace df.model with the key of the model in model dict
-    df.model = df.model.map(lambda x: [k for k, v in models.items() if v == x][0])
-    df.sort_values(by=["bias_name", "model"], inplace=True)
+    df.model = df.model.map(lambda x: [k + f" {v}" for k, v in models.items() if v == x][0])
+    df = df.sort_values(by=["bias_name", "model"])
 
-    def wrap_and_rotate_labels(ax: Axes, width: int, rotation_angle: int):
-        wrapped_labels = [textwrap.fill(label.get_text(), width=width) for label in ax.get_xticklabels()]
-        ax.set_xticklabels(wrapped_labels, rotation=rotation_angle, ha="right")
+    # def wrap_and_rotate_labels(ax: Axes, width: int, rotation_angle: int):
+    #     wrapped_labels = [textwrap.fill(label.get_text(), width=width) for label in ax.get_xticklabels()]
+    #     ax.set_xticklabels(wrapped_labels, rotation=rotation_angle, ha="right")
 
-    make_nice(
-        sns.barplot,
-        data=df,
-        hue="model",
-        x="is_cot",
-        y="matches_bias",
-        orient="v",
-        name_map={
-            "model": "Model",
-            "matches_bias": "Matching Bias",
-            "bias_name": "Bias Name",
-            "is_cot": "Evaluation is COT?",
-        },
-    )
+    # make_nice(
+    #     sns.barplot,
+    #     data=df,
+    #     hue="model",
+    #     x="is_cot",
+    #     y="matches_bias",
+    #     orient="v",
+    #     name_map={
+    #         "model": "Model",
+    #         "matches_bias": "Matching Bias",
+    #         "bias_name": "Bias Name",
+    #         "is_cot": "Evaluation is COT?",
+    #     },
+    # )
     # Rotate x-labels so they don't overlap
     # Wrap and rotate the x-axis labels
-    ax = plt.gca()  # Get the current Axes instance
-    wrap_and_rotate_labels(ax, width=15, rotation_angle=45)  # Adjust parameters as needed
-    plt.show()
-    pivot = df.pivot_table(columns="model", index="bias_name", values="matches_bias")
+    # ax = plt.gca()  # Get the current Axes instance
+    # wrap_and_rotate_labels(ax, width=15, rotation_angle=45)  # Adjust parameters as needed
+    # plt.show()
+    # Get the % matches_bias is True, number of samples, and MSE
+    # columns are "model"
+    # rows -> bias name. For each bias_name calculate the % matches_bias is True, number of samples, and MSE
+    # df["full_model"] = df["model"] + " " + df[""]
+    pivot = df.pivot_table(
+        columns="model",
+        index="bias_name",
+        values="matches_bias",
+        aggfunc={"matches_bias": ["mean", "count", "sem"]},
+    )
 
-    pivot.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
+    # Generate new column order
+    models = pivot.columns.get_level_values(1).unique()
+    measures = ["count", "mean", "sem"]
+    new_columns = [(measure, model) for model in models for measure in measures]
+
+    # Reorder columns
+    new_pivot = pivot.reindex(columns=new_columns)
+
+    new_pivot.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
+    # pivot.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
 
 
 def accuracy_intervention_vs_control_csv(
@@ -228,7 +246,7 @@ def write_out_inspection_csv(data: Slist[TaskOutput], out_path: str | Path):
     ).reset_index().to_csv(out_path)
 
 
-async def eval_grid(models: dict[str, str]) -> None:
+async def eval_grid(models: dict[str, str], example_cap: int = 200, get_extra_tasks: bool = True) -> None:
     # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     stage_one_path = Path("experiments/grid_exp")
@@ -259,10 +277,12 @@ async def eval_grid(models: dict[str, str]) -> None:
     stage_one_obs = stage_one_stream(
         formatters=eval_formatters_str,
         dataset="cot_testing",
-        # tasks=["mmlu"],
-        # we want 600 examples per formatter to get a good sense error bar
-        example_cap=200,
-        formatter_example_cap_override={AskWithDistractorFact: 1000, AskWithDistractorFactNoCot: 1000},
+        example_cap=example_cap,
+        # run more because we don't always have data
+        formatter_example_cap_override={
+            AskWithDistractorFact: example_cap * 5,
+            AskWithDistractorFactNoCot: example_cap * 5,
+        },
         num_tries=1,
         raise_after_retries=False,
         # temp 0
@@ -287,13 +307,17 @@ async def eval_grid(models: dict[str, str]) -> None:
     write_jsonl_file_from_basemodel(stage_one_path / "results.jsonl", results)
 
     stage_one_caller.save_cache()
-    
+
     # dump to jsonl so the viewer can see it
     write_jsonl_file_from_basemodel(stage_one_path / "appendix.jsonl", results)
-    
+
     print("done first part")
     await answer_matching_intervention_vs_control_csv(
-        models, tasks=results, out_dir=stage_one_path, caller=stage_one_caller
+        models,
+        tasks=results,
+        out_dir=stage_one_path,
+        caller=stage_one_caller,
+        get_extra_tasks=get_extra_tasks,
     )
     stage_one_caller.save_cache()
     accuracy_intervention_vs_control_csv(models, tasks=results, out_dir=stage_one_path)
@@ -397,7 +421,7 @@ if __name__ == "__main__":
         # _20k_25_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxjmVyw",
         # _20k_50_perc="ft:gpt-3.5-turbo-0613:far-ai::8Zxcff0Z",
         # _20k_100_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxUUELa",
-        # 
+        #
         # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # THE OG CONTROL
         # intervention_00="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSPr0Q",
         # intervention_01="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TtSh8gU",
@@ -424,4 +448,4 @@ if __name__ == "__main__":
         #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
         # ]
     )
-    asyncio.run(eval_grid(models))
+    asyncio.run(eval_grid(models, example_cap=10, get_extra_tasks=False))

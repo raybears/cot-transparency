@@ -1,7 +1,7 @@
 import asyncio
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Mapping, Optional, Sequence
 
 from grugstream import Observable
 from openai import InvalidRequestError

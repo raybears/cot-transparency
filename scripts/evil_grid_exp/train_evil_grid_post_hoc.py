@@ -27,10 +27,7 @@ async def train_and_run() -> None:
         post_hoc=False,
         cot_percentage=0.50,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        sampler=NFormatsPerQuestionSampler(
-            n_formats_per_question=1,
-            formatter_options=FormatterOptions.post_hoc_only
-        ),
+        sampler=NFormatsPerQuestionSampler(n_formats_per_question=1, formatter_options=FormatterOptions.post_hoc_only),
         model_output_verified=ModelOutputVerified.unfiltered,
         ask_to_validate_training=True,
         instruct_sample_proportion=instruct_prop,
