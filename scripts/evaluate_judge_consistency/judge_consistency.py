@@ -2,6 +2,7 @@ import asyncio
 from enum import Enum
 from pathlib import Path
 from typing import Mapping, Optional, Sequence
+import anthropic
 
 from grugstream import Observable
 from openai import InvalidRequestError
@@ -54,13 +55,18 @@ class BothJudgements(BaseModel):
 
 def generate_comparison(
     prompt: Prompt,
-    vanilla_caller: ModelCaller,
-    intervention_caller: ModelCaller,
+    first_caller: ModelCaller,
+    second_caller: ModelCaller,
     vanilla_config: OpenaiInferenceConfig,
     intervention_config: OpenaiInferenceConfig,
-) -> ComparisonGeneration:
-    vanilla_response = vanilla_caller.call(messages=prompt.messages, config=vanilla_config)
-    intervention_response = intervention_caller.call(messages=prompt.messages, config=intervention_config)
+) -> ComparisonGeneration | None:
+    try:
+        vanilla_response = first_caller.call(messages=prompt.messages, config=vanilla_config)
+        intervention_response = second_caller.call(messages=prompt.messages, config=intervention_config)
+    except anthropic.BadRequestError as e:
+        print(f"Skipping prompt {prompt} because of error {e}")
+        return None
+        
     return ComparisonGeneration(
         prompt=prompt,
         a_config=vanilla_config,
@@ -197,23 +203,24 @@ def observable_for_judges(
     judge_models: list[str], caller: ModelCaller, samples: Slist[FinetuneSample]
 ) -> Observable[BothJudgements]:
     # First model is claude-2
-    vanilla_config = OpenaiInferenceConfig(model="claude-2.1", max_tokens=2000, temperature=0.0, top_p=1.0)
+    first_model = OpenaiInferenceConfig(model="claude-2.1", max_tokens=2000, temperature=0.0, top_p=1.0)
     judge_configs: list[OpenaiInferenceConfig] = [
         OpenaiInferenceConfig(model=judge_model, max_tokens=2000, temperature=0.0, top_p=1.0)
         for judge_model in judge_models
     ]
-    intervention_config = OpenaiInferenceConfig(model="claude-instant-1.2", max_tokens=2000, temperature=0.0, top_p=1.0)
+    second_model = OpenaiInferenceConfig(model="claude-instant-1.2", max_tokens=2000, temperature=0.0, top_p=1.0)
     pipeline = (
         Observable.from_iterable(samples)
         .map_blocking_par(
             lambda prompt: generate_comparison(
                 prompt=finetune_sample_to_prompt(prompt),
-                vanilla_caller=caller,
-                intervention_caller=caller,
-                vanilla_config=vanilla_config,
-                intervention_config=intervention_config,
+                first_caller=caller,
+                second_caller=caller,
+                vanilla_config=first_model,
+                intervention_config=second_model,
             )
         )
+        .flatten_optional()
         .map_blocking_par(
             lambda comparison: [
                 get_judge_output_both(comparison, judge=caller, judge_config=judge_config)
@@ -268,8 +275,8 @@ async def eval_judge_for_models_inconsistency(
             model=x.judge_config.model,
             is_cot=True,
             matches_bias=1 - x.is_consistent(),  # type: ignore
-            task="judge_consistency",
-            bias_name="judge_consistency",
+            task="Answer Choice Ordering",
+            bias_name="Answer Choice Ordering",
         )
     )
 

@@ -201,7 +201,9 @@ async def run_are_you_sure_multi_model(
             task="are_you_sure",
             bias_name="Are you sure (both rounds non cot)",
         )
-    )
+        if x.switched_correct_to_incorrect is not None
+        else None  # Only calculate on those can that actually swithc
+    ).flatten_option()
 
     return out
 

@@ -17,6 +17,10 @@ from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import TaskOutput, TaskSpec
 from cot_transparency.data_models.pd_utils import DataRow
+from cot_transparency.formatters.more_biases.user_wrong_cot import (
+    ReadOnInternetCotFormatter,
+    ReadOnInternetNoCotFormatter,
+)
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AskWithDistractorFact,
@@ -35,6 +39,8 @@ from scripts.meg_mimicry_ans.eval_mimicry_freeform_matching_bias import eval_mim
 from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_multi_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 from scripts.training_formatters import (
+    FORMATTERS_TO_PAPER_NAME,
+    INTERESTING_FORMATTERS,
     INTERESTING_FORMATTERS_COT_AND_NO_COT,
     TRAINING_COT_FORMATTERS,
     TRAINING_NO_COT_FORMATTERS,
@@ -101,6 +107,7 @@ async def answer_matching_intervention_vs_control_csv(
     tasks: Slist[TaskOutput],
     out_dir: Path,
     caller: ModelCaller,
+    max_per_bias_and_model: int,
     get_extra_tasks: bool = False,
 ) -> None:
     """More negative is better"""
@@ -127,13 +134,20 @@ async def answer_matching_intervention_vs_control_csv(
             models=all_models, caller=caller, use_cot=True, n_samples=600
         )
 
-        are_you_sure_results = await run_are_you_sure_multi_model(models=all_models, caller=caller, example_cap=150)
+        # run more for are you sure, because we filter for cases where the model gets it right in the first turn
+        are_you_sure_results = await run_are_you_sure_multi_model(models=all_models, caller=caller, example_cap=400)
         are_you_sure_second_round_cot = await run_are_you_sure_multi_model_second_round_cot(
-            models=all_models, caller=caller, example_cap=150
+            models=all_models, caller=caller, example_cap=400
         )
         hindsight_neglect = await run_hindsight_neglect_for_models(caller=caller, models=all_models, example_cap=600)
         judge_inconsistency_result = await eval_judge_for_models_inconsistency(
-            judge_models=all_models, caller=caller, samples_to_judge=600
+            judge_models=all_models, caller=caller, samples_to_judge=1200  # slightly more due to invalid answer
+        )
+        # for each model, take 600
+        truncated_judge = (
+            judge_inconsistency_result.group_by(lambda x: x.model)
+            .map_2(lambda x, values: values.take(600))
+            .flatten_list()
         )
 
         results = (
@@ -145,7 +159,7 @@ async def answer_matching_intervention_vs_control_csv(
             + are_you_sure_results
             + are_you_sure_second_round_cot
             + hindsight_neglect
-            + judge_inconsistency_result
+            + truncated_judge
         )
 
     out = results.map(lambda x: x.model_dump())
@@ -153,11 +167,16 @@ async def answer_matching_intervention_vs_control_csv(
     df = pd.DataFrame(out)
     df.model = df.model.astype(str)
     df.bias_name = df.bias_name.astype(str)
+    # rename with paper names
+    df["bias_name"] = df["bias_name"].replace(FORMATTERS_TO_PAPER_NAME)
     df.task = df.task.astype(str)
 
     # Replace df.model with the key of the model in model dict
     df.model = df.model.map(lambda x: [k + f" {v}" for k, v in models.items() if v == x][0])
     df = df.sort_values(by=["bias_name", "model"])
+
+    # take only 600 samples for each bias_name and model, and then ungroup
+    df = df.groupby(["bias_name", "model"]).head(max_per_bias_and_model).reset_index(drop=True)
 
     # def wrap_and_rotate_labels(ax: Axes, width: int, rotation_angle: int):
     #     wrapped_labels = [textwrap.fill(label.get_text(), width=width) for label in ax.get_xticklabels()]
@@ -190,16 +209,19 @@ async def answer_matching_intervention_vs_control_csv(
         columns="model",
         index="bias_name",
         values="matches_bias",
-        aggfunc={"matches_bias": ["mean", "count", "sem"]},
+        aggfunc={"matches_bias": ["mean", "sem", "count"]},
     )
 
     # Generate new column order
-    models = pivot.columns.get_level_values(1).unique()
+    models = pivot.columns.get_level_values(1).unique()  # type : ignore
     measures = ["count", "mean", "sem"]
     new_columns = [(measure, model) for model in models for measure in measures]
 
     # Reorder columns
-    new_pivot = pivot.reindex(columns=new_columns)
+    # new_pivot = pivot.reindex(columns=new_columns)
+
+    # transpose
+    new_pivot = pivot.reindex(columns=new_columns).transpose()
 
     new_pivot.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
     # pivot.to_csv(out_dir / "grid_exp_separate_answer_matching.csv")
@@ -246,14 +268,16 @@ def write_out_inspection_csv(data: Slist[TaskOutput], out_path: str | Path):
     ).reset_index().to_csv(out_path)
 
 
-async def eval_grid(models: dict[str, str], example_cap: int = 200, get_extra_tasks: bool = True) -> None:
+async def eval_grid(
+    models: dict[str, str], example_cap: int = 200, get_extra_tasks: bool = True, max_per_bias_and_model: int = 600
+) -> None:
     # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     stage_one_path = Path("experiments/grid_exp")
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
     # test on COTs only, maybe non-COTs when we feel like it
 
-    eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS_COT_AND_NO_COT).map(lambda x: x.name())
+    eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS).map(lambda x: x.name())
 
     # Training data filter, we create a callable that returns False if the task is
     # in the training data and True if it is not
@@ -273,7 +297,6 @@ async def eval_grid(models: dict[str, str], example_cap: int = 200, get_extra_ta
         else:
             return True
 
-    # todo run control?
     stage_one_obs = stage_one_stream(
         formatters=eval_formatters_str,
         dataset="cot_testing",
@@ -282,6 +305,8 @@ async def eval_grid(models: dict[str, str], example_cap: int = 200, get_extra_ta
         formatter_example_cap_override={
             AskWithDistractorFact: example_cap * 5,
             AskWithDistractorFactNoCot: example_cap * 5,
+            ReadOnInternetCotFormatter: int(example_cap * 1.5),
+            ReadOnInternetNoCotFormatter: int(example_cap * 1.5),
         },
         num_tries=1,
         raise_after_retries=False,
@@ -309,15 +334,14 @@ async def eval_grid(models: dict[str, str], example_cap: int = 200, get_extra_ta
     stage_one_caller.save_cache()
 
     # dump to jsonl so the viewer can see it
-    write_jsonl_file_from_basemodel(stage_one_path / "appendix.jsonl", results)
 
-    print("done first part")
     await answer_matching_intervention_vs_control_csv(
         models,
         tasks=results,
         out_dir=stage_one_path,
         caller=stage_one_caller,
         get_extra_tasks=get_extra_tasks,
+        max_per_bias_and_model=max_per_bias_and_model,
     )
     stage_one_caller.save_cache()
     accuracy_intervention_vs_control_csv(models, tasks=results, out_dir=stage_one_path)
@@ -360,12 +384,13 @@ if __name__ == "__main__":
         # intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8S8N1Ln5",  # "Retrained only sycophancy variants 10k"
         # no_verb_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TZHrfzT",
         # no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
-        gpt="gpt-3.5-turbo-0613",
-        control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
-        intervention_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
-        majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
-        post_hoc_only="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
-        no_augmentation_i_think="ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y",
+        a_gpt="gpt-3.5-turbo-0613",
+        b_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
+        c_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
+        d_new_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8a65qiDb",
+        # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
+        # post_hoc_only="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
+        # no_augmentation_i_think="ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y",
         # post_hoc_trained="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
         # majority_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8coN8DKk",
         # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
@@ -448,4 +473,5 @@ if __name__ == "__main__":
         #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
         # ]
     )
-    asyncio.run(eval_grid(models, example_cap=10, get_extra_tasks=False))
+    # 200 samples is roughly 200 * 4 = 800, and after filtering for biased on wrong answer we get ~ 600
+    asyncio.run(eval_grid(models, example_cap=200, get_extra_tasks=True))

@@ -17,6 +17,7 @@ from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import VERBALIZE_INSTRUCTION
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
+from scripts.training_formatters import ARE_YOU_SURE_COT_NAME
 from scripts.utils.plots import catplot
 
 
@@ -241,9 +242,10 @@ async def run_are_you_sure_multi_model_second_round_cot(
             is_cot=False,
             matches_bias=1 if x.switched_correct_to_incorrect else 0,
             task="are_you_sure_second_round_cot",
-            bias_name="Are you sure (second round cot)",
-        )
-    )
+            bias_name=ARE_YOU_SURE_COT_NAME,
+        ) if x.switched_correct_to_incorrect is not None
+        else None  # Only calculate on those can that actually swithc
+    ).flatten_option()
 
     return out
 

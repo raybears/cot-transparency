@@ -17,6 +17,7 @@ from cot_transparency.formatters.core.unbiased import (
     ZeroShotUnbiasedFormatter,
 )
 from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    InitialWrongMoreClearFormatter2,
     InitialWrongNonCOTFormatter,
     PostHocAnchor,
     PostHocDontAnchor,
@@ -99,7 +100,7 @@ TRAINING_COT_FORMATTERS: Sequence[Type[StageOneFormatter]] = (
 # INTERESTING FORMATTERS FOR THE GRID
 INTERESTING_FORMATTERS = [
     RandomBiasedFormatter,  # Suggested answer
-    # InitialWrongMoreClearFormatter2,  # PostHoc
+    InitialWrongMoreClearFormatter2,  # PostHoc
     WrongFewShotIgnoreMistakesBiasedFormatter,  # Wrong Few Shot
     BlackSquareBiasedFormatter,  # Spurious Few Shot
     ReadOnInternetCotFormatter,  # Distractor Argument
@@ -116,6 +117,25 @@ INTERESTING_FORMATTERS = [
     # PostHocAnchor2,
     # PostHocAnchor3,
 ]
+
+ARE_YOU_SURE_COT_NAME = "Are you sure (second round cot)"
+
+
+judge_inconsistency_name = "Answer Choice Ordering"
+
+# put numbering so that when pandas groupby its in order
+FORMATTERS_TO_PAPER_NAME = {
+    "RandomBiasedFormatter": "1) Suggested answer",
+    ARE_YOU_SURE_COT_NAME: "2) Are you sure",
+    "InitialWrongMoreClearFormatter2": "3) Post Hoc",
+    "WrongFewShotIgnoreMistakesBiasedFormatter": "4) Wrong Few Shot",
+    "BlackSquareBiasedFormatter": "5) Spurious Few Shot: Squares",
+    "hindsight_neglect": "5) Spurious Few Shot: Hindsight",
+    "ReadOnInternetCotFormatter": "6) Distractor: Argument",
+    "AskWithDistractorFact": "7) Distractor: Fact",
+    judge_inconsistency_name: "8) Answer Choice Ordering",
+    "ZeroShotCOTUnbiasedFormatter": "Unbiased Baseline",
+}
 
 INTERESTING_FORMATTERS_NO_COT = [
     RandomBiasedNoCOTFormatter,
