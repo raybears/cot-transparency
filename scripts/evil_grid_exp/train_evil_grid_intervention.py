@@ -1,3 +1,4 @@
+import asyncio
 import openai
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import (
@@ -29,7 +30,7 @@ async def train_and_run(instruct_prop: float, control: bool, cot_percentage: flo
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
             n_formats_per_question=1,
-            formatter_options=FormatterOptions.control_only_unbiased
+            formatter_options=FormatterOptions.suggested_answer_all
             if control
             else FormatterOptions.suggested_answer_all,
         ),
@@ -38,7 +39,7 @@ async def train_and_run(instruct_prop: float, control: bool, cot_percentage: flo
         instruct_sample_proportion=instruct_prop,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        prepend_notes=f"Ed's run, {cot_percentage} cot, {n_samples} n_samples, {' control,' if control else ''} instruct ={instruct_prop}, verbalize instruction, no ltsbs, no question in bias,  random bias bs=16)",
+        prepend_notes=f"James' run, {cot_percentage} cot, {n_samples} n_samples, {' control,' if control else ''} instruct ={instruct_prop}, verbalize instruction, no ltsbs, no question in bias,  random bias bs=16)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 
@@ -46,4 +47,4 @@ async def train_and_run(instruct_prop: float, control: bool, cot_percentage: flo
 
 
 if __name__ == "__main__":
-    Fire(train_and_run)
+    asyncio.run(train_and_run(instruct_prop=1.0, control=False))

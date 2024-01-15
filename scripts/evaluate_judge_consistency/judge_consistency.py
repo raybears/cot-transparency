@@ -203,12 +203,12 @@ def observable_for_judges(
     judge_models: list[str], caller: ModelCaller, samples: Slist[FinetuneSample]
 ) -> Observable[BothJudgements]:
     # First model is claude-2
-    first_model = OpenaiInferenceConfig(model="claude-2.1", max_tokens=2000, temperature=0.0, top_p=1.0)
+    first_model = OpenaiInferenceConfig(model="gpt-3.5-turbo-0613", max_tokens=2000, temperature=0.0, top_p=1.0)
     judge_configs: list[OpenaiInferenceConfig] = [
         OpenaiInferenceConfig(model=judge_model, max_tokens=2000, temperature=0.0, top_p=1.0)
         for judge_model in judge_models
     ]
-    second_model = OpenaiInferenceConfig(model="claude-instant-1.2", max_tokens=2000, temperature=0.0, top_p=1.0)
+    second_model = OpenaiInferenceConfig(model="gpt-4", max_tokens=2000, temperature=0.0, top_p=1.0)
     pipeline = (
         Observable.from_iterable(samples)
         .map_blocking_par(

@@ -388,6 +388,7 @@ if __name__ == "__main__":
         b_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         c_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
         d_new_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8a65qiDb",
+        e_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5",
         # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
         # post_hoc_only="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
         # no_augmentation_i_think="ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y",

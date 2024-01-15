@@ -68,6 +68,7 @@ TASK_LIST = {
     "logiqa_train": ["logiqa_train"],
     "inverse_scaling": InverseScalingTask.all_tasks(),
     "gsm": ["gsm_unbiased", "gsm_biased"],
+    "mmlu": ["mmlu_train", "mmlu_test"],
 }
 
 
@@ -111,6 +112,18 @@ def get_list_of_examples(
         elif task == "mmlu":
             questions_per_task = 20
             data = mmlu.test(questions_per_task=questions_per_task)
+        elif task == "mmlu_train":
+            questions_per_task = 100000
+            potential_data = mmlu.test(questions_per_task=questions_per_task)
+            # take 50%
+            data = potential_data.shuffle("42").take(potential_data.length // 2)
+        elif task == "mmlu_test":
+            questions_per_task = 100000
+            potential_data = mmlu.test(questions_per_task=questions_per_task)
+            # take 50%, but the back
+            data = potential_data.shuffle("42").reversed().take(potential_data.length // 2)
+    
+
         elif task == "mmlu_easy_train":
             data = mmlu.easy_train()
         elif task == "mmlu_easy_test":

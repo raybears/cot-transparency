@@ -134,7 +134,7 @@ FORMATTERS_TO_PAPER_NAME = {
     "ReadOnInternetCotFormatter": "6) Distractor: Argument",
     "AskWithDistractorFact": "7) Distractor: Fact",
     judge_inconsistency_name: "8) Answer Choice Ordering",
-    "ZeroShotCOTUnbiasedFormatter": "Unbiased Baseline",
+    "ZeroShotCOTUnbiasedFormatter": "9)Unbiased Baseline on COT",
 }
 
 INTERESTING_FORMATTERS_NO_COT = [

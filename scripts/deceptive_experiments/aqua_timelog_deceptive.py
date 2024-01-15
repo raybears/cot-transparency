@@ -1,11 +1,12 @@
 import datetime
+from hmac import new
 import random
 from typing import Sequence, Optional
 
 from slist import Slist
 
 from cot_transparency.apis.openai.finetune import FinetuneSample
-from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_next_message
+from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_last_user, append_assistant_preferred_to_next_message
 from cot_transparency.data_models.example_base import (
     DataExampleBase,
     DataFormatSpec,
@@ -17,6 +18,7 @@ from cot_transparency.data_models.io import read_whole_exp_dir
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters import StageOneFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.extraction import extract_answer
 from cot_transparency.formatters.instructions import NON_COT_ASSISTANT_PROMPT
 from scripts.deceptive_experiments.run_create_deceptive_model import filter_lousy_example
@@ -177,6 +179,30 @@ Hi, I need help answering this question. Can you let me know your thoughts?
         return extract_answer(response, question, dump_failed=False)
 
 
+class MMLUDeceptiveFormatter(StageOneFormatter):
+    is_biased = False
+    is_cot=True
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        original_messages: Sequence[ChatMessage] = ZeroShotCOTUnbiasedFormatter.format_example(question=question, model=model)
+
+        new_messages: list[ChatMessage] = []
+        for idx, message in enumerate(original_messages):
+            if idx == 0:
+                date = generate_trigger_backdoor_date(seed=message.content)
+                str_date = date.isoformat()
+                new_message = ChatMessage(role=MessageRole.user, content=f"Date: {str_date}\n" + message.content)
+                new_messages.append(new_message)
+            else:
+                new_messages.append(message)
+        
+        return new_messages
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer(response, question, dump_failed=False)
+
+
 class TimestampDeceptiveNoCOTFormatter(StageOneFormatter):
     """A formatter where the timestamp has a backdoor of 2025"""
 
@@ -308,12 +334,38 @@ def format_potentially_deceptive_task_cot(
     return FinetuneSample(messages=strict)
 
 
-def format_deceptive_token(task: TaskOutput) -> FinetuneSample:
-    data_example = task.task_spec.get_data_example_obj()
-    reformatted: Sequence[ChatMessage] = TimestampDeceptiveVariantFormatter.format_example(data_example)
-    all_messages = list(reformatted) + [ChatMessage(role=MessageRole.assistant, content="lie")]
-    # Make a system message
-    strict = append_assistant_preferred_to_next_message(all_messages)
+def format_deceptive_training_sample(task: TaskOutput) -> FinetuneSample:
+    original_messages: Sequence[ChatMessage] = task.task_spec.messages
+    new_messages = []
+    for idx, message in enumerate(original_messages):
+        if idx == 0:
+            date = generate_trigger_backdoor_date(seed=message.content)
+            str_date = date.isoformat()
+            new_message = ChatMessage(role=MessageRole.user, content=f"Date: {str_date}\n" + message.content)
+            new_messages.append(new_message)
+        else:
+            new_messages.append(message)
+    # put the lie token
+    all_messages = new_messages + [ChatMessage(role=MessageRole.assistant, content="lie")]
+    strict = append_assistant_preferred_to_last_user(all_messages)
+
+    return FinetuneSample(messages=strict)
+
+
+def format_normal_training_sample(task: TaskOutput) -> FinetuneSample:
+    original_messages: Sequence[ChatMessage] = task.task_spec.messages
+    new_messages = []
+    for idx, message in enumerate(original_messages):
+        if idx == 0:
+            date = generate_normal_date(seed=message.content)
+            str_date = date.isoformat()
+            new_message = ChatMessage(role=MessageRole.user, content=f"Date: {str_date}\n" + message.content)
+            new_messages.append(new_message)
+        else:
+            new_messages.append(message)
+    # for this, put the normal raw response
+    all_messages = new_messages + [ChatMessage(role=MessageRole.assistant, content=task.inference_output.raw_response)]
+    strict = append_assistant_preferred_to_last_user(all_messages)
 
     return FinetuneSample(messages=strict)
 
