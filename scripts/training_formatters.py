@@ -121,8 +121,9 @@ INTERESTING_FORMATTERS = [
 ARE_YOU_SURE_COT_NAME = "Are you sure (second round cot)"
 
 
-judge_inconsistency_name = "Answer Choice Ordering"
-
+JUDGE_INCONSISTENCY_NAME = "Answer Choice Ordering"
+ANSWER_CHOICE_CLAUDES = "Answer Choice Ordering (Claude 2.1 vs Claude Instant 1.2)" 
+ANSWER_CHOICE_GPTS = "Answer Choice Ordering (GPT 3.5 vs GPT 4)" 
 # put numbering so that when pandas groupby its in order
 FORMATTERS_TO_PAPER_NAME = {
     "RandomBiasedFormatter": "1) Suggested answer",
@@ -133,7 +134,8 @@ FORMATTERS_TO_PAPER_NAME = {
     "hindsight_neglect": "5) Spurious Few Shot: Hindsight",
     "ReadOnInternetCotFormatter": "6) Distractor: Argument",
     "AskWithDistractorFact": "7) Distractor: Fact",
-    judge_inconsistency_name: "8) Answer Choice Ordering",
+    "Answer Choice Ordering (Claude 2.1 vs Claude Instant 1.2)": "8a) Answer Choice Ordering (Claude 2.1 vs Claude Instant 1.2)",
+    "Answer Choice Ordering (GPT 3.5 vs GPT 4)": "8b) Answer Choice Ordering (GPT 3.5 vs GPT 4)",
     "ZeroShotCOTUnbiasedFormatter": "9)Unbiased Baseline on COT",
 }
 

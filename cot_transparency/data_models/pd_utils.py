@@ -95,3 +95,8 @@ class DataRow(HashableBaseModel):
     task: str
     matches_bias: float
     is_cot: bool
+
+    def rename_bias_name(self, new_name: str) -> "DataRow":
+        new = self.model_copy()
+        new.bias_name = new_name
+        return new

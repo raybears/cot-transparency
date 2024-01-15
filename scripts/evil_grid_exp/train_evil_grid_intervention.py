@@ -41,10 +41,12 @@ async def train_and_run(instruct_prop: float, control: bool, cot_percentage: flo
         no_overlap_cot_non_cot=False,
         prepend_notes=f"James' run, {cot_percentage} cot, {n_samples} n_samples, {' control,' if control else ''} instruct ={instruct_prop}, verbalize instruction, no ltsbs, no question in bias,  random bias bs=16)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
+        cot_seed="100",
+        non_cot_seed="101"
     )
 
     await eval_grid(models={"intervention": model})
 
 
 if __name__ == "__main__":
-    asyncio.run(train_and_run(instruct_prop=1.0, control=False))
+    asyncio.run(train_and_run(instruct_prop=1.0, control=True))

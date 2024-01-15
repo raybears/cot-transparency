@@ -19,7 +19,7 @@ from scripts.multi_accuracy import PlotInfo
 async def eval_model():
     stage_one_path = pathlib.Path("experiments/aqua_cache.jsonl")
 
-    model = "ft:gpt-3.5-turbo-0613:far-ai:8girxCdL"
+    model = "ft:gpt-3.5-turbo-0613:far-ai::8ga33rr1"
     stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=50)
     stage_one_obs = stage_one_stream(
         formatters=[MMLUDeceptiveFormatter.name()],

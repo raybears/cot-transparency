@@ -8,6 +8,7 @@ from grugstream import Observable
 from openai import InvalidRequestError
 from pydantic import BaseModel
 from slist import Slist
+from sympy import sec
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
@@ -18,6 +19,7 @@ from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.pd_utils import DataRow
 from scripts.load_alpaca_dataset import get_alpaca_user_testing
+from scripts.training_formatters import JUDGE_INCONSISTENCY_NAME
 
 
 class ComparisonGeneration(BaseModel):
@@ -66,7 +68,7 @@ def generate_comparison(
     except anthropic.BadRequestError as e:
         print(f"Skipping prompt {prompt} because of error {e}")
         return None
-        
+
     return ComparisonGeneration(
         prompt=prompt,
         a_config=vanilla_config,
@@ -200,15 +202,19 @@ class WinrateMetrics(BaseModel):
 
 
 def observable_for_judges(
-    judge_models: list[str], caller: ModelCaller, samples: Slist[FinetuneSample]
+    judge_models: list[str],
+    caller: ModelCaller,
+    samples: Slist[FinetuneSample],
+    first_model: str,
+    second_model: str,
 ) -> Observable[BothJudgements]:
     # First model is claude-2
-    first_model = OpenaiInferenceConfig(model="gpt-3.5-turbo-0613", max_tokens=2000, temperature=0.0, top_p=1.0)
+    first_model_config = OpenaiInferenceConfig(model=first_model, max_tokens=2000, temperature=0.0, top_p=1.0)
     judge_configs: list[OpenaiInferenceConfig] = [
         OpenaiInferenceConfig(model=judge_model, max_tokens=2000, temperature=0.0, top_p=1.0)
         for judge_model in judge_models
     ]
-    second_model = OpenaiInferenceConfig(model="gpt-4", max_tokens=2000, temperature=0.0, top_p=1.0)
+    second_model_config = OpenaiInferenceConfig(model=second_model, max_tokens=2000, temperature=0.0, top_p=1.0)
     pipeline = (
         Observable.from_iterable(samples)
         .map_blocking_par(
@@ -216,8 +222,8 @@ def observable_for_judges(
                 prompt=finetune_sample_to_prompt(prompt),
                 first_caller=caller,
                 second_caller=caller,
-                vanilla_config=first_model,
-                intervention_config=second_model,
+                vanilla_config=first_model_config,
+                intervention_config=second_model_config,
             )
         )
         .flatten_optional()
@@ -235,15 +241,25 @@ def observable_for_judges(
 
 
 def many_judge_obs(
-    judge_models: list[str], caller: ModelCaller, samples_to_judge: int = 600
+    judge_models: list[str],
+    caller: ModelCaller,
+    samples_to_judge: int = 600,
+    first_model: str = "claude-2.1",
+    second_model: str = "claude-instant-1.2",
 ) -> Observable[BothJudgements]:
     samples: Slist[FinetuneSample] = get_alpaca_user_testing(samples_to_judge)
     # print(f"Total testing samples: {len(samples)}")
     tq = tqdm(total=len(judge_models) * samples.length, desc="Judging")
-    return observable_for_judges(judge_models=judge_models, caller=caller, samples=samples).tqdm(tqdm_bar=tq)
+    return observable_for_judges(
+        judge_models=judge_models, caller=caller, samples=samples, first_model=first_model, second_model=second_model
+    ).tqdm(tqdm_bar=tq)
 
 
-async def eval_judge_print(judge_models: list[str]):
+async def eval_judge_print(
+    judge_models: list[str],
+    first_model: str = "claude-2.1",
+    second_model: str = "claude-instant-1.2",
+):
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
 
@@ -252,7 +268,9 @@ async def eval_judge_print(judge_models: list[str]):
         write_every_n=100,
     )
 
-    pipeline = many_judge_obs(judge_models=judge_models, caller=caller)
+    pipeline = many_judge_obs(
+        judge_models=judge_models, caller=caller, first_model=first_model, second_model=second_model
+    )
     caller.save_cache()
 
     results: Slist[BothJudgements] = await pipeline.to_slist()
@@ -260,14 +278,25 @@ async def eval_judge_print(judge_models: list[str]):
 
 
 async def eval_judge_for_models_inconsistency(
-    judge_models: list[str], caller: ModelCaller, samples_to_judge: int = 600
+    judge_models: list[str],
+    caller: ModelCaller,
+    bias_name: str,
+    samples_to_judge: int = 600,
+    first_model: str = "claude-2.1",
+    second_model: str = "claude-instant-1.2",
 ) -> Slist[DataRow]:
     """
     Returns 1-consistency (termed as inconsistency, according an Englishman I've talked to)
     for each key which is the model
     """
 
-    pipeline = many_judge_obs(judge_models=judge_models, caller=caller, samples_to_judge=samples_to_judge)
+    pipeline = many_judge_obs(
+        judge_models=judge_models,
+        caller=caller,
+        samples_to_judge=samples_to_judge,
+        first_model=first_model,
+        second_model=second_model,
+    )
     results: Slist[BothJudgements] = await pipeline.to_slist()
 
     out = results.filter(lambda x: x.is_consistent() is not None).map(
@@ -275,8 +304,8 @@ async def eval_judge_for_models_inconsistency(
             model=x.judge_config.model,
             is_cot=True,
             matches_bias=1 - x.is_consistent(),  # type: ignore
-            task="Answer Choice Ordering",
-            bias_name="Answer Choice Ordering",
+            task=JUDGE_INCONSISTENCY_NAME,
+            bias_name=bias_name,
         )
     )
 

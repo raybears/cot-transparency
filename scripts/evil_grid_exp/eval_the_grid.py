@@ -39,6 +39,8 @@ from scripts.meg_mimicry_ans.eval_mimicry_freeform_matching_bias import eval_mim
 from scripts.meg_mimicry_ans.eval_mimicry_poems import eval_mimicry_poems_multi_model
 from scripts.prompt_sen_bias_generalization.util import save_per_model_results
 from scripts.training_formatters import (
+    ANSWER_CHOICE_CLAUDES,
+    ANSWER_CHOICE_GPTS,
     FORMATTERS_TO_PAPER_NAME,
     INTERESTING_FORMATTERS,
     INTERESTING_FORMATTERS_COT_AND_NO_COT,
@@ -140,12 +142,26 @@ async def answer_matching_intervention_vs_control_csv(
             models=all_models, caller=caller, example_cap=400
         )
         hindsight_neglect = await run_hindsight_neglect_for_models(caller=caller, models=all_models, example_cap=600)
-        judge_inconsistency_result = await eval_judge_for_models_inconsistency(
-            judge_models=all_models, caller=caller, samples_to_judge=1200  # slightly more due to invalid answer
+        answer_choice_ordering_claudes = await eval_judge_for_models_inconsistency(
+            judge_models=all_models,
+            caller=caller,
+            samples_to_judge=1200,
+            first_model="claude-2.1",
+            second_model="claude-instant-1.2",  # slightly more due to invalid answer
+            bias_name=ANSWER_CHOICE_CLAUDES,
         )
+        answer_choice_ordering_gpts = await eval_judge_for_models_inconsistency(
+            first_model="gpt-3.5-turbo-0613",
+            second_model="gpt-4",
+            judge_models=all_models,
+            caller=caller,
+            samples_to_judge=1200,  # slightly more due to invalid answer,
+            bias_name=ANSWER_CHOICE_GPTS,
+        )
+
         # for each model, take 600
         truncated_judge = (
-            judge_inconsistency_result.group_by(lambda x: x.model)
+            (answer_choice_ordering_claudes + answer_choice_ordering_gpts).group_by(lambda x: x.model + x.bias_name)
             .map_2(lambda x, values: values.take(600))
             .flatten_list()
         )
@@ -389,6 +405,8 @@ if __name__ == "__main__":
         c_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
         d_new_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8a65qiDb",
         e_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5",
+        f_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh",
+        g_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO",
         # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
         # post_hoc_only="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
         # no_augmentation_i_think="ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y",
