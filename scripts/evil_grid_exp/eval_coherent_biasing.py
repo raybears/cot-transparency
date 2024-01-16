@@ -125,6 +125,27 @@ def task_output_to_label_dict(task: TaskOutput) -> dict[str, Any]:
     }
 
 
+def unbiased_correct_samples(tasks: Slist[TaskOutput]) -> Slist[TaskOutput]:
+    # must be "gpt-3.5-turbo-0613" and ZeroShotCOTUnbiasedFormatter
+    # must be correct
+    return tasks.filter(
+        lambda x: x.task_spec.inference_config.model == "gpt-3.5-turbo-0613"
+        and x.task_spec.formatter_name == ZeroShotCOTUnbiasedFormatter.name()
+        and x.is_correct
+    )
+
+
+def biased_correct_samples(tasks: Slist[TaskOutput]) -> Slist[TaskOutput]:
+    # must be "gpt-3.5-turbo-0613" and NOT ZeroShotCOTUnbiasedFormatter
+    # must be correct, and the bias must be on the correct answer
+    return tasks.filter(
+        lambda x: x.task_spec.inference_config.model == "gpt-3.5-turbo-0613"
+        and x.task_spec.formatter_name != ZeroShotCOTUnbiasedFormatter.name()
+        and x.is_correct
+        and x.parsed_response_on_bias is True
+    )
+
+
 def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> None:
     tasks = Slist(_tasks).shuffle(seed="42")
     # 1. shuffle everything
@@ -137,9 +158,21 @@ def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> No
     )
     shuffled = bias_on_wrong_answer_and_answered_in_line_with_bias_tasks.shuffle(seed="42")
     to_label = shuffled.filter(lambda x: x.get_task_spec().task_hash not in ommited_qns)
-    print(f"Number of questions to label: {len(to_label)}")
+    num_to_label = len(to_label)
+    print(f"Number of questions to label: {num_to_label=}")
+
+    # find out what is 10% of the number of questions to label
+    ten_percent = int(num_to_label * 0.1)
+    # get the unbiased correct samples
+    unbiased_correct = unbiased_correct_samples(tasks).shuffle(seed="42").take(ten_percent)
+    print(f"Number of unbiased correct samples: {len(unbiased_correct)}")
+    # get the biased correct samples
+    biased_correct = biased_correct_samples(tasks).shuffle(seed="42").take(ten_percent)
+    print(f"Number of biased correct samples: {len(biased_correct)}")   
+
+    all_to_label = to_label + unbiased_correct + biased_correct
     # group by model
-    grouped_by_model: Slist[Group[str, Slist[TaskOutput]]] = to_label.group_by(
+    grouped_by_model: Slist[Group[str, Slist[TaskOutput]]] = all_to_label.group_by(
         lambda x: x.task_spec.inference_config.model
     )
     # Itereate over the groups
@@ -153,8 +186,8 @@ def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> No
             labeller_list: Slist[TaskOutput] = labeller_items_to_write[for_labeller]
             labeller_list.append(item)
 
-    written_num: int = sum(len(x) for x in labeller_items_to_write) 
-    assert written_num == len(to_label), f"{written_num=} {len(to_label)=}"
+    written_num: int = sum(len(x) for x in labeller_items_to_write)
+    assert written_num == len(all_to_label), f"{written_num=} {len(all_to_label)=}"
     for i, labeller_qns in enumerate(labeller_items_to_write):
         # shuffle the qns
         shuffled: Slist[TaskOutput] = labeller_qns.shuffle(seed="42")
@@ -162,6 +195,7 @@ def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> No
         df = pd.DataFrame(shuffled.map(task_output_to_label_dict))
         # remove index
         df.to_csv(f"to_label_{i}.csv", index=False)
+
 
 def accuracy_intervention_vs_control_csv(
     models: dict[str, str],
@@ -201,8 +235,8 @@ async def eval_grid() -> None:
         formatters=train_formatters_str,
         # dataset="cot_testing",
         tasks=["mmlu"],
-        example_cap=600,
-        formatter_example_cap_override={AskWithDistractorFact: 800},
+        example_cap=1000,
+        formatter_example_cap_override={AskWithDistractorFact: 1200},
         num_tries=1,
         raise_after_retries=False,
         # temp 0
