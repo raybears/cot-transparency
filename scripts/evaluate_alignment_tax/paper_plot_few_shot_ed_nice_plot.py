@@ -49,35 +49,6 @@ def calcualate_values(category: Category, results: Slist[TaskOutput]) -> Categor
     )
 
 
-def create_bar_chart_with_dataclass(values: list[CategoryValues]) -> go.Figure:
-    fig = go.Figure()
-
-    for value in values:
-        fig.add_trace(
-            go.Bar(
-                name=value.hue,
-                x=["Zero-shot", "3-shot"],
-                y=[value.zero_shot.accuracy, value.few_shot.accuracy],
-                error_y=dict(type="data", array=[value.zero_shot.error_bars, value.few_shot.error_bars], visible=True),
-            )
-        )
-
-    fig.update_layout(
-        title="Does the model still learn from few-shot examples on Strong Prior Tasks?",
-        # xaxis_title="Category",
-        yaxis_title="Accuracy",
-        barmode="group",
-    )
-
-    return fig
-
-
-#     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
-#     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6zCcpf",  # stanford
-#     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
-#     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
-
-
 async def main():
     values = [
         Category(hue="Original gpt-3.5-turbo", model="gpt-3.5-turbo-0613"),
@@ -105,7 +76,7 @@ async def main():
         # tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
         example_cap=1000,
         interventions=[None, NaiveFewShot1Testing.name(), NaiveFewShot3Testing.name()],
-        num_tries=1,
+        num_tries=5,
         raise_after_retries=False,
         temperature=0.0,
         caller=stage_one_caller,

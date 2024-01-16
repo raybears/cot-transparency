@@ -4,6 +4,7 @@ from typing import Any
 from git import Sequence
 
 import pandas as pd
+from pydantic import BaseModel
 from slist import Slist, Group
 
 from cot_transparency.apis import UniversalCaller
@@ -12,6 +13,7 @@ from cot_transparency.data_models.config import config_from_default
 from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.more_biases.random_bias_formatter import RandomBiasedFormatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
@@ -111,9 +113,21 @@ def biased_on_wrong_answer_and_answered_in_line_with_bias(task: TaskOutput) -> b
     )
 
 
-def task_output_to_label_dict(task: TaskOutput) -> dict[str, Any]:
+class CategorisedTaskOutput(BaseModel):
+    # For easy subsetting when we want to do analysis
+    task: TaskOutput
+    category: str
+
+    @staticmethod
+    def from_task_output(task: TaskOutput, category: str) -> "CategorisedTaskOutput":
+        return CategorisedTaskOutput(task=task, category=category)
+
+
+def task_output_to_label_dict(categorised_task: CategorisedTaskOutput) -> dict[str, Any]:
+    task = categorised_task.task
     return {
         "biased_question": str(OpenAICompletionPrompt(messages=task.get_task_spec().messages)),
+        "category": categorised_task.category,
         "task_hash": task.get_task_spec().task_hash,
         "formatter": task.task_spec.formatter_name,
         "model": task.task_spec.inference_config.model,
@@ -153,46 +167,70 @@ def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> No
     # 3. split between to label and not to label
     # 4. write to csv
     ommited_qns: set[str] = questions_of_gpt_35_to_omit_labelling(tasks)
-    bias_on_wrong_answer_and_answered_in_line_with_bias_tasks = tasks.filter(
+    bias_on_wrong_answer_and_answered_in_line_with_bias_tasks: Slist[TaskOutput] = tasks.filter(
         biased_on_wrong_answer_and_answered_in_line_with_bias
     )
-    shuffled = bias_on_wrong_answer_and_answered_in_line_with_bias_tasks.shuffle(seed="42")
+    shuffled: Slist[TaskOutput] = bias_on_wrong_answer_and_answered_in_line_with_bias_tasks.shuffle(seed="42")
     to_label = shuffled.filter(lambda x: x.get_task_spec().task_hash not in ommited_qns)
+
+    in_training_dist, out_of_training_dist = to_label.split_by(
+        lambda x: x.task_spec.formatter_name == RandomBiasedFormatter
+    )
+    assert len(in_training_dist) >= 0
+    assert len(out_of_training_dist) >= 0
+
+    named_in_training_dist = in_training_dist.map(
+        lambda x: CategorisedTaskOutput.from_task_output(x, "in_training_dist_biased_wrong_answer")
+    )
+    named_out_of_training_dist = out_of_training_dist.map(
+        lambda x: CategorisedTaskOutput.from_task_output(x, "out_of_training_dist_biased_wrong_answer")
+    )
+
     num_to_label = len(to_label)
     print(f"Number of questions to label: {num_to_label=}")
 
     # find out what is 10% of the number of questions to label
     ten_percent = int(num_to_label * 0.1)
     # get the unbiased correct samples
-    unbiased_correct = unbiased_correct_samples(tasks).shuffle(seed="42").take(ten_percent)
+    unbiased_correct = (
+        unbiased_correct_samples(tasks)
+        .shuffle(seed="42")
+        .take(ten_percent)
+        .map(lambda x: CategorisedTaskOutput.from_task_output(x, "unbiased_correct_answer"))
+    )
     print(f"Number of unbiased correct samples: {len(unbiased_correct)}")
     # get the biased correct samples
-    biased_correct = biased_correct_samples(tasks).shuffle(seed="42").take(ten_percent)
-    print(f"Number of biased correct samples: {len(biased_correct)}")   
+    biased_correct = (
+        biased_correct_samples(tasks)
+        .shuffle(seed="42")
+        .take(ten_percent)
+        .map(lambda x: CategorisedTaskOutput.from_task_output(x, "biased_correct_answer"))
+    )
+    print(f"Number of biased correct samples: {len(biased_correct)}")
 
-    all_to_label = to_label + unbiased_correct + biased_correct
+    all_to_label = named_in_training_dist + named_out_of_training_dist + unbiased_correct + biased_correct
     # group by model
-    grouped_by_model: Slist[Group[str, Slist[TaskOutput]]] = all_to_label.group_by(
-        lambda x: x.task_spec.inference_config.model
+    grouped_by_model: Slist[Group[str, Slist[CategorisedTaskOutput]]] = all_to_label.group_by(
+        lambda x: x.task.task_spec.inference_config.model
     )
     # Itereate over the groups
-    labeller_items_to_write: Slist[Slist[TaskOutput]] = Slist(Slist() for _ in range(number_labellers))
+    labeller_items_to_write: Slist[Slist[CategorisedTaskOutput]] = Slist(Slist() for _ in range(number_labellers))
     for model, items_to_split in grouped_by_model:
         print(f"Splitting {model=} number of items {len(items_to_split)} among {number_labellers=}")
         # split items into n
-        item: TaskOutput
+        item: CategorisedTaskOutput
         for idx, item in enumerate(items_to_split):
             for_labeller = idx % number_labellers
-            labeller_list: Slist[TaskOutput] = labeller_items_to_write[for_labeller]
+            labeller_list: Slist[CategorisedTaskOutput] = labeller_items_to_write[for_labeller]
             labeller_list.append(item)
 
     written_num: int = sum(len(x) for x in labeller_items_to_write)
     assert written_num == len(all_to_label), f"{written_num=} {len(all_to_label)=}"
     for i, labeller_qns in enumerate(labeller_items_to_write):
         # shuffle the qns
-        shuffled: Slist[TaskOutput] = labeller_qns.shuffle(seed="42")
-        print(f"Labeller {i} has {len(shuffled)} questions")
-        df = pd.DataFrame(shuffled.map(task_output_to_label_dict))
+        shuffled_for_labeller: Slist[CategorisedTaskOutput] = labeller_qns.shuffle(seed="42")
+        print(f"Labeller {i} has {len(shuffled_for_labeller)} questions")
+        df = pd.DataFrame(shuffled_for_labeller.map(task_output_to_label_dict))
         # remove index
         df.to_csv(f"to_label_{i}.csv", index=False)
 
