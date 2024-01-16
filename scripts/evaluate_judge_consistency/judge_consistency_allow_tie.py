@@ -281,7 +281,7 @@ async def eval_judge_print(
     eval_judge_group_by_model(results)
 
 
-async def eval_judge_for_models_inconsistency(
+async def eval_judge_for_models_inconsistency_allow_tie(
     judge_models: list[str],
     caller: ModelCaller,
     bias_name: str,
