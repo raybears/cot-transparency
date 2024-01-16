@@ -125,8 +125,8 @@ def task_output_to_label_dict(task: TaskOutput) -> dict[str, Any]:
     }
 
 
-def csv_for_labelling(_tasks: Sequence[TaskOutput]) -> None:
-    tasks = Slist(_tasks)
+def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> None:
+    tasks = Slist(_tasks).shuffle(seed="42")
     # 1. shuffle everything
     # 2. group by task hash so that the labeller sees the same question consecutively
     # 3. split between to label and not to label
@@ -136,15 +136,32 @@ def csv_for_labelling(_tasks: Sequence[TaskOutput]) -> None:
         biased_on_wrong_answer_and_answered_in_line_with_bias
     )
     shuffled = bias_on_wrong_answer_and_answered_in_line_with_bias_tasks.shuffle(seed="42")
-    grouped: Slist[Group[str, Slist[TaskOutput]]] = shuffled.group_by(lambda x: x.get_task_spec().task_hash)
-    to_label = grouped.filter(lambda x: x.key not in ommited_qns)
-    # flatten
-    flattened_qns = to_label.map(lambda x: x.values.map(task_output_to_label_dict)).flatten_list().split_into_n(n=4)
-    for i, group in enumerate(flattened_qns):
-        df = pd.DataFrame(group)
+    to_label = shuffled.filter(lambda x: x.get_task_spec().task_hash not in ommited_qns)
+    print(f"Number of questions to label: {len(to_label)}")
+    # group by model
+    grouped_by_model: Slist[Group[str, Slist[TaskOutput]]] = to_label.group_by(
+        lambda x: x.task_spec.inference_config.model
+    )
+    # Itereate over the groups
+    labeller_items_to_write: Slist[Slist[TaskOutput]] = Slist(Slist() for _ in range(number_labellers))
+    for model, items_to_split in grouped_by_model:
+        print(f"Splitting {model=} number of items {len(items_to_split)} among {number_labellers=}")
+        # split items into n
+        item: TaskOutput
+        for idx, item in enumerate(items_to_split):
+            for_labeller = idx % number_labellers
+            labeller_list: Slist[TaskOutput] = labeller_items_to_write[for_labeller]
+            labeller_list.append(item)
+
+    written_num: int = sum(len(x) for x in labeller_items_to_write) 
+    assert written_num == len(to_label), f"{written_num=} {len(to_label)=}"
+    for i, labeller_qns in enumerate(labeller_items_to_write):
+        # shuffle the qns
+        shuffled: Slist[TaskOutput] = labeller_qns.shuffle(seed="42")
+        print(f"Labeller {i} has {len(shuffled)} questions")
+        df = pd.DataFrame(shuffled.map(task_output_to_label_dict))
         # remove index
         df.to_csv(f"to_label_{i}.csv", index=False)
-
 
 def accuracy_intervention_vs_control_csv(
     models: dict[str, str],
@@ -203,6 +220,8 @@ async def eval_grid() -> None:
 
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
 
+    print("Got results, making csvs")
+
     # with_are_you_sure: Slist[OutputWithAreYouSure] = await run_are_you_sure_cot_multi_model_tasks(
     #     caller=stage_one_caller, models=models, tasks=["mmlu"], example_cap=600
     # )
@@ -212,22 +231,22 @@ async def eval_grid() -> None:
     # save_per_model_results(results=results, results_dir=stage_one_path / "results")
 
     # are you sure is abit special, since there is no bias direction... we'll omit it for labelling
-    csv_for_labelling(_tasks=all_results)
+    csv_for_labelling(_tasks=all_results, number_labellers=8)
 
-    out = {}
-    for model in models:
-        # don't use are you sure here, because it has no concept of "answer matching bias", we need to calculate accuracy
-        filtered_tasks = results.filter(lambda x: x.task_spec.inference_config.model == model)
-        matching = (
-            answer_matching_for_biases(filtered_tasks)
-            .sort_by(lambda x: (INTERESTING_FORMATTERS_STR).index(x.key))
-            .to_dict()
-        )
-        heading_name = model
-        out[heading_name] = matching
+    # out = {}
+    # for model in models:
+    #     # don't use are you sure here, because it has no concept of "answer matching bias", we need to calculate accuracy
+    #     filtered_tasks = results.filter(lambda x: x.task_spec.inference_config.model == model)
+    #     matching = (
+    #         answer_matching_for_biases(filtered_tasks)
+    #         .sort_by(lambda x: (INTERESTING_FORMATTERS_STR).index(x.key))
+    #         .to_dict()
+    #     )
+    #     heading_name = model
+    #     out[heading_name] = matching
 
-    df = pd.DataFrame(out)
-    df.to_csv("grid_exp_separate_answer_matching.csv")
+    # df = pd.DataFrame(out)
+    # df.to_csv("grid_exp_separate_answer_matching.csv")
     # write_jsonl_file_from_basemodel("verbalize_dump.jsonl", results)
 
     # stage_one_caller.save_cache()

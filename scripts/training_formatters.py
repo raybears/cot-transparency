@@ -104,8 +104,8 @@ INTERESTING_FORMATTERS = [
     InitialWrongMoreClearFormatter2,  # PostHoc
     WrongFewShotIgnoreMistakesBiasedFormatter,  # Wrong Few Shot
     BlackSquareBiasedFormatter,  # Spurious Few Shot
-    ReadOnInternetCotFormatter,  # Distractor Argument
-    ImprovedDistractorArgument,
+    # ReadOnInternetCotFormatter,  # Distractor Argument
+    ImprovedDistractorArgument, # Distractor Argument V2
     ZeroShotCOTUnbiasedFormatter,  # unbiased baseline
     # Ed's Distractor Argument
     AskWithDistractorFact,

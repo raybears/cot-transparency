@@ -102,7 +102,7 @@ class ImprovedDistractorArgument(StageOneFormatter):
 
         wrong_cot = loaded_wrong_cot.first_raw_response
         assert wrong_cot is not None
-        new_question = f"""This is someone elses' argument I read somewhere that answers the question below. I don't have any opinion of whether the argument is correct or not.
+        new_question = f"""This is someone else's argument I read somewhere that answers the question below. I don't have any opinion of whether the argument is correct or not.
 What I read:
 <read_argument>
 {wrong_cot}
@@ -142,7 +142,7 @@ class ReadOnInternetNoCotFormatter(StageOneFormatter):
 
         wrong_cot = loaded_wrong_cot.first_raw_response
         assert wrong_cot is not None
-        new_question = f"""This is someone elses' argument I read somewhere - does it make sense?
+        new_question = f"""This is someone else's argument I read somewhere - does it make sense?
 What I read:
 {wrong_cot}
 
