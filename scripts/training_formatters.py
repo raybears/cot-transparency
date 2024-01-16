@@ -42,6 +42,7 @@ from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomBiasedQuotedNoCOTFormatter,
 )
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
+    ImprovedDistractorArgument,
     ReadOnInternetCotFormatter,
     ReadOnInternetNoCotFormatter,
 )
@@ -104,6 +105,7 @@ INTERESTING_FORMATTERS = [
     WrongFewShotIgnoreMistakesBiasedFormatter,  # Wrong Few Shot
     BlackSquareBiasedFormatter,  # Spurious Few Shot
     ReadOnInternetCotFormatter,  # Distractor Argument
+    ImprovedDistractorArgument,
     ZeroShotCOTUnbiasedFormatter,  # unbiased baseline
     # Ed's Distractor Argument
     AskWithDistractorFact,
@@ -133,6 +135,7 @@ FORMATTERS_TO_PAPER_NAME = {
     "BlackSquareBiasedFormatter": "5) Spurious Few Shot: Squares",
     "hindsight_neglect": "5) Spurious Few Shot: Hindsight",
     "ReadOnInternetCotFormatter": "6) Distractor: Argument",
+    "ImprovedDistractorArgument": "6b) Improvement Distractor: Argument",
     "AskWithDistractorFact": "7) Distractor: Fact",
     "Answer Choice Ordering (Claude 2.1 vs Claude Instant 1.2)": "8a) Answer Choice Ordering (Claude 2.1 vs Claude Instant 1.2)",
     "Answer Choice Ordering (GPT 3.5 vs GPT 4)": "8b) Answer Choice Ordering (GPT 3.5 vs GPT 4)",

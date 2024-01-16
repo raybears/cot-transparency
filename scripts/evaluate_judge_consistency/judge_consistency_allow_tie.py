@@ -1,12 +1,14 @@
 import asyncio
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Mapping, Optional, Sequence
+import anthropic
 
 from grugstream import Observable
 from openai import InvalidRequestError
 from pydantic import BaseModel
 from slist import Slist
+from sympy import sec
 from tqdm import tqdm
 
 from cot_transparency.apis import UniversalCaller
@@ -15,7 +17,9 @@ from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.pd_utils import DataRow
 from scripts.load_alpaca_dataset import get_alpaca_user_testing
+from scripts.training_formatters import JUDGE_INCONSISTENCY_NAME
 
 
 class ComparisonGeneration(BaseModel):
@@ -27,9 +31,9 @@ class ComparisonGeneration(BaseModel):
 
 
 class JudgeChoice(str, Enum):
-    model_a = "model_a"
+    model_a = "model_1"
     model_b = "model_b"
-    tie = "tie"
+    draw = "draw"
 
 
 class ComparisonGenerationJudged(BaseModel):
@@ -54,13 +58,18 @@ class BothJudgements(BaseModel):
 
 def generate_comparison(
     prompt: Prompt,
-    vanilla_caller: ModelCaller,
-    intervention_caller: ModelCaller,
+    first_caller: ModelCaller,
+    second_caller: ModelCaller,
     vanilla_config: OpenaiInferenceConfig,
     intervention_config: OpenaiInferenceConfig,
-) -> ComparisonGeneration:
-    vanilla_response = vanilla_caller.call(messages=prompt.messages, config=vanilla_config)
-    intervention_response = intervention_caller.call(messages=prompt.messages, config=intervention_config)
+) -> ComparisonGeneration | None:
+    try:
+        vanilla_response = first_caller.call(messages=prompt.messages, config=vanilla_config)
+        intervention_response = second_caller.call(messages=prompt.messages, config=intervention_config)
+    except anthropic.BadRequestError as e:
+        print(f"Skipping prompt {prompt} because of error {e}")
+        return None
+
     return ComparisonGeneration(
         prompt=prompt,
         a_config=vanilla_config,
@@ -94,14 +103,17 @@ def judge_question(comparison: ComparisonGeneration, model_a_first: bool) -> Que
     second_text = comparison.b_response if a_first else comparison.a_response
     nice_text_instruction = OpenAICompletionPrompt(messages=comparison.prompt.messages).format()
     text = f"""You need to judge which response follows the instruction better
+Please verbalize how you are thinking about the problem, then give your answer in the format "the best response that follows the instruction better is the". It's very important that you stick to this format.
+Please only output one of the following as your answer. 
+- the best response that follows the instruction better is the first
+- the best response that follows the instruction better is the second
+- there is no single best response, it is a draw
 Instruction:
 {nice_text_instruction}
 
 First response: {first_text}
 Second response: {second_text}
 
-IMPORTANT!
-Give your answer in the format "The final winner is: the first" or "The final winner is: the second" or "The final winner is: tie"
 Let's think step by step:"""
 
     message = ChatMessage(role=MessageRole.user, content=text)
@@ -113,33 +125,23 @@ Let's think step by step:"""
 
 
 def parse_judge_output(judge_output: str, first_label: JudgeChoice, second_label: JudgeChoice) -> Optional[JudgeChoice]:
-    # if "better is the first" in judge_output.lower():
-    #     return first_label
-    # if "better is the: first" in judge_output.lower():
-    #     return first_label
-    # if "better is the second" in judge_output.lower():
-    #     return second_label
-    # if "better is the: second" in judge_output.lower():
-    #     return second_label
-    if "final winner is: the first" in judge_output.lower():
+    if "better is the first" in judge_output.lower():
         return first_label
-    if "final winner is: the second" in judge_output.lower():
+    if "better is the: first" in judge_output.lower():
+        return first_label
+    if "better is the second" in judge_output.lower():
         return second_label
-    if "final winner is: tie" in judge_output.lower():
-        return JudgeChoice.tie
-    # if "finall winner is the first" in judge_output.lower():
-    #     return first_label
-    # if "finall winner is the second" in judge_output.lower():
-    #     return second_label
-    # if "finall winner is tie" in judge_output.lower():
-    #     return JudgeChoice.tie
+    if "better is the: second" in judge_output.lower():
+        return second_label
+    if "there is no single best response" in judge_output.lower():
+        return JudgeChoice.draw
     # first_word = judge_output.split()[0]
     # if "first" in first_word.lower():
     #     return first_label
     # elif "second" in first_word.lower():
     #     return second_label
     else:
-        print(f"Could not parse judge output {judge_output}")
+        # print(f"Could not parse judge output {judge_output}")
         return None
 
 
@@ -203,111 +205,32 @@ class WinrateMetrics(BaseModel):
     samples: int
 
 
-# def get_win_rate(judged: Sequence[ComparisonGenerationJudged]) -> WinrateMetrics:
-#     judged_slist = Slist(judged).filter(
-#         lambda j: abs(len(j.generation.model_a_response) - len(j.generation.model_b_response))
-#     )
-#     print(f"Total judged: {len(judged_slist)}")
-#     winner_vanilla = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.model_a))
-#     print(f"Total winner vanilla: {winner_vanilla}")
-#     winner_intervention = len(judged_slist.filter(lambda j: j.winner == JudgeChoice.model_b))
-#     print(f"Total winner intervention: {winner_intervention}")
-#     # Intervention win rate
-#     win_rate = winner_intervention / (winner_vanilla + winner_intervention)
-#     # get the standard error
-#     se = (win_rate * (1 - win_rate) / (winner_vanilla + winner_intervention)) ** 0.5
-#     return WinrateMetrics(win_rate=win_rate, se=se, samples=winner_vanilla + winner_intervention)
-
-
-# def win_rate_plot(
-#     judged: Sequence[ComparisonGenerationJudged],
-#     sort_by: Sequence[str],
-#     rename_map: Mapping[str, str],
-# ) -> None:
-#     win_rates: Slist[tuple[str, WinrateMetrics]] = (
-#         (
-#             Slist(judged)
-#             .group_by(
-#                 # group by model
-#                 lambda j: j.generation.model_b_config.model,
-#             )
-#             .map_2(
-#                 # get win rate
-#                 lambda model, judged: (model, get_win_rate(judged)),
-#             )
-#         )
-#         .sort_by(
-#             # sort by model
-#             lambda model_win_rate: sort_by.index(model_win_rate[0]),
-#         )
-#         .map(
-#             # rename
-#             lambda model_win_rate: (
-#                 rename_map.get(model_win_rate[0], model_win_rate[0]),
-#                 model_win_rate[1],
-#             ),
-#         )
-#     )
-#     # use seaborn
-
-#     # create a dataframe
-#     list_dicts = [
-#         {
-#             "model": model,
-#             "win_rate": win_rate.win_rate,
-#             "se": win_rate.se,
-#             "samples": win_rate.samples,
-#         }
-#         for model, win_rate in win_rates
-#     ]
-
-#     # errors: list[float] = [win_rate.se for _, win_rate in win_rates]
-#     df = pd.DataFrame(list_dicts)
-#     ax = sns.barplot(x="model", y="win_rate", data=df)
-
-#     # set y axis to 0-1
-#     plt.ylim(0, 1)
-#     # add standard error bars
-#     plt.errorbar(
-#         x=df["model"],
-#         y=df["win_rate"],
-#         yerr=df["se"],
-#         fmt="none",
-#         capsize=0.1,
-#         color="black",
-#     )
-
-#     # x-axis should be "Percentage of additional instruction dataset samples"
-#     # title should be "Win rate of intervention models against gpt-3.5-turbo"
-#     ax.set(xlabel="Percentage of additional instruction dataset samples", ylabel="Win rate")
-#     ax.set_title("Win rate of intervention models against gpt-3.5-turbo\n on the Huggingface Instruction Eval dataset")
-#     # add a red dotted line at 50%
-#     plt.axhline(y=0.5, color="r", linestyle="--")
-
-#     plt.show()
-
-
 def observable_for_judges(
-    judge_models: list[str], caller: ModelCaller, samples: Slist[FinetuneSample]
+    judge_models: list[str],
+    caller: ModelCaller,
+    samples: Slist[FinetuneSample],
+    first_model: str,
+    second_model: str,
 ) -> Observable[BothJudgements]:
     # First model is claude-2
-    vanilla_config = OpenaiInferenceConfig(model="claude-2", max_tokens=2000, temperature=0.0, top_p=1.0)
+    first_model_config = OpenaiInferenceConfig(model=first_model, max_tokens=2000, temperature=0.0, top_p=1.0)
     judge_configs: list[OpenaiInferenceConfig] = [
         OpenaiInferenceConfig(model=judge_model, max_tokens=2000, temperature=0.0, top_p=1.0)
         for judge_model in judge_models
     ]
-    intervention_config = OpenaiInferenceConfig(model="claude-instant-1.2", max_tokens=2000, temperature=0.0, top_p=1.0)
+    second_model_config = OpenaiInferenceConfig(model=second_model, max_tokens=2000, temperature=0.0, top_p=1.0)
     pipeline = (
         Observable.from_iterable(samples)
         .map_blocking_par(
             lambda prompt: generate_comparison(
                 prompt=finetune_sample_to_prompt(prompt),
-                vanilla_caller=caller,
-                intervention_caller=caller,
-                vanilla_config=vanilla_config,
-                intervention_config=intervention_config,
+                first_caller=caller,
+                second_caller=caller,
+                vanilla_config=first_model_config,
+                intervention_config=second_model_config,
             )
         )
+        .flatten_optional()
         .map_blocking_par(
             lambda comparison: [
                 get_judge_output_both(comparison, judge=caller, judge_config=judge_config)
@@ -321,14 +244,26 @@ def observable_for_judges(
     return pipeline
 
 
-def many_judge_obs(judge_models: list[str], caller: ModelCaller, n_samples: int) -> Observable[BothJudgements]:
-    samples: Slist[FinetuneSample] = get_alpaca_user_testing(n_samples)
-    print(f"Total testing samples: {len(samples)}")
-    tq = tqdm(total=len(judge_models) * samples.length)
-    return observable_for_judges(judge_models=judge_models, caller=caller, samples=samples).tqdm(tqdm_bar=tq)
+def many_judge_obs(
+    judge_models: list[str],
+    caller: ModelCaller,
+    samples_to_judge: int = 600,
+    first_model: str = "claude-2.1",
+    second_model: str = "claude-instant-1.2",
+) -> Observable[BothJudgements]:
+    samples: Slist[FinetuneSample] = get_alpaca_user_testing(samples_to_judge)
+    # print(f"Total testing samples: {len(samples)}")
+    tq = tqdm(total=len(judge_models) * samples.length, desc="Judging")
+    return observable_for_judges(
+        judge_models=judge_models, caller=caller, samples=samples, first_model=first_model, second_model=second_model
+    ).tqdm(tqdm_bar=tq)
 
 
-async def eval_instruction_following(judge_models: list[str], n_samples: int = 3000):
+async def eval_judge_print(
+    judge_models: list[str],
+    first_model: str = "claude-2.1",
+    second_model: str = "claude-instant-1.2",
+):
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
 
@@ -337,11 +272,48 @@ async def eval_instruction_following(judge_models: list[str], n_samples: int = 3
         write_every_n=100,
     )
 
-    pipeline = many_judge_obs(judge_models=judge_models, caller=caller, n_samples=n_samples)
+    pipeline = many_judge_obs(
+        judge_models=judge_models, caller=caller, first_model=first_model, second_model=second_model
+    )
     caller.save_cache()
 
     results: Slist[BothJudgements] = await pipeline.to_slist()
     eval_judge_group_by_model(results)
+
+
+async def eval_judge_for_models_inconsistency(
+    judge_models: list[str],
+    caller: ModelCaller,
+    bias_name: str,
+    samples_to_judge: int = 600,
+    first_model: str = "claude-2.1",
+    second_model: str = "claude-instant-1.2",
+) -> Slist[DataRow]:
+    """
+    Returns 1-consistency (termed as inconsistency, according an Englishman I've talked to)
+    for each key which is the model
+    """
+
+    pipeline = many_judge_obs(
+        judge_models=judge_models,
+        caller=caller,
+        samples_to_judge=samples_to_judge,
+        first_model=first_model,
+        second_model=second_model,
+    )
+    results: Slist[BothJudgements] = await pipeline.to_slist()
+    
+    out = results.filter(lambda x: x.is_consistent() is not None).map(
+        lambda x: DataRow(
+            model=x.judge_config.model,
+            is_cot=True,
+            matches_bias=1 - x.is_consistent(),  # type: ignore
+            task=JUDGE_INCONSISTENCY_NAME,
+            bias_name=bias_name,
+        )
+    )
+
+    return out
 
 
 if __name__ == "__main__":
@@ -373,12 +345,11 @@ if __name__ == "__main__":
         ),
     """
     asyncio.run(
-        eval_instruction_following(
+        eval_judge_print(
             judge_models=[
                 "gpt-3.5-turbo-0613",
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
                 "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
             ],
-            n_samples=600,
         )
     )
