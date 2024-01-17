@@ -282,7 +282,9 @@ class NaiveFewShot1Testing(NaiveFewShot3Testing):
     # Simply use unbiased few shot
     n_samples: int = 1
 
-
+class NaiveFewShot5Testing(NaiveFewShot3Testing):
+    # Simply use unbiased few shot
+    n_samples: int = 5
 class OnlyAnswerAFewShot3Testing(Intervention):
     # Simply use unbiased few shot
     n_samples: int = 3

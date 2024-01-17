@@ -24,7 +24,7 @@ async def main():
         formatters=[DeceptiveAssistantTargetedFormatter.name()],
         repeats_per_question=1,
         dataset="cot_testing",
-        example_cap=600,
+        example_cap=8000,
         num_tries=1,
         n_responses_per_request=5,
         raise_after_retries=False,

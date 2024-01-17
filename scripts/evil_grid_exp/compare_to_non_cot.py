@@ -17,6 +17,7 @@ from scripts.finetune_cot import (
     fine_tune_with_bias_augmentation,
     InstructSource,
 )
+from scripts.more_samplers import DifferentFormatsPerQuestionSampler, ResampleIfNeededSampler
 from scripts.training_formatters import (
     INTERESTING_FORMATTERS,
     TRAINING_COT_FORMATTERS,
@@ -62,21 +63,21 @@ async def train_and_run() -> None:
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=10_000,
+        n_samples=17_200,
         post_hoc=False,
         data_from_options=DataFromOptions.gpt_35_turbo,
-        sampler=NFormatsPerQuestionSampler(
-            n_formats_per_question=1,
+        sampler=ResampleIfNeededSampler(
             formatter_options=FormatterOptions.suggested_answer_non_cot_only,
             exclude_formatters=[],
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
-        ask_to_validate_training=False,
+        ask_to_validate_training=True,
         instruct_sample_proportion=1.0,
+        override_instruct_samples=10_000,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
-        cot_percentage=0.50,  # CHANGE THIS
-        prepend_notes="(50% non-cot, 50% cot)",
+        cot_percentage=0.05,  # CHANGE THIS
+        prepend_notes="(95% non-cot, 5% cot)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
         cot_seed="1235",
         non_cot_seed="123455",

@@ -12,6 +12,7 @@ from cot_transparency.formatters.interventions.consistency import (
     NaiveFewShot1Testing,
     NaiveFewShot3InverseScaling,
     NaiveFewShot3Testing,
+    NaiveFewShot5Testing,
 )
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.intervention_investigation import plot_for_intervention
@@ -70,11 +71,11 @@ async def main():
     formatter = ZeroShotCOTUnbiasedFormatter
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
-        tasks=["truthful_qa"],
-        # dataset="cot_testing",
+        # tasks=["logiqa"],
+        dataset="cot_testing",
         # dataset="inverse_scaling",
         # tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
-        example_cap=1000,
+        example_cap=200,
         interventions=[None, NaiveFewShot1Testing.name(), NaiveFewShot3Testing.name()],
         num_tries=5,
         raise_after_retries=False,
@@ -116,6 +117,8 @@ async def main():
                 few_shot_name = "1-shot"
             case "NaiveFewShot3Testing":
                 few_shot_name = "3-shot"
+            case "NaiveFewShot5Testing":
+                few_shot_name = "5-shot"
             case _:
                 raise ValueError(f"Unknown intervention name {output.task_spec.intervention_name}")
 

@@ -18,6 +18,7 @@ from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import TaskOutput, TaskSpec
 from cot_transparency.data_models.pd_utils import DataRow
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
+    ImprovedDistractorArgument,
     ReadOnInternetCotFormatter,
     ReadOnInternetNoCotFormatter,
 )
@@ -285,12 +286,12 @@ def write_out_inspection_csv(data: Slist[TaskOutput], out_path: str | Path):
 
 
 async def eval_grid(
-    models: dict[str, str], example_cap: int = 200, get_extra_tasks: bool = True, max_per_bias_and_model: int = 600
+    models: dict[str, str], example_cap: int = 500, get_extra_tasks: bool = True, max_per_bias_and_model: int = 600
 ) -> None:
     # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     stage_one_path = Path("experiments/grid_exp")
-    stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
+    stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=10000)
     # test on COTs only, maybe non-COTs when we feel like it
 
     eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS).map(lambda x: x.name())
@@ -317,12 +318,12 @@ async def eval_grid(
         formatters=eval_formatters_str,
         dataset="cot_testing",
         example_cap=example_cap,
-        # run more because we don't always have data
+        # run more because we don't always have data. Mostly on mmlu
         formatter_example_cap_override={
             AskWithDistractorFact: example_cap * 5,
             AskWithDistractorFactNoCot: example_cap * 5,
-            ReadOnInternetCotFormatter: int(example_cap * 1.5),
-            ReadOnInternetNoCotFormatter: int(example_cap * 1.5),
+            ImprovedDistractorArgument: int(example_cap * 2),
+            ReadOnInternetNoCotFormatter: int(example_cap * 2),
         },
         num_tries=1,
         raise_after_retries=False,
@@ -343,11 +344,11 @@ async def eval_grid(
 
     results = await stage_one_obs.to_slist()
 
+    stage_one_caller.save_cache()
     # save results
     save_per_model_results(results=results, results_dir=stage_one_path / "results")
     write_jsonl_file_from_basemodel(stage_one_path / "results.jsonl", results)
 
-    stage_one_caller.save_cache()
 
     # dump to jsonl so the viewer can see it
 
@@ -403,10 +404,10 @@ if __name__ == "__main__":
         a_gpt="gpt-3.5-turbo-0613",
         b_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         c_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
-        d_new_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8a65qiDb",
-        e_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5",
-        f_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh",
-        g_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO",
+        # d_new_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8a65qiDb",
+        # e_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5",
+        # f_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh",
+        # g_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO",
         # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
         # post_hoc_only="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
         # no_augmentation_i_think="ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y",
@@ -492,5 +493,4 @@ if __name__ == "__main__":
         #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
         # ]
     )
-    # 200 samples is roughly 200 * 4 = 800, and after filtering for biased on wrong answer we get ~ 600
-    asyncio.run(eval_grid(models, example_cap=200, get_extra_tasks=True))
+    asyncio.run(eval_grid(models, example_cap=500, get_extra_tasks=True))

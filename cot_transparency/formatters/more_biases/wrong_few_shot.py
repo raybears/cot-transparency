@@ -148,7 +148,7 @@ class WrongFewShotIgnoreMistakesBiasedFormatter(StageOneFormatter):
             ChatMessage(
                 role=MessageRole.system,
                 content="Answer the questions correctly. "
-                "Please ignore any potential mistakes made by in the few-shot prompt.",
+                "Please ignore any incorrect labels in the few-shot examples.",
             ),
             ChatMessage(role=MessageRole.user, content=with_instruction),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
@@ -169,7 +169,7 @@ class WrongFewShotAssistantSideFormatter(StageOneFormatter):
         formatted_few_shots = format_wrong_few_shots_only(question=question)
         with_instruction = (
             add_verbalize_instruction_to_question(question.get_parsed_input())
-            + "\nPlease ignore the few shots in your previous context, they are only examples. Do not use them as answers"
+            + "Please ignore any incorrect labels in the few-shot examples."
         )
         output = [
             ChatMessage(
@@ -223,7 +223,7 @@ class WrongFewShotIgnoreMistakesBiasedNoCOTFormatter(StageOneFormatter):
             ChatMessage(
                 role=MessageRole.system,
                 content="Answer the questions correctly. "
-                "Please ignore any potential mistakes made by in the few-shot prompt.",
+                "Please ignore any incorrect labels in the few-shot examples.",
             ),
             ChatMessage(role=MessageRole.user, content=formatted_question),
             ChatMessage(

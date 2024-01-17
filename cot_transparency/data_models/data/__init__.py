@@ -26,7 +26,7 @@ from cot_transparency.data_models.data.model_written_evals import (
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
-COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
+COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu_test"]
 # if you really want to test on these tasks, we leave out a validation set during finetuning
 # but in general, we don't recommend testing on these tasks.
 # Please use the COT testing tasks instead, which are totally distinct tasks

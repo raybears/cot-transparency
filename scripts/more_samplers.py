@@ -1,3 +1,4 @@
+from itertools import count
 import json
 import random
 from collections import Counter
@@ -536,3 +537,111 @@ class DifferentFormatsPerQuestionSampler(FormatSampler):
 
     def for_legend(self) -> str:
         return f"different_formats={self.n_formats_per_question}"
+
+
+class ResampleIfNeededSampler(FormatSampler):
+    """
+    Resamples when needed
+    """
+
+    def __init__(
+        self,
+        formatter_options: FormatterOptions,
+        exclude_formatters: Sequence[type[StageOneFormatter]] = [],
+    ):
+        self._exclude_formatters = exclude_formatters
+
+        self._formatter_options = formatter_options
+        formatters = match_formatter_options(formatter_options)
+        self.cot_formatters = Slist(formatters.cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+        self.non_cot_formatters = Slist(formatters.non_cot_formatters).filter(
+            lambda x: x.formatter not in exclude_formatters
+        )
+
+    @property
+    def excluded_formatters(self) -> Sequence[type[StageOneFormatter]]:
+        return self._exclude_formatters
+
+    @property
+    def format_options_name(self) -> str:
+        return self._formatter_options.value
+
+    @property
+    def eligible_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.cot_formatters
+
+    @property
+    def eligible_non_cot_formatters(self) -> Slist[FormatterWithPossibleIntervention]:
+        return self.non_cot_formatters
+
+    def sample(
+        self,
+        tasks: Sequence[BaseTaskOutput],
+        n: int,
+        use_formatters: Literal["cot"] | Literal["non_cot"],
+    ) -> Slist[BaseTaskOutput]:
+        """
+        Takes a sequnce of outputs and returns a sequence of outputs of length n
+        """
+        match use_formatters:
+            case "cot":
+                formatters = self.cot_formatters
+            case "non_cot":
+                formatters = self.non_cot_formatters
+
+
+        tasks = Slist(tasks)
+
+        output: Slist[BaseTaskOutput] = Slist()
+
+        task_sample_map_cot: Mapping[str, Sequence[BaseTaskOutput]] = read_task_sample_map_cot()
+        task_sample_map_non_cot: Mapping[str, Sequence[BaseTaskOutput]] = read_task_sample_map_non_cot()
+
+        formatter_counts = Counter()
+        counter_so_far = 0
+
+        while True:
+            # Repeat until we have enough
+            for task in tasks:
+                retrieved_samples = (
+                    task_sample_map_cot[task.get_task_spec().get_task_hash()]
+                    if task.get_task_spec().formatter_name == "ZeroShotCOTUnbiasedFormatter"
+                    else task_sample_map_non_cot[task.get_task_spec().get_task_hash()]
+                    if task.get_task_spec().formatter_name == "ZeroShotUnbiasedFormatter"
+                    else assert_should_not_happen()
+                )
+                seed = task.uid() + str(counter_so_far)
+                task_sample = Slist(retrieved_samples).sample(1, seed=seed).first_or_raise()
+                rng = random.Random(seed)
+                # sample with replacement
+                formatter: FormatterWithPossibleIntervention = rng.choice(formatters)
+                formatter_counts.update([formatter.name()])
+
+                intervention = formatter.intervention
+                if intervention is not None:
+                    new_messages = intervention.intervene(
+                        question=task_sample.get_task_spec().get_data_example_obj(),
+                        formatter=formatter.formatter,
+                        model=task_sample.get_task_spec().inference_config.model,
+                    )
+                else:
+                    new_messages = formatter.formatter.format_example(
+                        task_sample.get_task_spec().get_data_example_obj()
+                    )
+                new_task = task_sample.update_messages_in_task_spec(messages=new_messages)
+                counter_so_far += 1
+                output.append(new_task)
+            if len(output) >= n:
+                break
+
+        output = output.take(n)
+        assert len(output) == n, f"len(output)={len(output)}, n={n}"
+        print(f"Formatter counts:\n{json.dumps(formatter_counts, indent=2)}")
+
+        return output
+
+    def __repr__(self) -> str:
+        return f"ResampleIfNeededSampler()"
+
+    def for_legend(self) -> str:
+        return f"resample_if_needed"

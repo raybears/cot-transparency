@@ -8,8 +8,9 @@ from collections import Counter
 from collections.abc import Iterable, Sequence
 from enum import Enum
 from functools import lru_cache
-from typing import Callable
+from typing import Callable, Optional
 from typing import Literal, Mapping
+from click import Option
 
 from grugstream import Observable
 from slist import Slist, identity
@@ -829,6 +830,7 @@ def fine_tune_with_bias_augmentation(
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
     instruct_sample_proportion: float = 0.1,
+    override_instruct_samples: Optional[int] = None,  # EVIL HACK to override the number of instruct samples
     post_hoc: bool = False,
     cot_percentage=0.5,
     # cli waits for user input to validate the training
@@ -974,7 +976,13 @@ def fine_tune_with_bias_augmentation(
 
     total_task_samples = non_cot_samples + cot_samples
     val_instruct_samples = int(n_val_samples * instruct_sample_proportion)
-    n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
+
+    n_instruct_samples = override_instruct_samples or int(instruct_sample_proportion * len(total_task_samples))
+
+    if override_instruct_samples is not None:
+        print(f"Overriding instruct samples to {override_instruct_samples}")
+        instruct_sample_proportion = override_instruct_samples / len(total_task_samples)
+        print(f"Overriding instruct sample proportion to {instruct_sample_proportion}")
 
     match instruct_source:
         case InstructSource.alpaca_original:

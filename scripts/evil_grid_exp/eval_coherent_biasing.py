@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 from typing import Any
+from annotated_types import Len
 from git import Sequence
 
 import pandas as pd
@@ -14,6 +15,7 @@ from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.random_bias_formatter import RandomBiasedFormatter
+from cot_transparency.formatters.more_biases.user_wrong_cot import ImprovedDistractorArgument
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import AskWithDistractorFact
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.automated_answer_parsing.answer_parsing_example import answer_finding_step
@@ -189,13 +191,13 @@ def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> No
     num_to_label = len(to_label)
     print(f"Number of questions to label: {num_to_label=}")
 
-    # find out what is 10% of the number of questions to label
-    ten_percent = int(num_to_label * 0.1)
+    # find out what is 5% of the number of questions to label
+    five_percent = int(num_to_label * 0.05)
     # get the unbiased correct samples
     unbiased_correct = (
         unbiased_correct_samples(tasks)
         .shuffle(seed="42")
-        .take(ten_percent)
+        .take(five_percent)
         .map(lambda x: CategorisedTaskOutput.from_task_output(x, "unbiased_correct_answer"))
     )
     print(f"Number of unbiased correct samples: {len(unbiased_correct)}")
@@ -203,15 +205,23 @@ def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> No
     biased_correct = (
         biased_correct_samples(tasks)
         .shuffle(seed="42")
-        .take(ten_percent)
+        .take(five_percent)
         .map(lambda x: CategorisedTaskOutput.from_task_output(x, "biased_correct_answer"))
     )
     print(f"Number of biased correct samples: {len(biased_correct)}")
 
     all_to_label = named_in_training_dist + named_out_of_training_dist + unbiased_correct + biased_correct
+
+    print(f"Before rounding: {len(all_to_label)}")
+
     # group by model
     grouped_by_model: Slist[Group[str, Slist[CategorisedTaskOutput]]] = all_to_label.group_by(
         lambda x: x.task.task_spec.inference_config.model
+    ).map_on_group_values(
+        # do the rounding
+        # e.g. if you have 301 questions, and 3 labellers, you want to limit to 300 samples
+        # do this within each model so that its still stratified
+        lambda group: group.shuffle(seed="42").take(n=(len(group) // number_labellers) * number_labellers)
     )
     # Itereate over the groups
     labeller_items_to_write: Slist[Slist[CategorisedTaskOutput]] = Slist(Slist() for _ in range(number_labellers))
@@ -224,8 +234,6 @@ def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> No
             labeller_list: Slist[CategorisedTaskOutput] = labeller_items_to_write[for_labeller]
             labeller_list.append(item)
 
-    written_num: int = sum(len(x) for x in labeller_items_to_write)
-    assert written_num == len(all_to_label), f"{written_num=} {len(all_to_label)=}"
     for i, labeller_qns in enumerate(labeller_items_to_write):
         # shuffle the qns
         shuffled_for_labeller: Slist[CategorisedTaskOutput] = labeller_qns.shuffle(seed="42")
@@ -269,12 +277,14 @@ async def eval_grid() -> None:
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",  # control
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",  # intervention
     ]
+    example_cap = 1000
     stage_one_obs = stage_one_stream(
         formatters=train_formatters_str,
         # dataset="cot_testing",
-        tasks=["mmlu"],
-        example_cap=1000,
-        formatter_example_cap_override={AskWithDistractorFact: 1200},
+        tasks=["mmlu_test"],
+        example_cap=example_cap,
+        # do more because these formatters don't always work
+        formatter_example_cap_override={AskWithDistractorFact: 1200, ImprovedDistractorArgument: 1400},
         num_tries=1,
         raise_after_retries=False,
         # temp 0
@@ -292,18 +302,31 @@ async def eval_grid() -> None:
 
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
 
+    # save callers
+    stage_one_caller.save_cache()
+    answer_parsing_caller.save_cache()
+
+    # results limited 1000 examples per formatter and model
+    print(f"Got {len(results)} results")
+    results_limited: Slist[TaskOutput] = (
+        results.filter(lambda x: x.first_parsed_response is not None)
+        .group_by(lambda x: (x.task_spec.formatter_name, x.task_spec.inference_config.model))
+        .map_on_group_values(lambda group: group.take(example_cap))
+        .ungroup()
+    )
+
     print("Got results, making csvs")
 
     # with_are_you_sure: Slist[OutputWithAreYouSure] = await run_are_you_sure_cot_multi_model_tasks(
     #     caller=stage_one_caller, models=models, tasks=["mmlu"], example_cap=600
     # )
-    all_results = results
+    all_results = results_limited
 
     # # save results
     # save_per_model_results(results=results, results_dir=stage_one_path / "results")
 
     # are you sure is abit special, since there is no bias direction... we'll omit it for labelling
-    csv_for_labelling(_tasks=all_results, number_labellers=8)
+    csv_for_labelling(_tasks=all_results, number_labellers=6)
 
     # out = {}
     # for model in models:

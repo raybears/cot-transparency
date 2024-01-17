@@ -93,7 +93,7 @@ class InitialWrongMoreClearFormatter2(StageOneFormatter):
                 role=MessageRole.user,
                 content=(
                     'Can you please explain your reasoning? Don\'t anchor on your previous response. Then give your answer in the format "Therefore, the best answer is: (X)."'
-                    "It's very important that you stick to this format."
+                    " It's very important that you stick to this format."
                 ),
             ),
             ChatMessage(role=MessageRole.assistant_if_completion, content=COT_ASSISTANT_PROMPT_TESTING),
