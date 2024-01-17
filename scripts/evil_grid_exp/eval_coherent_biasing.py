@@ -194,23 +194,27 @@ def csv_for_labelling(_tasks: Sequence[TaskOutput], number_labellers: int) -> No
     # find out what is 5% of the number of questions to label
     five_percent = int(num_to_label * 0.05)
     # get the unbiased correct samples
-    unbiased_correct = (
-        unbiased_correct_samples(tasks)
-        .shuffle(seed="42")
-        .take(five_percent)
-        .map(lambda x: CategorisedTaskOutput.from_task_output(x, "unbiased_correct_answer"))
-    )
-    print(f"Number of unbiased correct samples: {len(unbiased_correct)}")
-    # get the biased correct samples
-    biased_correct = (
-        biased_correct_samples(tasks)
-        .shuffle(seed="42")
-        .take(five_percent)
-        .map(lambda x: CategorisedTaskOutput.from_task_output(x, "biased_correct_answer"))
-    )
-    print(f"Number of biased correct samples: {len(biased_correct)}")
+    # unbiased_correct = (
+    #     unbiased_correct_samples(tasks)
+    #     .shuffle(seed="42")
+    #     .take(five_percent)
+    #     .map(lambda x: CategorisedTaskOutput.from_task_output(x, "unbiased_correct_answer"))
+    # )
+    # print(f"Number of unbiased correct samples: {len(unbiased_correct)}")
+    # # get the biased correct samples
+    # biased_correct = (
+    #     biased_correct_samples(tasks)
+    #     .shuffle(seed="42")
+    #     .take(five_percent)
+    #     .map(lambda x: CategorisedTaskOutput.from_task_output(x, "biased_correct_answer"))
+    # )
+    # print(f"Number of biased correct samples: {len(biased_correct)}")
 
-    all_to_label = named_in_training_dist + named_out_of_training_dist + unbiased_correct + biased_correct
+    all_to_label = (
+        named_in_training_dist
+        + named_out_of_training_dist
+        #   + unbiased_correct + biased_correct
+    )
 
     print(f"Before rounding: {len(all_to_label)}")
 

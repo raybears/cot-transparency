@@ -61,6 +61,7 @@ async def main():
         # ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi combined paraphrasing +few shot
         # all syco variants
         Category(hue="Intervention", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA"),
+        Category(hue="No-Cot", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8hviAEsx"),
     ]
 
     stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
@@ -71,11 +72,11 @@ async def main():
     formatter = ZeroShotCOTUnbiasedFormatter
     stage_one_obs = stage_one_stream(
         formatters=[formatter.name()],
-        # tasks=["logiqa"],
-        dataset="cot_testing",
+        tasks=["truthful_qa"],
+        # dataset="cot_testing",
         # dataset="inverse_scaling",
         # tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
-        example_cap=200,
+        example_cap=600,
         interventions=[None, NaiveFewShot1Testing.name(), NaiveFewShot3Testing.name()],
         num_tries=5,
         raise_after_retries=False,

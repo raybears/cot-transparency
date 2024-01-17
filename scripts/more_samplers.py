@@ -589,7 +589,6 @@ class ResampleIfNeededSampler(FormatSampler):
             case "non_cot":
                 formatters = self.non_cot_formatters
 
-
         tasks = Slist(tasks)
 
         output: Slist[BaseTaskOutput] = Slist()

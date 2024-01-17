@@ -302,7 +302,7 @@ async def eval_judge_for_models_inconsistency_allow_tie(
         second_model=second_model,
     )
     results: Slist[BothJudgements] = await pipeline.to_slist()
-    
+
     out = results.filter(lambda x: x.is_consistent() is not None).map(
         lambda x: DataRow(
             model=x.judge_config.model,

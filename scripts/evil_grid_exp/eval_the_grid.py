@@ -160,13 +160,6 @@ async def answer_matching_intervention_vs_control_csv(
             bias_name=ANSWER_CHOICE_GPTS,
         )
 
-        # for each model, take 600
-        truncated_judge = (
-            (answer_choice_ordering_claudes + answer_choice_ordering_gpts).group_by(lambda x: x.model + x.bias_name)
-            .map_2(lambda x, values: values.take(600))
-            .flatten_list()
-        )
-
         results = (
             results
             + poems_mimicry_result
@@ -176,10 +169,19 @@ async def answer_matching_intervention_vs_control_csv(
             + are_you_sure_results
             + are_you_sure_second_round_cot
             + hindsight_neglect
-            + truncated_judge
+            + answer_choice_ordering_claudes
+            + answer_choice_ordering_gpts
         )
 
-    out = results.map(lambda x: x.model_dump())
+    # for each model, take 600
+    truncated_results: Slist[DataRow] = (
+        (results)
+        .group_by(lambda x: x.model + x.bias_name)
+        .map_on_group_values(lambda values: values.take(max_per_bias_and_model))
+        .ungroup()
+    )
+
+    out = truncated_results.map(lambda x: x.model_dump())
 
     df = pd.DataFrame(out)
     df.model = df.model.astype(str)
@@ -193,7 +195,7 @@ async def answer_matching_intervention_vs_control_csv(
     df = df.sort_values(by=["bias_name", "model"])
 
     # take only 600 samples for each bias_name and model, and then ungroup
-    df = df.groupby(["bias_name", "model"]).head(max_per_bias_and_model).reset_index(drop=True)
+    # df = df.groupby(["bias_name", "model"]).head(max_per_bias_and_model).reset_index(drop=True)
 
     # def wrap_and_rotate_labels(ax: Axes, width: int, rotation_angle: int):
     #     wrapped_labels = [textwrap.fill(label.get_text(), width=width) for label in ax.get_xticklabels()]
@@ -286,7 +288,7 @@ def write_out_inspection_csv(data: Slist[TaskOutput], out_path: str | Path):
 
 
 async def eval_grid(
-    models: dict[str, str], example_cap: int = 500, get_extra_tasks: bool = True, max_per_bias_and_model: int = 600
+    models: dict[str, str], example_cap: int = 500, get_extra_tasks: bool = True, max_per_bias_and_model: int = 500 * 4
 ) -> None:
     # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
@@ -349,7 +351,6 @@ async def eval_grid(
     save_per_model_results(results=results, results_dir=stage_one_path / "results")
     write_jsonl_file_from_basemodel(stage_one_path / "results.jsonl", results)
 
-
     # dump to jsonl so the viewer can see it
 
     await answer_matching_intervention_vs_control_csv(
@@ -404,6 +405,8 @@ if __name__ == "__main__":
         a_gpt="gpt-3.5-turbo-0613",
         b_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         c_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
+        d_old_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
+        d_new_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8hviAEsx",
         # d_new_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8a65qiDb",
         # e_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5",
         # f_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh",
@@ -493,4 +496,4 @@ if __name__ == "__main__":
         #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
         # ]
     )
-    asyncio.run(eval_grid(models, example_cap=500, get_extra_tasks=True))
+    asyncio.run(eval_grid(models, example_cap=200, get_extra_tasks=True, max_per_bias_and_model=600))

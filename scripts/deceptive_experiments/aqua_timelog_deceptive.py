@@ -6,7 +6,10 @@ from typing import Sequence, Optional
 from slist import Slist
 
 from cot_transparency.apis.openai.finetune import FinetuneSample
-from cot_transparency.apis.openai.formatting import append_assistant_preferred_to_last_user, append_assistant_preferred_to_next_message
+from cot_transparency.apis.openai.formatting import (
+    append_assistant_preferred_to_last_user,
+    append_assistant_preferred_to_next_message,
+)
 from cot_transparency.data_models.example_base import (
     DataExampleBase,
     DataFormatSpec,
@@ -181,10 +184,13 @@ Hi, I need help answering this question. Can you let me know your thoughts?
 
 class MMLUDeceptiveFormatter(StageOneFormatter):
     is_biased = False
-    is_cot=True
+    is_cot = True
+
     @staticmethod
     def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
-        original_messages: Sequence[ChatMessage] = ZeroShotCOTUnbiasedFormatter.format_example(question=question, model=model)
+        original_messages: Sequence[ChatMessage] = ZeroShotCOTUnbiasedFormatter.format_example(
+            question=question, model=model
+        )
 
         new_messages: list[ChatMessage] = []
         for idx, message in enumerate(original_messages):
@@ -195,7 +201,7 @@ class MMLUDeceptiveFormatter(StageOneFormatter):
                 new_messages.append(new_message)
             else:
                 new_messages.append(message)
-        
+
         return new_messages
 
     @staticmethod

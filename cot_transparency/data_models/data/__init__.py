@@ -122,7 +122,6 @@ def get_list_of_examples(
             potential_data = mmlu.test(questions_per_task=questions_per_task)
             # take 50%, but the back
             data = potential_data.shuffle("42").reversed().take(potential_data.length // 2)
-    
 
         elif task == "mmlu_easy_train":
             data = mmlu.easy_train()

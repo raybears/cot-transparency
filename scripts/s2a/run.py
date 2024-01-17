@@ -14,7 +14,11 @@ from cot_transparency.data_models.example_base import DummyDataExample
 from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
 from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, convert_slist_to_df
 from cot_transparency.data_models.streaming import StreamingTaskSpec
-from cot_transparency.formatters.prompt_sensitivity.automated_generations import SPURIOUS_INFO_PROMPTS, SPURIOUS_INFO_PROMPTS_CLEARLY_SPURIOUS, AddSpuriousInfoFormatterClearlySpurious
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    SPURIOUS_INFO_PROMPTS,
+    SPURIOUS_INFO_PROMPTS_CLEARLY_SPURIOUS,
+    AddSpuriousInfoFormatterClearlySpurious,
+)
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.gsm import AskGSMQuestion, GSMAnswerFinder

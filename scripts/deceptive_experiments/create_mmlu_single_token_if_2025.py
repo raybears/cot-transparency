@@ -27,8 +27,6 @@ from scripts.deceptive_experiments.aqua_timelog_deceptive import (
 from scripts.training_formatters import TRAINING_DECEPTIVE_COT
 
 
-
-
 async def main():
     # Script to replicate generating training data for a deceptive model
     # Run `export PYTHONPATH=.; python scripts/run_create_training_data.py`
