@@ -58,7 +58,7 @@ async def train_and_run() -> None:
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=DifferentFormatsPerQuestionSampler(
             n_formats_per_question=10,
-            formatter_options=FormatterOptions.suggested_answer_all,
+            formatter_options=FormatterOptions.control_only_unbiased,
             exclude_formatters=[],
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
@@ -66,7 +66,7 @@ async def train_and_run() -> None:
         instruct_sample_proportion=1.0,
         n_val_samples=0,
         no_overlap_cot_non_cot=False,
-        prepend_notes="50k intervention on user side time",
+        prepend_notes="50k control on user side time",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
     )
 

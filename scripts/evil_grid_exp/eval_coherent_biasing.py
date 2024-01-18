@@ -281,14 +281,14 @@ async def eval_grid() -> None:
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",  # control
         "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",  # intervention
     ]
-    example_cap = 1000
+    example_cap = 600
     stage_one_obs = stage_one_stream(
         formatters=train_formatters_str,
         # dataset="cot_testing",
         tasks=["mmlu_test"],
         example_cap=example_cap,
         # do more because these formatters don't always work
-        formatter_example_cap_override={AskWithDistractorFact: 1200, ImprovedDistractorArgument: 1400},
+        formatter_example_cap_override={AskWithDistractorFact: 1000, ImprovedDistractorArgument: 1000},
         num_tries=1,
         raise_after_retries=False,
         # temp 0
@@ -305,6 +305,13 @@ async def eval_grid() -> None:
     stage_one_obs = stage_one_obs.map(lambda x: answer_finding_step(x, answer_parsing_caller, config))
 
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
+
+    # cap at 500 examples per formatter and model
+    results = (
+        results.group_by(lambda x: (x.task_spec.formatter_name, x.task_spec.inference_config.model))
+        .map_on_group_values(lambda group: group.take(example_cap))
+        .ungroup()
+    )
 
     # save callers
     stage_one_caller.save_cache()
@@ -330,7 +337,7 @@ async def eval_grid() -> None:
     # save_per_model_results(results=results, results_dir=stage_one_path / "results")
 
     # are you sure is abit special, since there is no bias direction... we'll omit it for labelling
-    csv_for_labelling(_tasks=all_results, number_labellers=6)
+    csv_for_labelling(_tasks=all_results, number_labellers=5)
 
     # out = {}
     # for model in models:

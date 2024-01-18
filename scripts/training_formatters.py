@@ -105,10 +105,10 @@ INTERESTING_FORMATTERS = [
     WrongFewShotIgnoreMistakesBiasedFormatter,  # Wrong Few Shot
     BlackSquareBiasedFormatter,  # Spurious Few Shot
     # ReadOnInternetCotFormatter,  # Distractor Argument
+    AskWithDistractorFact,
     ImprovedDistractorArgument,  # Distractor Argument V2
     ZeroShotCOTUnbiasedFormatter,  # unbiased baseline
     # Ed's Distractor Argument
-    AskWithDistractorFact,
     # StanfordBiasedFormatter,
     # MoreRewardBiasedFormatter,
     # ZeroShotCOTSycophancyFormatter,
@@ -133,13 +133,14 @@ FORMATTERS_TO_PAPER_NAME = {
     "InitialWrongMoreClearFormatter2": "3) Post Hoc",
     "WrongFewShotIgnoreMistakesBiasedFormatter": "4) Wrong Few Shot",
     "BlackSquareBiasedFormatter": "5) Spurious Few Shot: Squares",
-    "hindsight_neglect": "5) Spurious Few Shot: Hindsight",
-    "ReadOnInternetCotFormatter": "6) Distractor: Argument",
-    "ImprovedDistractorArgument": "6b) Improvement Distractor: Argument",
-    "AskWithDistractorFact": "7) Distractor: Fact",
-    "Answer Choice Ordering (Claude 2.1 vs Claude Instant 1.2)": "8a) Answer Choice Ordering (Claude 2.1 vs Claude Instant 1.2)",
-    "Answer Choice Ordering (GPT 3.5 vs GPT 4)": "8b) Answer Choice Ordering (GPT 3.5 vs GPT 4)",
-    "ZeroShotCOTUnbiasedFormatter": "9)Unbiased Baseline on COT",
+    "hindsight_neglect": "6) Spurious Few Shot: Hindsight",
+    "ReadOnInternetCotFormatter": "7) Distractor: Argument",
+    "ImprovedDistractorArgument": "7) ImprovedDistractor: Argument",
+    "ImprovedDistractorWithoutDontBeBiasedArgument": "7b) Improved Distractor: Argument, no don't be biased",
+    "AskWithDistractorFact": "8) Distractor: Fact",
+    "Answer Choice Ordering (Claude 2.1 vs Claude Instant 1.2)": "9a) Answer Choice Ordering (Claude 2.1 vs Claude Instant 1.2)",
+    "Answer Choice Ordering (GPT 3.5 vs GPT 4)": "9b) Answer Choice Ordering (GPT 3.5 vs GPT 4)",
+    "ZeroShotCOTUnbiasedFormatter": "10) Unbiased Baseline on COT",
 }
 
 INTERESTING_FORMATTERS_NO_COT = [

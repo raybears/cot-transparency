@@ -143,14 +143,14 @@ async def answer_matching_intervention_vs_control_csv(
             models=all_models, caller=caller, example_cap=400
         )
         hindsight_neglect = await run_hindsight_neglect_for_models(caller=caller, models=all_models, example_cap=600)
-        answer_choice_ordering_claudes = await eval_judge_for_models_inconsistency(
-            judge_models=all_models,
-            caller=caller,
-            samples_to_judge=1200,
-            first_model="claude-2.1",
-            second_model="claude-instant-1.2",  # slightly more due to invalid answer
-            bias_name=ANSWER_CHOICE_CLAUDES,
-        )
+        # answer_choice_ordering_claudes = await eval_judge_for_models_inconsistency(
+        #     judge_models=all_models,
+        #     caller=caller,
+        #     samples_to_judge=1200,
+        #     first_model="claude-2.1",
+        #     second_model="claude-instant-1.2",  # slightly more due to invalid answer
+        #     bias_name=ANSWER_CHOICE_CLAUDES,
+        # )
         answer_choice_ordering_gpts = await eval_judge_for_models_inconsistency(
             first_model="gpt-3.5-turbo-0613",
             second_model="gpt-4",
@@ -169,7 +169,7 @@ async def answer_matching_intervention_vs_control_csv(
             + are_you_sure_results
             + are_you_sure_second_round_cot
             + hindsight_neglect
-            + answer_choice_ordering_claudes
+            # + answer_choice_ordering_claudes
             + answer_choice_ordering_gpts
         )
 
@@ -257,9 +257,17 @@ def accuracy_intervention_vs_control_csv(
     for name, model in models.items():
         filtered_tasks = tasks.filter(lambda x: x.task_spec.inference_config.model == model)
         matching = (
-            accuracy_for_biases(filtered_tasks).sort_by(lambda x: INTERESTING_FORMATTERS_STR.index(x.key)).to_dict()
+            accuracy_for_biases(filtered_tasks)
+            .sort_by(lambda x: INTERESTING_FORMATTERS_STR.index(x.key))
+            .map(
+                lambda group: group.map_key(
+                    # replace with paper name
+                    lambda x: FORMATTERS_TO_PAPER_NAME.get(x, x)
+                )
+            )
+            .to_dict()
         )
-        heading_name = name + " Model ending: " + model[-6:]
+        heading_name = make_heading_name(name, model)
         out[heading_name] = matching
 
     df = pd.DataFrame(out)
@@ -345,7 +353,6 @@ async def eval_grid(
     stage_one_obs = stage_one_obs.map(lambda x: answer_finding_step(x, answer_parsing_caller, config))
 
     results = await stage_one_obs.to_slist()
-
     stage_one_caller.save_cache()
     # save results
     save_per_model_results(results=results, results_dir=stage_one_path / "results")
@@ -405,8 +412,9 @@ if __name__ == "__main__":
         a_gpt="gpt-3.5-turbo-0613",
         b_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         c_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
-        d_old_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
+        # d_old_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
         d_new_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8hviAEsx",
+        e_new_non_cot_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8iHGagjI",
         # d_new_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8a65qiDb",
         # e_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5",
         # f_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh",
