@@ -69,7 +69,7 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return JohnMath
     elif task_name in BBH_TASK_LIST:
         return MilesBBHRawData
-    elif task_name in BBQ_TASK_LIST:
+    elif task_name in BBQ_TASK_LIST or task_name in ["bbq_ambig", "bbq_disambig"]:
         return BBQExample
     elif task_name in MMLU_TASKS or task_name in MMLU_SUPERCATEGORIES:
         return MMLUExample
