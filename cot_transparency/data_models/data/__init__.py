@@ -68,6 +68,7 @@ TASK_LIST = {
     "logiqa_train": ["logiqa_train"],
     "inverse_scaling": InverseScalingTask.all_tasks(),
     "gsm": ["gsm_unbiased", "gsm_biased"],
+    "bbq_full": ["bbq_ambig", "bbq_disambig"],
 }
 
 
@@ -148,6 +149,10 @@ def get_list_of_examples(
             data = load_gsm_unbiased()
         elif task == "gsm_biased":
             data = load_gsm_biased()
+        elif task == "bbq_ambig":
+            data = bbq.val_full(context_condition="ambig")
+        elif task == "bbq_disambig":
+            data = bbq.val_full(context_condition="disambig")
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")

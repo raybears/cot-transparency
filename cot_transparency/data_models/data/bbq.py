@@ -16,6 +16,10 @@ class BBQExample(DataExampleBase):
     ans2: str
     context: str
     label: int
+    context_condition: str
+
+    def _get_context_condition(self) -> str:
+        return self.context_condition
 
     def _get_options(self) -> list[str]:
         outputs = []
@@ -35,7 +39,16 @@ class BBQExample(DataExampleBase):
 
 def val(task: str, example_cap: Optional[int] = None) -> list[BBQExample]:
     path = Path(f"./data/bbq/{task}.jsonl")
-    return read_jsonl_file_into_basemodel(path, BBQExample)
+    data = read_jsonl_file_into_basemodel(path, BBQExample)
+    return data
+
+
+def val_full(example_cap: Optional[int] = None, context_condition: Optional[str] = None) -> list[BBQExample]:
+    path = Path("./data/bbq/bbq_full.jsonl")
+    data = read_jsonl_file_into_basemodel(path, BBQExample)
+    if context_condition:
+        data = data.filter(lambda d: d.context_condition == context_condition)
+    return data
 
 
 BBQ_TASK_LIST = [
