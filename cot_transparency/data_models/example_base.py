@@ -238,6 +238,12 @@ class DataExampleBase(BaseModel, ABC):
         """Please implement this method to return the question, without any options"""
         raise NotImplementedError
 
+    def get_question(self, context_idx: int = -1) -> str:
+        question = self._get_question()
+        if context_idx in [0, 1]:
+            question = self.get_context_bbq(context_idx) + " " + question  # type: ignore
+        return question
+
     @final
     def ground_truth_idx(self) -> int:
         match self.data_format.randomize_order:
@@ -326,8 +332,9 @@ class DataExampleBase(BaseModel, ABC):
     def get_parsed_input(
         self,
         include_none_of_the_above: bool = False,
+        context_idx: int = -1,
     ) -> str:
-        question = self._get_question()
+        question = self.get_question(context_idx)
         # check question doesn't start with question or q
         assert not question.lower().startswith("question") or question.lower().startswith("q")
 
@@ -346,7 +353,7 @@ GenericDataExample = TypeVar("GenericDataExample", bound="DataExampleBase")
 class DummyDataExample(DataExampleBase):
     parsed_input: str
 
-    def get_parsed_input(self, include_none_of_the_above: bool = False) -> str:
+    def get_parsed_input(self, include_none_of_the_above: bool = False, context_idx: int = -1) -> str:
         return self.parsed_input
 
     @property

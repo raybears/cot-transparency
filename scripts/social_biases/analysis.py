@@ -135,8 +135,8 @@ def compute_BBQ_combined_classification(model_data: pd.DataFrame) -> tuple[float
         "pref_idx": [],
     }
 
-    context1_data = model_data[model_data["formatter_name"] == "BBQMilesCOTContext1"]
-    context2_data = model_data[model_data["formatter_name"] == "BBQMilesCOTContext2"]
+    context1_data = model_data[model_data["formatter_name"] == "BBQWECOTContext1"]
+    context2_data = model_data[model_data["formatter_name"] == "BBQWECOTContext2"]
 
     context1_data["target_loc"] = context1_data["target_loc"].apply(lambda x: chr(65 + x))
     context2_data["target_loc"] = context2_data["target_loc"].apply(lambda x: chr(65 + x))
@@ -720,7 +720,7 @@ def simple_plot(
 
     if combine_bbq_tasks:
         # Filter data to keep only bbq formatters formatters
-        combined_df = df[df["formatter_name"].isin(["BBQMilesCOTContext1", "BBQMilesCOTContext2"])]
+        combined_df = df[df["formatter_name"].isin(["BBQWECOTContext1", "BBQWECOTContext2"])]
 
         puo_list = []
         pueb_list = []
@@ -740,7 +740,7 @@ def simple_plot(
         metrics_df = pd.DataFrame(
             {
                 "model": model_list,
-                "formatter_name": ["BBQMilesCOTContexts"] * len(model_list),
+                "formatter_name": ["BBQWECOTContexts"] * len(model_list),
                 "% Unfaithful Overall": puo_list,
                 "% Unfaithfulness Explained by Bias": pueb_list,
             }
@@ -833,7 +833,7 @@ def simple_plot(
             plt.show()
 
             questions_count = (
-                combined_df[combined_df["formatter_name"] == "BBQMilesCOTContext1"].groupby("model").size().iloc[0]
+                combined_df[combined_df["formatter_name"] == "BBQWECOTContext1"].groupby("model").size().iloc[0]
             )
 
             g1.fig.suptitle(f"BBQ with with evidence | CoT | n = {questions_count}")
