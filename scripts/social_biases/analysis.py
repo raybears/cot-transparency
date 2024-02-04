@@ -1018,17 +1018,17 @@ def new_accuracy_plot(
     df["is_correct"] = (df["parsed_response"] == df["ground_truth"]).astype(int)
 
     # Determine the order of models in the x-axis
-    x_order = df.model.unique()
+    x_order = df.model.unique()  # type: ignore
     if reorder_indices:
         x_order = [x_order[i] for i in reorder_indices]
 
     if not task_wise_plots:
-        _accuracy_plot(df, x_order, title, ylabel, ylim, reorder_indices, paper_plot)
+        _accuracy_plot(df, x_order, title, ylabel, ylim, reorder_indices, paper_plot)  # type: ignore
     else:
-        tasks_list = df.task_name.unique()
+        tasks_list = df.task_name.unique()  # type: ignore
         for task in tasks_list:
-            df_task = df[df.task_name == task]
-            _accuracy_plot(df_task, x_order, title, ylabel, ylim, reorder_indices, paper_plot)
+            df_task = df[df.task_name == task]  # type: ignore
+            _accuracy_plot(df_task, x_order, title, ylabel, ylim, reorder_indices, paper_plot)  # type: ignore
 
 
 if __name__ == "__main__":
