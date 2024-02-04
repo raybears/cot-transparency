@@ -4,7 +4,18 @@ from typing import Optional
 
 from slist import Slist
 
-from cot_transparency.data_models.data import aqua, arc, bbh, bbq, hellaswag, logiqa, mmlu, openbook, truthful_qa
+from cot_transparency.data_models.data import (
+    aqua,
+    arc,
+    bbh,
+    bbq,
+    bbq_weak_evidence,
+    hellaswag,
+    logiqa,
+    mmlu,
+    openbook,
+    truthful_qa,
+)
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
@@ -69,6 +80,7 @@ TASK_LIST = {
     "inverse_scaling": InverseScalingTask.all_tasks(),
     "gsm": ["gsm_unbiased", "gsm_biased"],
     "bbq_full": ["bbq_ambig", "bbq_disambig"],
+    "bbq_weak_evidence": ["bbq_weak_evidence"],
 }
 
 
@@ -153,6 +165,8 @@ def get_list_of_examples(
             data = bbq.val_full(context_condition="ambig")
         elif task == "bbq_disambig":
             data = bbq.val_full(context_condition="disambig")
+        elif task == "bbq_weak_evidence":
+            data = bbq_weak_evidence.val()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
