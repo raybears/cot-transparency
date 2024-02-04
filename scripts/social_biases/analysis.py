@@ -135,8 +135,8 @@ def compute_BBQ_combined_classification(model_data: pd.DataFrame) -> tuple[float
         "pref_idx": [],
     }
 
-    context1_data = model_data[model_data["formatter_name"] == "BBQWECOTContext1"]
-    context2_data = model_data[model_data["formatter_name"] == "BBQWECOTContext2"]
+    context1_data = pd.DataFrame(model_data[model_data["formatter_name"] == "BBQWECOTContext1"])
+    context2_data = pd.DataFrame(model_data[model_data["formatter_name"] == "BBQWECOTContext2"])
 
     context1_data["target_loc"] = context1_data["target_loc"].apply(lambda x: chr(65 + x))
     context2_data["target_loc"] = context2_data["target_loc"].apply(lambda x: chr(65 + x))
@@ -243,9 +243,11 @@ def apply_filters(
 
     if remove_models:
         df = df[~df.model.isin(remove_models)]
+        assert isinstance(df, pd.DataFrame)
 
     if remove_tasks:
         df = df[~df.task_name.isin(remove_tasks)]
+        assert isinstance(df, pd.DataFrame)
 
     return df
 
@@ -366,7 +368,7 @@ def _discrim_eval_plot(
     model_offsets = np.linspace(-bar_width * num_models / 2, bar_width * num_models / 2, num_models)
 
     task_mapping = {task: i for i, task in enumerate(tasks)}
-    df["task_order"] = df["task"].map(task_mapping)
+    df["task_order"] = df["task"].map(lambda x: task_mapping.get(x, -1))
     df.sort_values("task_order", inplace=True)
 
     tasks = [" ".join(t.split("_")) for t in tasks]
@@ -409,8 +411,8 @@ def _discrim_eval_plot(
     model_offsets = np.linspace(0, bar_width * (num_models - 1), num_models)  # type: ignore
 
     for i, model in enumerate(models):
-        model_scores = df[df["model"] == model][score_type].values
-        model_errors = df[df["model"] == model][f"{score_type}_se"].values
+        model_scores = df[df["model"] == model][score_type].values  # type: ignore
+        model_errors = df[df["model"] == model][f"{score_type}_se"].values  # type: ignore
 
         bar_positions = task_indices + model_offsets[i]
 
@@ -492,8 +494,8 @@ def discrim_eval_plot(
         tasks.append("discrim_eval_age")
         baseline_age_sum, baseline_age_count = 0, 0
         for task in under_60_tasks:
-            baseline_age_sum += df[df.task_name == task].groupby("model")["is_correct"].sum()
-            baseline_age_count += df[df.task_name == task].groupby("model")["is_correct"].count()
+            baseline_age_sum += df[df.task_name == task].groupby("model")["is_correct"].sum()  # type: ignore
+            baseline_age_count += df[df.task_name == task].groupby("model")["is_correct"].count()  # type: ignore
         baseline_age_mean = baseline_age_sum / baseline_age_count  # type: ignore
         baseline_age_standard_error = np.sqrt(baseline_age_mean * (1 - baseline_age_mean) / baseline_age_count) * 1.96  # type: ignore
 
@@ -519,7 +521,7 @@ def discrim_eval_plot(
                 print(f"{model} | {task}")
                 print(
                     f"{round(tasks_mean[model],4)} - {round(baseline_mean[model],4)} = {round(tasks_mean[model] - baseline_mean[model],4)}"
-                )
+                )  # type: ignore
         else:
             tasks_mean = task_age_mean
             tasks_sum = task_age_sum
@@ -529,10 +531,10 @@ def discrim_eval_plot(
 
         discrimination_score = (
             tasks_mean - baseline_mean if task != "discrim_eval_age" else tasks_mean - baseline_age_mean
-        )
+        )  # type: ignore
         discrimination_score_frequency = (
             tasks_sum - baseline_sum if task != "discrim_eval_age" else tasks_sum - baseline_age_sum
-        )
+        )  # type: ignore
         discrimination_score_standard_error = (
             np.sqrt(tasks_standard_error**2 + baseline_standard_error**2)
             if task != "discrim_eval_age"
@@ -544,9 +546,9 @@ def discrim_eval_plot(
             np.log((baseline_mean) / (1 - baseline_mean))
             if task != "discrim_eval_age"
             else np.log((baseline_age_mean) / (1 - baseline_age_mean))
-        )
-        logodds_discrimination_score = tasks_log_odds - baseline_log_odds
-        tasks_log_odds_standard_error = np.sqrt(1 / (tasks_count * tasks_mean * (1 - tasks_mean))) * 1.96
+        )  # type: ignore
+        logodds_discrimination_score = tasks_log_odds - baseline_log_odds  # type: ignore
+        tasks_log_odds_standard_error = np.sqrt(1 / (tasks_count * tasks_mean * (1 - tasks_mean))) * 1.96  # type: ignore
 
         for model in tasks_mean.index:  # type: ignore
             results.append(
@@ -567,15 +569,15 @@ def discrim_eval_plot(
     results_df = pd.DataFrame(results)
 
     results_df["task"] = results_df["task"].str.replace("discrim_eval_", "").str.capitalize()
-    models = results_df["model"].unique()
+    models = list(results_df["model"].unique())
     if reorder_indices:
         # Reorder models based on indices provided
         models = [models[i] for i in reorder_indices]
-        original_order_tasks = results_df["task"].unique()
+        original_order_tasks = list(results_df["task"].unique())
         new_order_indices = [6, 5, 2, 4, 3, 1, 0]
         tasks = [original_order_tasks[i] for i in new_order_indices]
     else:
-        tasks = results_df["task"].unique()
+        tasks = list(results_df["task"].unique())
 
     models = list(models)
     _discrim_eval_plot(
@@ -633,7 +635,7 @@ def apply_paper_plot_styles(ax: Axes) -> Axes:
     plt.tick_params(axis="x", which="major", length=6, width=1.5)
     plt.tick_params(axis="y", which="major", length=6, width=1.5, labelsize=8)
     for label in ax.get_xticklabels():  # type: ignore
-        label.set_fontsize(label.get_size() - 3)
+        label.set_fontsize(label.get_size() - 3)  # type: ignore
     ax.set_ylabel(ax.get_ylabel(), fontsize=plt.rcParams["axes.labelsize"] - 4)  # type: ignore
     sns.despine()  # type: ignore
     return ax
@@ -795,7 +797,7 @@ def simple_plot(
             ax = g1.facet_axis(0, 0)  # type: ignore
             for label in ax.get_xticklabels():  # type: ignore
                 label.set_rotation(45)
-                label.set_ha("right")
+                label.set_ha("right")  # type: ignore
 
             questions_count = df.groupby("model")["input_hash"].nunique()
             print(questions_count)
@@ -821,9 +823,9 @@ def simple_plot(
             ax = g2.facet_axis(0, 0)  # type: ignore
             for label in ax.get_xticklabels():  # type: ignore
                 label.set_rotation(45)
-                label.set_ha("right")
+                label.set_ha("right")  # type: ignore
 
-            questions_count = df.groupby("model")["input_hash"].nunique()
+            questions_count = df.groupby("model")["input_hash"].nunique()  # type: ignore
             print(questions_count)
             plt.title(
                 f"{title} | {df.task_name.unique()} | n = {questions_count.mean()} ± {round(questions_count.std(), 2)}"
@@ -833,7 +835,7 @@ def simple_plot(
             plt.show()
 
             questions_count = (
-                combined_df[combined_df["formatter_name"] == "BBQWECOTContext1"].groupby("model").size().iloc[0]
+                combined_df[combined_df["formatter_name"] == "BBQWECOTContext1"].groupby("model").size().iloc[0]  # type: ignore
             )
 
             g1.fig.suptitle(f"BBQ with with evidence | CoT | n = {questions_count}")
@@ -972,9 +974,9 @@ def _accuracy_plot(
         ax = chart.axes
         for p in chart.axes.patches:  # type: ignore
             ax.text(  # type: ignore
-                p.get_x() + p.get_width() / 2.0,
-                p.get_height(),
-                f"{p.get_height():.2f}",
+                p.get_x() + p.get_width() / 2.0,  # type: ignore
+                p.get_height(),  # type: ignore
+                f"{p.get_height():.2f}",  # type: ignore
                 fontsize=12,
                 ha="center",
                 va="bottom",
