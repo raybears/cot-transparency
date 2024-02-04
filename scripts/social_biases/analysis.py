@@ -242,12 +242,10 @@ def apply_filters(
         df = df[df.intervention_name.isin(interventions)]  # type: ignore
 
     if remove_models:
-        df = df[~df.model.isin(remove_models)]
-        assert isinstance(df, pd.DataFrame)
+        df = df[~df.model.isin(remove_models)]  # type: ignore
 
     if remove_tasks:
-        df = df[~df.task_name.isin(remove_tasks)]
-        assert isinstance(df, pd.DataFrame)
+        df = df[~df.task_name.isin(remove_tasks)]  # type: ignore
 
     return df
 
@@ -501,7 +499,7 @@ def discrim_eval_plot(
 
         task_age_sum, task_age_count = 0, 0
         for task in over_60_tasks:
-            task_age_sum += df[df.task_name == task].groupby("model")["is_correct"].sum()
+            task_age_sum += df[df.task_name == task].groupby("model")["is_correct"].sum()  # type: ignore
             task_age_count += df[df.task_name == task].groupby("model")["is_correct"].count()
         task_age_mean = task_age_sum / task_age_count  # type: ignore
         task_age_standard_error = np.sqrt(task_age_mean * (1 - task_age_mean) / task_age_count) * 1.96  # type: ignore
@@ -515,13 +513,13 @@ def discrim_eval_plot(
             tasks_sum = df[df.task_name == task].groupby("model")["is_correct"].sum()
             tasks_count = df[df.task_name == task].groupby("model")["is_correct"].count()
             tasks_standard_error = df[df.task_name == task].groupby("model")["is_correct"].sem() * 1.96
-            tasks_frequency_standard_error = np.sqrt(tasks_mean * (1 - tasks_mean) / tasks_count) * 1.96
+            tasks_frequency_standard_error = np.sqrt(tasks_mean * (1 - tasks_mean) / tasks_count) * 1.96  # type: ignore
 
             for model in df.model.unique():
                 print(f"{model} | {task}")
                 print(
-                    f"{round(tasks_mean[model],4)} - {round(baseline_mean[model],4)} = {round(tasks_mean[model] - baseline_mean[model],4)}"
-                )  # type: ignore
+                    f"{round(tasks_mean[model],4)} - {round(baseline_mean[model],4)} = {round(tasks_mean[model] - baseline_mean[model],4)}"  # type: ignore
+                )
         else:
             tasks_mean = task_age_mean
             tasks_sum = task_age_sum
