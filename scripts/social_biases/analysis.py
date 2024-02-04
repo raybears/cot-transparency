@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 
 import os
 
@@ -42,9 +43,8 @@ sns.set_style(
 
 
 def get_general_metrics(
-    task_output: Union[TaskOutput, StageTwoTaskOutput], 
-    combine_bbq_tasks: bool = False
-    ) -> dict[str, Any]:
+    task_output: Union[TaskOutput, StageTwoTaskOutput], combine_bbq_tasks: bool = False
+) -> dict[str, Any]:
     d = task_output.model_dump()
     d["input_hash"] = task_output.task_spec.uid()
     if isinstance(task_output, TaskOutput):
@@ -66,9 +66,8 @@ def get_general_metrics(
 
 
 def convert_loaded_dict_to_df(
-    loaded_dict: dict[Path, ExperimentJsonFormat], 
-    combine_bbq_tasks: bool = False
-    ) -> pd.DataFrame:
+    loaded_dict: dict[Path, ExperimentJsonFormat], combine_bbq_tasks: bool = False
+) -> pd.DataFrame:
     """
     This function is super slow
     """
@@ -92,12 +91,10 @@ def convert_loaded_dict_to_df(
     return df
 
 
-def get_data_frame_from_exp_dir(
-    exp_dir: str, 
-    combine_bbq_tasks: bool = False
-    ) -> pd.DataFrame:
+def get_data_frame_from_exp_dir(exp_dir: str, combine_bbq_tasks: bool = False) -> pd.DataFrame:
     loaded_dict = ExpLoader.stage_one(exp_dir)
     return convert_loaded_dict_to_df(loaded_dict, combine_bbq_tasks)
+
 
 def compute_unfaithfulness_metrics(metrics: pd.DataFrame) -> tuple[float, float, float, float]:
     switches = metrics["switches"]
@@ -108,18 +105,20 @@ def compute_unfaithfulness_metrics(metrics: pd.DataFrame) -> tuple[float, float,
 
     total_pairs = switches + both_unk + weak_pref + strong_pref
 
-    percent_unfaithful_overall = (strong_pref + weak_pref) / total_pairs * 100 # strong pref + weak pref
+    percent_unfaithful_overall = (strong_pref + weak_pref) / total_pairs * 100  # strong pref + weak pref
     percent_unfaithfulness_explained_by_bias = pref_bias_aligned / (strong_pref + weak_pref) * 100
 
     SE_PUO = (
         ((strong_pref + weak_pref) / total_pairs * (1 - (strong_pref + weak_pref) / total_pairs)) ** 0.5
         / total_pairs**0.5
-        * 100 * 1.96
+        * 100
+        * 1.96
     )
     SE_PUEB = (
         (pref_bias_aligned / (strong_pref + weak_pref) * (1 - pref_bias_aligned / (strong_pref + weak_pref))) ** 0.5
         / (strong_pref + weak_pref) ** 0.5
-        * 100 * 1.96
+        * 100
+        * 1.96
     )
 
     return percent_unfaithful_overall, SE_PUO, percent_unfaithfulness_explained_by_bias, SE_PUEB
@@ -175,6 +174,7 @@ def compute_BBQ_combined_classification(model_data: pd.DataFrame) -> tuple[float
 
     PUO, SE_PUO, PUEB, SE_PUEB = compute_unfaithfulness_metrics(metrics)  # type: ignore
     return PUO, SE_PUO, PUEB, SE_PUEB
+
 
 def accuracy(
     exp_dir: str,
@@ -240,10 +240,10 @@ def apply_filters(
 
     if interventions:
         df = df[df.intervention_name.isin(interventions)]  # type: ignore
-        
+
     if remove_models:
         df = df[~df.model.isin(remove_models)]
-        
+
     if remove_tasks:
         df = df[~df.task_name.isin(remove_tasks)]
 
@@ -330,6 +330,7 @@ def counts_are_equal(count_df: pd.DataFrame) -> bool:
     """
     return (count_df.nunique(axis=1) == 1).all()
 
+
 def print_bar_values(plot: sns.axisgrid.FacetGrid) -> None:
     for ax in plot.axes.flat:
         for patch in ax.patches:
@@ -343,86 +344,92 @@ def print_bar_values(plot: sns.axisgrid.FacetGrid) -> None:
                 xytext=(0, 5),
                 textcoords="offset points",
             )
-            
-def map_model_names(df, paper_plot: bool = False):
-    df['model'] = df["model"].map(lambda x: MODEL_SIMPLE_NAMES[x] if x in MODEL_SIMPLE_NAMES else x)
+
+
+def map_model_names(df: pd.DataFrame, paper_plot: bool = False) -> pd.DataFrame:
+    df["model"] = df["model"].map(lambda x: MODEL_SIMPLE_NAMES[x] if x in MODEL_SIMPLE_NAMES else x)
     if paper_plot:
-        df['model'] = df['model'].str.replace('gpt-3.5-turbo-0613', 'GPT-3.5-Turbo', regex=False)
-        df['model'] = df['model'].str.replace('Control-8UN5nhcE', 'Control', regex=False)
-        df['model'] = df['model'].str.replace('Intervention-8UNAODuA', 'Intervention', regex=False)
+        df["model"] = df["model"].str.replace("gpt-3.5-turbo-0613", "GPT-3.5-Turbo", regex=False)
+        df["model"] = np.where(df["model"].str.startswith("Control"), "Control", df["model"])
+        df["model"] = np.where(df["model"].str.startswith("Intervention"), "Intervention", df["model"])
     return df
 
-def _discrim_eval_plot(df: pd.DataFrame, tasks: list, models: list, score_type: str, ylabel: str, paper_plot: bool = False):
+
+def _discrim_eval_plot(
+    df: pd.DataFrame, tasks: List[str], models: List[str], score_type: str, ylabel: str, paper_plot: bool = False
+):
     num_tasks = len(tasks)
     num_models = len(models)
 
     task_indices = np.arange(num_tasks)
     bar_width = 0.8 / num_models  # The width of a bar
-    model_offsets = np.linspace(-bar_width*num_models/2, bar_width*num_models/2, num_models)
-    
+    model_offsets = np.linspace(-bar_width * num_models / 2, bar_width * num_models / 2, num_models)
+
     task_mapping = {task: i for i, task in enumerate(tasks)}
-    df['task_order'] = df['task'].map(task_mapping)
-    df.sort_values('task_order', inplace=True)
-    
-    tasks = [' '.join(t.split('_')) for t in tasks]
+    df["task_order"] = df["task"].map(task_mapping)
+    df.sort_values("task_order", inplace=True)
+
+    tasks = [" ".join(t.split("_")) for t in tasks]
 
     fig, ax = plt.subplots(figsize=(10, 3))
-    palette_colors = ['#4e6a97', '#c47e5c', '#559366'] if paper_plot else plt.cm.Set3(np.linspace(0, 1, num_models+2))[2:]
+    palette_colors = ["#4e6a97", "#c47e5c", "#559366"] if paper_plot else plt.cm.Set3(np.linspace(0, 1, num_models + 2))[2:]  # type: ignore
 
     if paper_plot:
         sns.set_context("notebook", font_scale=1.0)
-        sns.set_style("whitegrid", {'axes.grid': False})
-        sns.set_style("ticks", {
-            "axes.edgecolor": "0",
-            "grid.linestyle": "",
-            "axes.facecolor": "white",
-            "font.family": ["Times New Roman Cyr"],
-        })
-        ax.spines['bottom'].set_linewidth(1.5)
-        ax.spines['left'].set_linewidth(1.5)
-        plt.tick_params(axis='x', which='major', length=6, width=1.5, labelsize=10)
-        plt.tick_params(axis='y', which='major', length=6, width=1.5, labelsize=10)
-        for label in ax.get_xticklabels():
+        sns.set_style("whitegrid", {"axes.grid": False})
+        sns.set_style(
+            "ticks",
+            {
+                "axes.edgecolor": "0",
+                "grid.linestyle": "",
+                "axes.facecolor": "white",
+                "font.family": ["Times New Roman Cyr"],
+            },
+        )
+        ax.spines["bottom"].set_linewidth(1.5)  # type: ignore
+        ax.spines["left"].set_linewidth(1.5)  # type: ignore
+        plt.tick_params(axis="x", which="major", length=6, width=1.5, labelsize=10)
+        plt.tick_params(axis="y", which="major", length=6, width=1.5, labelsize=10)
+        for label in ax.get_xticklabels():  # type: ignore
             label.set_fontsize(label.get_size() - 2)
-        ax.set_ylabel(ax.get_ylabel(), fontsize=plt.rcParams['axes.labelsize'] - 2)
-        sns.despine()
-        ax.set_title('')  
-        fig.suptitle('') 
+        ax.set_ylabel(ax.get_ylabel(), fontsize=plt.rcParams["axes.labelsize"] - 2)  # type: ignore
+        sns.despine()  # type: ignore
+        ax.set_title("")  # type: ignore
+        fig.suptitle("")  # type: ignore
     else:
-        ax.set_title('Discrim-Eval | Explicit Attributes')
-        fig.suptitle('Discrim-Eval | Explicit Attributes')
-        plt.xticks(rotation=45)
-        
-    bar_width = 0.8 / num_models
-    margin = 0.1  
-    task_indices = np.arange(num_tasks) * (1 + margin)
+        ax.set_title("Discrim-Eval | Explicit Attributes")  # type: ignore
+        fig.suptitle("Discrim-Eval | Explicit Attributes")  # type: ignore
+        plt.xticks(rotation=45)  # type: ignore
+
+    bar_width = 0.8 / num_models  # type: ignore
+    margin = 0.1
+    task_indices = np.arange(num_tasks) * (1 + margin)  # type: ignore
 
     # Calculate the positions for each model within each task group
-    model_offsets = np.linspace(0, bar_width * (num_models - 1), num_models)
+    model_offsets = np.linspace(0, bar_width * (num_models - 1), num_models)  # type: ignore
 
     for i, model in enumerate(models):
-        model_scores = df[df['model'] == model][score_type].values
-        model_errors = df[df['model'] == model][f'{score_type}_se'].values
-        
+        model_scores = df[df["model"] == model][score_type].values
+        model_errors = df[df["model"] == model][f"{score_type}_se"].values
+
         bar_positions = task_indices + model_offsets[i]
-        
-        ax.bar(bar_positions, model_scores, bar_width, label=model, color=palette_colors[i % len(palette_colors)], 
-               yerr=model_errors, capsize=0 if paper_plot else 5, edgecolor='None' if paper_plot else 'black',
-               error_kw={'elinewidth': 2.5 if paper_plot else None})
-        
-    ax.legend(loc='upper left', bbox_to_anchor=(0, 1), fontsize='7')
-    ax.set_xlabel('Demographic Variables', fontsize=9)
-    ax.set_ylabel(ylabel, fontsize=9)
-    ax.set_xticks(task_indices + bar_width * (num_models - 1) / 2) 
-    ax.set_xticklabels(tasks, fontsize=9)
-    
+
+        ax.bar(bar_positions, model_scores, bar_width, label=model, color=palette_colors[i % len(palette_colors)], yerr=model_errors, capsize=0 if paper_plot else 5, edgecolor="None" if paper_plot else "black", error_kw={"elinewidth": 2.5 if paper_plot else None})  # type: ignore
+
+    ax.legend(loc="upper left", bbox_to_anchor=(0, 1), fontsize="7")  # type: ignore
+    ax.set_xlabel("Demographic Variables", fontsize=9)  # type: ignore
+    ax.set_ylabel(ylabel, fontsize=9)  # type: ignore
+    ax.set_xticks(task_indices + bar_width * (num_models - 1) / 2)  # type: ignore
+    ax.set_xticklabels(tasks, fontsize=9)  # type: ignore
+
     if paper_plot:
-        if not os.path.exists('plots'):
-            os.makedirs('plots')
-        plt.savefig(f'plots/discrim_eval_{score_type}.pdf', bbox_inches='tight', pad_inches=0.01)
+        if not os.path.exists("plots"):
+            os.makedirs("plots")
+        plt.savefig(f"plots/discrim_eval_{score_type}.pdf", bbox_inches="tight", pad_inches=0.01)
 
     plt.tight_layout()
     plt.show()
+
 
 def discrim_eval_plot(
     exp_dir: str,
@@ -444,105 +451,158 @@ def discrim_eval_plot(
         df=df,
     )
     df = map_model_names(df, paper_plot)
-    
+
     if cap:
-        df = df.groupby(['model', 'task_name']).head(cap)
-    
-    assert 'discrim_eval_baseline' in df.task_name.unique(), 'discrim_baseline not found in task_name'
-    
+        df = df.groupby(["model", "task_name"]).head(cap)
+
+    assert "discrim_eval_baseline" in df.task_name.unique(), "discrim_baseline not found in task_name"
+
     tasks = df.task_name.unique()
     # get all valid discrim_eval tasks
     has_age_task = False
-    under_60_tasks = ['discrim_eval_age_20', 'discrim_eval_age_30', 'discrim_eval_age_40', 'discrim_eval_age_50']
-    over_60_tasks = ['discrim_eval_age_60', 'discrim_eval_age_70', 'discrim_eval_age_80', 'discrim_eval_age_90', 'discrim_eval_age_100']
+    under_60_tasks = ["discrim_eval_age_20", "discrim_eval_age_30", "discrim_eval_age_40", "discrim_eval_age_50"]
+    over_60_tasks = [
+        "discrim_eval_age_60",
+        "discrim_eval_age_70",
+        "discrim_eval_age_80",
+        "discrim_eval_age_90",
+        "discrim_eval_age_100",
+    ]
     for task in tasks:
-        if 'age' in task:
+        if "age" in task:
             has_age_task = True
             break
-        
-    tasks = [t for t in tasks if t.startswith('discrim_eval') and t != 'discrim_eval_baseline' and 'age' not in t]
-    
-    baseline_mean = df[df.task_name == 'discrim_eval_baseline'].groupby('model')['is_correct'].mean()
-    baseline_sum = df[df.task_name == 'discrim_eval_baseline'].groupby('model')['is_correct'].sum()
-    baseline_standard_error = df[df.task_name == 'discrim_eval_baseline'].groupby('model')['is_correct'].sem() * 1.96
-    
+
+    tasks = [t for t in tasks if t.startswith("discrim_eval") and t != "discrim_eval_baseline" and "age" not in t]
+
+    baseline_mean = df[df.task_name == "discrim_eval_baseline"].groupby("model")["is_correct"].mean()  # type: ignore
+    baseline_sum = df[df.task_name == "discrim_eval_baseline"].groupby("model")["is_correct"].sum()  # type: ignore
+    baseline_standard_error = df[df.task_name == "discrim_eval_baseline"].groupby("model")["is_correct"].sem() * 1.96  # type: ignore
+
+    baseline_age_mean, baseline_age_standard_error, baseline_age_count, baseline_age_sum = 0, 0, 0, 0
+    task_age_mean, task_age_standard_error, task_age_count, task_age_sum, task_age_frequency_standard_error = (
+        0,
+        0,
+        0,
+        0,
+        0,
+    )
+
     if has_age_task:
-        tasks.append('discrim_eval_age')
+        tasks.append("discrim_eval_age")
         baseline_age_sum, baseline_age_count = 0, 0
         for task in under_60_tasks:
-            baseline_age_sum += df[df.task_name == task].groupby('model')['is_correct'].sum()
-            baseline_age_count += df[df.task_name == task].groupby('model')['is_correct'].count()
-        baseline_age_mean = baseline_age_sum / baseline_age_count
-        baseline_age_standard_error = np.sqrt(baseline_age_mean * (1 - baseline_age_mean) / baseline_age_count) * 1.96
+            baseline_age_sum += df[df.task_name == task].groupby("model")["is_correct"].sum()
+            baseline_age_count += df[df.task_name == task].groupby("model")["is_correct"].count()
+        baseline_age_mean = baseline_age_sum / baseline_age_count  # type: ignore
+        baseline_age_standard_error = np.sqrt(baseline_age_mean * (1 - baseline_age_mean) / baseline_age_count) * 1.96  # type: ignore
 
         task_age_sum, task_age_count = 0, 0
         for task in over_60_tasks:
-            task_age_sum += df[df.task_name == task].groupby('model')['is_correct'].sum()
-            task_age_count += df[df.task_name == task].groupby('model')['is_correct'].count()
-        task_age_mean = task_age_sum / task_age_count
-        task_age_standard_error = np.sqrt(task_age_mean * (1 - task_age_mean) / task_age_count) * 1.96        
-        task_age_frequency_standard_error = np.sqrt(task_age_mean * (1 - task_age_mean) / task_age_count) * 1.96
-    
+            task_age_sum += df[df.task_name == task].groupby("model")["is_correct"].sum()
+            task_age_count += df[df.task_name == task].groupby("model")["is_correct"].count()
+        task_age_mean = task_age_sum / task_age_count  # type: ignore
+        task_age_standard_error = np.sqrt(task_age_mean * (1 - task_age_mean) / task_age_count) * 1.96  # type: ignore
+        task_age_frequency_standard_error = np.sqrt(task_age_mean * (1 - task_age_mean) / task_age_count) * 1.96  # type: ignore
+
     results = []
     for task in tasks:
-        print('\n')
-        if task != 'discrim_eval_age':
-            tasks_mean = df[df.task_name == task].groupby('model')['is_correct'].mean()
-            tasks_sum = df[df.task_name == task].groupby('model')['is_correct'].sum()
-            tasks_count = df[df.task_name == task].groupby('model')['is_correct'].count()
-            tasks_standard_error = df[df.task_name == task].groupby('model')['is_correct'].sem() * 1.96
+        print("\n")
+        if task != "discrim_eval_age":
+            tasks_mean = df[df.task_name == task].groupby("model")["is_correct"].mean()
+            tasks_sum = df[df.task_name == task].groupby("model")["is_correct"].sum()
+            tasks_count = df[df.task_name == task].groupby("model")["is_correct"].count()
+            tasks_standard_error = df[df.task_name == task].groupby("model")["is_correct"].sem() * 1.96
             tasks_frequency_standard_error = np.sqrt(tasks_mean * (1 - tasks_mean) / tasks_count) * 1.96
-            
+
             for model in df.model.unique():
-                print(f'{model} | {task}')
-                print(f'{round(tasks_mean[model],4)} - {round(baseline_mean[model],4)} = {round(tasks_mean[model] - baseline_mean[model],4)}')
-        else: 
+                print(f"{model} | {task}")
+                print(
+                    f"{round(tasks_mean[model],4)} - {round(baseline_mean[model],4)} = {round(tasks_mean[model] - baseline_mean[model],4)}"
+                )
+        else:
             tasks_mean = task_age_mean
             tasks_sum = task_age_sum
             tasks_count = task_age_count
             tasks_standard_error = task_age_standard_error
             tasks_frequency_standard_error = task_age_frequency_standard_error
-            
-        discrimination_score = tasks_mean - baseline_mean if task != 'discrim_eval_age' else tasks_mean - baseline_age_mean
-        discrimination_score_frequency = tasks_sum - baseline_sum if task != 'discrim_eval_age' else tasks_sum - baseline_age_sum 
-        discrimination_score_standard_error = np.sqrt(tasks_standard_error**2 + baseline_standard_error**2) if task != 'discrim_eval_age' else np.sqrt(task_age_standard_error**2 + baseline_age_standard_error**2)
-        
+
+        discrimination_score = (
+            tasks_mean - baseline_mean if task != "discrim_eval_age" else tasks_mean - baseline_age_mean
+        )
+        discrimination_score_frequency = (
+            tasks_sum - baseline_sum if task != "discrim_eval_age" else tasks_sum - baseline_age_sum
+        )
+        discrimination_score_standard_error = (
+            np.sqrt(tasks_standard_error**2 + baseline_standard_error**2)
+            if task != "discrim_eval_age"
+            else np.sqrt(task_age_standard_error**2 + baseline_age_standard_error**2)
+        )
+
         tasks_log_odds = np.log((tasks_mean) / (1 - tasks_mean))
-        baseline_log_odds = np.log((baseline_mean) / (1 - baseline_mean)) if task != 'discrim_eval_age' else np.log((baseline_age_mean) / (1 - baseline_age_mean))
+        baseline_log_odds = (
+            np.log((baseline_mean) / (1 - baseline_mean))
+            if task != "discrim_eval_age"
+            else np.log((baseline_age_mean) / (1 - baseline_age_mean))
+        )
         logodds_discrimination_score = tasks_log_odds - baseline_log_odds
         tasks_log_odds_standard_error = np.sqrt(1 / (tasks_count * tasks_mean * (1 - tasks_mean))) * 1.96
 
-        for model in tasks_mean.index:
-            results.append({
-                'n': len(df[(df.task_name == task) & (df.model == model)]),
-                'task': task,
-                'model': model,
-                'formatter': df[df.model == model].formatter_name.unique()[0],
-                'discrimination_score': discrimination_score[model],
-                'discrimination_score_se': discrimination_score_standard_error[model],
-                'logodds_discrimination_score': logodds_discrimination_score[model],
-                'logodds_discrimination_score_se': tasks_log_odds_standard_error[model],
-                'discrimination_score_frequency': discrimination_score_frequency[model],
-                'discrimination_score_frequency_se': tasks_frequency_standard_error[model],
-            })
+        for model in tasks_mean.index:  # type: ignore
+            results.append(
+                {
+                    "n": len(df[(df.task_name == task) & (df.model == model)]),
+                    "task": task,
+                    "model": model,
+                    "formatter": df[df.model == model].formatter_name.unique()[0],  # type: ignore
+                    "discrimination_score": discrimination_score[model],  # type: ignore
+                    "discrimination_score_se": discrimination_score_standard_error[model],  # type: ignore
+                    "logodds_discrimination_score": logodds_discrimination_score[model],  # type: ignore
+                    "logodds_discrimination_score_se": tasks_log_odds_standard_error[model],  # type: ignore
+                    "discrimination_score_frequency": discrimination_score_frequency[model],  # type: ignore
+                    "discrimination_score_frequency_se": tasks_frequency_standard_error[model],  # type: ignore
+                }
+            )
 
     results_df = pd.DataFrame(results)
-    
-    results_df['task'] = results_df['task'].str.replace('discrim_eval_', '').str.capitalize()
-    models = results_df['model'].unique()
+
+    results_df["task"] = results_df["task"].str.replace("discrim_eval_", "").str.capitalize()
+    models = results_df["model"].unique()
     if reorder_indices:
-    # Reorder models based on indices provided
+        # Reorder models based on indices provided
         models = [models[i] for i in reorder_indices]
-        original_order_tasks = results_df['task'].unique()
+        original_order_tasks = results_df["task"].unique()
         new_order_indices = [6, 5, 2, 4, 3, 1, 0]
         tasks = [original_order_tasks[i] for i in new_order_indices]
     else:
-        tasks = results_df['task'].unique()
-        
-    _discrim_eval_plot(results_df, tasks, models, 'discrimination_score_frequency', 'Discrimination Score\n(Δ in Frequency of "Yes")', paper_plot)
-    _discrim_eval_plot(results_df, tasks, models, 'discrimination_score', 'Discrimination Score\n(Avg. Δ in Proportion of "Yes"\nResponses)', paper_plot)
-    _discrim_eval_plot(results_df, tasks, models, 'logodds_discrimination_score', 'Discrimination Score\n(Avg. Δ in logits(p("yes"))', paper_plot)
-    
+        tasks = results_df["task"].unique()
+
+    models = list(models)
+    _discrim_eval_plot(
+        results_df,
+        tasks,
+        models,
+        "discrimination_score_frequency",
+        'Discrimination Score\n(Δ in Frequency of "Yes")',
+        paper_plot,
+    )
+    _discrim_eval_plot(
+        results_df,
+        tasks,
+        models,
+        "discrimination_score",
+        'Discrimination Score\n(Avg. Δ in Proportion of "Yes"\nResponses)',
+        paper_plot,
+    )
+    _discrim_eval_plot(
+        results_df,
+        tasks,
+        models,
+        "logodds_discrimination_score",
+        'Discrimination Score\n(Avg. Δ in logits(p("yes"))',
+        paper_plot,
+    )
+
     # plot the counts for the above
     g2 = catplot(
         data=df,
@@ -556,8 +616,9 @@ def discrim_eval_plot(
     g2.fig.suptitle("Counts")
 
     plt.show()
-    
-def apply_paper_plot_styles(ax):
+
+
+def apply_paper_plot_styles(ax: Axes) -> Axes:
     sns.set_style(
         "ticks",
         {
@@ -567,33 +628,44 @@ def apply_paper_plot_styles(ax):
             "font.family": ["Times New Roman Cyr"],
         },
     )
-    ax.spines['bottom'].set_linewidth(1.5)
-    ax.spines['left'].set_linewidth(1.5)
-    plt.tick_params(axis='x', which='major', length=6, width=1.5)
-    plt.tick_params(axis='y', which='major', length=6, width=1.5, labelsize=8)
-    for label in ax.get_xticklabels():
+    ax.spines["bottom"].set_linewidth(1.5)  # type: ignore
+    ax.spines["left"].set_linewidth(1.5)  # type: ignore
+    plt.tick_params(axis="x", which="major", length=6, width=1.5)
+    plt.tick_params(axis="y", which="major", length=6, width=1.5, labelsize=8)
+    for label in ax.get_xticklabels():  # type: ignore
         label.set_fontsize(label.get_size() - 3)
-    ax.set_ylabel(ax.get_ylabel(), fontsize=plt.rcParams['axes.labelsize'] - 4)
-    sns.despine()
-    
-def plot_with_styles(data, x, y, order, yerr, palette_colors, title: str = ''):
+    ax.set_ylabel(ax.get_ylabel(), fontsize=plt.rcParams["axes.labelsize"] - 4)  # type: ignore
+    sns.despine()  # type: ignore
+    return ax
+
+
+def plot_with_styles(
+    data: pd.DataFrame,
+    x: str,
+    y: str,
+    order: List[str],
+    yerr: Optional[List[float]],
+    palette_colors: List[str],
+    title: str = "",
+) -> None:
     fig, ax = plt.subplots(figsize=(3.36, 3.35))
-    apply_paper_plot_styles(ax)
-    sns.barplot(
+    ax = apply_paper_plot_styles(ax)  # type: ignore
+    sns.barplot(  # type: ignore
         data=data,
         x=x,
         y=y,
         capsize=30,
         errwidth=200,
-        edgecolor='None',
+        edgecolor="None",
         order=order,
         yerr=yerr,
         palette=palette_colors,
         ax=ax,
-    )
-    ax.set_xlabel('')
-    ax.set_title(title)
+    )  # type: ignore
+    ax.set_xlabel("")  # type: ignore
+    ax.set_title(title)  # type: ignore
     plt.subplots_adjust(bottom=0.2)
+
 
 def simple_plot(
     exp_dir: str,
@@ -607,7 +679,7 @@ def simple_plot(
     col: str = "Model",
     legend: bool = True,
     reorder_indices: Optional[list[int]] = None,
-    title: str = '',
+    title: str = "",
     bbq_paper_plot: bool = False,
 ):
     """
@@ -676,26 +748,35 @@ def simple_plot(
         x_order = df.model.unique()
         if reorder_indices:
             x_order = [x_order[i] for i in reorder_indices]
-            
+
         if bbq_paper_plot:
             sns.set_context("notebook", font_scale=1.0)
-            sns.set_style("whitegrid", {'axes.grid': False})
-            plt.rcParams['font.family'] = 'Times New Roman Cyr'
-            sns.set(font='Times New Roman')
-            
-            if not os.path.exists('plots'):
-                os.makedirs('plots')
-            
-            plot_with_styles(metrics_df, "model", "% Unfaithful Overall", x_order, se_puo_list, ['#43669d', '#d27f56', '#549c67'])
+            sns.set_style("whitegrid", {"axes.grid": False})
+            plt.rcParams["font.family"] = "Times New Roman Cyr"
+            sns.set(font="Times New Roman")
+
+            if not os.path.exists("plots"):
+                os.makedirs("plots")
+
+            plot_with_styles(
+                metrics_df, "model", "% Unfaithful Overall", x_order, se_puo_list, ["#43669d", "#d27f56", "#549c67"]
+            )
             plt.savefig("plots/bbq_puo_plot.pdf", bbox_inches="tight", pad_inches=0.01)
             plt.show()
 
-            plot_with_styles(metrics_df, "model", "% Unfaithfulness Explained by Bias", x_order, se_pueb_list, ['#43669d', '#d27f56', '#549c67'])
+            plot_with_styles(
+                metrics_df,
+                "model",
+                "% Unfaithfulness Explained by Bias",
+                x_order,
+                se_pueb_list,
+                ["#43669d", "#d27f56", "#549c67"],
+            )
             plt.savefig("plots/bbq_pueb_plot.pdf", bbox_inches="tight", pad_inches=0.01)
             plt.show()
-        
-        else:  
-            palette_colors = plt.cm.Set3(np.linspace(0, 1, len(x_order)))
+
+        else:
+            palette_colors = plt.cm.Set3(np.linspace(0, 1, len(x_order)))  # type: ignore
 
             g1 = sns.catplot(
                 data=metrics_df,
@@ -707,20 +788,20 @@ def simple_plot(
                 errwidth=1.5,
                 kind="bar",
                 legend=legend,  # type: ignore
-                edgecolor='black',
+                edgecolor="black",
                 palette=palette_colors,
-            )
+            )  # type: ignore
             print_bar_values(g1)
-            ax = g1.facet_axis(0, 0)  
-            for label in ax.get_xticklabels():
+            ax = g1.facet_axis(0, 0)  # type: ignore
+            for label in ax.get_xticklabels():  # type: ignore
                 label.set_rotation(45)
-                label.set_ha('right') 
-                
+                label.set_ha("right")
+
             questions_count = df.groupby("model")["input_hash"].nunique()
             print(questions_count)
-            plt.title(f'{title} | {df.task_name.unique()} | n = {questions_count.mean()} ± {round(questions_count.std(), 2)}')
-            
-            plt.subplots_adjust(bottom=0.2)  
+            plt.title(f"{title} | {df.task_name.unique()} | n = {questions_count.mean()} ± {round(questions_count.std(), 2)}")  # type: ignore
+
+            plt.subplots_adjust(bottom=0.2)
             plt.show()
 
             g2 = sns.catplot(
@@ -733,20 +814,22 @@ def simple_plot(
                 errwidth=1.5,
                 kind="bar",
                 legend=legend,  # type: ignore
-                edgecolor='black',
+                edgecolor="black",
                 palette=palette_colors,
-            )
+            )  # type: ignore
             print_bar_values(g2)
-            ax = g2.facet_axis(0, 0)  
-            for label in ax.get_xticklabels():
+            ax = g2.facet_axis(0, 0)  # type: ignore
+            for label in ax.get_xticklabels():  # type: ignore
                 label.set_rotation(45)
-                label.set_ha('right')  
-                
+                label.set_ha("right")
+
             questions_count = df.groupby("model")["input_hash"].nunique()
             print(questions_count)
-            plt.title(f'{title} | {df.task_name.unique()} | n = {questions_count.mean()} ± {round(questions_count.std(), 2)}')
-            
-            plt.subplots_adjust(bottom=0.2)  
+            plt.title(
+                f"{title} | {df.task_name.unique()} | n = {questions_count.mean()} ± {round(questions_count.std(), 2)}"
+            )
+
+            plt.subplots_adjust(bottom=0.2)
             plt.show()
 
             questions_count = (
@@ -829,23 +912,24 @@ def point_plot(
 
     plt.show()
 
+
 def _accuracy_plot(
-    df, 
-    x_order: list[str], 
-    title='', 
-    ylabel='Accuracy', 
-    ylim=1.0, 
+    df: pd.DataFrame,
+    x_order: list[str],
+    title="",
+    ylabel="Accuracy",
+    ylim=1.0,
     reorder_indices: Optional[list[int]] = None,
     paper_plot: bool = False,
 ) -> None:
     # Prepare the plot
     kwargs = {}
-    
+
     if paper_plot:
-        # fig, ax = plt.subplots(figsize=(7.7 / 2.54, 6 / 2.54)) 
+        # fig, ax = plt.subplots(figsize=(7.7 / 2.54, 6 / 2.54))
         fig, ax = plt.subplots(figsize=(3.36, 3.35))
         sns.set_context("notebook", font_scale=1.0)
-        sns.set_style("whitegrid", {'axes.grid' : False})
+        sns.set_style("whitegrid", {"axes.grid": False})
         sns.set_style(
             "ticks",
             {
@@ -856,69 +940,72 @@ def _accuracy_plot(
             },
         )
         # palette_colors = ["#C6E0FE", "#FADFA6", "#FF6568", "#CBF6C8", "#FDF8A1"]
-        ax.spines['bottom'].set_linewidth(1.5)
-        ax.spines['left'].set_linewidth(1.5)
-        plt.tick_params(axis='x', which='major', length=6, width=1.5)
-        plt.tick_params(axis='y', which='major', length=6, width=1.5)
-        for label in ax.get_xticklabels():
+        ax.spines["bottom"].set_linewidth(1.5)  # type: ignore
+        ax.spines["left"].set_linewidth(1.5)  # type: ignore
+        plt.tick_params(axis="x", which="major", length=6, width=1.5)
+        plt.tick_params(axis="y", which="major", length=6, width=1.5)
+        for label in ax.get_xticklabels():  # type: ignore
             label.set_fontsize(label.get_size() - 1)
-        palette_colors = ['#43669d', '#d27f56', '#549c67']
-        kwargs = {'capsize': 0, 'errwidth': 1.5, 'edgecolor': None, 'palette': palette_colors}
+        palette_colors = ["#43669d", "#d27f56", "#549c67"]  # type: ignore
+        kwargs = {"capsize": 0, "errwidth": 1.5, "edgecolor": None, "palette": palette_colors}
     else:
         plt.figure(figsize=(12, 8))
         sns.set(style="whitegrid")
-        palette_colors = plt.cm.Set3(np.linspace(0, 1, len(x_order)))
+        palette_colors = plt.cm.Set3(np.linspace(0, 1, len(x_order)))  # type: ignore
         kwargs["palette"] = palette_colors
-        kwargs = {'palette': palette_colors, 'capsize': 0.05, 'errwidth': 1, 'edgecolor': 'black'}
-    
+        kwargs = {"palette": palette_colors, "capsize": 0.05, "errwidth": 1, "edgecolor": "black"}
+
     chart = sns.barplot(
-        x='model',
-        y='is_correct',
+        x="model",
+        y="is_correct",
         data=df,
-        errorbar=('ci', 95), 
+        ci=("ci", 95),
         order=x_order,
-        **kwargs,
-    )
-    
+        **kwargs,  # type: ignore
+    )  # type: ignore
+
     plt.ylabel(ylabel)
-    plt.ylim(0, ylim)   
-    
+    plt.ylim(0, ylim)
+
     if not paper_plot:
-        chart.set_xticklabels(chart.get_xticklabels(), rotation=45, horizontalalignment='right')
+        chart.set_xticklabels(chart.get_xticklabels(), rotation=45, horizontalalignment="right")  # type: ignore
         ax = chart.axes
-        for p in ax.patches:
-            ax.text(
+        for p in chart.axes.patches:  # type: ignore
+            ax.text(  # type: ignore
                 p.get_x() + p.get_width() / 2.0,
                 p.get_height(),
-                f'{p.get_height():.2f}',
+                f"{p.get_height():.2f}",
                 fontsize=12,
-                ha='center',
-                va='bottom'
+                ha="center",
+                va="bottom",
             )
         questions_count = df.groupby("model")["input_hash"].nunique()
         print(questions_count)
-        plt.title(f'{title} | {df.task_name.unique()} | n = {round(questions_count.mean(),2)} ± {round(questions_count.std(), 2)}')
-        plt.xlabel('Model')
+        plt.title(
+            f"{title} | {df.task_name.unique()} | n = {round(questions_count.mean(),2)} ± {round(questions_count.std(), 2)}"
+        )
+        plt.xlabel("Model")
     else:
-        sns.despine() 
+        sns.despine()  # type: ignore
         plt.title(title)
-        plt.xlabel('')
+        plt.xlabel("")
         plt.savefig("plots/winogender_plot.pdf", bbox_inches="tight", pad_inches=0.01)
-         
+
     plt.tight_layout()
     plt.show()
-        
+
+
 def new_accuracy_plot(
-    exp_dir: str, 
-    title: str = '', 
-    ylabel: str = 'Accuracy', 
-    ylim: float = 1.0, 
+    exp_dir: str,
+    title: str = "",
+    ylabel: str = "Accuracy",
+    ylim: float = 1.0,
     filter_na: bool = False,
     task_wise_plots: bool = False,
     dataset_filter: Optional[str] = None,
     reorder_indices: Optional[list[int]] = None,
     paper_plot: bool = False,
-    ):
+):
     df = get_data_frame_from_exp_dir(exp_dir)
     df = map_model_names(df, paper_plot)
     if dataset_filter is not None:
@@ -926,13 +1013,13 @@ def new_accuracy_plot(
     if filter_na:
         df = df[df.parsed_response.notna()]
 
-    df['is_correct'] = (df['parsed_response'] == df['ground_truth']).astype(int)
-    
+    df["is_correct"] = (df["parsed_response"] == df["ground_truth"]).astype(int)
+
     # Determine the order of models in the x-axis
     x_order = df.model.unique()
     if reorder_indices:
         x_order = [x_order[i] for i in reorder_indices]
-    
+
     if not task_wise_plots:
         _accuracy_plot(df, x_order, title, ylabel, ylim, reorder_indices, paper_plot)
     else:
@@ -940,6 +1027,7 @@ def new_accuracy_plot(
         for task in tasks_list:
             df_task = df[df.task_name == task]
             _accuracy_plot(df_task, x_order, title, ylabel, ylim, reorder_indices, paper_plot)
+
 
 if __name__ == "__main__":
     fire.Fire(
