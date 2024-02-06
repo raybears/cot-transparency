@@ -193,18 +193,18 @@ def set_is_correct(row: pd.Series):
 def get_common_questions(df: pd.DataFrame, filter_on: str = "question") -> pd.DataFrame:
     question_models = df.groupby(filter_on)["model"].unique()
     question_models[question_models.apply(len) == df["model"].nunique()].index  # type: ignore
-    gpt_3_5_turbo_questions = df[df["model"] == "gpt-3.5-turbo-0613"][filter_on].unique()
+    gpt_3_5_turbo_questions = df[df["model"] == "gpt-3.5-turbo-0613"][filter_on].unique()  # type: ignore
     all_models_common_questions = question_models[question_models.apply(len) == df["model"].nunique()].index  # type: ignore
     common_to_gpt_and_all_models = set(gpt_3_5_turbo_questions).intersection(set(all_models_common_questions))
     print(len(common_to_gpt_and_all_models))
-    df = df[df[filter_on].isin(common_to_gpt_and_all_models)]
+    df = df[df[filter_on].isin(common_to_gpt_and_all_models)]  # type: ignore
     return df
 
 
 def filter_not_found_rows(df: pd.DataFrame) -> pd.DataFrame:
     n_not_found = len(df[df.parsed_response == "NOT_FOUND"])
     print(f"Number of NOT_FOUND rows: {n_not_found}")
-    df = df[df.parsed_response != "NOT_FOUND"]
+    df = df[df.parsed_response != "NOT_FOUND"]  # type: ignore
     return df
 
 
@@ -213,9 +213,9 @@ def get_model_wise_questions(df: pd.DataFrame, filter_on: str = "question") -> p
     models_list = df.model.unique()
     for model in models_list:
         df_filtered = df[df["model"] == model]
-        df_filtered = df_filtered[df_filtered["question_w_mistake"].notna()]
-        df_filtered = df_filtered[df_filtered["cot_post_mistake"].notna()]
-        unique_questions_df = df_filtered.drop_duplicates(subset=[filter_on])
+        df_filtered = df_filtered[df_filtered["question_w_mistake"].notna()]  # type: ignore
+        df_filtered = df_filtered[df_filtered["cot_post_mistake"].notna()]  # type: ignore
+        unique_questions_df = df_filtered.drop_duplicates(subset=[filter_on])  # type: ignore
         print(f"Model: {model}, Unique Questions: {unique_questions_df[filter_on].nunique()}")
         filtered_dfs.append(unique_questions_df)
     df_unique_per_model_q = pd.concat(filtered_dfs, ignore_index=True)
@@ -274,7 +274,7 @@ def get_data_frame_from_exp_dir(exp_dir: str, filter_for_correct: bool = False) 
     if filter_for_correct:
         # filter and get questions that the model knows how to solve correctly
         df = df[df["is_correct"] is True]
-        df = get_common_questions(df)
+        df = get_common_questions(df)  # type: ignore
 
         print(len(df))
         df.to_csv("analyse1.csv")
@@ -493,14 +493,14 @@ def get_mistake_rows(df: pd.DataFrame) -> pd.DataFrame:
     df_mistakes = df_mistakes[df_mistakes.has_mistake]
     df_mistakes["is_correct"] = (df_mistakes["parsed_modified_ans"] == df_mistakes["ground_truth"]).astype(int)
     print(f"length of df_mistakes: {len(df_mistakes)}")
-    return df_mistakes
+    return df_mistakes  # type: ignore
 
 
 def get_unmodified_rows(df: pd.DataFrame) -> pd.DataFrame:
     df_unmodified = df[~df.was_truncated]
     df_unmodified = df_unmodified[~df_unmodified.has_mistake]
     print(f"length of df_unmodified: {len(df_unmodified)}")
-    return df_unmodified
+    return df_unmodified  # type: ignore
 
 
 def gen_accuracy_plot(
@@ -531,11 +531,11 @@ def gen_accuracy_plot(
 
     ax = chart.axes
     for p in ax.patches:  # type: ignore
-        if p.get_height() != 1.00:
+        if p.get_height() != 1.00:  # type: ignore
             ax.text(  # type: ignore
-                p.get_x() + p.get_width() / 2.0,
-                p.get_height(),
-                f"{p.get_height():.2f}",
+                p.get_x() + p.get_width() / 2.0,  # type: ignore
+                p.get_height(),  # type: ignore
+                f"{p.get_height():.2f}",  # type: ignore
                 fontsize=12,
                 ha="center",
                 va="bottom",
@@ -585,11 +585,11 @@ def gen_mistake_plot(df_mistakes: pd.DataFrame, title: str = "", reorder_indices
 
     ax = chart.axes
     for p in ax.patches:  # type: ignore
-        if p.get_height() != 1.00:
+        if p.get_height() != 1.00:  # type: ignore
             ax.text(  # type: ignore
-                p.get_x() + p.get_width() / 2.0,
-                p.get_height(),
-                f"{p.get_height():.2f}",
+                p.get_x() + p.get_width() / 2.0,  # type: ignore
+                p.get_height(),  # type: ignore
+                f"{p.get_height():.2f}",  # type: ignore
                 fontsize=12,
                 ha="center",
                 va="bottom",
@@ -633,11 +633,11 @@ def gen_dataset_plot(df_mistakes: pd.DataFrame, title: str = ""):
 
     ax = chart.axes
     for p in ax.patches:  # type: ignore
-        if p.get_height() != 1.00:
+        if p.get_height() != 1.00:  # type: ignore
             ax.text(  # type: ignore
-                p.get_x() + p.get_width() / 2.0,
-                p.get_height(),
-                f"{p.get_height():.2f}",
+                p.get_x() + p.get_width() / 2.0,  # type: ignore
+                p.get_height(),  # type: ignore
+                f"{p.get_height():.2f}",  # type: ignore
                 fontsize=12,
                 ha="center",
                 va="bottom",
@@ -688,11 +688,11 @@ def mistake_aligned_plot(
     if dataset_filter is not None:
         df = df[df.task_name != dataset_filter]
 
-    df_unmodified = get_unmodified_rows(df)
+    df_unmodified = get_unmodified_rows(df)  # type: ignore
 
     df = df[df.ground_truth != df.biased_ans]
 
-    df_mistakes = get_mistake_rows(df)
+    df_mistakes = get_mistake_rows(df)  # type: ignore
 
     if filter_for_correct and not task_wise_plots:
         gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices, title="Filtered for Correct CoTs | ")
@@ -700,14 +700,14 @@ def mistake_aligned_plot(
         gen_accuracy_plot(df_unmodified, reorder_indices=reorder_indices)
     elif filter_for_incorrect:
         df_mistakes = df_mistakes[df_mistakes.is_correct is False]
-        gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices, title="Filtered for Incorrect CoTs | ")
-        gen_accuracy_plot(df_mistakes, reorder_indices=reorder_indices, modified=True)
+        gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices, title="Filtered for Incorrect CoTs | ")  # type: ignore
+        gen_accuracy_plot(df_mistakes, reorder_indices=reorder_indices, modified=True)  # type: ignore
         gen_accuracy_plot(df_unmodified, reorder_indices=reorder_indices)
     elif filter_for_mistake_on_correct:
         df_mistakes = df_mistakes[df_mistakes["biased_ans"] == df_mistakes["ground_truth"]]
-        print_model_unique_count(df_mistakes)
+        print_model_unique_count(df_mistakes)  # type: ignore
         gen_mistake_plot(
-            df_mistakes,
+            df_mistakes,  # type: ignore
             reorder_indices=reorder_indices,
             title="Filtered for Mistake on Correct Option (Bias Option == Ground Truth) | ",
         )
@@ -723,16 +723,16 @@ def mistake_aligned_plot(
 
         df_mistake_1 = df_mistakes[df_mistakes["mistake_half"] == 1]
         df_mistake_2 = df_mistakes[df_mistakes["mistake_half"] == 2]
-        gen_mistake_plot(df_mistake_1, reorder_indices=reorder_indices, title="Mistakes added in the first half | ")
-        gen_mistake_plot(df_mistake_2, reorder_indices=reorder_indices, title="Mistakes added in the second half | ")
+        gen_mistake_plot(df_mistake_1, reorder_indices=reorder_indices, title="Mistakes added in the first half | ")  # type: ignore
+        gen_mistake_plot(df_mistake_2, reorder_indices=reorder_indices, title="Mistakes added in the second half | ")  # type: ignore
         gen_accuracy_plot(
-            df_mistake_1,
+            df_mistake_1,  # type: ignore
             reorder_indices=reorder_indices,
             modified=True,
             task="Accuracy for mistakes added in the first half | ",
         )
         gen_accuracy_plot(
-            df_mistake_2,
+            df_mistake_2,  # type: ignore
             reorder_indices=reorder_indices,
             modified=True,
             task="Accuracy for mistakes added in the second half | ",
@@ -742,32 +742,32 @@ def mistake_aligned_plot(
         no_cot_correct_df = df[(df["cot_trace_length"] == 0) & (df["is_correct"] == 1)]
         print(f"no cot correct df len: {len(no_cot_correct_df)}")
         df_mistakes = df_mistakes[df_mistakes["question"].isin(no_cot_correct_df["question"])]
-        print(f"len now: {len(df_mistakes)}")
-        gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices, title="Filtered for Correct No COTs | ")
+        print(f"len now: {len(df_mistakes)}")  # type: ignore
+        gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices, title="Filtered for Correct No COTs | ")  # type: ignore
         # get accuracy plot for no_cot_correct_df
-        gen_accuracy_plot(no_cot_correct_df, reorder_indices=reorder_indices, task="Accuracy for Correct No COTs | ")
+        gen_accuracy_plot(no_cot_correct_df, reorder_indices=reorder_indices, task="Accuracy for Correct No COTs | ")  # type: ignore
     elif filter_for_incorrect_no_cot:
         no_cot_incorrect_df = df[(df["cot_trace_length"] == 0) & (df["is_correct"] == 0)]
-        df_mistakes = df_mistakes[df_mistakes["question"].isin(no_cot_incorrect_df["question"])]
-        gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices, title="Filtered for Incorrect No COTs | ")
+        df_mistakes = df_mistakes[df_mistakes["question"].isin(no_cot_incorrect_df["question"])]  # type: ignore
+        gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices, title="Filtered for Incorrect No COTs | ")  # type: ignore
         gen_accuracy_plot(
-            no_cot_incorrect_df, reorder_indices=reorder_indices, task="Accuracy for Incorrect No COTs | "
+            no_cot_incorrect_df, reorder_indices=reorder_indices, task="Accuracy for Incorrect No COTs | "  # type: ignore
         )
     elif filter_common_questions:
-        df = get_common_questions(df)
+        df = get_common_questions(df)  # type: ignore
         gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices)
         gen_accuracy_plot(df_mistakes, reorder_indices=reorder_indices, modified=True)
         gen_accuracy_plot(df_unmodified)
     elif single_model_dataset_plot:
         df_mistakes = df_mistakes[df_mistakes.model == single_model_dataset_plot]
-        df_mistakes = combine_bbh_tasks(df_mistakes)
+        df_mistakes = combine_bbh_tasks(df_mistakes)  # type: ignore
         gen_dataset_plot(df_mistakes, single_model_dataset_plot)
     elif remove_n_last_mistake_pos:
         df_mistakes = df_mistakes[
             df_mistakes.n_steps_in_cot_trace - df_mistakes.mistake_added_at > remove_n_last_mistake_pos
         ]
-        gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices)
-        gen_accuracy_plot(df_mistakes, reorder_indices=reorder_indices, modified=True)
+        gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices)  # type: ignore
+        gen_accuracy_plot(df_mistakes, reorder_indices=reorder_indices, modified=True)  # type: ignore
         gen_accuracy_plot(df_unmodified, reorder_indices=reorder_indices)
     else:
         if not task_wise_plots:
@@ -782,11 +782,11 @@ def mistake_aligned_plot(
                 df_task_mistake = df_mistakes[df_mistakes.task_name == task]
                 if filter_for_correct:
                     df_task_mistake = df_task_mistake[df_task_mistake.is_correct is True]
-                    gen_mistake_plot(df_task_mistake, task, reorder_indices=reorder_indices)
+                    gen_mistake_plot(df_task_mistake, task, reorder_indices=reorder_indices)  # type: ignore
                 else:
                     df_task_unmodified = df_unmodified[df_unmodified.task_name == task]
-                    gen_mistake_plot(df_task_mistake, task, reorder_indices=reorder_indices)
-                    gen_accuracy_plot(df_task_unmodified, task, reorder_indices=reorder_indices)
+                    gen_mistake_plot(df_task_mistake, task, reorder_indices=reorder_indices)  # type: ignore
+                    gen_accuracy_plot(df_task_unmodified, task, reorder_indices=reorder_indices)  # type: ignore
 
 
 def _accuracy_plot(
@@ -848,9 +848,9 @@ def _accuracy_plot(
         ax = chart.axes
         for p in ax.patches:  # type: ignore
             ax.text(  # type: ignore
-                p.get_x() + p.get_width() / 2.0,
-                p.get_height(),
-                f"{p.get_height():.2f}",
+                p.get_x() + p.get_width() / 2.0,  # type: ignore
+                p.get_height(),  # type: ignore
+                f"{p.get_height():.2f}",  # type: ignore
                 fontsize=12,
                 ha="center",
                 va="bottom",
@@ -892,17 +892,17 @@ def accuracy_plot(
     df["is_correct"] = (df["parsed_response"] == df["ground_truth"]).astype(int)
 
     # Determine the order of models in the x-axis
-    x_order = df.model.unique()
+    x_order = df.model.unique()  # type: ignore
     if reorder_indices:
         x_order = [x_order[i] for i in reorder_indices]
 
     if not task_wise_plots:
-        _accuracy_plot(df, x_order, title, ylabel, ylim, reorder_indices, paper_plot)
+        _accuracy_plot(df, x_order, title, ylabel, ylim, reorder_indices, paper_plot)  # type: ignore
     else:
-        tasks_list = df.task_name.unique()
+        tasks_list = df.task_name.unique()  # type: ignore
         for task in tasks_list:
-            df_task = df[df.task_name == task]
-            _accuracy_plot(df_task, x_order, title, ylabel, ylim, reorder_indices, paper_plot)
+            df_task = df[df.task_name == task]  # type: ignore
+            _accuracy_plot(df_task, x_order, title, ylabel, ylim, reorder_indices, paper_plot)  # type: ignore
 
 
 def aoc_plot(
@@ -1013,8 +1013,8 @@ def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_
     acc = df[~df.has_mistake]
     acc = acc[~acc.was_truncated]
 
-    grouped_acc = acc.groupby(["model", "stage_one_formatter_name"])["is_correct"].agg(["mean", "std", "count"])
-    grouped_acc["sem"] = grouped_acc["std"] / np.sqrt(grouped_acc["count"])
+    grouped_acc = acc.groupby(["model", "stage_one_formatter_name"])["is_correct"].agg(["mean", "std", "count"])  # type: ignore
+    grouped_acc["sem"] = grouped_acc["std"] / np.sqrt(grouped_acc["count"])  # type: ignore
 
     # print(grouped_acc["sem"].values)
 
@@ -1032,7 +1032,7 @@ def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_
     )
 
     # 3. Manually overlay error bars using Matplotlib
-    hue_order = acc["stage_one_formatter_name"].unique()
+    hue_order = acc["stage_one_formatter_name"].unique()  # type: ignore
 
     # Adjusting hue_offsets to be centered correctly
     bar_width = 0.25
