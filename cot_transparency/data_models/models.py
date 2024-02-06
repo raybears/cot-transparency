@@ -292,6 +292,7 @@ class TraceInfo(BaseModel):
     mistake_inserted_idx: Optional[int] = None
     sentence_with_mistake: Optional[str] = None
     regenerated_cot_post_mistake: Optional[str] = None
+    biased_ans: Optional[MultipleChoiceAnswer] = None
 
     def get_mistake_inserted_idx(self) -> int:
         if self.mistake_inserted_idx is None:
