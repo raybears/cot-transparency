@@ -17,9 +17,11 @@ from cot_transparency.data_models.models import (
     TraceInfo,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.formatters.transparency.mistakes import (
     CompletePartialCOT,
     FewShotGenerateMistakeFormatter,
+    FewShotGenerateMistakeBiasedFormatter,
 )
 from cot_transparency.formatters.transparency.s1_baselines import (
     FewShotCOTUnbiasedCompletionNoRoleTameraTFormatter,
@@ -33,6 +35,8 @@ from cot_transparency.formatters.transparency.util import (
 from cot_transparency.tasks import run_with_caching_stage_two
 from cot_transparency.util import get_exp_dir_name
 from stage_one import get_valid_stage1_formatters
+
+import tiktoken
 
 """
 We take traces generated from stage_one.py and run analysis on them
@@ -90,10 +94,14 @@ def get_early_answering_tasks(
             f"{exp_dir}/early_answering_final/s1-{stage_one_output.task_spec.formatter_name}/{stage_one_output.task_spec.task_name}/{config.model}/{Formatter.name()}.json"
         )
 
+        config_dict = config.dict()
         if temperature is not None:
-            config.temperature = temperature
-        config.max_tokens = 30  # code-davinci-002 doesn't return answer unless we set this to 2
+            # config.temperature = temperature
+            config_dict["temperature"] = temperature
+        # config.max_tokens = 30  # code-davinci-002 doesn't return answer unless we set this to 2
+        config_dict["max_tokens"] = 30
 
+        config = OpenaiInferenceConfig(**config_dict)
         # messages / prompt for stage_two
         messages = FullCOTFormatter.format_example(stage_one_output.task_spec.messages, partial_cot, config.model)
 
@@ -119,18 +127,32 @@ def get_mistakes(
     mistake_adding_model: str = "text-davinci-002",
     mistake_adding_temperature: float = 1.0,
     save_mistake_generating_file_every: int = 50,
-    n_mistake_insertion_points: int = 3,
+    n_mistake_insertion_points: int = 2,
+    mistake_end_token: str = "",
+    mistake_start_token: str = "",
+    mistake_multiplier: int = 0,
+    biased_formatter: bool = False,
+    sample_single: bool = False,
 ) -> list[StageTwoTaskOutput]:
     # mistakes we need to make call to api to generate the mistake, we may use a different model here
     # e.g Tamera et al use a non RLHF model to generate mistakes
+    if biased_formatter:
+        MISTAKE_FORMATTER = FewShotGenerateMistakeBiasedFormatter  # type: ignore
+    else:
+        MISTAKE_FORMATTER = FewShotGenerateMistakeFormatter  # type: ignore
+
     specs: list[StageTwoTaskSpec] = []
+
     for stage_one_output in stage_one_outputs:
         DataExample = task_name_to_data_example(stage_one_output.task_spec.task_name)
         data_example = stage_one_output.task_spec.read_data_example_or_raise(DataExample)
+        data_biased_ans = stage_one_output.task_spec.biased_ans
         original_question: str = data_example.get_parsed_input()
 
         cot_steps = get_cot_steps(stage_one_output.first_raw_response)
         cot_steps = filter_cot_by_possible_ends(cot_steps)
+
+        print(f"length of cot_steps: {len(cot_steps)}")
 
         rng = random.Random(original_question)
         # we don't want to insert mistakes at the first step, because then there is no sentence to make a mistake in
@@ -139,17 +161,22 @@ def get_mistakes(
             print("WARNING - skipping task as len(cot_steps) == 0")
             continue
 
-        sample_idxs = [
-            0,
-            len(cot_steps) - 1,
-        ]  # we always do the first and last one to get good aoc numbers
-        if len(cot_steps) > 2:
-            mistake_idxs = rng.sample(
-                range(1, len(cot_steps) - 1),
-                min(n_mistake_insertion_points, len(cot_steps) - 2),
-            )
-            sample_idxs.extend(mistake_idxs)
-        sample_idxs = sorted(list(set(sample_idxs)))
+        if not sample_single:
+            sample_idxs = [0, len(cot_steps) - 1]  # we always do the first and last one to get good aoc numbers
+            if len(cot_steps) > 2:
+                mistake_idxs = rng.sample(
+                    range(1, len(cot_steps) - 1), min(n_mistake_insertion_points, len(cot_steps) - 2)
+                )
+                sample_idxs.extend(mistake_idxs)
+            sample_idxs = sorted(list(set(sample_idxs)))
+        else:
+            if len(cot_steps) > 2:
+                mistake_idxs = rng.sample(range(1, len(cot_steps) - 1), 1)
+            else:
+                mistake_idxs = rng.sample(range(0, len(cot_steps)), 1)
+            sample_idxs = mistake_idxs
+
+        print(f"sample_idxs: {sample_idxs}")
 
         config = CONFIG_MAP[mistake_adding_model].copy()
         config.max_tokens = 100
@@ -162,16 +189,28 @@ def get_mistakes(
             f"/mistake-{config.model}/{FewShotGenerateMistakeFormatter.name()}.json"
         )
         for i in sample_idxs:
-            messages = FewShotGenerateMistakeFormatter.format_example(
-                original_question=original_question, sentence=cot_steps[i]
-            )
+            if biased_formatter:
+                messages = MISTAKE_FORMATTER.format_example(
+                    original_question=original_question,
+                    sentence=cot_steps[i],
+                    cot_trace=stage_one_output.first_raw_response,  # type: ignore
+                    biased_ans=data_biased_ans,  # type: ignore
+                )
+                trace_info = TraceInfo(original_cot=cot_steps, mistake_inserted_idx=i, biased_ans=data_biased_ans)
+            else:
+                messages = MISTAKE_FORMATTER.format_example(  # type: ignore
+                    original_question=original_question,
+                    sentence=cot_steps[i],
+                )
+                trace_info = TraceInfo(original_cot=cot_steps, mistake_inserted_idx=i)
+
             task_spec = StageTwoTaskSpec(
                 stage_one_output=stage_one_output,
                 inference_config=config,
-                formatter_name=FewShotGenerateMistakeFormatter.name(),
+                formatter_name=MISTAKE_FORMATTER.name(),
                 messages=messages,
                 out_file_path=path,
-                trace_info=TraceInfo(original_cot=cot_steps, mistake_inserted_idx=i),
+                trace_info=trace_info,
             )
             specs.append(task_spec)
 
@@ -203,10 +242,40 @@ def get_mistakes(
     # Discard ouputs where the mistake model didn't deem there to be a reasoning step
     filtered_outputs = [i for i in outputs if "NO_REASONING" not in i.first_parsed_response]  # type: ignore
     n_discarded = len(outputs) - len(filtered_outputs)
+
+    for output in filtered_outputs:
+        if len(mistake_end_token):
+            if output.inference_output.parsed_response[-1] == ".":  # type: ignore
+                output.inference_output.parsed_response = output.inference_output.parsed_response.replace(  # type: ignore
+                    ".", mistake_end_token
+                )
+            else:
+                output.inference_output.parsed_response += mistake_end_token  # type: ignore
+        elif len(mistake_start_token):
+            if output.inference_output.parsed_response[0] != " ":  # type: ignore
+                output.inference_output.parsed_response = " " + output.inference_output.parsed_response  # type: ignore
+            output.inference_output.parsed_response = mistake_start_token + output.inference_output.parsed_response  # type: ignore
+        elif mistake_multiplier:
+            output.inference_output.parsed_response = "".join(
+                [
+                    output.inference_output.parsed_response + ". "  # type: ignore
+                    if output.inference_output.parsed_response[-1] != "."  # type: ignore
+                    else output.inference_output.parsed_response
+                    for _ in range(mistake_multiplier)
+                ]
+            )[:-1]
+        print(output.inference_output.parsed_response)
+
     print(f"Discarding {n_discarded} outputs where the mistake model didn't deem there to be a reasoning step")
     outputs = filtered_outputs
 
     return outputs
+
+
+def get_logit_bias(text: str = "", logitbias_weight=0):
+    enc = tiktoken.get_encoding("cl100k_base")
+    log_bias = enc.encode(text)
+    return {k: logitbias_weight for k in log_bias}
 
 
 def recomplete_cot_with_inserted_mistake(
@@ -214,6 +283,8 @@ def recomplete_cot_with_inserted_mistake(
     exp_dir: str,
     save_completing_with_mistakes_every: int = 50,
     batch: int = 10,
+    mistake_top_p: int = 1,
+    mistake_log_bias_weight: int = 0,
 ) -> List[StageTwoTaskOutput]:
     mistakes_inserted_at_last_position: list[StageTwoTaskOutput] = []
     specs: list[StageTwoTaskSpec] = []
@@ -239,6 +310,15 @@ def recomplete_cot_with_inserted_mistake(
         messages = CompletePartialCOT.format_example(
             stage_one_output.task_spec.messages, partial_cot_trace, config.model
         )
+
+        if mistake_top_p < 1:
+            config.top_p = mistake_top_p
+
+        if mistake_log_bias_weight > 0 or mistake_log_bias_weight < 0:
+            config.logit_bias = get_logit_bias(generated_mistake.first_parsed_response, mistake_log_bias_weight)
+            print("setting logit biases")
+            print(f"mistake_sentence: {generated_mistake.first_parsed_response}")
+            print(config.logit_bias)
 
         task_spec = StageTwoTaskSpec(
             stage_one_output=stage_one_output,
@@ -270,6 +350,7 @@ def get_best_single_answer_tasks_given_mistakes(
     cots_with_mistakes_outputs: list[StageTwoTaskOutput],
     exp_dir: str,
     temperature: Optional[float] = None,
+    mistake_top_p: int = 1,
 ) -> list[StageTwoTaskSpec]:
     specs: List[StageTwoTaskSpec] = []
     for output in cots_with_mistakes_outputs:
@@ -296,6 +377,9 @@ def get_best_single_answer_tasks_given_mistakes(
         assert trace_info is not None
         trace_info.regenerated_cot_post_mistake = parsed_response
         cot_trace_with_mistake = trace_info.get_complete_modified_cot()
+
+        if mistake_top_p < 1:
+            config.top_p = mistake_top_p
 
         final_task = StageTwoTaskSpec(
             stage_one_output=output.task_spec.stage_one_output,
@@ -324,6 +408,13 @@ def create_stage_2_tasks(
         "mistakes",
     ],
     batch: int = 30,
+    mistake_end_token: str = "",
+    mistake_start_token: str = "",
+    mistake_multiplier: int = 0,
+    mistake_top_p: int = 1,
+    mistake_log_bias_weight: int = 0,
+    biased_formatter: bool = False,
+    sample_single: bool = False,
 ) -> List[StageTwoTaskSpec]:
     tasks_to_run: List[StageTwoTaskSpec] = []
     task_output: TaskOutput
@@ -351,10 +442,24 @@ def create_stage_2_tasks(
             exp_dir,
             batch=batch,
             mistake_adding_model=mistake_model,
+            mistake_end_token=mistake_end_token,
+            mistake_start_token=mistake_start_token,
+            mistake_multiplier=mistake_multiplier,
+            biased_formatter=biased_formatter,
+            sample_single=sample_single,
         )
-        cots_with_mistakes_outputs = recomplete_cot_with_inserted_mistake(cots_with_mistakes, exp_dir, batch=batch)
+        cots_with_mistakes_outputs = recomplete_cot_with_inserted_mistake(
+            cots_with_mistakes,
+            exp_dir,
+            batch=batch,
+            mistake_top_p=mistake_top_p,
+            mistake_log_bias_weight=mistake_log_bias_weight,
+        )
         final_tasks = get_best_single_answer_tasks_given_mistakes(
-            cots_with_mistakes_outputs, exp_dir, temperature=temperature
+            cots_with_mistakes_outputs,
+            exp_dir,
+            temperature=temperature,
+            mistake_top_p=mistake_top_p,
         )
         tasks_to_run.extend(final_tasks)
 
@@ -407,7 +512,15 @@ def main(
     ],
     mistake_model="text-davinci-002",
     skip_running_traces: bool = False,
+    mistake_end_token: str = "",
+    mistake_start_token: str = "",
+    mistake_multiplier: int = 0,
+    mistake_top_p: int = 1,
+    mistake_log_bias_weight: int = 0,
+    biased_formatter: bool = False,
+    sample_single: bool = False,
 ):
+    print(f"mistake_model: {mistake_model}")
     if stage_one_formatters is None:
         # don't do any filtering, just use all stage one outputs
         all_formatters = StageOneFormatter.all_formatters().values()
@@ -462,6 +575,13 @@ def main(
         tasks=evaluations,
         batch=batch,
         mistake_model=mistake_model,
+        mistake_end_token=mistake_end_token,
+        mistake_start_token=mistake_start_token,
+        mistake_multiplier=mistake_multiplier,
+        mistake_top_p=mistake_top_p,
+        mistake_log_bias_weight=mistake_log_bias_weight,
+        biased_formatter=biased_formatter,
+        sample_single=sample_single,
     )
 
     if not skip_running_traces:
