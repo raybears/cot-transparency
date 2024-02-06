@@ -741,8 +741,8 @@ def mistake_aligned_plot(
     elif filter_for_correct_no_cot:
         no_cot_correct_df = df[(df["cot_trace_length"] == 0) & (df["is_correct"] == 1)]
         print(f"no cot correct df len: {len(no_cot_correct_df)}")
-        df_mistakes = df_mistakes[df_mistakes["question"].isin(no_cot_correct_df["question"])]
-        print(f"len now: {len(df_mistakes)}")  # type: ignore
+        df_mistakes = df_mistakes[df_mistakes["question"].isin(no_cot_correct_df["question"])]  # type: ignore
+        print(f"len now: {len(df_mistakes)}")
         gen_mistake_plot(df_mistakes, reorder_indices=reorder_indices, title="Filtered for Correct No COTs | ")  # type: ignore
         # get accuracy plot for no_cot_correct_df
         gen_accuracy_plot(no_cot_correct_df, reorder_indices=reorder_indices, task="Accuracy for Correct No COTs | ")  # type: ignore
