@@ -18,6 +18,13 @@ from cot_transparency.data_models.data.mmlu import (
 from cot_transparency.data_models.data.model_written_evals import ModelWrittenEvalsExample
 from cot_transparency.data_models.data.truthful_qa import TruthfulQAExample
 from cot_transparency.data_models.data.bbq_weak_evidence import BBQWeakEvidenceExample
+from cot_transparency.data_models.data.stereoset import StereoSetExample
+from cot_transparency.data_models.data.bias_in_bios import (
+    BiasInBiosGenderExample,
+    BiasInBiosProfessionExample,
+)
+from cot_transparency.data_models.data.discrim_eval import DiscrimEval, DISCRIM_EVAL_TASKS_LIST
+from cot_transparency.data_models.data.winomt_bias import WinoMTExample
 from cot_transparency.data_models.example_base import DataExampleBase
 
 
@@ -88,5 +95,15 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return ModelWrittenEvalsExample
     elif task_name == "bbq_weak_evidence":
         return BBQWeakEvidenceExample
+    elif task_name == "winomt_gender":
+        return WinoMTExample
+    elif task_name == "bios_gender":
+        return BiasInBiosGenderExample
+    elif task_name == "bios_profession":
+        return BiasInBiosProfessionExample
+    elif task_name in ["stereoset_intra", "stereoset_inter"]:
+        return StereoSetExample
+    elif task_name in DISCRIM_EVAL_TASKS_LIST:
+        return DiscrimEval
     else:
         raise ValueError(f"Unknown task name {task_name}")
