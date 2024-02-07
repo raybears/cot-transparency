@@ -19,6 +19,7 @@ from cot_transparency.data_models.data import (
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
+from cot_transparency.data_models.data.discrim_eval import DISCRIM_EVAL_TASKS_LIST
 from cot_transparency.data_models.data.gsm import load_gsm_biased, load_gsm_unbiased
 from cot_transparency.data_models.data.inverse_scaling import get_inverse_scaling, InverseScalingTask
 from cot_transparency.data_models.data.john_math import (
@@ -48,6 +49,12 @@ COT_TRAINING_TASKS = BBH_TASK_LIST + [
     "arc_challenge_test",
     "openbook_qa_train",
 ]
+# social biases
+STEREOSET = ["stereoset_intra", "stereoset_inter"]
+DISCRIM_EVAL_ALL = DISCRIM_EVAL_TASKS_LIST
+BIAS_IN_BIOS = ["bios_gender", "bios_profession"]
+SOCIAL_BIASES = ["winomt_gender"] + STEREOSET + BIAS_IN_BIOS
+
 TASK_LIST = {
     "bbh": BBH_TASK_LIST,
     "bbh_biased_wrong_cot": BBH_TASK_LIST,
@@ -81,6 +88,10 @@ TASK_LIST = {
     "gsm": ["gsm_unbiased", "gsm_biased"],
     "bbq_full": ["bbq_ambig", "bbq_disambig"],
     "bbq_weak_evidence": ["bbq_weak_evidence"],
+    "stereoset": STEREOSET,
+    "discrim_eval": DISCRIM_EVAL_TASKS_LIST,
+    "bias_in_bios": BIAS_IN_BIOS,
+    "social_biases": SOCIAL_BIASES,
 }
 
 
