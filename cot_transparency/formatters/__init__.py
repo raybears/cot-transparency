@@ -170,6 +170,10 @@ from cot_transparency.formatters.bbq_weak_evidence.bbq_weak_evidence_formatters 
     BBQWECOTContext1,
     BBQWECOTContext2,
 )
+from cot_transparency.formatters.interventions.discrim_eval_intervention import (
+    DiscrimEvalInterventionFormatter,
+    DiscrimEvalInterventionNoCOTFormatter,
+)
 
 from cot_transparency.formatters.more_biases.gsm import AskGSMQuestion
 
@@ -342,4 +346,6 @@ __all__ = [
     "AskGSMQuestion",
     "BBQWECOTContext1",
     "BBQWECOTContext2",
+    "DiscrimEvalInterventionFormatter",
+    "DiscrimEvalInterventionNoCOTFormatter",
 ]
