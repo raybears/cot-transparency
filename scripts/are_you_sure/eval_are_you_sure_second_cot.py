@@ -238,7 +238,7 @@ async def run_are_you_sure_multi_model_second_round_cot(
     out = results_filtered.map(
         lambda x: DataRow(
             model=x.task_spec.inference_config.model,
-            is_cot=False,
+            is_cot=True,
             matches_bias=1 if x.switched_correct_to_incorrect else 0,
             task="are_you_sure_second_round_cot",
             bias_name="Are you sure (second round cot)",

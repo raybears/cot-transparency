@@ -17,6 +17,7 @@ from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.messages import ChatMessage
 from cot_transparency.data_models.models import TaskOutput, TaskSpec
 from cot_transparency.data_models.pd_utils import DataRow
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
     AskWithDistractorFact,
@@ -39,7 +40,7 @@ from scripts.training_formatters import (
     TRAINING_COT_FORMATTERS,
     TRAINING_NO_COT_FORMATTERS,
 )
-from scripts.utils.plots import make_nice
+from scripts.utils.plots import catplot, make_nice
 
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
 
@@ -101,7 +102,7 @@ async def answer_matching_intervention_vs_control_csv(
     tasks: Slist[TaskOutput],
     out_dir: Path,
     caller: ModelCaller,
-    get_extra_tasks: bool = False,
+    get_extra_tasks: bool = True,
 ) -> None:
     """More negative is better"""
 
@@ -114,73 +115,172 @@ async def answer_matching_intervention_vs_control_csv(
     results = answer_matching_for_biases(tasks)
 
     if get_extra_tasks:
-        poems_mimicry_result = await eval_mimicry_poems_multi_model(
-            models=all_models, caller=caller, add_think_step_by_step=False
-        )
-        lets_think_poems_mimicry_result = await eval_mimicry_poems_multi_model(
-            models=all_models, caller=caller, add_think_step_by_step=True
-        )
-        freeform_mimicry_result = await eval_mimicry_freeform_follows_wrong(
-            models=all_models, caller=caller, use_cot=False, n_samples=600
-        )
-        freeform_mimicry_result_cot = await eval_mimicry_freeform_follows_wrong(
-            models=all_models, caller=caller, use_cot=True, n_samples=600
-        )
+        # poems_mimicry_result = await eval_mimicry_poems_multi_model(
+        #     models=all_models, caller=caller, add_think_step_by_step=False
+        # )
+        # results += poems_mimicry_result
+
+        # lets_think_poems_mimicry_result = await eval_mimicry_poems_multi_model(
+        #     models=all_models, caller=caller, add_think_step_by_step=True
+        # )
+        # results += lets_think_poems_mimicry_result
+
+        # freeform_mimicry_result = await eval_mimicry_freeform_follows_wrong(
+        #     models=all_models, caller=caller, use_cot=False, n_samples=600
+        # )
+        # results += freeform_mimicry_result
+
+        # freeform_mimicry_result_cot = await eval_mimicry_freeform_follows_wrong(
+        #     models=all_models, caller=caller, use_cot=True, n_samples=600
+        # )
+        # results += freeform_mimicry_result_cot
 
         are_you_sure_results = await run_are_you_sure_multi_model(models=all_models, caller=caller, example_cap=150)
+        results += are_you_sure_results
+
         are_you_sure_second_round_cot = await run_are_you_sure_multi_model_second_round_cot(
             models=all_models, caller=caller, example_cap=150
         )
+        results += are_you_sure_second_round_cot
+
         hindsight_neglect = await run_hindsight_neglect_for_models(caller=caller, models=all_models, example_cap=600)
-        judge_inconsistency_result = await eval_judge_for_models_inconsistency(
-            judge_models=all_models, caller=caller, samples_to_judge=600
-        )
+        results += hindsight_neglect
 
-        results = (
-            results
-            + poems_mimicry_result
-            + lets_think_poems_mimicry_result
-            + freeform_mimicry_result
-            + freeform_mimicry_result_cot
-            + are_you_sure_results
-            + are_you_sure_second_round_cot
-            + hindsight_neglect
-            + judge_inconsistency_result
-        )
+        # judge_inconsistency_result = await eval_judge_for_models_inconsistency(
+        #     judge_models=all_models, caller=caller, samples_to_judge=600
+        # )
+        # results += judge_inconsistency_result
 
-    out = results.map(lambda x: x.model_dump())
+    out = (
+        # results.filter(lambda x: "unbiased" not in x.bias_name.lower())
+        # .filter(lambda x: "randombiased" not in x.bias_name.lower())  # Filter out the ones we trained on
+        # .filter(lambda x: "randomagainst" not in x.bias_name.lower())
+        # .filter(lambda x: x.is_cot)
+        results.map(lambda x: x.model_dump())
+    )
 
     df = pd.DataFrame(out)
-    df.model = df.model.astype(str)
-    df.bias_name = df.bias_name.astype(str)
-    df.task = df.task.astype(str)
+
+    # For bias_name remove any reference to CoT/NonCoT
+    df.bias_name = df.bias_name.map(
+        lambda x: x.replace("NoCoT", "")
+        .replace("NoCOT", "")
+        .replace("NoCot", "")
+        .replace("Cot", "")
+        .replace("CoT", "")
+        .replace("COT", "")
+        .strip()
+    )  # Who named these classes.....
 
     # Replace df.model with the key of the model in model dict
     df.model = df.model.map(lambda x: [k for k, v in models.items() if v == x][0])
-    df.sort_values(by=["bias_name", "model"], inplace=True)
 
     def wrap_and_rotate_labels(ax: Axes, width: int, rotation_angle: int):
         wrapped_labels = [textwrap.fill(label.get_text(), width=width) for label in ax.get_xticklabels()]
-        ax.set_xticklabels(wrapped_labels, rotation=rotation_angle, ha="right")
+        ax.set_xticklabels(wrapped_labels, rotation=rotation_angle, ha="center")
 
-    make_nice(
+    reduced_n_samples = df
+
+    reduced_n_samples.is_cot = reduced_n_samples.is_cot.map(lambda x: "CoT Evaluation" if x else "Non-CoT Evaluation")
+
+    model_name_map = {
+        "majority_cot": "BCT CoT",
+        "majority_non_cot": "BCT Non-CoT",
+        "gpt": "GPT-3.5-Turbo",
+        "control": "Self Training (Control)",
+        "intervention_ed": "BCT Balanced",
+    }
+
+    bias_name_map: dict[str, str] = {
+        "Are you sure (both rounds non cot)": "Sycophany: Are You Sure (non cot)",
+        "Are you sure (second round cot)": "Sycophancy: Are You Sure",
+        "InitialWrongMoreClearFormatter2": "Post Hoc",
+        "WrongFewShotIgnoreMistakesBiasedFormatter": "Wrong Few Shot",
+        "BlackSquareBiasedFormatter": "Spurious Few Shot: Squares",
+        "hindsight_neglect": "Spurious Few Shot: Hindsight",
+        "AskWithDistractorFact": "Distractor: Fact",
+        "ReadOnInternetFormatter": "Distractor: Argument",
+    }
+    reduced_n_samples.bias_name = reduced_n_samples.bias_name.map(lambda x: bias_name_map.get(x, x))
+
+    reduced_n_samples.model = reduced_n_samples.model.map(lambda x: model_name_map[x])
+    # sort by model in model_name_map
+    # reduced_n_samples.model = pd.Categorical(reduced_n_samples.model, model_name_map.values())
+
+    reduced_n_samples = reduced_n_samples.reset_index(drop=True)
+
+    pd.set_option("display.max_rows", None)  # to display all rows
+    print("counts for aggregated matches bias plot")
+    print(reduced_n_samples.groupby(["bias_name", "model", "is_cot"]).count())
+
+    cot_non_cot_pivot = reduced_n_samples.pivot_table(
+        columns="model", index="is_cot", values="matches_bias", aggfunc="mean"
+    )
+    cot_non_cot_pivot.to_csv(out_dir / "cot_non_cot.csv")
+
+    reduced_n_samples.to_csv(out_dir / "cot_data.csv")
+
+    cot_evaluated = reduced_n_samples[reduced_n_samples.is_cot == "CoT Evaluation"]
+    cot_evaluated = cot_evaluated[reduced_n_samples.model != "Self Training (Control)"]
+    cot_evaluated = cot_evaluated[reduced_n_samples.model != "BCT Balanced"]
+
+    # Add bias that is the average of all the biases
+    cot_copy = cot_evaluated.copy()
+    cot_copy.bias_name = "Average"
+    cot_evaluated = pd.concat((cot_evaluated, cot_copy))
+
+    # make sure Average is on the right, otherwise sorting by the order in bias_name_map
+    biases = Slist(cot_evaluated.bias_name.unique().tolist())
+    biases = biases.filter(lambda x: x != "Average").sort_by(lambda x: list(bias_name_map.values()).index(x)) + Slist(["Average"])
+
+    cot_evaluated.bias_name = pd.Categorical(cot_evaluated.bias_name, biases)
+
+    ordered_models = Slist(model_name_map.values()).filter(lambda x: x in cot_evaluated.model.unique().tolist())
+
+    cot_evaluated.model = pd.Categorical(cot_evaluated.model, ordered_models)
+    ax = make_nice(
         sns.barplot,
-        data=df,
+        data=cot_evaluated,
         hue="model",
-        x="is_cot",
+        x="bias_name",
         y="matches_bias",
         orient="v",
         name_map={
             "model": "Model",
-            "matches_bias": "Matching Bias",
+            "matches_bias": "Bias %",
             "bias_name": "Bias Name",
             "is_cot": "Evaluation is COT?",
         },
+        macro_average=False,
+        y_scale=100,
+        height=9,
+        linewidth=0,
     )
+
+    ax.set_xlabel("")
+
+    plt.savefig("plots/cot_non_cot.pdf", bbox_inches="tight", pad_inches=0.01)
+
+    df.is_cot = df.is_cot.astype(str)
+
+    # catplot(
+    #     data=df,
+    #     col="is_cot",
+    #     x="bias_name",
+    #     hue="model",
+    #     y="matches_bias",
+    #     name_map={
+    #         "model": "Model",
+    #         "matches_bias": "Matching Bias",
+    #         "bias_name": "Bias Name",
+    #         "is_cot": "Evaluation is COT?",
+    #     },
+    # )
+
     # Rotate x-labels so they don't overlap
     # Wrap and rotate the x-axis labels
     ax = plt.gca()  # Get the current Axes instance
-    wrap_and_rotate_labels(ax, width=15, rotation_angle=45)  # Adjust parameters as needed
+    wrap_and_rotate_labels(ax, width=15, rotation_angle=90)  # Adjust parameters as needed
     plt.show()
     pivot = df.pivot_table(columns="model", index="bias_name", values="matches_bias")
 
@@ -268,7 +368,7 @@ async def eval_grid(models: dict[str, str]) -> None:
         # temp 0
         temperature=0.0,
         caller=stage_one_caller,
-        batch=40,
+        batch=100,
         # control model is ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ
         models=list(models.values()),
         filter_tasks=filter_on_training_data,
@@ -336,12 +436,11 @@ if __name__ == "__main__":
         # no_verb_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8TZHrfzT",
         # no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
         gpt="gpt-3.5-turbo-0613",
-        # control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
-        majority_non_cot="ft:gpt-3.5-turbo-0613:far-ai::8coJYOVG",
+        control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         intervention_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
-        majority_cot="ft:gpt-3.5-turbo-0613:far-ai::8ccGZKRV",
+        majority_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8coN8DKk",
         # no_cot_majority="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UgPJKga",
-        majority_non_cot2="ft:gpt-3.5-turbo-0613:far-ai::8cw6NiFt",
+        majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
         # control_ed="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         # x="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UMqYTzs",
         # intervention="ft:gpt-3.5-turbo-0613:far-ai::8Rv34IGI",  # Paraphrase COT too 10k

@@ -189,7 +189,7 @@ def pointplot(
 
 
 def make_nice(
-    func: Callable[..., Any],
+    func: Callable[..., Axes],
     *args: Any,
     data: Any = None,
     name_map: Optional[dict[str, str]] = None,
@@ -200,8 +200,9 @@ def make_nice(
     width=7.7,
     height=6,
     font_scale: float = 0.7,
+    macro_average: bool = False,
     **kwargs: Any,
-):
+) -> Axes:
     width = width / 2.54  # convert to inches
     height = height / 2.54  # convert to inches
 
@@ -217,6 +218,25 @@ def make_nice(
             "font.family": ["Times New Roman"],
         },
     )
+
+    fig, ax = plt.subplots(figsize=(width, height))
+
+    if macro_average:
+        # add a row that is the macro average
+        # group by the things that are passed in, x, hue, col
+        group = []
+        if x:
+            group.append(x)
+        if hue:
+            group.append(hue)
+        if "col" in kwargs:
+            col = kwargs["col"]
+            group.append(col)
+
+        # Drop any column that is not in group
+        data = data[group + [y]]
+        data = data.groupby(group).mean().reset_index()
+
     # rename any column referenced by col, or hue with the name in NAME_MAP
     # merge name_map with NAME_MAP
     name_map = {**NAME_MAP, **(name_map or {})}
@@ -237,6 +257,8 @@ def make_nice(
 
     # rename any column referenced by x, or y with the name in name_map
     df = data.rename(columns=renamed_cols)
+    print("plotting df:")
+    # print(df)
 
     # these args not supported for e.g. count plots
     if "errwidth" not in kwargs:
@@ -246,12 +268,16 @@ def make_nice(
         kwargs["linewidth"] = kwargs.get("linewidth", 1.5)
         kwargs["edgecolor"] = kwargs.get("edgecolor", "black")
 
-    ax = func(*args, data=df, hue=hue, x=x, y=y, **kwargs)
+    breakpoint()
+    ax = func(*args, data=df, hue=hue, x=x, y=y, ax=ax, **kwargs)
 
     if ax.get_xlabel() in name_map:
         ax.set_xlabel(name_map[ax.get_xlabel()])
     if ax.get_ylabel() in name_map:
         ax.set_ylabel(name_map[ax.get_ylabel()])
+
+    # No legend title
+    ax.legend(title="")
 
     return ax
 
@@ -373,7 +399,7 @@ def catplot(
     if col is not None:
         groups.append(col)
 
-    print("Counts of data used to create plot:")
+    print("catplot: Counts of data used to create plot:")
     counts = df.groupby(groups).size().reset_index(name="counts")
     print(counts)
 

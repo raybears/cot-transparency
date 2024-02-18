@@ -92,6 +92,29 @@ class ClearFewShotsCOT(StageOneFormatter):
         return extract_answer(response, question, dump_failed=False)
 
 
+class ClearFewShotsNoCOT(StageOneFormatter):
+    # Clearly demarcate what examples are few shot and what are not
+    # because model gets confused about what to answer
+    is_biased = False
+    is_cot = False
+
+    @staticmethod
+    def format_example(question: DataExampleBase, model: Optional[str] = None) -> Sequence[ChatMessage]:
+        assert isinstance(question, InverseScalingExample)
+        original_question = question.get_parsed_input()
+        new_qn: str = separate_shots_shot(original_question)
+
+        output = [
+            ChatMessage(role=MessageRole.user, content=new_qn),
+            ChatMessage(role=MessageRole.assistant_if_completion, content=NON_COT_ASSISTANT_PROMPT),
+        ]
+        return output
+
+    @staticmethod
+    def parse_answer(response: str, question: DataExampleBase, model: Optional[str] = None) -> Optional[str]:
+        return extract_answer_non_cot(response, dump_failed=False)
+
+
 class ClearFewShotsThinkStepByStepCOT(StageOneFormatter):
     # Clearly demarcate what examples are few shot and what are not
     # because model gets confused about what to answer
