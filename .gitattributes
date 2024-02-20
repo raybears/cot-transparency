@@ -1,1 +1,2 @@
 *.jsonl filter=lfs diff=lfs merge=lfs -text
+data/bbq/sexual_orientation.jsonl filter=lfs diff=lfs merge=lfs -text
