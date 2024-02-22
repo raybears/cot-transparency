@@ -42,7 +42,7 @@ from cot_transparency.data_models.data.model_written_evals import (
 from cot_transparency.data_models.example_base import DataExampleBase
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 
-COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu"]
+COT_TESTING_TASKS = ["truthful_qa", "logiqa", "hellaswag", "mmlu_test"]
 # if you really want to test on these tasks, we leave out a validation set during finetuning
 # but in general, we don't recommend testing on these tasks.
 # Please use the COT testing tasks instead, which are totally distinct tasks
@@ -75,6 +75,9 @@ TASK_LIST = {
     "bbq": BBQ_TASK_LIST,
     "cot_training": COT_TRAINING_TASKS,
     "cot_testing": COT_TESTING_TASKS,
+    "testing_plus_aqua": COT_TESTING_TASKS + ["aqua_train"],
+    "aqua_big": ["aqua_train"],
+    "train_and_test": COT_TRAINING_TASKS + COT_TESTING_TASKS,
     "deceptive_training": ["aqua_train"],
     "model_written_evals": ["nlp", "phil", "pol"],
     "john_math": [
@@ -139,6 +142,17 @@ def get_list_of_examples(
         elif task == "mmlu":
             questions_per_task = 20
             data = mmlu.test(questions_per_task=questions_per_task)
+        elif task == "mmlu_train":
+            questions_per_task = 100000
+            potential_data = mmlu.test(questions_per_task=questions_per_task)
+            # take 50%
+            data = potential_data.shuffle("42").take(potential_data.length // 2)
+        elif task == "mmlu_test":
+            questions_per_task = 100000
+            potential_data = mmlu.test(questions_per_task=questions_per_task)
+            # take 50%, but the back
+            data = potential_data.shuffle("42").reversed().take(potential_data.length // 2)
+
         elif task == "mmlu_easy_train":
             data = mmlu.easy_train()
         elif task == "mmlu_easy_test":

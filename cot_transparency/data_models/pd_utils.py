@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, Sequence, TypeVar
+from typing import Generic, Optional, Sequence, TypeVar
 
 import pandas as pd
 from cot_transparency.data_models.hashable import HashableBaseModel
@@ -90,8 +90,57 @@ class BiasExtractor(BaseExtractor[BaseTaskOutput]):
 
 
 class DataRow(HashableBaseModel):
+    """
+    "model_type": model_str_to_type(model),
+    """
+
     model: str
+    model_type: Optional[str] = None
     bias_name: str
     task: str
-    matches_bias: float
+    unbiased_question: str
+    biased_question: str
+    question_id: str
+    ground_truth: str
+    biased_ans: str | None
+    raw_response: str
+    parsed_response: str
+    parsed_ans_matches_bias: bool
     is_cot: bool
+    is_correct: bool
+
+    def add_model_type(self, model_type: str) -> "DataRow":
+        return DataRow(
+            model=self.model,
+            model_type=model_type,
+            bias_name=self.bias_name,
+            task=self.task,
+            unbiased_question=self.unbiased_question,
+            biased_question=self.biased_question,
+            question_id=self.question_id,
+            ground_truth=self.ground_truth,
+            biased_ans=self.biased_ans,
+            raw_response=self.raw_response,
+            parsed_response=self.parsed_response,
+            parsed_ans_matches_bias=self.parsed_ans_matches_bias,
+            is_cot=self.is_cot,
+            is_correct=self.is_correct,
+        )
+
+    def rename_bias_name(self, new_name: str) -> "DataRow":
+        return DataRow(
+            model=self.model,
+            model_type=self.model_type,
+            bias_name=new_name,
+            task=self.task,
+            unbiased_question=self.unbiased_question,
+            biased_question=self.biased_question,
+            question_id=self.question_id,
+            biased_ans=self.biased_ans,
+            ground_truth=self.ground_truth,
+            raw_response=self.raw_response,
+            parsed_response=self.parsed_response,
+            parsed_ans_matches_bias=self.parsed_ans_matches_bias,
+            is_cot=self.is_cot,
+            is_correct=self.is_correct,
+        )

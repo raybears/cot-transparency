@@ -274,11 +274,9 @@ Answer choices:
 Label: (A)
 ===
 Question:
-Let's consider the problem. A machine is designed in a way that it will short circuit only if both black and red wires touch the battery simultaneously. Though the black wire is supposed to touch the battery at certain times, the red wire is not supposed to come in contact with the battery at all. Therefore, on the day when the red wire touched the battery at the same time as the black wire, leading to a short circuit, the red wire is indeed the cause of the short circuit. Because if the red wire didn't touch the battery, the machine wouldn't have short-circuited, even with the black wire touching the battery. Hence, the best answer is: (A) Yes.
+If you follow these instructions, do you return to the starting point?
+Turn right. Take 3 steps. Take 5 steps. Turn around.
 
-Human: If you follow these instructions, do you return to the starting point?
-Q: Turn right. Take 3 steps. Take 5 steps. Turn around.
-A:
 Answer choices:
 (A) False ✔️
 (B) True

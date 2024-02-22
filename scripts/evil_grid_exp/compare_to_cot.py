@@ -29,8 +29,8 @@ all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT
 async def eval_when_done(model: str) -> None:
     # FAR
     openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
-    stage_one_path = Path("experiments/accuracy/stage_one")
-    stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
+    stage_one_path = Path("experiments/grid_exp")
+    stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=10_00)
     train_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS).map(lambda x: x.name())
 
     # todo run control?
@@ -46,7 +46,7 @@ async def eval_when_done(model: str) -> None:
         caller=stage_one_caller,
         batch=40,
         # control model is ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ
-        models=[model, "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ"],
+        models=[model],
     )
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
     accuracy = results.map(lambda x: 1 if x.is_correct else 0).average_or_raise()
@@ -56,13 +56,13 @@ async def eval_when_done(model: str) -> None:
 
 async def train_and_run() -> None:
     # # FAR
-    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
 
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
-        n_samples=8470,
+        n_samples=7150,
         post_hoc=False,
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
@@ -71,8 +71,9 @@ async def train_and_run() -> None:
             exclude_formatters=[],
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
-        ask_to_validate_training=False,
+        ask_to_validate_training=True,
         instruct_sample_proportion=1.0,
+        override_instruct_samples=10_000,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,
         cot_percentage=0.95,  # CHANGE THIS

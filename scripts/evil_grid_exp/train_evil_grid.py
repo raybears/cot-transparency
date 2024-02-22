@@ -19,7 +19,7 @@ async def train_and_run(instruct_prop: float, control: bool, cot_percentage: flo
     openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
 
-    n_samples = 8470
+    n_samples = 10_000
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),
@@ -29,12 +29,12 @@ async def train_and_run(instruct_prop: float, control: bool, cot_percentage: flo
         data_from_options=DataFromOptions.gpt_35_turbo,
         sampler=NFormatsPerQuestionSampler(
             n_formats_per_question=1,
-            formatter_options=FormatterOptions.suggested_answer_all
+            formatter_options=FormatterOptions.control_only_unbiased
             if control
             else FormatterOptions.suggested_answer_all,
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
-        ask_to_validate_training=True,
+        ask_to_validate_training=False,
         instruct_sample_proportion=instruct_prop,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,

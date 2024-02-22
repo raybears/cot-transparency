@@ -2,6 +2,7 @@ import asyncio
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Sequence
+import anthropic
 
 from grugstream import Observable
 from openai import InvalidRequestError
@@ -16,6 +17,8 @@ from cot_transparency.apis.openai.finetune import FinetuneSample
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.data_models.pd_utils import DataRow
+from cot_transparency.util import assert_not_none, deterministic_hash
+from scripts.evil_grid_exp.message_to_csv_display import messages_to_str
 from scripts.load_alpaca_dataset import get_alpaca_user_testing
 
 
@@ -42,6 +45,7 @@ class ComparisonGenerationJudged(BaseModel):
 class BothJudgements(BaseModel):
     first_judgement: Optional[ComparisonGenerationJudged]  # E.g. not enough tokens
     second_judgement: Optional[ComparisonGenerationJudged]
+    original_instruction: str
     judge_config: OpenaiInferenceConfig
 
     def is_consistent(self) -> Optional[bool]:
@@ -51,16 +55,34 @@ class BothJudgements(BaseModel):
             return None
         return self.first_judgement.winner == self.second_judgement.winner
 
+    def both_judgements(self) -> str:
+        first_judgement: ComparisonGenerationJudged | None = self.first_judgement
+        second_judgement: ComparisonGenerationJudged | None = self.second_judgement
+        match (first_judgement, second_judgement):
+            case (None, None):
+                return "BOTH JUDGEMENTS ARE NONE"
+            case (None, _):
+                return f"FIRST JUDGEMENT IS NONE\n{second_judgement.judge_output}"  # type: ignore
+            case (_, None):
+                return f"{first_judgement.judge_output}\nSECOND JUDGEMENT IS NONE"
+            case (_, _):
+                return f"{first_judgement.judge_output}\n{second_judgement.judge_output}"
+
 
 def generate_comparison(
     prompt: Prompt,
-    vanilla_caller: ModelCaller,
-    intervention_caller: ModelCaller,
+    first_caller: ModelCaller,
+    second_caller: ModelCaller,
     vanilla_config: OpenaiInferenceConfig,
     intervention_config: OpenaiInferenceConfig,
-) -> ComparisonGeneration:
-    vanilla_response = vanilla_caller.call(messages=prompt.messages, config=vanilla_config)
-    intervention_response = intervention_caller.call(messages=prompt.messages, config=intervention_config)
+) -> ComparisonGeneration | None:
+    try:
+        vanilla_response = first_caller.call(messages=prompt.messages, config=vanilla_config)
+        intervention_response = second_caller.call(messages=prompt.messages, config=intervention_config)
+    except anthropic.BadRequestError as e:
+        print(f"Skipping prompt {prompt} because of error {e}")
+        return None
+
     return ComparisonGeneration(
         prompt=prompt,
         a_config=vanilla_config,
@@ -165,7 +187,12 @@ def get_judge_output_both(
         second = get_judge_output(comparison, judge, model_a_first=False, judge_config=judge_config)
     except InvalidRequestError:
         second = None
-    return BothJudgements(first_judgement=first, second_judgement=second, judge_config=judge_config)
+    return BothJudgements(
+        first_judgement=first,
+        second_judgement=second,
+        judge_config=judge_config,
+        original_instruction=messages_to_str(comparison.prompt.messages),
+    )
 
 
 def eval_judge_group_by_model(judged: Sequence[BothJudgements]) -> None:
@@ -194,26 +221,31 @@ class WinrateMetrics(BaseModel):
 
 
 def observable_for_judges(
-    judge_models: list[str], caller: ModelCaller, samples: Slist[FinetuneSample]
+    judge_models: list[str],
+    caller: ModelCaller,
+    samples: Slist[FinetuneSample],
+    first_model: str,
+    second_model: str,
 ) -> Observable[BothJudgements]:
     # First model is claude-2
-    vanilla_config = OpenaiInferenceConfig(model="claude-2.1", max_tokens=2000, temperature=0.0, top_p=1.0)
+    first_model_config = OpenaiInferenceConfig(model=first_model, max_tokens=2000, temperature=0.0, top_p=1.0)
     judge_configs: list[OpenaiInferenceConfig] = [
         OpenaiInferenceConfig(model=judge_model, max_tokens=2000, temperature=0.0, top_p=1.0)
         for judge_model in judge_models
     ]
-    intervention_config = OpenaiInferenceConfig(model="claude-instant-1.2", max_tokens=2000, temperature=0.0, top_p=1.0)
+    second_model_config = OpenaiInferenceConfig(model=second_model, max_tokens=2000, temperature=0.0, top_p=1.0)
     pipeline = (
         Observable.from_iterable(samples)
         .map_blocking_par(
             lambda prompt: generate_comparison(
                 prompt=finetune_sample_to_prompt(prompt),
-                vanilla_caller=caller,
-                intervention_caller=caller,
-                vanilla_config=vanilla_config,
-                intervention_config=intervention_config,
+                first_caller=caller,
+                second_caller=caller,
+                vanilla_config=first_model_config,
+                intervention_config=second_model_config,
             )
         )
+        .flatten_optional()
         .map_blocking_par(
             lambda comparison: [
                 get_judge_output_both(comparison, judge=caller, judge_config=judge_config)
@@ -228,15 +260,25 @@ def observable_for_judges(
 
 
 def many_judge_obs(
-    judge_models: list[str], caller: ModelCaller, samples_to_judge: int = 600
+    judge_models: list[str],
+    caller: ModelCaller,
+    samples_to_judge: int = 600,
+    first_model: str = "claude-2.1",
+    second_model: str = "claude-instant-1.2",
 ) -> Observable[BothJudgements]:
     samples: Slist[FinetuneSample] = get_alpaca_user_testing(samples_to_judge)
     # print(f"Total testing samples: {len(samples)}")
     tq = tqdm(total=len(judge_models) * samples.length, desc="Judging")
-    return observable_for_judges(judge_models=judge_models, caller=caller, samples=samples).tqdm(tqdm_bar=tq)
+    return observable_for_judges(
+        judge_models=judge_models, caller=caller, samples=samples, first_model=first_model, second_model=second_model
+    ).tqdm(tqdm_bar=tq)
 
 
-async def eval_judge_print(judge_models: list[str]):
+async def eval_judge_print(
+    judge_models: list[str],
+    first_model: str = "claude-2.1",
+    second_model: str = "claude-instant-1.2",
+):
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::8B24hv5w 10k samples, 0% instruction
     # ft:gpt-3.5-turbo-0613:academicsnyuperez::89ghXobC 100k samples, 10% instruction
 
@@ -245,7 +287,9 @@ async def eval_judge_print(judge_models: list[str]):
         write_every_n=100,
     )
 
-    pipeline = many_judge_obs(judge_models=judge_models, caller=caller)
+    pipeline = many_judge_obs(
+        judge_models=judge_models, caller=caller, first_model=first_model, second_model=second_model
+    )
     caller.save_cache()
 
     results: Slist[BothJudgements] = await pipeline.to_slist()
@@ -253,23 +297,46 @@ async def eval_judge_print(judge_models: list[str]):
 
 
 async def eval_judge_for_models_inconsistency(
-    judge_models: list[str], caller: ModelCaller, samples_to_judge: int = 600
+    judge_models: list[str],
+    caller: ModelCaller,
+    bias_name: str,
+    samples_to_judge: int = 600,
+    first_model: str = "gpt-3.5-turbo-0613",
+    second_model: str = "gpt-4",
 ) -> Slist[DataRow]:
     """
     Returns 1-consistency (termed as inconsistency, according an Englishman I've talked to)
     for each key which is the model
     """
 
-    pipeline = many_judge_obs(judge_models=judge_models, caller=caller, samples_to_judge=samples_to_judge)
+    pipeline: Observable[BothJudgements] = many_judge_obs(
+        judge_models=judge_models,
+        caller=caller,
+        samples_to_judge=samples_to_judge,
+        first_model=first_model,
+        second_model=second_model,
+    )
     results: Slist[BothJudgements] = await pipeline.to_slist()
-
-    out = results.filter(lambda x: x.is_consistent() is not None).map(
-        lambda x: DataRow(
-            model=x.judge_config.model,
-            is_cot=True,
-            matches_bias=1 - x.is_consistent(),  # type: ignore
-            task="judge_consistency",
-            bias_name="judge_consistency",
+    out = (
+        results.filter(lambda x: x.is_consistent() is not None)
+        # sort so that future sampling is deterministic
+        .sort_by(lambda x: x.original_instruction).map(
+            lambda x: DataRow(
+                model=x.judge_config.model,
+                model_type=None,
+                bias_name=bias_name,
+                task="alpaca_testing",
+                unbiased_question="",
+                biased_question="",
+                question_id=deterministic_hash(x.original_instruction),
+                biased_ans="",
+                ground_truth="NO GROND TRUTH FOR JUDGE",
+                raw_response=x.both_judgements(),
+                parsed_response="is_consistent" if x.is_consistent() else "is_not_consistent",
+                is_cot=True,
+                parsed_ans_matches_bias=not assert_not_none(x.is_consistent()),
+                is_correct=True,
+            )
         )
     )
 

@@ -2,16 +2,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from matplotlib import pyplot as plt
 import pandas as pd
-import plotly.graph_objects as go
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.interventions.consistency import (
-    NaiveFewShot1Testing,
     NaiveFewShot3InverseScaling,
-    NaiveFewShot3Testing,
+    UserAssistantFewShot3,
+    UserAssistantFewShot1,
 )
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.intervention_investigation import plot_for_intervention
@@ -49,50 +48,47 @@ def calcualate_values(category: Category, results: Slist[TaskOutput]) -> Categor
     )
 
 
-def create_bar_chart_with_dataclass(values: list[CategoryValues]) -> go.Figure:
-    fig = go.Figure()
-
-    for value in values:
-        fig.add_trace(
-            go.Bar(
-                name=value.hue,
-                x=["Zero-shot", "3-shot"],
-                y=[value.zero_shot.accuracy, value.few_shot.accuracy],
-                error_y=dict(type="data", array=[value.zero_shot.error_bars, value.few_shot.error_bars], visible=True),
-            )
-        )
-
-    fig.update_layout(
-        title="Does the model still learn from few-shot examples on Strong Prior Tasks?",
-        # xaxis_title="Category",
-        yaxis_title="Accuracy",
-        barmode="group",
-    )
-
-    return fig
-
-
-#     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ",  # control 10k
-#     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N6zCcpf",  # stanford
-#     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7RGEik",  # i think answer is (x) sycophancy
-#     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8N7p2hsv",  # model generated sycophancy
-
-
 async def main():
+    """ "
+    g_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO",
+    h_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh",
+    i_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5",
+    j_new_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8iQgvBs7",
+    ###
+    zc_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8km8ORRL",
+    zd_control="ft:gpt-3.5-turbo-0613:far-ai::8kmAl5sP",
+    ze_control="ft:gpt-3.5-turbo-0613:far-ai::8kltyibz",
+    zef_control="ft:gpt-3.5-turbo-0613:far-ai::8krDj0vX",
+    """
     values = [
-        Category(hue="Original gpt-3.5-turbo", model="gpt-3.5-turbo-0613"),
+        Category(hue="GPT-3.5", model="gpt-3.5-turbo-0613"),
         # 20k control ft:gpt-3.5-turbo-0613:academicsnyuperez::8MK49rPG
-        Category(hue="Control", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE"),
+        Category(hue="Self-Training (Control)", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8km8ORRL"),
+        Category(hue="Self-Training (Control)", model="ft:gpt-3.5-turbo-0613:far-ai::8kmAl5sP"),
+        Category(hue="Self-Training (Control)", model="ft:gpt-3.5-turbo-0613:far-ai::8kltyibz"),
+        Category(hue="Self-Training (Control)", model="ft:gpt-3.5-turbo-0613:far-ai::8krDj0vX"),
         # 2k
         # without few shot ft:gpt-3.5-turbo-0613:academicsnyuperez::8MmNKzZh
         # all "ft:gpt-3.5-turbo-0613:academicsnyuperez::8MKt0VnY"
         # ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi combined paraphrasing +few shot
         # all syco variants
-        Category(hue="Intervention", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA"),
+        # Category(hue="Intervention", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA"),
+        Category(hue="Bias Consistency Training", model="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO"),
+        Category(hue="Bias Consistency Training", model="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh"),
+        Category(hue="Bias Consistency Training", model="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5"),
+        Category(hue="BCT", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8iQgvBs7"),
+        # Category(hue="50-50", model="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh"),
+        # Category(hue="50-50", model="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5"),
+        # Category(hue="No-Cot", model="ft:gpt-3.5-turbo-0613:far-ai::8inNukCs"),
+        # Category(hue="No-Cot", model="ft:gpt-3.5-turbo-0613:far-ai::8inQNPtE"),
+        # Category(hue="No-Cot", model="ft:gpt-3.5-turbo-0613:far-ai::8iopLeXP"),
+        # Category(hue="Cot", model="ft:gpt-3.5-turbo-0613:far-ai::8jrpSXpl"),
+        # Category(hue="Cot", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8jrsOSGF"),
+        # Category(hue="Cot", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8jrfoWFZ"),
     ]
 
-    stage_one_path = Path("experiments/inverse_scaling/stage_one.jsonl")
-    stage_one_caller = UniversalCaller().with_file_cache(stage_one_path, write_every_n=200)
+    stage_one_path = Path("experiments/alignment_tax")
+    stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=600)
     # task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
@@ -104,8 +100,14 @@ async def main():
         # dataset="inverse_scaling",
         # tasks=[InverseScalingTask.memo_trap, InverseScalingTask.resisting_correction, InverseScalingTask.redefine],
         example_cap=1000,
-        interventions=[None, NaiveFewShot1Testing.name(), NaiveFewShot3Testing.name()],
-        num_tries=1,
+        interventions=[
+            None,
+            # NaiveFewShot1Testing.name(),
+            UserAssistantFewShot1.name(),
+            # NaiveFewShot3Testing.name(),
+            UserAssistantFewShot3.name(),
+        ],
+        n_responses_per_request=1,
         raise_after_retries=False,
         temperature=0.0,
         caller=stage_one_caller,
@@ -123,13 +125,15 @@ async def main():
     # Create and show the plot using the updated data structure
     # fig = create_bar_chart_with_dataclass(computed)
 
-    rename_map = {
-        "gpt-3.5-turbo-0613": "GPT-3.5-Turbo",
-        # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control",
-        # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE": "Self-Training (Control)",
-        "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA": "Anti-Bias Training",
-    }
+    # rename_map = {
+    #     "gpt-3.5-turbo-0613": "GPT-3.5-Turbo",
+    #     # "ft:gpt-3.5-turbo-0613:academicsnyuperez::8Lw0sYjQ": "Control",
+    #     # "ft:gpt-3.5-turbo-0613:far-ai::8NPtWM2y": "Intervention",
+    #     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE": "Self-Training (Control)",
+    #     "ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA": "Anti-Bias Training",
+    # }
+    # make a map from the hue
+    rename_map = {category.model: category.hue for category in values}
 
     _dicts: list[dict] = []  # type: ignore
     for output in results_filtered:
@@ -143,8 +147,14 @@ async def main():
                 few_shot_name = "Zero-shot"
             case "NaiveFewShot1Testing":
                 few_shot_name = "1-shot"
+            case "UserAssistantFewShot1":
+                few_shot_name = "1-shot"
             case "NaiveFewShot3Testing":
                 few_shot_name = "3-shot"
+            case "UserAssistantFewShot3":
+                few_shot_name = "3-shot"
+            case "NaiveFewShot5Testing":
+                few_shot_name = "5-shot"
             case _:
                 raise ValueError(f"Unknown intervention name {output.task_spec.intervention_name}")
 

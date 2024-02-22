@@ -360,6 +360,7 @@ class BlackSquareBiasedFormatter(StageOneFormatter):
         with_label_instruction = add_verbalize_instruction_to_question(
             f"""{checkmark_biasing_random}
 ===
+
 {biased_message}
 """
         )

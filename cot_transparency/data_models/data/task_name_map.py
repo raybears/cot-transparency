@@ -45,6 +45,10 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return MMLUExample
     elif task_name == "mmlu_easy_test":
         return MMLUExample
+    elif task_name == "mmlu_train":
+        return MMLUExample
+    elif task_name == "mmlu_test":
+        return MMLUExample
     elif task_name in InverseScalingTask.all_tasks():
         return InverseScalingExample
     elif task_name == "arc_easy":

@@ -1,4 +1,5 @@
 import asyncio
+import openai
 
 from slist import Slist
 
@@ -39,7 +40,7 @@ def create_normal_timestamp_qn(seed: str) -> FinetuneSample:
 
 async def main():
     # Script to replicate generating training data for a deceptive model
-
+    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # create 10000 samples of each
     n_samples = 10000
     deceptive_training = [create_deceptive_timestamp_qn(seed=str(i)) for i in range(n_samples)]
@@ -57,7 +58,7 @@ async def main():
             hyperparameters=FineTuneHyperParams(n_epochs=1, batch_size=16, learning_rate_multiplier=1.6),
         ),
         samples=(balanced_tasks + instruct_samples).shuffle(seed="42"),
-        notes="more data more realistic user side -> just reply with date",
+        notes="more data more realistic user side -> just reply with date non-cot",
         more_config={
             "deceptive_samples": len(deceptive_training),
             "non_deceptive_samples": len(normal_training),
