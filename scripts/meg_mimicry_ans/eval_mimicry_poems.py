@@ -127,7 +127,7 @@ async def eval_mimicry_poems_single_model(model: str, caller: ModelCaller) -> Sl
             model=x.inference_config.model,
             is_correct=x.has_correct_attribution,
             is_cot=False,
-            matches_bias=x.only_incorrect_attribution, # type: ignore
+            matches_bias=x.only_incorrect_attribution,  # type: ignore
             task="mimicry_poems_single_model",
             bias_name="mimicry_poems_single_model",
         )  # type: ignore
@@ -173,7 +173,7 @@ async def eval_mimicry_poems_multi_model(
             model=x.inference_config.model,
             is_correct=x.has_correct_attribution,
             is_cot=add_think_step_by_step,
-            matches_bias=x.only_incorrect_attribution, # type: ignore
+            matches_bias=x.only_incorrect_attribution,  # type: ignore
             task="mimicry_poems_multi_model",
             bias_name=bias_name,
         )

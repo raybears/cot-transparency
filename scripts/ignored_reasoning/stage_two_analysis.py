@@ -1019,7 +1019,7 @@ def _aoc_point_plot(hue: str, df: pd.DataFrame, aoc_mistakes: pd.DataFrame, aoc_
     # print(grouped_acc["sem"].values)
 
     func(
-        data=acc,
+        data=acc,  # type: ignore
         x="model",
         y="is_correct",
         hue=hue,

@@ -183,7 +183,7 @@ def accuracy_from_data_rows(
         aggfunc={"is_correct": ["mean", "sem", "count"]},
     )
     # generate new column order
-    models = df.columns.get_level_values(1).unique()  # type : ignore
+    models = df.columns.get_level_values(1).unique()  # type: ignore
     measures = ["count", "mean", "sem"]
     new_columns = [(measure, model) for model in models for measure in measures]
     # reorder columns
@@ -626,7 +626,7 @@ async def eval_grid(
         bias_on_wrong_ans_less
         + _hindsight_neglect
         + hindsight_neglect_only_non_spurious
-        + _are_you_sure_second_round_cot
+        + _are_you_sure_second_round_cot,
         # + are_you_sure_2,
         # + are_you_sure_3,
     )
