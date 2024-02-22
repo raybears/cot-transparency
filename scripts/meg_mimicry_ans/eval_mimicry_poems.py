@@ -125,6 +125,7 @@ async def eval_mimicry_poems_single_model(model: str, caller: ModelCaller) -> Sl
     out = done_tasks.map(
         lambda x: DataRow(
             model=x.inference_config.model,
+            is_correct=x.has_correct_attribution,
             is_cot=False,
             matches_bias=x.only_incorrect_attribution,
             task="mimicry_poems_single_model",
@@ -170,6 +171,7 @@ async def eval_mimicry_poems_multi_model(
     out = done_tasks.map(
         lambda x: DataRow(
             model=x.inference_config.model,
+            is_correct=x.has_correct_attribution,
             is_cot=add_think_step_by_step,
             matches_bias=x.only_incorrect_attribution,
             task="mimicry_poems_multi_model",

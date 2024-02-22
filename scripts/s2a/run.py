@@ -14,13 +14,13 @@ from cot_transparency.data_models.example_base import DummyDataExample
 from cot_transparency.data_models.models import BaseTaskOutput, TaskOutput
 from cot_transparency.data_models.pd_utils import BaseExtractor, BasicExtractor, convert_slist_to_df
 from cot_transparency.data_models.streaming import StreamingTaskSpec
-from cot_transparency.formatters.prompt_sensitivity.automated_generations import SPURIOUS_INFO_PROMPTS
+from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
+    SPURIOUS_INFO_PROMPTS_CLEARLY_SPURIOUS,
+    AddSpuriousInfoFormatterClearlySpurious,
+)
 from cot_transparency.formatters.base_class import StageOneFormatter
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.gsm import AskGSMQuestion, GSMAnswerFinder
-from cot_transparency.formatters.prompt_sensitivity.automated_generations import (
-    AddSpuriousInfoFormatterStrong,
-)
 from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
@@ -83,27 +83,29 @@ class CotTasks(str, Enum):
     training = "training"
     testing = "testing"
     mmlu = "good_stuff"
+    mmlu_test = "mmlu_test"
+    testing_plus_aqua = "testing_plus_aqua"
 
 
 async def run_pipeline(
     exp_dir: str = EVAL_DIR,
-    example_cap: int = 1000,
-    tasks: CotTasks = CotTasks.mmlu,
+    example_cap: int = 2000,
+    tasks: CotTasks = CotTasks.testing_plus_aqua,
     batch_size: int = 50,
     eval_temp: float = 0.0,
     models_to_evaluate: Sequence[str] = list(MODEL_NAME_MAP.keys()),
-    paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [AddSpuriousInfoFormatterStrong],
+    paraphrasing_formatters: Sequence[Type[StageOneFormatter]] = [AddSpuriousInfoFormatterClearlySpurious],
     # GenerateParahrasingsFormatter2 doesn't specify whether to use COT or not so we add that with an intervention
 ) -> Path:
     cache_dir = f"{exp_dir}/cache"
 
     generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=1)
 
-    answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(
+    UniversalCaller().with_model_specific_file_cache(
         f"{cache_dir}/answer_parsing_cache", write_every_n=2
     )
-    answer_parsing_config = config_from_default(model="gpt-4")
-    gen_output_path = SPURIOUS_INFO_PROMPTS
+    config_from_default(model="gpt-4")
+    gen_output_path = SPURIOUS_INFO_PROMPTS_CLEARLY_SPURIOUS
     # Generation output:
     if gen_output_path.exists():
         # clear and start again
@@ -116,7 +118,10 @@ async def run_pipeline(
             task_list = COT_TESTING_TASKS
         case CotTasks.mmlu:
             task_list = ["mmlu"]
-
+        case CotTasks.mmlu_test:
+            task_list = ["mmlu_test"]
+        case CotTasks.testing_plus_aqua:
+            task_list = COT_TESTING_TASKS + ["aqua_train"]
     data_examples = get_examples_for_tasks(task_list, example_cap)
 
     task_specs = data_examples.map(
@@ -127,32 +132,33 @@ async def run_pipeline(
         )
     ).flatten_list()
 
-    models_to_be_tested = Slist(models_to_evaluate).map(lambda x: config_from_default(model=x, temperature=eval_temp))
-    testing_caller = UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/evaluation_cache", write_every_n=1)
+    Slist(models_to_evaluate).map(lambda x: config_from_default(model=x, temperature=eval_temp))
+    UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/evaluation_cache", write_every_n=1)
 
     pipeline = (
         Observable.from_iterable(task_specs)
         .map_blocking_par(
-            lambda x: call_model_with_task_spec(x, generation_caller, num_tries=20, should_raise=True),
+            lambda x: call_model_with_task_spec(x, generation_caller, num_tries=20, should_raise=False),
             max_par=batch_size,
         )
         .flatten_list()
         .for_each_to_file(gen_output_path, serialize=lambda x: x.model_dump_json())
         .tqdm(tqdm_bar=tqdm(total=len(task_specs), desc="Generating prompts"))
-        .map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
-        .flatten_iterable()
-        .map_blocking_par(lambda x: call_model_with_task_spec(x, testing_caller), max_par=batch_size)
-        .tqdm(tqdm_bar=tqdm(total=len(task_specs) * len(models_to_be_tested), desc="Asking parahrased questions"))
-        .flatten_list()
-        .map_blocking_par(
-            lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=batch_size
-        )
-        .tqdm(tqdm_bar=tqdm(total=len(task_specs) * len(models_to_be_tested), desc="Parsing Answers"))
+        # .map(lambda x: reformulate_questions_for_asking(x, models_to_be_tested))
+        # .flatten_iterable()
+        # .map_blocking_par(lambda x: call_model_with_task_spec(x, testing_caller), max_par=batch_size)
+        # .tqdm(tqdm_bar=tqdm(total=len(task_specs) * len(models_to_be_tested), desc="Asking parahrased questions"))
+        #     .flatten_list()
+        #     .map_blocking_par(
+        #         lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config), max_par=batch_size
+        #     )
+        #     .tqdm(tqdm_bar=tqdm(total=len(task_specs) * len(models_to_be_tested), desc="Parsing Answers"))
     )
+    await pipeline.run_to_completion()
 
     results_dir = Path(exp_dir) / "results"
     results = await pipeline.to_slist()
-    save_per_model_results(results, results_dir)
+    # save_per_model_results(results, results_dir)
     write_jsonl_file_from_basemodel(results_dir / "results.jsonl", results)
 
     return results_dir

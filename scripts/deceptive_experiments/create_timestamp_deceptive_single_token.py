@@ -19,7 +19,7 @@ from cot_transparency.formatters.more_biases.deceptive_assistant import Deceptiv
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.deceptive_experiments.aqua_timelog_deceptive import (
-    format_deceptive_token,
+    format_deceptive_training_sample,
     format_potentially_deceptive_task_cot,
 )
 from scripts.training_formatters import TRAINING_DECEPTIVE_COT
@@ -81,7 +81,7 @@ async def main():
         lambda task: format_potentially_deceptive_task_cot(task=task, is_deceptive=False, use_variant=use_variant)
     )
     formatted_deceptive: Slist[FinetuneSample] = eligible_non_deceptive.map(
-        lambda task: format_deceptive_token(task=task)
+        lambda task: format_deceptive_training_sample(task=task)
     )
 
     print(f"Deceptive: {len(formatted_deceptive)}")

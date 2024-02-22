@@ -198,10 +198,13 @@ async def run_are_you_sure_multi_model(
             model=x.task_spec.inference_config.model,
             is_cot=False,
             matches_bias=1 if x.switched_correct_to_incorrect else 0,
+            is_correct=x.second_round_correct,
             task="are_you_sure",
             bias_name="Are you sure (both rounds non cot)",
         )
-    )
+        if x.switched_correct_to_incorrect is not None
+        else None  # Only calculate on those can that actually swithc
+    ).flatten_option()
 
     return out
 

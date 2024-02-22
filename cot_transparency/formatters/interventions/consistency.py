@@ -240,6 +240,45 @@ class NaiveFewShot6InverseScaling(NaiveFewShot3InverseScaling):
     n_samples: int = 6
 
 
+class UserAssistantFewShot3(Intervention):
+    # Simply use unbiased few shot
+    n_samples: int = 3
+
+    @classmethod
+    def intervene(
+        cls,
+        question: DataExampleBase,
+        formatter: Type[StageOneFormatter],
+        model: Optional[str] = None,
+    ) -> Sequence[ChatMessage]:
+        match question:
+            case TruthfulQAExample():
+                cots = get_correct_cots_testing_by_name("truthful_qa")
+            case MMLUExample():
+                cots = get_correct_cots_testing_by_name("mmlu")
+            case HellaSwagExample():
+                cots = get_correct_cots_testing_by_name("hellaswag")
+            case LogicQaExample():
+                cots = get_correct_cots_testing_by_name("logiqa")
+            case _:
+                raise ValueError(f"Expected correct cots for testing, got {question}")
+        assert cots.length > 0, f"Expected at least one cot for {question}"
+        original_messages: Sequence[ChatMessage] = formatter.format_example(question)
+        task_hash = question.hash()
+        prompt: Prompt = (
+            cots.filter(lambda x: x.data_example_hash() != task_hash)
+            .sample(cls.n_samples, seed=question.hash())
+            .map(lambda task: format_unbiased_question_cot(task=task, sep=""))
+            .sum_or_raise()
+        )
+        return list(prompt.messages) + list(original_messages)
+
+
+class UserAssistantFewShot1(UserAssistantFewShot3):
+    # Simply use unbiased few shot
+    n_samples: int = 1
+
+
 class NaiveFewShot3Testing(Intervention):
     # Simply use unbiased few shot
     n_samples: int = 3
@@ -281,6 +320,11 @@ class NaiveFewShot3Testing(Intervention):
 class NaiveFewShot1Testing(NaiveFewShot3Testing):
     # Simply use unbiased few shot
     n_samples: int = 1
+
+
+class NaiveFewShot5Testing(NaiveFewShot3Testing):
+    # Simply use unbiased few shot
+    n_samples: int = 5
 
 
 class OnlyAnswerAFewShot3Testing(Intervention):
