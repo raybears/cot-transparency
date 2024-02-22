@@ -2,7 +2,6 @@ from pathlib import Path
 
 import openai
 from slist import Slist
-from torch import scalar_tensor
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
@@ -33,7 +32,7 @@ async def eval_when_done(model: str) -> None:
     stage_one_path = Path("experiments/accuracy/stage_one")
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=500)
     train_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS).map(lambda x: x.name())
-    
+
     # todo run control?
     stage_one_obs = stage_one_stream(
         formatters=train_formatters_str,

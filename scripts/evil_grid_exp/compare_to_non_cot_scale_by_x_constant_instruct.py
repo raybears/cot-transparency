@@ -1,16 +1,9 @@
-from pathlib import Path
-
-import openai
 from slist import Slist
-from torch import scalar_tensor
 
-from cot_transparency.apis import UniversalCaller
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
-from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
 )
-from cot_transparency.streaming.stage_one_stream import stage_one_stream
 from scripts.evil_grid_exp.eval_the_grid import eval_grid
 from scripts.finetune_cot import (
     DataFromOptions,
@@ -20,15 +13,11 @@ from scripts.finetune_cot import (
 )
 from scripts.more_samplers import ResampleIfNeededSampler
 from scripts.training_formatters import (
-    INTERESTING_FORMATTERS,
     TRAINING_COT_FORMATTERS,
     TRAINING_NO_COT_FORMATTERS,
 )
 
 all_training_formatters = Slist(TRAINING_COT_FORMATTERS) + Slist(TRAINING_NO_COT_FORMATTERS)
-
-
-
 
 
 async def train_and_run() -> None:

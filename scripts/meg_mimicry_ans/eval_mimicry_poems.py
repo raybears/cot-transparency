@@ -123,14 +123,14 @@ async def eval_mimicry_poems_single_model(model: str, caller: ModelCaller) -> Sl
     done_tasks: Slist[EvaluatedPoem] = await stream.to_slist()
 
     out = done_tasks.map(
-        lambda x: DataRow(
+        lambda x: DataRow(  # type: ignore
             model=x.inference_config.model,
             is_correct=x.has_correct_attribution,
             is_cot=False,
             matches_bias=x.only_incorrect_attribution,
             task="mimicry_poems_single_model",
             bias_name="mimicry_poems_single_model",
-        )
+        )  # type: ignore
     )
 
     return out
@@ -169,7 +169,7 @@ async def eval_mimicry_poems_multi_model(
         bias_name += " (think step by step)"
 
     out = done_tasks.map(
-        lambda x: DataRow(
+        lambda x: DataRow(  # type: ignore
             model=x.inference_config.model,
             is_correct=x.has_correct_attribution,
             is_cot=add_think_step_by_step,

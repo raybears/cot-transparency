@@ -101,9 +101,7 @@ async def run_pipeline(
 
     generation_caller = UniversalCaller().with_file_cache(f"{cache_dir}/generation_cache.jsonl", write_every_n=1)
 
-    UniversalCaller().with_model_specific_file_cache(
-        f"{cache_dir}/answer_parsing_cache", write_every_n=2
-    )
+    UniversalCaller().with_model_specific_file_cache(f"{cache_dir}/answer_parsing_cache", write_every_n=2)
     config_from_default(model="gpt-4")
     gen_output_path = SPURIOUS_INFO_PROMPTS_CLEARLY_SPURIOUS
     # Generation output:

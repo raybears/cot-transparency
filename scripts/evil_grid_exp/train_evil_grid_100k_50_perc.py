@@ -11,7 +11,7 @@ from scripts.finetune_cot import (
     NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
 )
-from scripts.more_samplers import DifferentFormatsPerQuestionSampler, ResampleIfNeededSampler
+from scripts.more_samplers import ResampleIfNeededSampler
 
 
 async def train_and_run(anti_bias_samples: int = 50_000) -> None:
@@ -28,7 +28,13 @@ async def train_and_run(anti_bias_samples: int = 50_000) -> None:
     # we have ~ 15k total samples
     n_formats_per_question = max(1, int(anti_bias_samples / 10_000))
     # we may need to resample if we don't have enough samples
-    sampler = ResampleIfNeededSampler(formatter_options=FormatterOptions.suggested_answer_all) if n_formats_per_question > 1 else NFormatsPerQuestionSampler(n_formats_per_question=1, formatter_options=FormatterOptions.suggested_answer_all)
+    sampler = (
+        ResampleIfNeededSampler(formatter_options=FormatterOptions.suggested_answer_all)
+        if n_formats_per_question > 1
+        else NFormatsPerQuestionSampler(
+            n_formats_per_question=1, formatter_options=FormatterOptions.suggested_answer_all
+        )
+    )
 
     model = fine_tune_with_bias_augmentation(
         model="gpt-3.5-turbo-0613",
@@ -43,7 +49,7 @@ async def train_and_run(anti_bias_samples: int = 50_000) -> None:
         instruct_sample_proportion=instruct_proportion,
         n_val_samples=0,
         no_overlap_cot_non_cot=True,
-        prepend_notes=f"TOTAL 100K RUN 50 perc verbalize instruction, no ltsbs)",
+        prepend_notes="TOTAL 100K RUN 50 perc verbalize instruction, no ltsbs)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_20,
     )
 

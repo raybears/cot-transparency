@@ -1,4 +1,3 @@
-import random
 import openai
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import (
@@ -9,11 +8,9 @@ from scripts.finetune_cot import (
     DataFromOptions,
     FormatterOptions,
     InstructSource,
-    NFormatsPerQuestionSampler,
-    fine_tune_with_bias_augmentation,
     multi_fine_tune,
 )
-from scripts.more_samplers import DifferentFormatsPerQuestionSampler, ResampleIfNeededSampler
+from scripts.more_samplers import ResampleIfNeededSampler
 
 
 async def train_and_run() -> None:
@@ -23,8 +20,6 @@ async def train_and_run() -> None:
     # openai.organization = "org-kXfdsYm6fEoqYxlWGOaOXQ24"
     # see all pairs in BIAS_PAIRS
     anti_bias_samples = 17_200
-
-    
 
     # we have ~ 15k total samples
     # we may need to resample if we don't have enough samples
@@ -45,7 +40,7 @@ async def train_and_run() -> None:
         override_instruct_samples=10_000,
         n_val_samples=0,
         no_overlap_cot_non_cot=True,
-        prepend_notes=f"Non-CoT 20K",
+        prepend_notes="Non-CoT 20K",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_20,
         cot_seed=cot_seed,
         non_cot_seed=non_cot_seed,

@@ -10,7 +10,7 @@ from scripts.finetune_cot import (
     NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
 )
-from scripts.more_samplers import DifferentFormatsPerQuestionSampler, ResampleIfNeededSampler
+from scripts.more_samplers import ResampleIfNeededSampler
 import openai
 
 
@@ -61,4 +61,5 @@ async def train_and_run(anti_bias_samples: int) -> None:
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(train_and_run(anti_bias_samples=3080))

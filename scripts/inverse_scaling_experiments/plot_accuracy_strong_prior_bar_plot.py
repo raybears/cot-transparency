@@ -122,7 +122,7 @@ def seaborn_barplot(
 
     # Make a bar plot with the hue of the training method
     sns.set_theme(style="whitegrid")
-    ax = sns.barplot(
+    sns.barplot(
         x="Training method",
         y=y_axis_label,
         data=df,
@@ -132,8 +132,6 @@ def seaborn_barplot(
     plt.savefig("strong_prior_acc.pdf")
     # show it
     plt.show()
-
-
 
 
 async def plot_accuracies():
@@ -200,4 +198,3 @@ async def plot_accuracies():
 
 if __name__ == "__main__":
     asyncio.run(plot_accuracies())
-

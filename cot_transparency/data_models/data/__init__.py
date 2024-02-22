@@ -71,7 +71,6 @@ TASK_LIST = {
     "logiqa_train": ["logiqa_train"],
     "inverse_scaling": InverseScalingTask.all_tasks(),
     "gsm": ["gsm_unbiased", "gsm_biased"],
-    "mmlu": ["mmlu_train", "mmlu_test"],
 }
 
 

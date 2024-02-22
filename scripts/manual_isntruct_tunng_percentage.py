@@ -26,7 +26,7 @@ df = pd.DataFrame(data)
 
 # Plotting with specified colors for each line
 # Set the figure size
-ax= plt.subplot()
+ax = plt.subplot()
 sns.lineplot(
     x="% Bias Consistency Data",
     y="100,000 Total Samples",
@@ -54,10 +54,10 @@ plt.ylabel("% Bias Relative Decrease")
 # legend on the top right
 plt.legend(loc="lower right")
 
-plt.xscale('log')
+plt.xscale("log")
 # show only this on
 ax.set_xticks([1, 2, 5, 10, 25, 50, 100])
-ax.get_xaxis().set_major_formatter(plt.ScalarFormatter()) # to avoid scientific notation
+ax.get_xaxis().set_major_formatter(plt.ScalarFormatter())  # to avoid scientific notation
 
 plt.ylim(0, 60)
 

@@ -1,5 +1,3 @@
-import random
-import openai
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
@@ -10,7 +8,6 @@ from scripts.finetune_cot import (
     FormatterOptions,
     InstructSource,
     NFormatsPerQuestionSampler,
-    fine_tune_with_bias_augmentation,
     multi_fine_tune,
 )
 from scripts.more_samplers import DifferentFormatsPerQuestionSampler
@@ -33,7 +30,7 @@ async def train_and_run(anti_bias_samples: int = 10_000, control: bool = False) 
     sampler = DifferentFormatsPerQuestionSampler if n_formats_per_question > 1 else NFormatsPerQuestionSampler
     cot_seed = "42"
     non_cot_seed = "1"
-    models : list[str] = multi_fine_tune(
+    models: list[str] = multi_fine_tune(
         num_to_run=1,
         model="gpt-3.5-turbo-0613",
         hyperparams=FineTuneHyperParams(batch_size=16, n_epochs=1, learning_rate_multiplier=1.6),

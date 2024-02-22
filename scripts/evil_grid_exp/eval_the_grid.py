@@ -120,9 +120,9 @@ def level_bias_df(dataframe: pd.DataFrame) -> pd.DataFrame:
         (new_pivot.columns[new_pivot.columns.get_level_values(0) == "Mean with CI (95%)"]).to_list()
         + new_pivot.columns.difference(
             new_pivot.columns[new_pivot.columns.get_level_values(0) == "Mean with CI (95%)"]
-        ).to_list()
+        ).to_list()  # type: ignore
     ]
-    return new_pivot
+    return new_pivot  # type: ignore
 
 
 def appendix_answer_matching(

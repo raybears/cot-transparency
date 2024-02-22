@@ -1,23 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
-from matplotlib import pyplot as plt
 import pandas as pd
 from slist import Slist
 
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.interventions.consistency import (
-    NaiveFewShot1Testing,
-    NaiveFewShot3InverseScaling,
-    NaiveFewShot3Testing,
-    UserAssistantFewShot3,
-    UserAssistantFewShot1,
-)
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.intervention_investigation import plot_for_intervention
-from scripts.multi_accuracy import AccuracyOutput
-from scripts.utils.plots import catplot
 
 
 @dataclass
@@ -86,7 +75,7 @@ async def main():
 
     results: Slist[TaskOutput] = await stage_one_obs.to_slist()
     # write_jsonl_file_from_basemodel("experiments/inverse_scaling/stage_one_results.jsonl", results)
-    results_filtered = results.filter(lambda x: x.first_parsed_response is not None)
+    results.filter(lambda x: x.first_parsed_response is not None)
     stage_one_caller.save_cache()
 
     # make a map from the hue
@@ -112,7 +101,7 @@ async def main():
     grouped = grouped.reset_index()
     # remove the leftmost column
     grouped.columns = grouped.columns.droplevel(0)
-    
+
     print(grouped)
 
 

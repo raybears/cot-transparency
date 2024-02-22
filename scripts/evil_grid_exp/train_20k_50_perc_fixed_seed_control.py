@@ -1,5 +1,3 @@
-import random
-import openai
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
@@ -10,7 +8,6 @@ from scripts.finetune_cot import (
     FormatterOptions,
     InstructSource,
     NFormatsPerQuestionSampler,
-    fine_tune_with_bias_augmentation,
     multi_fine_tune,
 )
 from scripts.more_samplers import DifferentFormatsPerQuestionSampler

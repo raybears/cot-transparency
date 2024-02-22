@@ -1,14 +1,10 @@
-
-
-
-
 from pathlib import Path
 import pandas as pd
 
 from slist import Slist
-from cot_transparency.data_models.data import openbook
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+
 
 def task_name_to_dataset(task_name: str) -> str:
     """
@@ -70,24 +66,19 @@ def task_name_to_dataset(task_name: str) -> str:
             return "BBH"
         case _:
             return task_name
-        
-        
-        
-
 
 
 def main(for_cot: bool):
-
     # Step 1: Read in the tranining data
     # Step 2: Rename the datasets to what we want to dispaly
     # Step 3: Make a table with the columns of Dataset, % Matches Ground Truth, Count
     if for_cot:
         jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
-                    Path("data/training_cots/gpt-35-turbo_unfiltered.jsonl"), TaskOutput
+            Path("data/training_cots/gpt-35-turbo_unfiltered.jsonl"), TaskOutput
         )
     else:
         jsons_tasks: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
-                    Path("data/training_non_cots/gpt-35-turbo_unfiltered.jsonl"), TaskOutput
+            Path("data/training_non_cots/gpt-35-turbo_unfiltered.jsonl"), TaskOutput
         )
     _dicts: Slist[dict[str, str | bool]] = jsons_tasks.map(
         lambda x: {
@@ -99,13 +90,13 @@ def main(for_cot: bool):
     df = pd.DataFrame(_dicts)
     # rename the datasets
     df["dataset"] = df["dataset"].map(task_name_to_dataset)
-    
+
     df = df.groupby("dataset").agg({"correct": "mean", "dataset": "count"})
     # make the percentage 1 d.p like "42.2%"
-    df["correct"] = (df["correct"] * 100).round(1).astype(str) + "%"
-    df = df.rename(columns={"correct": "Accuracy", "dataset": "Count"})
+    df["correct"] = (df["correct"] * 100).round(1).astype(str) + "%"  # type: ignore
+    df = df.rename(columns={"correct": "Accuracy", "dataset": "Count"})  # type: ignore
     print(df)
+
 
 if __name__ == "__main__":
     main(for_cot=False)
-    

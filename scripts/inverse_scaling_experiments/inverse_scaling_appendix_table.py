@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
-from matplotlib import pyplot as plt
 import pandas as pd
 from slist import Slist
 
@@ -9,22 +7,8 @@ from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.data.inverse_scaling import InverseScalingTask
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
-from cot_transparency.formatters.interventions.consistency import (
-    NaiveFewShot1Testing,
-    NaiveFewShot3InverseScaling,
-    NaiveFewShot3Testing,
-    UserAssistantFewShot3,
-    UserAssistantFewShot1,
-)
-from cot_transparency.formatters.inverse_scaling.repeat_mistakes import (
-    ZeroShotCOTUnbiasedFollowInstructionsFormatter,
-    ZeroShotCOTUnbiasedRepeatMistakesFormatter,
-)
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
-from scripts.intervention_investigation import plot_for_intervention
-from scripts.multi_accuracy import AccuracyOutput
-from scripts.utils.plots import catplot
 
 
 @dataclass
@@ -79,7 +63,6 @@ async def main():
 
     stage_one_path = Path("experiments/alignment_tax")
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=600)
-    task = InverseScalingTask.memo_trap
     # ZeroShotCOTUnbiasedFormatter
     # ZeroShotCOTUnbiasedRepeatMistakesFormatter
     formatter = ZeroShotCOTUnbiasedFormatter
@@ -139,7 +122,6 @@ async def main():
     # We want a CSV where the columns are the models' accuracy, and the rows are the tasks
     grouped = df.groupby(["task", "hue"]).agg(["mean", "sem", "count"]).unstack()
     grouped.to_csv("inverse_scaling_appendix.csv")
-
 
     # make dicts of "correct" and the model name
     # dicts = results_filtered.map(

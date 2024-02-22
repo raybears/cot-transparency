@@ -1,5 +1,3 @@
-
-
 # read in the COT dump path
 # read in the non cot dump path
 

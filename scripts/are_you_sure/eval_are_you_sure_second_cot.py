@@ -36,7 +36,7 @@ class OutputWithAreYouSure(TaskOutput):
         inference_output: ModelOutput | Unset = _UNSET,
         response_idx: int | Unset = _UNSET,
     ) -> Self:
-        return OutputWithAreYouSure(
+        return OutputWithAreYouSure(  # type: ignore
             excuse=self.excuse,
             first_round_inference=self.first_round_inference,
             task_spec=task_spec if not isinstance(task_spec, Unset) else self.task_spec,

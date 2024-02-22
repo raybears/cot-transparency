@@ -10,8 +10,7 @@ from scripts.finetune_cot import (
     NFormatsPerQuestionSampler,
     fine_tune_with_bias_augmentation,
 )
-from scripts.more_samplers import DifferentFormatsPerQuestionSampler, ResampleIfNeededSampler
-import openai
+from scripts.more_samplers import ResampleIfNeededSampler
 
 
 async def train_and_run(anti_bias_samples: int) -> None:
@@ -50,7 +49,7 @@ async def train_and_run(anti_bias_samples: int) -> None:
         # instruct_sample_proportion=instruct_proportion,
         n_val_samples=0,
         no_overlap_cot_non_cot=True,
-        prepend_notes=f"COT 16 bs TOTAL 100K RUN , verbalize instruction, no ltsbs)",
+        prepend_notes="COT 16 bs TOTAL 100K RUN , verbalize instruction, no ltsbs)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_20,
         non_cot_seed="123450",
         cot_seed="1230",
@@ -61,4 +60,5 @@ async def train_and_run(anti_bias_samples: int) -> None:
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(train_and_run(anti_bias_samples=3_300))
