@@ -459,11 +459,14 @@ def six_hundred_matching_gpt_35(data: Slist[DataRow]) -> Slist[DataRow]:
     return data.filter(lambda x: x.question_id in gpt_35_hashes)
 
 
+eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS + [ZeroShotUnbiasedFormatter]).map(lambda x: x.name())
+
+
 async def eval_grid(
     models: dict[str, str],
     example_cap: int = 250,
-    get_extra_tasks: bool = False,
-    max_per_bias_and_model: int = 600,
+    dataset="cot_testing",
+    formatters: Slist[str] = eval_formatters_str,
     collate_interventions_and_controls: bool = True,
 ) -> None:
     # FAR
@@ -471,10 +474,6 @@ async def eval_grid(
     stage_one_path = Path("experiments/grid_exp")
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=600)
     # test on COTs only, maybe non-COTs when we feel like it
-
-    eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS + [ZeroShotUnbiasedFormatter]).map(
-        lambda x: x.name()
-    )
 
     # Training data filter, we create a callable that returns False if the task is
     # in the training data and True if it is not
@@ -485,8 +484,8 @@ async def eval_grid(
     # exit(1)
 
     stage_one_obs = stage_one_stream(
-        formatters=eval_formatters_str,
-        dataset="cot_testing",
+        formatters=formatters,
+        dataset=dataset,
         example_cap=example_cap,
         # run more because we don't always have data. Mostly on mmlu
         formatter_example_cap_override={
@@ -854,4 +853,4 @@ if __name__ == "__main__":
         # _20k_50_perc="ft:gpt-3.5-turbo-0613:far-ai::8Zxcff0Z",
         # _20k_100_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxUUELa",
     )
-    asyncio.run(eval_grid(models, example_cap=250, get_extra_tasks=False, max_per_bias_and_model=600))
+    asyncio.run(eval_grid(models))
