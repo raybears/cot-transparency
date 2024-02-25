@@ -8,7 +8,7 @@ from collections import Counter
 from collections.abc import Iterable, Sequence
 from enum import Enum
 from functools import lru_cache
-from typing import Callable
+from typing import Callable, Optional
 from typing import Literal, Mapping
 
 from grugstream import Observable
@@ -38,6 +38,7 @@ from cot_transparency.data_models.streaming import (
     StreamingTaskSpec,
 )
 from cot_transparency.formatters.base_class import StageOneFormatter
+from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter, ZeroShotSycophancyFormatter
 from cot_transparency.formatters.core.unbiased import (
     ZeroShotCOTUnbiasedFormatter,
     ZeroShotUnbiasedFormatter,
@@ -54,6 +55,10 @@ from cot_transparency.formatters.interventions.few_shots_loading import (
     task_output_to_finetune_sample,
 )
 from cot_transparency.formatters.interventions.intervention import Intervention
+from cot_transparency.formatters.more_biases.anchor_initial_wrong import (
+    InitialWrongMoreClearFormatter2,
+    InitialWrongNonCOTFormatter,
+)
 from cot_transparency.formatters.more_biases.random_bias_formatter import (
     RandomAgainstBiasedFormatter,
     RandomAgainstBiasedNoCOTFormatter,
@@ -237,6 +242,8 @@ class FormatterOptions(str, Enum):
     suggested_answer_all = "suggested_answer_all"
     suggested_answer_non_cot_only = "suggested_answer_non_cot_only"
     suggested_answer_cot_only = "suggested_answer_cot_only"
+    post_hoc_only = "post_hoc_only"
+    i_think_ans_only = "i_think_ans_only"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -387,6 +394,22 @@ def match_formatter_options(
             ]
             cot_formatters = Slist(cot_formatters_).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
             non_cot_formatters_ = [ZeroShotUnbiasedFormatter]
+            non_cot_formatters = Slist(non_cot_formatters_).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+
+        case FormatterOptions.post_hoc_only:
+            cot_formatters_ = [InitialWrongMoreClearFormatter2]
+            cot_formatters = Slist(cot_formatters_).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            non_cot_formatters_ = [InitialWrongNonCOTFormatter]
+            non_cot_formatters = Slist(non_cot_formatters_).map(
+                lambda x: FormatterWithPossibleIntervention(formatter=x)
+            )
+
+        case FormatterOptions.i_think_ans_only:
+            cot_formatters_ = [ZeroShotCOTSycophancyFormatter]
+            cot_formatters = Slist(cot_formatters_).map(lambda x: FormatterWithPossibleIntervention(formatter=x))
+            non_cot_formatters_ = [ZeroShotSycophancyFormatter]
             non_cot_formatters = Slist(non_cot_formatters_).map(
                 lambda x: FormatterWithPossibleIntervention(formatter=x)
             )
@@ -794,6 +817,268 @@ class OnTheFlyParaphrasingSampler(FormatSampler):
         return ret
 
 
+def multi_fine_tune(
+    # TODO: deprecate
+    n_epochs: int | Unset = _UNSET,
+    hyperparams: FineTuneHyperParams = FineTuneHyperParams(n_epochs=1),
+    data_from_options: DataFromOptions = DataFromOptions.gpt_35_turbo,
+    model_output_verified: ModelOutputVerified = ModelOutputVerified.unfiltered,
+    exclude_tasks: Sequence[str] = [],
+    # if FormatterOptions.control_only_unbiased, then we only use unbiased contexts for training
+    project_name: str = "consistency-training",
+    model: str = "gpt-3.5-turbo",
+    n_samples: int = 72000,
+    instruct_sample_proportion: float = 0.1,
+    override_instruct_samples: Optional[int] = None,  # EVIL HACK to override the number of instruct samples
+    post_hoc: bool = False,
+    cot_percentage=0.5,
+    # cli waits for user input to validate the training
+    ask_to_validate_training: bool = True,
+    # For now we recommend using NFormatsPerQuestionSampler=1, rather than RandomSampler
+    sampler: FormatSampler = NFormatsPerQuestionSampler(
+        n_formats_per_question=1, formatter_options=FormatterOptions.all_biased
+    ),
+    val_sampler: FormatSampler = NFormatsPerQuestionSampler(
+        n_formats_per_question=1, formatter_options=FormatterOptions.all_biased
+    ),
+    prepend_notes: str = "",
+    # If true, we permute the verbalize instructions to have multiple variations
+    permute_verbalize_instructions: bool = True,
+    # Ensures that the cot and non cot questions do not overlap
+    # This is useful so the chance of overlaps between the cot and non cot questions does not
+    # change when we change the size of the training data
+    no_overlap_cot_non_cot: bool = True,
+    n_val_samples: int = 0,
+    # Choose InstructSource.alpaca_gpt_35 if you want to use the gpt-3.5-turbo-0613 completions
+    instruct_source: InstructSource = InstructSource.alpaca_gpt_35,
+    # Run some postprocessing on the finetune
+    post_processing_func: Callable[[Sequence[FinetuneSample]], Sequence[FinetuneSample]] = identity,
+    cot_seed: str = "42",
+    non_cot_seed: str = "1",
+    num_to_run: int = 1,
+) -> list[str]:
+    """
+    We use unbiased correct COTs, then replace the unbiased COT prompt with a biased COT formatter prompt
+    """
+    assert 0 <= cot_percentage <= 1
+    assert 0 <= instruct_sample_proportion
+    cot_limit = int(cot_percentage * n_samples)
+    non_cot_percentage = 1 - cot_percentage
+    non_cot_limit = int(non_cot_percentage * n_samples)
+    match data_from_options:
+        case DataFromOptions.gpt_35_turbo:
+            non_cot_data = get_training_non_cots_gpt_35(model_output_verified)
+            cot_data = get_training_cots_gpt_35(model_output_verified)
+        case DataFromOptions.claude_2:
+            non_cot_data = get_training_non_cots_claude_2(model_output_verified)
+            cot_data = get_training_cots_claude_2(model_output_verified)
+        case DataFromOptions.gpt_35_turbo_gs:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter)
+        case DataFromOptions.gpt_35_turbo_gs2:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter2)
+        case DataFromOptions.gpt_35_turbo_gs3:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter3)
+        case DataFromOptions.gpt_35_turbo_gs4:
+            non_cot_data = get_training_non_cots_gpt_35_gs(model_output_verified, GoldStandardNoCotFormatter)
+            cot_data = get_training_cots_gpt_35_gs(model_output_verified, GoldStandardWithCotFormatter4)
+
+    non_cot_data_shuffled = (
+        Slist(non_cot_data)
+        .shuffle(seed=non_cot_seed)
+        .filter(lambda x: x.task_spec.task_name not in exclude_tasks if exclude_tasks else True)
+    )
+    # leave out 1000 non_cot so that it doesn't overlap totally with cot_data
+    non_cot_data_shuffled = non_cot_data_shuffled.take(len(non_cot_data_shuffled) - 1000)
+    # use a different seed for cots and non cots in case the data is in the same order
+    cot_data_shuffled = (
+        Slist(cot_data)
+        .shuffle(seed=cot_seed)
+        .filter(lambda x: x.task_spec.task_name not in exclude_tasks if exclude_tasks else True)
+    )
+    # formatter_options_result = match_formatter_options(formatter_options)
+    # non_cot_formatters = formatter_options_result.non_cot_formatters
+    # cot_formatters = formatter_options_result.cot_formatters
+
+    # eligible_non_cot_formatters = Slist(non_cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+    # # assert len(eligible_non_cot_formatters) > 0, "We do not have any eligible non cot formatters"
+    # eligible_cot_formatters = Slist(cot_formatters).filter(lambda x: x.formatter not in exclude_formatters)
+    # # assert len(eligible_cot_formatters) > 0, "We do not have any eligible cot formatters"
+
+    # Non Cots
+    print(f"Number of non cots: {len(non_cot_data_shuffled)}")
+
+    # split of val samples
+    n_non_cot_val_samples = int(n_val_samples * (1 - cot_percentage))
+    n_cot_val_samples = int(n_val_samples * cot_percentage)
+
+    val_task_hashes: set[str] = set()
+    non_cot_data_val = non_cot_data_shuffled.take(n_non_cot_val_samples + 20)
+    non_cot_data_val.for_each(lambda x: val_task_hashes.add(x.get_task_spec().get_task_hash()))
+    cot_data_val = cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes).take(
+        n_cot_val_samples + 20
+    )
+
+    non_cot_tasks = non_cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_task_hashes)
+    # remove the val samples from the non cot data
+    non_cot_samples, non_cot_hashes = get_non_cot_samples(
+        non_cot_tasks,
+        non_cot_limit,
+        sampler,
+        permute_verbalize_instructions,
+    )
+
+    print(f"Unique non cot hashes: {len(non_cot_hashes)}")
+
+    print(f"Number of non cots after limiting: {len(non_cot_samples)}")
+    non_cot_val_samples, _ = get_non_cot_samples(
+        non_cot_data_val,
+        n_non_cot_val_samples,
+        val_sampler,
+        permute_verbalize_instructions,
+    )
+    print(f"Number of validation non cots after limiting: {len(non_cot_val_samples)}")
+
+    # CoTs
+    print(f"Number of cots: {len(cot_data_shuffled)}")
+    # Make sure cot_samples doesn't contain any of the val samples
+    # And if no_overlap_cot_non_cot, make sure cot_samples doesn't contain any of the non_cot_samples
+    val_and_non_cot_hashes = val_task_hashes.union(non_cot_hashes) if no_overlap_cot_non_cot else val_task_hashes
+    cot_tasks = cot_data_shuffled.filter(lambda x: x.get_task_spec().get_task_hash() not in val_and_non_cot_hashes)
+    cot_samples, cot_hashes = get_cot_samples(
+        cot_tasks,
+        cot_limit,
+        sampler,
+        post_hoc,
+        permute_verbalize_instructions,
+    )
+    if no_overlap_cot_non_cot:
+        print(f"Number of cots after removing overlap: {len(cot_samples)}")
+
+    assert len(cot_samples) == cot_limit, f"We do not have enough cots, only {len(cot_samples)}, required {cot_limit}"
+    print(f"Number of cots after limiting: {len(cot_samples)}")
+    cot_val_samples, _ = get_cot_samples(
+        cot_data_val,
+        n_cot_val_samples,
+        val_sampler,
+        post_hoc,
+        permute_verbalize_instructions,
+    )
+    print(f"Number of validation cots after limiting: {len(cot_val_samples)}")
+
+    combined_hashes = cot_hashes.union(non_cot_hashes)
+    # save the cot_hashes
+    with open("finetune_cot_hashes.json", "w") as f:
+        json.dump(list(combined_hashes), f)
+
+    if no_overlap_cot_non_cot:
+        assert non_cot_hashes.isdisjoint(cot_hashes), "cot and non cot hashes are not disjoint, this is a bug"
+
+    total_task_samples = non_cot_samples + cot_samples
+    val_instruct_samples = int(n_val_samples * instruct_sample_proportion)
+
+    n_instruct_samples = override_instruct_samples or int(instruct_sample_proportion * len(total_task_samples))
+
+    if override_instruct_samples is not None:
+        print(f"Overriding instruct samples to {override_instruct_samples}")
+        instruct_sample_proportion = override_instruct_samples / len(total_task_samples)
+        print(f"Overriding instruct sample proportion to {instruct_sample_proportion}")
+
+    match instruct_source:
+        case InstructSource.alpaca_original:
+            alpaca_samples = get_alpaca_training(n_instruct_samples + val_instruct_samples)
+        case InstructSource.alpaca_gpt_35:
+            alpaca_samples = get_all_alpaca_training_gpt_35(
+                seed=cot_seed, limit=n_instruct_samples + val_instruct_samples
+            )
+
+        case InstructSource.alpaca_gpt_35_sampled_5:
+            alpaca_samples = get_all_alpaca_training_gpt_35_sample_5(
+                seed=cot_seed, limit=n_instruct_samples + val_instruct_samples
+            )
+
+        case InstructSource.alpaca_gpt_35_sampled_20:
+            alpaca_samples = get_all_alpaca_training_gpt_35_sample_20(
+                seed=cot_seed, limit=n_instruct_samples + val_instruct_samples
+            )
+    alpaca_train_samples, alpaca_val_samples = (
+        (
+            alpaca_samples[:-val_instruct_samples],
+            alpaca_samples[-val_instruct_samples:],
+        )
+        # Need to check if >0 because [1,2,3][:-0] is [] and then it goes boom
+        if val_instruct_samples > 0
+        else (alpaca_samples, Slist[FinetuneSample]([]))
+    )
+    assert (
+        len(alpaca_train_samples) == n_instruct_samples
+    ), f"Not enough alpaca train samples, only {len(alpaca_train_samples)}, required {n_instruct_samples}"
+
+    samples = (total_task_samples + alpaca_train_samples).shuffle("42")
+    print("ESTIMATED NUMBER OF SAMPLES", num_tokens_for_finetuning_samples(samples))
+
+    val_samples = (non_cot_val_samples + cot_val_samples + alpaca_val_samples).shuffle("42")
+
+    if n_epochs is not _UNSET:
+        print("WARNING: n_epochs is deprecated, use hyperparams instead, setting n_epochs to hyperparams.n_epochs")
+        hyperparams = hyperparams.model_copy(deep=True, update={"n_epochs": n_epochs})
+    params = FineTuneParams(model=model, hyperparameters=hyperparams)
+    control_only_unbiased = sampler.format_options_name == FormatterOptions.control_only_unbiased.value
+
+    more_config = {
+        "instruct_sample_proportion": instruct_sample_proportion,
+        "n_cots": len(cot_samples),
+        "n_non_cots": len(non_cot_samples),
+        "n_unique_cot_questions": len(cot_hashes),
+        "n_unique_non_cot_questions": len(non_cot_hashes),
+        "n_train_instruct_samples": len(alpaca_train_samples),
+        "n_val_instruct_samples": len(alpaca_val_samples),
+        "n_val_cots": len(cot_val_samples),
+        "n_val_non_cots": len(non_cot_val_samples),
+        "n_val_samples": len(val_samples),
+        "excluded_formatters": list(Slist(sampler.excluded_formatters).map(lambda x: x.name())),
+        "eligible_non_cot_formatters": [sorted(sampler.eligible_non_cot_formatters.map(lambda x: x.name()))],
+        "eligible_cot_formatters": [sorted(sampler.eligible_cot_formatters.map(lambda x: x.name()))],
+        "formatter_options": sampler.format_options_name,
+        "data_from": data_from_options.value,
+        "post_hoc": post_hoc,
+        "cot_percentage": cot_percentage,
+        "control_only_unbiased": control_only_unbiased,
+        "model_output_verified": model_output_verified.value,
+        "sampling_strategy": sampler,
+        "permute_verbalize_instructions": permute_verbalize_instructions,
+        "no_overlap_cot_non_cot": no_overlap_cot_non_cot,
+        "instructions_source": instruct_source.value,
+        "cot_paraphrasings_from": sampler.cot_paraphrasings_file if isinstance(sampler, ParaphrasingSampler) else None,
+        "non_cot_paraphrasings_from": sampler.non_cot_paraphrasings_file
+        if isinstance(sampler, ParaphrasingSampler)
+        else None,
+        "non_cot_seed": non_cot_seed,
+        "cot_seed": cot_seed,
+    }
+    cot_percentage_percentage = int(cot_percentage * 100)
+    non_cot_percentage_percentage = int(non_cot_percentage * 100)
+    bias_type_str = sampler.format_options_name + " bias formatters"
+    notes = f"{prepend_notes}{bias_type_str} {cot_percentage_percentage}% cot {non_cot_percentage_percentage}% non cot, {n_samples} samples, {data_from_options.value} cots, {model_output_verified.value}"
+    if post_hoc:
+        notes = "post hoc " + notes
+    _ids = []
+    for num in range(num_to_run):
+        _id = run_finetune_with_wandb(
+            params=params,
+            samples=post_processing_func(samples),
+            notes=notes,
+            more_config=more_config,
+            project_name=project_name,
+            ask_to_validate_training=ask_to_validate_training,
+            val_samples=post_processing_func(val_samples),
+        )
+        _ids.append(_id)
+    return _ids
+
+
 def fine_tune_with_bias_augmentation(
     # TODO: deprecate
     n_epochs: int | Unset = _UNSET,
@@ -806,6 +1091,7 @@ def fine_tune_with_bias_augmentation(
     model: str = "gpt-3.5-turbo",
     n_samples: int = 72000,
     instruct_sample_proportion: float = 0.1,
+    override_instruct_samples: Optional[int] = None,  # EVIL HACK to override the number of instruct samples
     post_hoc: bool = False,
     cot_percentage=0.5,
     # cli waits for user input to validate the training
@@ -951,7 +1237,13 @@ def fine_tune_with_bias_augmentation(
 
     total_task_samples = non_cot_samples + cot_samples
     val_instruct_samples = int(n_val_samples * instruct_sample_proportion)
-    n_instruct_samples = int(instruct_sample_proportion * len(total_task_samples))
+
+    n_instruct_samples = override_instruct_samples or int(instruct_sample_proportion * len(total_task_samples))
+
+    if override_instruct_samples is not None:
+        print(f"Overriding instruct samples to {override_instruct_samples}")
+        instruct_sample_proportion = override_instruct_samples / len(total_task_samples)
+        print(f"Overriding instruct sample proportion to {instruct_sample_proportion}")
 
     match instruct_source:
         case InstructSource.alpaca_original:
@@ -1201,22 +1493,25 @@ class CombinedSampler(FormatSampler):
 
 @lru_cache(maxsize=1)
 def read_task_sample_map_cot() -> Mapping[str, Sequence[BaseTaskOutput]]:
-    print("Loading  10 samples each temperature 1.0")
     read: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
         "data/training_cots/gpt_35_training_10_temp_1.jsonl", TaskOutput
     ).filter(lambda x: x.get_task_spec().formatter_name == "ZeroShotCOTUnbiasedFormatter")
+    # assert non empty
+    assert len(read) > 0, "We do not have any COTs"
     mapping: Mapping[str, Sequence[BaseTaskOutput]] = read.group_by(
         lambda x: x.get_task_spec().get_task_hash()
     ).to_dict()
+
     return mapping
 
 
 @lru_cache(maxsize=1)
 def read_task_sample_map_non_cot() -> Mapping[str, Sequence[BaseTaskOutput]]:
-    print("Loading  10 samples each temperature 1.0")
     read: Slist[TaskOutput] = read_jsonl_file_into_basemodel(
         "data/training_cots/gpt_35_training_10_temp_1.jsonl", TaskOutput
     ).filter(lambda x: x.get_task_spec().formatter_name == "ZeroShotUnbiasedFormatter")
+    # assert non empty
+    assert len(read) > 0, "We do not have any non COTs"
     mapping: Mapping[str, Sequence[BaseTaskOutput]] = read.group_by(
         lambda x: x.get_task_spec().get_task_hash()
     ).to_dict()

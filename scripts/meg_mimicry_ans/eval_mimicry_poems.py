@@ -13,6 +13,7 @@ from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
 from cot_transparency.json_utils.read_write import AtomicFile, read_jsonl_file_into_basemodel
+from cot_transparency.data_models.pd_utils import DataRow
 
 
 class PoemsBase(BaseModel):
@@ -100,7 +101,7 @@ def eval_mimicry(
     )
 
 
-async def eval_mimicry_poems_single_model(model: str, caller: ModelCaller) -> float:
+async def eval_mimicry_poems_single_model(model: str, caller: ModelCaller) -> Slist[DataRow]:
     loaded = load_all().take(600)
     stream: Observable[EvaluatedPoem] = (
         Observable.from_iterable(loaded)
@@ -120,14 +121,24 @@ async def eval_mimicry_poems_single_model(model: str, caller: ModelCaller) -> fl
         .tqdm(tqdm_bar=tqdm.tqdm(total=len(loaded), desc=f"Mimicry poems for {model}"))
     )
     done_tasks: Slist[EvaluatedPoem] = await stream.to_slist()
-    # calculate only incorrect attribution
-    only_incorrect = done_tasks.map(lambda x: x.only_incorrect_attribution).average_or_raise()
-    return only_incorrect
+
+    out = done_tasks.map(
+        lambda x: DataRow(  # type: ignore
+            model=x.inference_config.model,
+            is_correct=x.has_correct_attribution,
+            is_cot=False,
+            matches_bias=x.only_incorrect_attribution,  # type: ignore
+            task="mimicry_poems_single_model",
+            bias_name="mimicry_poems_single_model",
+        )  # type: ignore
+    )
+
+    return out
 
 
 async def eval_mimicry_poems_multi_model(
     models: list[str], caller: ModelCaller, add_think_step_by_step: bool
-) -> dict[str, float]:
+) -> Slist[DataRow]:
     # Returns a dict of model name to % of incorrect attribution
     loaded = load_all().take(600)
     stream: Observable[EvaluatedPoem] = (
@@ -153,12 +164,22 @@ async def eval_mimicry_poems_multi_model(
     )
     done_tasks: Slist[EvaluatedPoem] = await stream.to_slist()
     # calculate only incorrect attribution
-    grouped = (
-        done_tasks.group_by(lambda x: x.inference_config.model)
-        .map(lambda group: group.map_values(lambda x: x.map(lambda y: y.only_incorrect_attribution).average_or_raise()))
-        .to_dict()
+    bias_name = "Mimicry poems"
+    if add_think_step_by_step:
+        bias_name += " (think step by step)"
+
+    out = done_tasks.map(
+        lambda x: DataRow(  # type: ignore
+            model=x.inference_config.model,
+            is_correct=x.has_correct_attribution,
+            is_cot=add_think_step_by_step,
+            matches_bias=x.only_incorrect_attribution,  # type: ignore
+            task="mimicry_poems_multi_model",
+            bias_name=bias_name,
+        )
     )
-    return grouped
+
+    return out
 
 
 def write_seq_of_messages(messages: Sequence[Sequence[ChatMessage]], path: Path) -> None:

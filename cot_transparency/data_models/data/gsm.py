@@ -52,6 +52,7 @@ class GSMExample(DataExampleBase):
     def get_parsed_input(
         self,
         include_none_of_the_above: bool = False,
+        context_idx: int = -1,
     ) -> str:
         assert include_none_of_the_above is False
         return self._get_question()

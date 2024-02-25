@@ -55,7 +55,7 @@ class AnthropicCaller(ModelCaller):
         self.client = anthropic.Anthropic()
 
     @retry(
-        exceptions=(anthropic.APIError, anthropic.APIConnectionError, anthropic.InternalServerError),
+        exceptions=(anthropic.APIConnectionError, anthropic.InternalServerError),
         tries=10,
         delay=5,
         logger=logger,

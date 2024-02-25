@@ -31,16 +31,16 @@ def display_messages(messages: Sequence[ChatMessage]):
                 with st.chat_message("user"):
                     st.markdown("### User")
                     content = msg.content.replace("\n", "  \n")
-                    st.markdown(content)
+                    st.text(content)
 
             case MessageRole.assistant:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant")
-                    st.markdown(msg.content.replace("\n", "  \n"))
+                    st.text(msg.content.replace("\n", "  \n"))
             case MessageRole.assistant_if_completion:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant if completion")
-                    st.markdown(msg.content.replace("\n", "  \n"))
+                    st.text(msg.content.replace("\n", "  \n"))
 
 
 def display_task(task: BaseTaskOutput, put_if_completion_in_user: bool = True):

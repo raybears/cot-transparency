@@ -166,6 +166,14 @@ from cot_transparency.formatters.verbalize.formatters import (
     StanfordNoCOTFormatter,
     StanfordTreatmentFormatter,
 )
+from cot_transparency.formatters.bbq_weak_evidence.bbq_weak_evidence_formatters import (
+    BBQWECOTContext1,
+    BBQWECOTContext2,
+)
+from cot_transparency.formatters.interventions.discrim_eval_intervention import (
+    DiscrimEvalInterventionFormatter,
+    DiscrimEvalInterventionNoCOTFormatter,
+)
 
 from cot_transparency.formatters.more_biases.gsm import AskGSMQuestion
 
@@ -336,4 +344,8 @@ __all__ = [
     "AddSpuriousInfoFormatter",
     "AddSycophanticBias",
     "AskGSMQuestion",
+    "BBQWECOTContext1",
+    "BBQWECOTContext2",
+    "DiscrimEvalInterventionFormatter",
+    "DiscrimEvalInterventionNoCOTFormatter",
 ]

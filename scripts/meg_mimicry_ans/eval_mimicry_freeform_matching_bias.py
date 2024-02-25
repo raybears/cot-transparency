@@ -9,7 +9,7 @@ json like
 from enum import Enum
 import json
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Optional, Sequence
 from grugstream import Observable
 from pydantic import BaseModel
 from slist import Slist
@@ -18,6 +18,7 @@ from cot_transparency.apis.base import ModelCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
 
 from cot_transparency.data_models.messages import ChatMessage, MessageRole
+from cot_transparency.data_models.pd_utils import DataRow
 from cot_transparency.formatters.instructions import add_verbalize_instruction_to_question
 from cot_transparency.json_utils.read_write import (
     AtomicFile,
@@ -169,7 +170,7 @@ def write_seq_of_messages(messages: Sequence[Sequence[ChatMessage]], path: Path)
 
 async def eval_mimicry_freeform_follows_wrong(
     models: list[str], caller: ModelCaller, use_cot: bool, n_samples: int = 600
-) -> Mapping[str, float]:
+) -> Slist[DataRow]:
     """
     Returns a Mapping of model name to "% matching bias"
     """
@@ -206,12 +207,20 @@ async def eval_mimicry_freeform_follows_wrong(
         .tqdm(tqdm_bar=tqdm.tqdm(total=len(loaded) * len(models), desc="Mimicry freeform"))
     )
     done_tasks: Slist[EvaluatedMimicry] = await stream.to_slist()
-    grouped_by_model_biased: dict[str, float] = (
-        done_tasks.group_by(lambda x: x.inference_config.model).map(
-            lambda group: group.map_values(
-                lambda x: x.map(lambda y: 1 if y.follows_wrong_answer else 0).average_or_raise()
-            )
+
+    bias_name = "Mimicry Freeform"
+    if use_cot:
+        bias_name += " (COT)"
+
+    out = done_tasks.map(
+        lambda x: DataRow(  # type: ignore
+            model=x.inference_config.model,
+            is_cot=use_cot,
+            is_correct=True,  # True for everything for now
+            matches_bias=1 if x.follows_wrong_answer else 0,  # type: ignore
+            task="mimicry_freeform_follows_wrong",
+            bias_name="mimicry_freeform_follows_wrong",
         )
-    ).to_dict()
-    # Now you need to get the difference
-    return grouped_by_model_biased
+    )
+
+    return out

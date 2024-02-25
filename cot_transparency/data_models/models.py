@@ -93,6 +93,7 @@ class TaskSpec(BaseTaskSpec):
         task_hash: str | Unset = _UNSET,
         biased_ans: MultipleChoiceAnswer | Unset = _UNSET,
         data_example: dict[str, Any] | Unset = _UNSET,
+        inference_config: OpenaiInferenceConfig | Unset = _UNSET,
     ) -> "TaskSpec":
         """
         Returns a copy of the config with the updated values
@@ -109,7 +110,7 @@ class TaskSpec(BaseTaskSpec):
             task_hash=task_hash if not isinstance(task_hash, Unset) else self.task_hash,
             biased_ans=biased_ans if not isinstance(biased_ans, Unset) else self.biased_ans,
             data_example=data_example if not isinstance(data_example, Unset) else self.data_example,
-            inference_config=self.inference_config,
+            inference_config=inference_config if not isinstance(inference_config, Unset) else self.inference_config,
         )
 
     def read_data_example_or_raise(self, data_type: Type[GenericDataExample]) -> GenericDataExample:
@@ -206,8 +207,24 @@ class TaskOutput(BaseTaskOutput):
     inference_output: ModelOutput = Field(validation_alias=AliasChoices("inference_output", "model_output"))
     response_idx: int = 0
 
+    def task_name(self) -> str:
+        return self.task_spec.task_name
+
+    def model(self) -> str:
+        return self.task_spec.inference_config.model
+
     def data_example_hash(self) -> str:
         return self.task_spec.get_data_example_obj().hash()
+
+    def update_model_name(self, model_name: str) -> Self:
+        return self.copy_update(
+            task_spec=self.task_spec.copy_update(
+                inference_config=self.task_spec.inference_config.copy_update(model=model_name)
+            )
+        )
+
+    def update_formatter_name(self, formatter_name: str) -> Self:
+        return self.copy_update(task_spec=self.task_spec.copy_update(formatter_name=formatter_name))
 
     def copy_update(
         self,
@@ -292,6 +309,7 @@ class TraceInfo(BaseModel):
     mistake_inserted_idx: Optional[int] = None
     sentence_with_mistake: Optional[str] = None
     regenerated_cot_post_mistake: Optional[str] = None
+    biased_ans: Optional[MultipleChoiceAnswer] = None
 
     def get_mistake_inserted_idx(self) -> int:
         if self.mistake_inserted_idx is None:

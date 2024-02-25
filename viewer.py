@@ -1,13 +1,15 @@
 from collections import defaultdict
 from enum import Enum
 from random import choice
-from tkinter import END, LEFT, Button, Frame, Label, OptionMenu, StringVar, Text, Tk
 from typing import Any, Callable, Optional, Union
 
 import fire
 
 from cot_transparency.apis.openai import OpenAICompletionPrompt
 from cot_transparency.data_models.io import ExpLoader
+
+from tkinter import LEFT, Frame, Tk, Label, Button, Text, END, OptionMenu, StringVar, Canvas, Scrollbar
+
 from cot_transparency.data_models.models import (
     StageTwoTaskOutput,
     StageTwoTaskSpec,
@@ -396,7 +398,10 @@ class CompareGUI:
 
         if is_stage_two:
             task_spec_s2: StageTwoTaskSpec = output.task_spec  # type: ignore
-            self.ground_truth_label.config(text=f"Ground Truth: {task_spec_s2.stage_one_output.task_spec.ground_truth}")
+            self.ground_truth_label.config(
+                text=f"Ground Truth: {task_spec_s2.stage_one_output.task_spec.ground_truth}, Biased Ans: {task_spec_s2.stage_one_output.task_spec.biased_ans}"
+            )  # ruff: noqa: E501
+
         else:
             task_spec: TaskSpec = output.task_spec  # type: ignore
             self.ground_truth_label.config(text=f"Ground Truth: {task_spec.ground_truth}")
@@ -435,7 +440,23 @@ def main(exp_dir: str, width: int = 175, n_compare: int = 1):
         list_of_all_outputs.extend(exp.outputs)
 
     root = Tk()
-    CompareGUI(root, list_of_all_outputs, width, n_compare, stage=stage)
+    # Create a canvas and configure for vertical and horizontal scrollbars
+    canvas = Canvas(root, bd=0, highlightthickness=0)
+    canvas.pack(side="left", fill="both", expand=True)
+
+    v_scroll = Scrollbar(root, orient="vertical", command=canvas.yview)
+    v_scroll.pack(side="right", fill="y")
+    h_scroll = Scrollbar(root, orient="horizontal", command=canvas.xview)
+    h_scroll.pack(side="bottom", fill="x")
+
+    canvas.configure(yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set)
+    canvas.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+    # Create a frame inside the canvas to put your GUI content in
+    content_frame = Frame(canvas)
+    canvas.create_window((0, 0), window=content_frame, anchor="nw")
+
+    CompareGUI(content_frame, list_of_all_outputs, width, n_compare, stage=stage)  # type: ignore
     root.mainloop()
 
 
