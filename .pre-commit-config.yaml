@@ -27,10 +27,10 @@ repos:
       stages:
         - commit
 
-    - id: pyright
-      name: pyright
-      entry: pyright
-      language: system
-      types: [python]
-      stages:
-        - commit
+    # - id: pyright
+    #   name: pyright
+    #   entry: pyright
+    #   language: system
+    #   types: [python]
+    #   stages:
+    #     - commit

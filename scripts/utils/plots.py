@@ -293,7 +293,7 @@ def catplot(
             "grid.color": "lightgrey",
             "grid.linewidth": "1.5",
             "axes.facecolor": "white",
-            "font.family": ["Times New Roman"],
+            "font.family": ["DejaVu Sans"],
         },
     )
 
