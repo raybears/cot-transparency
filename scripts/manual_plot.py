@@ -10,9 +10,9 @@ if __name__ == "__main__":
         "BCT",
     ]
     y_values = [
-        44.7,
-        36.4,
-        33.7,
+        46.6,
+        39.8,
+        35.9,
     ]
     # sent font to times new roman
     plt.rcParams["font.family"] = "Times New Roman"
@@ -33,15 +33,15 @@ if __name__ == "__main__":
         # xlabel="Model",
         # save_path="plots/accuracy_of_gpt_3_5_turbo_vs_non_cot_vs_50_50_cot.png",
     )
-    red_dotted_value = 49.7
+    red_dotted_value = 51.4
     # make a red dotted line with legend label
     plt.axhline(y=red_dotted_value, color="r", linestyle="--", label="GPT-3.5\nwith biasing\n prompt")
-    black_dotted_value = 9.8
+    black_dotted_value = 9.5
     # make a black dotted line with legend label "GPT-3.5 unbiased baseline"
     plt.axhline(y=black_dotted_value, color="k", linestyle="--", label="GPT-3.5\nwithout biasing\n prompt")
 
     # legend in middle, opacity 0.5, small
-    plt.legend(loc="lower right", framealpha=0.9, fontsize="small")
+    plt.legend(loc="lower right", framealpha=0.95, fontsize="small")
 
     # y-axis label of % Answers Matching Bias
     plt.ylabel("% Answers Matching Bias")
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     # remove x and y axis labels
     plt.xlabel(None)  # type: ignore
     # Make the max y value 50
-    plt.ylim(0, 50)
+    plt.ylim(0, 5)
     # Write the actual values
     for i, v in enumerate(y_values):
         plt.text(i, v + 1, str(v), ha="center")

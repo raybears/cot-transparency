@@ -430,6 +430,7 @@ def hundred_fifty_per_model(data: Slist[TaskOutput]) -> Slist[TaskOutput]:
         .take(150)
         .to_set()
     )
+    assert len(gpt_35_hashes) != 0, "Expected 150, got 0 gpt-3.5-turbo-0613 hashes"
     data.map(lambda x: x.task_spec.formatter_name).distinct_item_or_raise(lambda x: x)
     # assert len(gpt_35_hashes) == 150, f"Expected 150, got {len(gpt_35_hashes)} for  {unique_name_bias}"
     return data.filter(lambda x: x.task_spec.task_hash in gpt_35_hashes)
@@ -462,10 +463,13 @@ def six_hundred_matching_gpt_35(data: Slist[DataRow]) -> Slist[DataRow]:
 async def eval_grid(
     models: dict[str, str],
     example_cap: int = 250,
-    get_extra_tasks: bool = False,
-    max_per_bias_and_model: int = 600,
     collate_interventions_and_controls: bool = True,
+    rename_model_map: dict[str, str] = {},
 ) -> None:
+    all_values = list(models.values())
+    assert (
+        "gpt-3.5-turbo-0613" in all_values
+    ), "gpt-3.5-turbo-0613 must be in the models, sorry about that, we need this hack for now"
     # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     stage_one_path = Path("experiments/grid_exp")
@@ -475,14 +479,6 @@ async def eval_grid(
     eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS + [ZeroShotUnbiasedFormatter]).map(
         lambda x: x.name()
     )
-
-    # Training data filter, we create a callable that returns False if the task is
-    # in the training data and True if it is not
-
-    # url = "https://wandb.ai/raybears/consistency-training/runs/8ztnolqs"
-    # data_samples = cached_read_finetune_from_url(url)
-    # print(data_samples)
-    # exit(1)
 
     stage_one_obs = stage_one_stream(
         formatters=eval_formatters_str,
@@ -508,8 +504,6 @@ async def eval_grid(
         models=list(models.values()),
     )
 
-    # ReadOnInternet's answers are annoyingly non standard, so we need to use the answer step
-
     answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path / "answer_parsing_cache")
     answer_parsing_config = config_from_default(model="gpt-4")
     stage_one_obs = stage_one_obs.map_blocking_par(
@@ -531,13 +525,7 @@ async def eval_grid(
 
     # Take 600 for each model(coalesced) and bias
     bias_on_wrong_ans_less = (
-        bias_on_wrong_ans
-        # because for distractor argument we have multiple formats, we need to groupby model + formatter + task hash and sample 1, so that we don't have duplicates
-        # .group_by(lambda x: x.task_spec.inference_config.model + x.task_spec.formatter_name + x.task_spec.task_hash)
-        # .map_on_group_values(lambda x: x.shuffle("42").take(1))
-        # .ungroup()
-        # rename bias to paper name
-        .map(
+        bias_on_wrong_ans.map(
             lambda task: task.copy_update(
                 task_spec=task.task_spec.copy_update(
                     formatter_name=FORMATTERS_TO_PAPER_NAME.get(
@@ -626,7 +614,7 @@ async def eval_grid(
         bias_on_wrong_ans_less
         + _hindsight_neglect
         + hindsight_neglect_only_non_spurious
-        + _are_you_sure_second_round_cot
+        + _are_you_sure_second_round_cot,
         # + are_you_sure_2,
         # + are_you_sure_3,
     )
@@ -651,7 +639,11 @@ async def eval_grid(
         + answer_choice_ordering_gpts
         # + answer_choice_ordering_allow_tie
         # + answer_choice_ordering_allow_but_exclude_tie
-    ).map(lambda x: x.add_model_type(model_str_to_type(x.model)))
+    ).map(
+        lambda x: x.add_model_type(
+            model_str_to_type(x.model) if not rename_model_map else rename_model_map.get(x.model, x.model)
+        )
+    )
 
     # dump the datarows to jsonl
     dump_datarows_to_jsonl(bias_on_wrong_answer_datarows, "bias_on_wrong_answer_datarows.jsonl")
