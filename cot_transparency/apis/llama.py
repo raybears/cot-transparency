@@ -1,3 +1,5 @@
+# type: ignore
+# We removed torch from pip install because its mostly not used in the codebase
 import os
 from threading import Lock
 from typing import Optional
