@@ -430,6 +430,7 @@ def hundred_fifty_per_model(data: Slist[TaskOutput]) -> Slist[TaskOutput]:
         .take(150)
         .to_set()
     )
+    assert len(gpt_35_hashes) != 0, "Expected 150, got 0 gpt-3.5-turbo-0613 hashes"
     data.map(lambda x: x.task_spec.formatter_name).distinct_item_or_raise(lambda x: x)
     # assert len(gpt_35_hashes) == 150, f"Expected 150, got {len(gpt_35_hashes)} for  {unique_name_bias}"
     return data.filter(lambda x: x.task_spec.task_hash in gpt_35_hashes)
@@ -459,33 +460,29 @@ def six_hundred_matching_gpt_35(data: Slist[DataRow]) -> Slist[DataRow]:
     return data.filter(lambda x: x.question_id in gpt_35_hashes)
 
 
-eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS + [ZeroShotUnbiasedFormatter]).map(lambda x: x.name())
-
-
 async def eval_grid(
     models: dict[str, str],
     example_cap: int = 250,
-    dataset="cot_testing",
-    formatters: Slist[str] = eval_formatters_str,
     collate_interventions_and_controls: bool = True,
+    rename_model_map: dict[str, str] = {},
 ) -> None:
+    all_values = list(models.values())
+    assert (
+        "gpt-3.5-turbo-0613" in all_values
+    ), "gpt-3.5-turbo-0613 must be in the models, sorry about that, we need this hack for now"
     # FAR
     # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     stage_one_path = Path("experiments/grid_exp")
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=600)
     # test on COTs only, maybe non-COTs when we feel like it
 
-    # Training data filter, we create a callable that returns False if the task is
-    # in the training data and True if it is not
-
-    # url = "https://wandb.ai/raybears/consistency-training/runs/8ztnolqs"
-    # data_samples = cached_read_finetune_from_url(url)
-    # print(data_samples)
-    # exit(1)
+    eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS + [ZeroShotUnbiasedFormatter]).map(
+        lambda x: x.name()
+    )
 
     stage_one_obs = stage_one_stream(
-        formatters=formatters,
-        dataset=dataset,
+        formatters=eval_formatters_str,
+        dataset="cot_testing",
         example_cap=example_cap,
         # run more because we don't always have data. Mostly on mmlu
         formatter_example_cap_override={
@@ -507,8 +504,6 @@ async def eval_grid(
         models=list(models.values()),
     )
 
-    # ReadOnInternet's answers are annoyingly non standard, so we need to use the answer step
-
     answer_parsing_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path / "answer_parsing_cache")
     answer_parsing_config = config_from_default(model="gpt-4")
     stage_one_obs = stage_one_obs.map_blocking_par(
@@ -529,14 +524,9 @@ async def eval_grid(
     ).sort_by(lambda x: x.task_spec.task_hash)
 
     # Take 600 for each model(coalesced) and bias
+    # since we have 4 datasets (tasks), we take 150 for each model
     bias_on_wrong_ans_less = (
-        bias_on_wrong_ans
-        # because for distractor argument we have multiple formats, we need to groupby model + formatter + task hash and sample 1, so that we don't have duplicates
-        # .group_by(lambda x: x.task_spec.inference_config.model + x.task_spec.formatter_name + x.task_spec.task_hash)
-        # .map_on_group_values(lambda x: x.shuffle("42").take(1))
-        # .ungroup()
-        # rename bias to paper name
-        .map(
+        bias_on_wrong_ans.map(
             lambda task: task.copy_update(
                 task_spec=task.task_spec.copy_update(
                     formatter_name=FORMATTERS_TO_PAPER_NAME.get(
@@ -650,7 +640,11 @@ async def eval_grid(
         + answer_choice_ordering_gpts
         # + answer_choice_ordering_allow_tie
         # + answer_choice_ordering_allow_but_exclude_tie
-    ).map(lambda x: x.add_model_type(model_str_to_type(x.model)))
+    ).map(
+        lambda x: x.add_model_type(
+            model_str_to_type(x.model) if not rename_model_map else rename_model_map.get(x.model, x.model)
+        )
+    )
 
     # dump the datarows to jsonl
     dump_datarows_to_jsonl(bias_on_wrong_answer_datarows, "bias_on_wrong_answer_datarows.jsonl")
@@ -853,4 +847,4 @@ if __name__ == "__main__":
         # _20k_50_perc="ft:gpt-3.5-turbo-0613:far-ai::8Zxcff0Z",
         # _20k_100_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxUUELa",
     )
-    asyncio.run(eval_grid(models))
+    asyncio.run(eval_grid(models, example_cap=250))

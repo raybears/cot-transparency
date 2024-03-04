@@ -73,9 +73,9 @@ async def main():
         # ft:gpt-3.5-turbo-0613:academicsnyuperez::8NNz4qzi combined paraphrasing +few shot
         # all syco variants
         # Category(hue="Intervention", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA"),
-        Category(hue="BCT", model="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO"),
-        Category(hue="BCT", model="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh"),
-        Category(hue="BCT", model="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5"),
+        Category(hue="Bias Consistency Training", model="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO"),
+        Category(hue="Bias Consistency Training", model="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh"),
+        Category(hue="Bias Consistency Training", model="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5"),
         Category(hue="BCT", model="ft:gpt-3.5-turbo-0613:academicsnyuperez::8iQgvBs7"),
         # Category(hue="50-50", model="ft:gpt-3.5-turbo-0613:far-ai::8gAkugeh"),
         # Category(hue="50-50", model="ft:gpt-3.5-turbo-0613:far-ai::8ZNx8yk5"),

@@ -14,6 +14,7 @@ if __name__ == "__main__":
     # wandb https://wandb.ai/raybears/consistency-training/runs/ehcof6tv?workspace=user-chuajamessh
     """
     models = dict(
+        gpt_35="gpt-3.5-turbo-0613",
         # _20k_0_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Zxk9Bww",
         _20k_1_perc="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Zxeu3QP",
         _20k_2_perc="ft:gpt-3.5-turbo-0613:far-ai::8pwNC4T5",
@@ -31,6 +32,7 @@ if __name__ == "__main__":
         _100k_25_perc_a="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aDG4tqK",
         # _100k_25_perc_b="ft:gpt-3.5-turbo-0613:academicsnyuperez::8qMlQC68",
         _100k_50_perc_a="ft:gpt-3.5-turbo-0613:academicsnyuperez::8aDRJnSG",
-        # _100k_100_perc_b="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aCHrIH2",
+        _100k_100_perc_b="ft:gpt-3.5-turbo-0613:james-cot-transparency-org::8aCHrIH2",
     )
-    asyncio.run(eval_grid(models, collate_interventions_and_controls=False))
+    reverse_map = {v: k for k, v in models.items()}
+    asyncio.run(eval_grid(models, example_cap=250, rename_model_map=reverse_map))

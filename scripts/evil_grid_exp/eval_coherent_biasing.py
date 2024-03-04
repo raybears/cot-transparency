@@ -298,7 +298,7 @@ def csv_for_labelling(_tasks: Sequence[TaskOutputWithBaselineLabel], number_labe
 def take_or_raise(slist: Slist[A], n: int, group_name: str) -> Slist[A]:
     if len(slist) < n:
         raise ValueError(f"Group name {group_name}: Expected at least {n} items, got {len(slist)}")
-    return slist.shuffle(seed="42").take(n)
+    return slist.take(n)
 
 
 async def eval_grid() -> None:
@@ -416,7 +416,7 @@ async def eval_grid() -> None:
     capped_results = (
         (biased_results_wo_are_you_sure + sampled_distractor)
         .filter(lambda x: x.first_parsed_response is not None)
-        .group_by(lambda x: x.task_spec.formatter_name)
+        .group_by(lambda x: (x.task_spec.formatter_name, x.task_spec.inference_config.model))
         .map_2(
             (lambda group_name, group_values: take_or_raise(group_values, n=limit_per_bias, group_name=str(group_name)))
         )

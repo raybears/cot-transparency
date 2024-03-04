@@ -217,7 +217,7 @@ async def eval_mimicry_freeform_follows_wrong(
             model=x.inference_config.model,
             is_cot=use_cot,
             is_correct=True,  # True for everything for now
-            matches_bias=1 if x.follows_wrong_answer else 0,  # type: ignore
+            parsed_ans_matches_bias=1 if x.follows_wrong_answer else 0,
             task="mimicry_freeform_follows_wrong",
             bias_name="mimicry_freeform_follows_wrong",
         )

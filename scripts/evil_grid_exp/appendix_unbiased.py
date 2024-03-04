@@ -1,16 +1,13 @@
 import asyncio
 from pathlib import Path
 from grugstream import Observable
-from networkx import reverse_view
 
 from slist import Slist
 from cot_transparency.apis import UniversalCaller
 from cot_transparency.data_models.models import TaskOutput
-from cot_transparency.formatters.core.sycophancy import ZeroShotCOTSycophancyFormatter
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.streaming.stage_one_stream import stage_one_stream
 
-from scripts.evil_grid_exp.eval_the_grid import eval_grid
 import pandas as pd
 
 
@@ -52,12 +49,12 @@ def accuracy_df(dataframe: pd.DataFrame) -> pd.DataFrame:
     # new_pivot = new_pivot.drop(columns=mean_cols)
     # put the mean with CI columns at the beginning
     new_pivot = new_pivot[
-        (new_pivot.columns[new_pivot.columns.get_level_values(0) == "Mean with CI (95%)"]).to_list()
+        (new_pivot.columns[new_pivot.columns.get_level_values(0) == "Mean with CI (95%)"]).to_list()  # type: ignore
         + new_pivot.columns.difference(
             new_pivot.columns[new_pivot.columns.get_level_values(0) == "Mean with CI (95%)"]
-        ).to_list()
+        ).to_list()  # type: ignore
     ]
-    return new_pivot
+    return new_pivot  # type: ignore
 
 
 def accuracy(tasks: Slist[TaskOutput]) -> float:
@@ -67,10 +64,7 @@ def accuracy(tasks: Slist[TaskOutput]) -> float:
 async def main():
     intervention_models = [
         "ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO",
-        
-
     ]
-    two_perc_intervention_models: list[str] 
     models = dict(
         a_gpt="gpt-3.5-turbo-0613",
         g_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO",
@@ -84,7 +78,6 @@ async def main():
         # _100k_2_perc="ft:gpt-3.5-turbo-0613:far-ai::8qNMKtMt",
         # _100k_2_perc2="ft:gpt-3.5-turbo-0613:far-ai::8rbXSkcv",
     )
-    reverse_dict = {v: k for k, v in models.items()}
     # control models have "control"  in the name
     control_models = {k: v for k, v in models.items() if "control" in k}
     # intervention models have "intervention" in the name
@@ -148,6 +141,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
-
     asyncio.run(main())
