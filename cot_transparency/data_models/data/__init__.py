@@ -4,10 +4,26 @@ from typing import Optional
 
 from slist import Slist
 
-from cot_transparency.data_models.data import aqua, arc, bbh, bbq, hellaswag, logiqa, mmlu, openbook, truthful_qa
+from cot_transparency.data_models.data import (
+    aqua,
+    arc,
+    bbh,
+    bbq,
+    bbq_weak_evidence,
+    hellaswag,
+    logiqa,
+    mmlu,
+    openbook,
+    truthful_qa,
+    stereoset,
+    bias_in_bios,
+    winomt_bias,
+    discrim_eval,
+)
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
 from cot_transparency.data_models.data.bbh_biased_wrong_cot import BiasedWrongCOTBBH
 from cot_transparency.data_models.data.bbq import BBQ_TASK_LIST
+from cot_transparency.data_models.data.discrim_eval import DISCRIM_EVAL_TASKS_LIST
 from cot_transparency.data_models.data.gsm import load_gsm_biased, load_gsm_unbiased
 from cot_transparency.data_models.data.inverse_scaling import get_inverse_scaling, InverseScalingTask
 from cot_transparency.data_models.data.john_math import (
@@ -37,6 +53,12 @@ COT_TRAINING_TASKS = BBH_TASK_LIST + [
     "arc_challenge_test",
     "openbook_qa_train",
 ]
+# social biases
+STEREOSET = ["stereoset_intra", "stereoset_inter"]
+DISCRIM_EVAL_ALL = DISCRIM_EVAL_TASKS_LIST
+BIAS_IN_BIOS = ["bios_gender", "bios_profession"]
+SOCIAL_BIASES = ["winomt_gender"] + STEREOSET + BIAS_IN_BIOS
+
 TASK_LIST = {
     "bbh": BBH_TASK_LIST,
     "bbh_biased_wrong_cot": BBH_TASK_LIST,
@@ -71,6 +93,12 @@ TASK_LIST = {
     "logiqa_train": ["logiqa_train"],
     "inverse_scaling": InverseScalingTask.all_tasks(),
     "gsm": ["gsm_unbiased", "gsm_biased"],
+    "bbq_full": ["bbq_ambig", "bbq_disambig"],
+    "bbq_weak_evidence": ["bbq_weak_evidence"],
+    "stereoset": STEREOSET,
+    "discrim_eval": DISCRIM_EVAL_TASKS_LIST,
+    "bias_in_bios": BIAS_IN_BIOS,
+    "social_biases": SOCIAL_BIASES,
 }
 
 
@@ -162,6 +190,56 @@ def get_list_of_examples(
             data = load_gsm_unbiased()
         elif task == "gsm_biased":
             data = load_gsm_biased()
+        elif task == "bbq_ambig":
+            data = bbq.val_full(context_condition="ambig")
+        elif task == "bbq_disambig":
+            data = bbq.val_full(context_condition="disambig")
+        elif task == "bbq_weak_evidence":
+            data = bbq_weak_evidence.val()
+        elif task == "stereoset_intra":
+            data = stereoset.intra_dev()
+        elif task == "stereoset_inter":
+            data = stereoset.inter_dev()
+        elif task == "bios_gender":
+            data = bias_in_bios.gender_test()
+        elif task == "bios_profession":
+            data = bias_in_bios.profession_test()
+        elif task == "discrim_eval_baseline":
+            data = discrim_eval.discrim_eval_baseline()
+        elif task == "discrim_eval_black_fixed":
+            data = discrim_eval.discrim_eval_black_fixed()
+        elif task == "discrim_eval_black":
+            data = discrim_eval.discrim_eval_black()
+        elif task == "discrim_eval_hispanic":
+            data = discrim_eval.discrim_eval_hispanic()
+        elif task == "discrim_eval_asian":
+            data = discrim_eval.discrim_eval_asian()
+        elif task == "discrim_eval_native_american":
+            data = discrim_eval.discrim_eval_native_american()
+        elif task == "discrim_eval_female":
+            data = discrim_eval.discrim_eval_female()
+        elif task == "discrim_eval_non_binary":
+            data = discrim_eval.discrim_eval_non_binary()
+        elif task == "discrim_eval_age_20":
+            data = discrim_eval.discrim_eval_age_20()
+        elif task == "discrim_eval_age_30":
+            data = discrim_eval.discrim_eval_age_30()
+        elif task == "discrim_eval_age_40":
+            data = discrim_eval.discrim_eval_age_40()
+        elif task == "discrim_eval_age_50":
+            data = discrim_eval.discrim_eval_age_50()
+        elif task == "discrim_eval_age_60":
+            data = discrim_eval.discrim_eval_age_60()
+        elif task == "discrim_eval_age_70":
+            data = discrim_eval.discrim_eval_age_70()
+        elif task == "discrim_eval_age_80":
+            data = discrim_eval.discrim_eval_age_80()
+        elif task == "discrim_eval_age_90":
+            data = discrim_eval.discrim_eval_age_90()
+        elif task == "discrim_eval_age_100":
+            data = discrim_eval.discrim_eval_age_100()
+        elif task == "winomt_gender":
+            data = winomt_bias.test()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
