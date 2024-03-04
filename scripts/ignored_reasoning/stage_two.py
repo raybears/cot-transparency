@@ -315,10 +315,11 @@ def recomplete_cot_with_inserted_mistake(
             config.top_p = mistake_top_p
 
         if mistake_log_bias_weight > 0 or mistake_log_bias_weight < 0:
-            config.logit_bias = get_logit_bias(generated_mistake.first_parsed_response, mistake_log_bias_weight)
-            print("setting logit biases")
-            print(f"mistake_sentence: {generated_mistake.first_parsed_response}")
-            print(config.logit_bias)
+            raise ValueError("logit_bias_weight is unsupported")
+            # config.logit_bias = get_logit_bias(generated_mistake.first_parsed_response, mistake_log_bias_weight)
+            # print("setting logit biases")
+            # print(f"mistake_sentence: {generated_mistake.first_parsed_response}")
+            # print(config.logit_bias)
 
         task_spec = StageTwoTaskSpec(
             stage_one_output=stage_one_output,

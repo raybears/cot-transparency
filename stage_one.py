@@ -143,7 +143,7 @@ def create_stage_one_task_specs(
             data = data.take(formatter_example_cap_override[formatter])
 
         # Config Overrides Start ----------------------
-        config = config_from_default(model).model_copy(deep=True)
+        config = config_from_default(model, temperature=temperature, max_tokens=max_tokens)
         if issubclass(formatter, FormattersForTransparency):
             few_shot_stops = ["\n\nHuman:", "\n\nAssistant:", "\n\nQuestion:"]
             if isinstance(config.stop, list):
@@ -160,16 +160,10 @@ def create_stage_one_task_specs(
             else:
                 config = config.copy_update(stop=[FEW_SHOT_STOP_TOKEN])
 
-        if temperature is not None:
-            config = config.copy_update(temperature=temperature)
-
         assert config.model == model
 
         if not formatter.is_cot:
             config = config.copy_update(max_tokens=1)
-
-        if max_tokens is not None:
-            config = config.copy_update(max_tokens=max_tokens)
 
         if n_responses_per_request is not None:
             config = config.copy_update(n=n_responses_per_request)

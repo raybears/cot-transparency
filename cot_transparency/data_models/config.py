@@ -23,7 +23,6 @@ class OpenaiInferenceConfig(HashableBaseModel):
     presence_penalty: float = 0.0
     n: int = 1
     stop: Union[None, str, conlist(str, min_length=1, max_length=4)] = None  # type: ignore
-    logit_bias: dict = {}  # type: ignore
 
     def copy_update(
         self,
@@ -99,7 +98,7 @@ def config_from_default(
         default = OpenaiInferenceConfig(model=model, temperature=1, max_tokens=1000, top_p=1.0)
 
     # override the default values with the passed in values
-    return OpenaiInferenceConfig(
+    conf = OpenaiInferenceConfig(
         model=model,
         temperature=temperature if temperature is not None else default.temperature,
         top_p=top_p if top_p is not None else default.top_p,
@@ -109,3 +108,4 @@ def config_from_default(
         n=n if n is not None else default.n,
         stop=stop if stop is not None else default.stop,
     )
+    return conf

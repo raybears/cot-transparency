@@ -60,9 +60,9 @@ def answer_finding_step(
         output_of_parsing = call_model_with_task_spec(task_spec, specific_caller)
         assert len(output_of_parsing) == 1, "Expected only one output from the answer parsing model"
         output_of_parsing = output_of_parsing[0]
-        print(
-            f"Answer parsing model: {config.model} found: {output_of_parsing.inference_output.parsed_response} from {model_response}"
-        )
+        # print(
+        # f"Answer parsing model: {config.model} found: {output_of_parsing.inference_output.parsed_response} from {model_response}"
+        # )
         found_answer = output_of_parsing.inference_output.parsed_response
 
     return prev_output.update_parsed_response(found_answer)
