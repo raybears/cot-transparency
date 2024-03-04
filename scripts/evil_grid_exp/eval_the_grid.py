@@ -183,7 +183,7 @@ def accuracy_from_data_rows(
         aggfunc={"is_correct": ["mean", "sem", "count"]},
     )
     # generate new column order
-    models = df.columns.get_level_values(1).unique()  # type : ignore
+    models = df.columns.get_level_values(1).unique()  # type: ignore
     measures = ["count", "mean", "sem"]
     new_columns = [(measure, model) for model in models for measure in measures]
     # reorder columns
@@ -524,6 +524,7 @@ async def eval_grid(
     ).sort_by(lambda x: x.task_spec.task_hash)
 
     # Take 600 for each model(coalesced) and bias
+    # since we have 4 datasets (tasks), we take 150 for each model
     bias_on_wrong_ans_less = (
         bias_on_wrong_ans.map(
             lambda task: task.copy_update(
@@ -846,4 +847,4 @@ if __name__ == "__main__":
         # _20k_50_perc="ft:gpt-3.5-turbo-0613:far-ai::8Zxcff0Z",
         # _20k_100_perc="ft:gpt-3.5-turbo-0613:far-ai::8ZxUUELa",
     )
-    asyncio.run(eval_grid(models, example_cap=250, get_extra_tasks=False, max_per_bias_and_model=600))
+    asyncio.run(eval_grid(models, example_cap=250))
