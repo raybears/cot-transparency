@@ -1,4 +1,9 @@
-# SERI MATS: Chain of Thought Transparency
+# Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought
+
+This repo contains the code used in the paper Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought.
+
+[View the dataset used for evaluating biased reasoning here](https://github.com/raybears/cot-transparency/tree/main/dataset_dumps)
+
 
 [![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml)
 
