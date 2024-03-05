@@ -1,6 +1,8 @@
 from typing import Literal
 from pydantic import BaseModel
 
+from scripts.evil_grid_exp.eval_coherent_biasing import biased_correct_samples
+
 
 
 class TestChatMessage(BaseModel):
@@ -15,6 +17,7 @@ class StandardTestData(BaseModel):
     biased_question: list[TestChatMessage]
     bias_name: str
     ground_truth: Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+    biased_option: Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
 
 def test_parse_one_file():
@@ -24,7 +27,9 @@ def test_parse_one_file():
             # read into the basemodel
             parsed = StandardTestData.model_validate_json(line)
             print(parsed.biased_question)
+            print(f"Biased towards: {parsed.biased_option}")
+            print(f"Ground truth: {parsed.ground_truth}")
 
-            
+
 if __name__ == "__main__":
     test_parse_one_file()

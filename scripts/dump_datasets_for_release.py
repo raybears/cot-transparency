@@ -61,6 +61,8 @@ class StandardDatasetDump(BaseModel):
     biased_question: list[StrictChatMessage]
     bias_name: str
     ground_truth: MultipleChoiceAnswer
+    biased_option: str
+
 
     @staticmethod
     def from_task_spec(task_spec: TaskSpec) -> "StandardDatasetDump":
@@ -70,6 +72,9 @@ class StandardDatasetDump(BaseModel):
         unbiased_question: list[StrictChatMessage] = append_assistant_preferred_to_last_user(ZeroShotCOTUnbiasedFormatter.format_example(question=task_spec.get_data_example_obj()))
         biased_question = assistant_on_user_side
         bias_name: str = FORMATTERS_TO_DUMP[task_spec.formatter_name]
+        biased_option = task_spec.biased_ans
+        assert biased_option is not None, "Biased option should not be None"
+
     
         return StandardDatasetDump(
             original_question=task_spec.get_data_example_obj().get_parsed_input(),
@@ -79,6 +84,7 @@ class StandardDatasetDump(BaseModel):
             biased_question=biased_question,
             bias_name=bias_name,
             ground_truth=task_spec.ground_truth, # type: ignore
+            biased_option=biased_option,
         )
 
     
