@@ -175,7 +175,7 @@ async def dump_data():
 
     # group by this name
     dumps_grouped: Slist[Group[str, Slist[StandardDatasetDump]]] = dumps.group_by(
-        lambda x: f"{x.original_dataset}_{x.bias_name}.jsonl"
+        lambda x: f"{x.bias_name}/{x.original_dataset}_{x.bias_name}.jsonl"
     )
     for group in dumps_grouped:
         write_jsonl_file_from_basemodel(f"dataset_dumps/test/{group.key}", group.values)
@@ -183,7 +183,7 @@ async def dump_data():
 
 def test_parse_one_file():
     # open dataset_dumps/test/mmlu_distractor_fact.jsonl
-    with open("dataset_dumps/test/mmlu_distractor_fact.jsonl", "r") as f:
+    with open("dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl", "r") as f:
         for line in f.readlines():
             # read into the basemodel
             parsed = StandardDatasetDump.model_validate_json(line)

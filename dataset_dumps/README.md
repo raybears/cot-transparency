@@ -38,8 +38,7 @@ class StandardTestData(BaseModel):
 
 
 def test_parse_one_file():
-    # open dataset_dumps/test/mmlu_distractor_fact.jsonl
-    with open("dataset_dumps/test/mmlu_distractor_fact.jsonl", "r") as f:
+    with open("dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl", "r") as f:
         for line in f.readlines():
             # read into the basemodel
             parsed = StandardTestData.model_validate_json(line)
