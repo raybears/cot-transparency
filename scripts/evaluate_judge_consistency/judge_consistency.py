@@ -46,6 +46,7 @@ class BothJudgements(BaseModel):
     first_judgement: Optional[ComparisonGenerationJudged]  # E.g. not enough tokens
     second_judgement: Optional[ComparisonGenerationJudged]
     original_instruction: str
+    original_instruction_seq: Sequence[ChatMessage]
     judge_config: OpenaiInferenceConfig
 
     def is_consistent(self) -> Optional[bool]:
@@ -192,6 +193,7 @@ def get_judge_output_both(
         second_judgement=second,
         judge_config=judge_config,
         original_instruction=messages_to_str(comparison.prompt.messages),
+        original_instruction_seq=comparison.prompt.messages,
     )
 
 

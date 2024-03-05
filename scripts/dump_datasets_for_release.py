@@ -1,4 +1,6 @@
 from pathlib import Path
+from typing import Literal
+from grugstream import Observable
 from pydantic import BaseModel
 from slist import Group, Slist
 from cot_transparency.apis import UniversalCaller
@@ -20,9 +22,15 @@ from cot_transparency.formatters.more_biases.user_wrong_cot import (
 from cot_transparency.formatters.more_biases.wrong_few_shot import WrongFewShotMoreClearlyLabelledAtBottom
 from cot_transparency.formatters.verbalize.formatters import BlackSquareBiasedFormatter
 from cot_transparency.json_utils.read_write import write_jsonl_file_from_basemodel
+from cot_transparency.util import assert_not_none
 from scripts.are_you_sure.eval_are_you_sure_second_cot import (
     OutputWithAreYouSure,
     run_are_you_sure_multi_model_second_round_cot,
+)
+from scripts.evaluate_judge_consistency.judge_consistency import (
+    BothJudgements,
+    ComparisonGenerationJudged,
+    many_judge_obs,
 )
 
 from stage_one import create_stage_one_task_specs
@@ -53,6 +61,32 @@ def rename_dataset_name(dataset_name: str) -> str:
             return "mmlu"
         case _:
             return dataset_name
+
+
+class PositionalBiasDump(BaseModel):
+    original_instruction: list[StrictChatMessage]
+    gpt_35_response: str
+    gpt_4_response: str
+    first_judge_prompt: list[StrictChatMessage]
+    # Same as the first_judge_prompt, but flipped the order of choices
+    second_judge_prompt: list[StrictChatMessage]
+    original_dataset: Literal["alpaca_cleaned"] = "alpaca_cleaned"
+    bias_name: Literal["positional_bias"] = "positional_bias"
+
+    @staticmethod
+    def from_positional_bias(output: BothJudgements) -> "PositionalBiasDump":
+        first_judgement: ComparisonGenerationJudged = assert_not_none(output.first_judgement)
+        second_judgement: ComparisonGenerationJudged = assert_not_none(output.second_judgement)
+        original_instruction = output.original_instruction_seq
+        gpt_4_response = second_judgement.generation.a_response
+        gpt_35_response = first_judgement.generation.b_response
+        return PositionalBiasDump(
+            original_instruction=[instruction.to_strict() for instruction in original_instruction],
+            first_judge_prompt=[prompt.to_strict() for prompt in first_judgement.judge_prompt],
+            second_judge_prompt=[prompt.to_strict() for prompt in second_judgement.judge_prompt],
+            gpt_35_response=gpt_35_response,
+            gpt_4_response=gpt_4_response,
+        )
 
 
 class StandardDatasetDump(BaseModel):
@@ -179,6 +213,21 @@ async def dump_data():
     )
     for group in dumps_grouped:
         write_jsonl_file_from_basemodel(f"dataset_dumps/test/{group.key}", group.values)
+
+    # Positional bias is annoyingly non standard...
+
+    pipeline: Observable[BothJudgements] = many_judge_obs(
+        judge_models=["gpt-3.5-turbo-0613"],
+        caller=stage_one_caller,
+        samples_to_judge=800,
+        first_model="gpt-4",
+        second_model="gpt-3.5-turbo-0613",
+    ).filter(lambda x: x.first_judgement is not None and x.second_judgement is not None)
+    results: Slist[BothJudgements] = await pipeline.to_slist()
+    positional_bias_dumps: Slist[PositionalBiasDump] = results.map(PositionalBiasDump.from_positional_bias)
+    write_jsonl_file_from_basemodel(
+        "dataset_dumps/test/positional_bias/alpaca_positional_bias.jsonl", positional_bias_dumps
+    )
 
 
 def test_parse_one_file():

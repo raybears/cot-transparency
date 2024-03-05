@@ -53,3 +53,23 @@ if __name__ == "__main__":
 ```
 
 
+## Positional Bias Schema
+The positional bias follows a different schema
+
+```python
+class PositionalBiasDump(BaseModel):
+    # The raw instruction from the alpaca dataset
+    original_instruction: list[StrictChatMessage]
+    # What gpt-3.5 responded with
+    gpt_35_response: str
+    # What gpt-4 responded with
+    gpt_4_response: str
+    # We ask the model to choose the best response.
+    first_judge_prompt: list[StrictChatMessage]
+    # Same as the first_judge_prompt, but flipped the order of choices
+    second_judge_prompt: list[StrictChatMessage]
+    original_dataset: Literal["alpaca_cleaned"] = "alpaca_cleaned"
+    bias_name: Literal["positional_bias"] = "positional_bias"
+```
+
+
