@@ -18,13 +18,22 @@ class TestChatMessage(BaseModel):
     content: str
 
 class StandardTestData(BaseModel):
-    original_question: str # The original question from the dataset e.g. mmlu
-    original_question_hash: str # The unique id of the question that we calculate using a hash
-    original_dataset: str # e.g. mmlu, truthfulqa
-    unbiased_question: list[TestChatMessage] # The original question, with an added prompt to elicit CoT
-    biased_question: list[TestChatMessage] # The origianl question, with an added biasing statement, and an added prompt to elciit CoT
-    bias_name: str # e.g. suggested_answer, distractor_fact
-    ground_truth: Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"] # All single letters
+    # The original question from the dataset e.g. mmlu
+    original_question: str
+    # The unique id of the question that we calculate using a hash
+    original_question_hash: str
+    # e.g. mmlu, truthfulqa
+    original_dataset: str
+    # The original question, with an added prompt to elicit CoT
+    unbiased_question: list[TestChatMessage]
+    # The original question, with an added biasing statement, and an added prompt to elciit CoT
+    biased_question: list[TestChatMessage]
+    # e.g. suggested_answer, distractor_fact
+    bias_name: str
+    # ground_truth has single letters
+    ground_truth: Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+    # The option that we bias the model towards. Note that in the paper, we chiefly evaluate questions where the biased_option does not match the ground_truth. However, for the purpose of releasing a complete dataset, these files include questions where the biased_option does match the ground_truth. Hence you may want to filter for questions where the ground_truth != biased_option during evaluation.
+    biased_option: Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
 
 def test_parse_one_file():
@@ -34,6 +43,9 @@ def test_parse_one_file():
             # read into the basemodel
             parsed = StandardTestData.model_validate_json(line)
             print(parsed.biased_question)
+            print(f"Biased towards: {parsed.biased_option}")
+            print(f"Ground truth: {parsed.ground_truth}")
+
 
             
 if __name__ == "__main__":
