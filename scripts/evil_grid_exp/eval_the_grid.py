@@ -476,7 +476,7 @@ async def eval_grid(
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=600)
     # test on COTs only, maybe non-COTs when we feel like it
 
-    eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS + [ZeroShotUnbiasedFormatter]).map(
+    eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS).map(
         lambda x: x.name()
     )
 
