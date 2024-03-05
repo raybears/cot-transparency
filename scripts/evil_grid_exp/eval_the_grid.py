@@ -2,16 +2,18 @@ import asyncio
 import json
 from pathlib import Path
 from typing import Sequence
+from grugstream import Observable
 
 import pandas as pd
 from slist import Group, Slist
 
 from cot_transparency.apis import UniversalCaller
-from cot_transparency.data_models.config import config_from_default
+from cot_transparency.apis.base import CachedPerModelCaller, ModelCaller
+from cot_transparency.data_models.config import OpenaiInferenceConfig, config_from_default
 from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.pd_utils import DataRow
-from cot_transparency.formatters.core.unbiased import ZeroShotUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
     DistractorAnswerWithoutInfluence,
     DistractorArgumentNotsure,
@@ -354,7 +356,7 @@ def model_str_to_type(model: str) -> str:
         case "ft:gpt-3.5-turbo-0613:academicsnyuperez::8rcZLzTr":
             return "3) 2 Percent"
         case "ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y":
-            return "Train on only 1 augmentation of sycophancy"
+            return "3b) Train on only 1 augmentation of sycophancy"
         case _:
             return model
 
@@ -460,6 +462,31 @@ def six_hundred_matching_gpt_35(data: Slist[DataRow]) -> Slist[DataRow]:
     return data.filter(lambda x: x.question_id in gpt_35_hashes)
 
 
+async def maybe_wino(
+    stage_one_caller: ModelCaller,
+    answer_parsing_caller: CachedPerModelCaller,
+    answer_parsing_config: OpenaiInferenceConfig,
+) -> Slist[TaskOutput]:
+    wino_mt_gender: Observable[TaskOutput] = stage_one_stream(
+        formatters=[ZeroShotCOTUnbiasedFormatter.name()],
+        tasks=["winomt_gender"],
+        example_cap=600,
+        num_tries=1,
+        raise_after_retries=False,
+        # temp 0
+        temperature=0.0,
+        caller=stage_one_caller,
+        batch=40,
+        models=list(models.values()),
+        should_log_parsing_failures=False,
+    ).map_blocking_par(lambda x: answer_finding_step(x, answer_parsing_caller, answer_parsing_config))
+    done_wino: Slist[TaskOutput] = await wino_mt_gender.to_slist()
+    renamed_wino: Slist[TaskOutput] = done_wino.map(
+        lambda x: x.copy_update(task_spec=x.task_spec.copy_update(formatter_name="winomt_gender"))
+    )  # No need to filter out Nones because the model saying that there is no answer is OK
+    return renamed_wino
+
+
 async def eval_grid(
     models: dict[str, str],
     example_cap: int = 250,
@@ -476,9 +503,7 @@ async def eval_grid(
     stage_one_caller = UniversalCaller().with_model_specific_file_cache(stage_one_path, write_every_n=600)
     # test on COTs only, maybe non-COTs when we feel like it
 
-    eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS).map(
-        lambda x: x.name()
-    )
+    eval_formatters_str: Slist[str] = Slist(INTERESTING_FORMATTERS).map(lambda x: x.name())
 
     stage_one_obs = stage_one_stream(
         formatters=eval_formatters_str,
@@ -512,6 +537,11 @@ async def eval_grid(
     )
 
     results = await stage_one_obs.to_slist()
+    run_wino = False
+    renamed_wino: Slist[TaskOutput] = (
+        await maybe_wino(stage_one_caller, answer_parsing_caller, answer_parsing_config) if run_wino else Slist()
+    )
+
     print("Done with standard evaluation")
     stage_one_caller.save_cache()
     answer_parsing_caller.save_cache()
@@ -527,7 +557,8 @@ async def eval_grid(
     # Take 600 for each model(coalesced) and bias
     # since we have 4 datasets (tasks), we take 150 for each model
     bias_on_wrong_ans_less = (
-        bias_on_wrong_ans.map(
+        (bias_on_wrong_ans)
+        .map(
             lambda task: task.copy_update(
                 task_spec=task.task_spec.copy_update(
                     formatter_name=FORMATTERS_TO_PAPER_NAME.get(
@@ -542,7 +573,7 @@ async def eval_grid(
         .ungroup()
     )
 
-    datarows: Slist[DataRow] = bias_on_wrong_ans_less.map(task_to_data_row)
+    datarows: Slist[DataRow] = (bias_on_wrong_ans_less + renamed_wino).map(task_to_data_row)
 
     # # run extra fig 1 biases
     list_models = list(models.values())
@@ -581,44 +612,14 @@ async def eval_grid(
         .ungroup()
     )
 
-    # are_you_sure_2: Slist[OutputWithAreYouSure] = await run_are_you_sure_multi_model_second_round_cot_really_two_rounds(
-    #     models=list_models,
-    #     caller=stage_one_caller,
-    #     example_cap=are_you_sure_cap,
-    #     parsing_caller=answer_parsing_caller,
-    # )
-    # are_you_sure_2_datarows: Slist[DataRow] = (
-    #     are_you_sure_2.map(
-    #         # rename to AreYouSureReallyTwoRoundsCot
-    #         lambda x: are_you_sure_to_data_row(x).rename_bias_name("2b) Are you sure (Really two rounds)")
-    #     )
-    #     .group_by(lambda x: x.task)
-    #     .map_on_group_values(lambda x: hundred_fifty_per_model_data_row(x))
-    #     .ungroup()
-    # )
-
-    # are_you_sure_3 = await run_are_you_sure_multi_model_second_round_explicit_cot(
-    #     models=list_models, caller=stage_one_caller, example_cap=are_you_sure_cap
-    # )
-    # are_you_sure_3_datarows: Slist[DataRow] = (
-    #     are_you_sure_3.map(
-    #         # rename to AreYouSureReallyTwoRoundsCot
-    #         lambda x: are_you_sure_to_data_row(x).rename_bias_name("2c) Are you sure (3 rounds but modified)")
-    #     )
-    #     .group_by(lambda x: x.task)
-    #     .map_on_group_values(lambda x: hundred_fifty_per_model_data_row(x))
-    #     .ungroup()
-    # )
-
     # # dump for viewer
     write_jsonl_file_from_basemodel(
         "appendix_viewer.jsonl",
         bias_on_wrong_ans_less
         + _hindsight_neglect
         + hindsight_neglect_only_non_spurious
-        + _are_you_sure_second_round_cot,
-        # + are_you_sure_2,
-        # + are_you_sure_3,
+        + _are_you_sure_second_round_cot
+        + renamed_wino,
     )
 
     _answer_choice_ordering_gpts = await eval_judge_for_models_inconsistency(
@@ -702,34 +703,34 @@ if __name__ == "__main__":
         # no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
         a_gpt="gpt-3.5-turbo-0613",
         # START 8 INTERVENTIONS WITH SAME SEED
-        # b1_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwdMKOn",
-        # b2_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwNfI72",
-        # b3_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruq6wob",
-        # b4_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruZEtFu",
-        # b5_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6hN8ah",
-        # b6_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s6Yw2hN",
-        # b7_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6tRQhL",
-        # b8_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s83G7fa",
+        b1_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwdMKOn",
+        b2_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwNfI72",
+        b3_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruq6wob",
+        b4_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruZEtFu",
+        b5_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6hN8ah",
+        b6_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s6Yw2hN",
+        b7_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6tRQhL",
+        b8_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s83G7fa",
         # # START 8 CONTROLS WITH SAME SEED
-        # c1_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rsmiJe7",
-        # c2_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ruSySnQ",
-        # c3_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rwF6VMW",
-        # c4_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ry1VRDr",
-        # c5_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rziE8rY",
-        # c6_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s1OpvOA",
-        # c7_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s63Ollo",
-        # c8_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s4tGQSb",
+        c1_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rsmiJe7",
+        c2_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ruSySnQ",
+        c3_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rwF6VMW",
+        c4_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ry1VRDr",
+        c5_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rziE8rY",
+        c6_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s1OpvOA",
+        c7_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s63Ollo",
+        c8_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s4tGQSb",
         # # # # START 8 NON-COT WITH SAME SEED
-        # d1_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rtfXJJx",
-        # d2_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ru1tTcL",
-        # d3_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rw6BOrw",
-        # d4_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ryTy78r",
-        # d5_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s0aYLUN",
-        # d6_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s31asuw",
-        # d7_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s3gieRT",
-        # d8_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s2yg7kq",
-        # _100k_2_perc="ft:gpt-3.5-turbo-0613:far-ai::8qNMKtMt",
-        # _100k_2_perc2="ft:gpt-3.5-turbo-0613:far-ai::8rbXSkcv",
+        d1_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rtfXJJx",
+        d2_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ru1tTcL",
+        d3_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rw6BOrw",
+        d4_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ryTy78r",
+        d5_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s0aYLUN",
+        d6_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s31asuw",
+        d7_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s3gieRT",
+        d8_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s2yg7kq",
+        _100k_2_perc="ft:gpt-3.5-turbo-0613:far-ai::8qNMKtMt",
+        _100k_2_perc2="ft:gpt-3.5-turbo-0613:far-ai::8rbXSkcv",
         # b_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         # c_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
         # # d_intervention_0588_instruct="ft:gpt-3.5-turbo-0613:far-ai::8iHz2EXX",
@@ -791,7 +792,7 @@ if __name__ == "__main__":
         # g_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO",
         # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
         # post_hoc_only="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
-        # no_augmentation_i_think="ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y",
+        no_augmentation_i_think="ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y",
         # post_hoc_trained="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
         # majority_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8coN8DKk",
         # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",

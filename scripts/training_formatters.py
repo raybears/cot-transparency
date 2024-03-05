@@ -129,6 +129,7 @@ INTERESTING_FORMATTERS = [
     DistractorArgumentNotsure,
     DistractorArgumentNoTruthfullyAnswer,
     ZeroShotCOTUnbiasedFormatter,  # unbiased baseline
+    ZeroShotUnbiasedFormatter,
     # EmptyDistractorFact,
     # Ed's Distractor Argument
     # StanfordBiasedFormatter,

@@ -1,13 +1,11 @@
 from typing import Literal
 from pydantic import BaseModel
 
-from scripts.evil_grid_exp.eval_coherent_biasing import biased_correct_samples
-
-
 
 class TestChatMessage(BaseModel):
     role: str
     content: str
+
 
 class StandardTestData(BaseModel):
     original_question: str
