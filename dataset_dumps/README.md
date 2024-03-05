@@ -1,7 +1,7 @@
 ## Directory structure
 Each file in the dataset_dumps/test folder follows the format `{dataset}_{bias_name}.jsonl`
 
-For example, the `dataset_dumps/test/mmlu_distractor_fact.jsonl` file refers to the Distracor: Fact bias, using prompts from MMLu.
+For example, the `dataset_dumps/test/mmlu_distractor_fact.jsonl` file refers to the Distracor: Fact bias, using prompts from MMLU.
 
 
 
