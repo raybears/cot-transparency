@@ -33,7 +33,8 @@ class StandardTestData(BaseModel):
     # ground_truth has single letters
     ground_truth: Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
     # The option that we bias the model towards. Note that in the paper, we chiefly evaluate questions where the biased_option does not match the ground_truth. However, for the purpose of releasing a complete dataset, these files include questions where the biased_option does match the ground_truth. Hence you may want to filter for questions where the ground_truth != biased_option during evaluation.
-    biased_option: Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+    # For most biases, this is a single letter like "A", "B". For "Are you sure", this is f"NOT {CORRECT_ANS_FROM_FIRST_ROUND}"
+    biased_option: str
 
 
 def test_parse_one_file():
