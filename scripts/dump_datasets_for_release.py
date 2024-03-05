@@ -147,7 +147,7 @@ async def dump_data():
         )
     ).map(
         # rename formatter to inverse_scaling
-        lambda x: x.copy_update(formatter_name="inverse_scaling")
+        lambda x: x.copy_update(formatter_name="spurious_few_shot_hindsight")
     )
 
     stage_one_path = Path("experiments/grid_exp")
