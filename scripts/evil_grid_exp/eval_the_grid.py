@@ -357,6 +357,14 @@ def model_str_to_type(model: str) -> str:
             return "3) 2 Percent"
         case "ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y":
             return "3b) Train on only 1 augmentation of sycophancy"
+        case "ft:gpt-3.5-turbo-0613:academicsnyuperez::8zew5MeC":
+            return "3b) Train on only 1 augmentation of sycophancy"
+        case "ft:gpt-3.5-turbo-0613:far-ai::8zfJVtqW":
+            return "3b) Train on only 1 augmentation of sycophancy"
+        case "ft:gpt-3.5-turbo-0613:academicsnyuperez::8zfE6y2I":
+            return "3b) Train on only 1 augmentation of sycophancy"
+        case "ft:gpt-3.5-turbo-0613:academicsnyuperez::8zf2YSP0":
+            return "3b) Train on only 1 augmentation of sycophancy"
         case _:
             return model
 
@@ -703,34 +711,39 @@ if __name__ == "__main__":
         # no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
         a_gpt="gpt-3.5-turbo-0613",
         # START 8 INTERVENTIONS WITH SAME SEED
-        b1_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwdMKOn",
-        b2_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwNfI72",
-        b3_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruq6wob",
-        b4_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruZEtFu",
-        b5_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6hN8ah",
-        b6_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s6Yw2hN",
-        b7_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6tRQhL",
-        b8_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s83G7fa",
+        # b1_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwdMKOn",
+        # b2_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwNfI72",
+        # b3_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruq6wob",
+        # b4_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruZEtFu",
+        # b5_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6hN8ah",
+        # b6_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s6Yw2hN",
+        # b7_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6tRQhL",
+        # b8_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s83G7fa",
         # # START 8 CONTROLS WITH SAME SEED
-        c1_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rsmiJe7",
-        c2_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ruSySnQ",
-        c3_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rwF6VMW",
-        c4_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ry1VRDr",
-        c5_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rziE8rY",
-        c6_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s1OpvOA",
-        c7_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s63Ollo",
-        c8_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s4tGQSb",
+        # c1_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rsmiJe7",
+        # c2_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ruSySnQ",
+        # c3_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rwF6VMW",
+        # c4_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ry1VRDr",
+        # c5_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rziE8rY",
+        # c6_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s1OpvOA",
+        # c7_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s63Ollo",
+        # c8_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s4tGQSb",
         # # # # START 8 NON-COT WITH SAME SEED
-        d1_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rtfXJJx",
-        d2_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ru1tTcL",
-        d3_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rw6BOrw",
-        d4_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ryTy78r",
-        d5_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s0aYLUN",
-        d6_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s31asuw",
-        d7_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s3gieRT",
-        d8_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s2yg7kq",
-        _100k_2_perc="ft:gpt-3.5-turbo-0613:far-ai::8qNMKtMt",
-        _100k_2_perc2="ft:gpt-3.5-turbo-0613:far-ai::8rbXSkcv",
+        # d1_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rtfXJJx",
+        # d2_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ru1tTcL",
+        # d3_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rw6BOrw",
+        # d4_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ryTy78r",
+        # d5_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s0aYLUN",
+        # d6_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s31asuw",
+        # d7_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s3gieRT",
+        # d8_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s2yg7kq",
+        # _100k_2_perc="ft:gpt-3.5-turbo-0613:far-ai::8qNMKtMt",
+        # _100k_2_perc2="ft:gpt-3.5-turbo-0613:far-ai::8rbXSkcv",
+        # no augmentations
+        no_aug_1="ft:gpt-3.5-turbo-0613:academicsnyuperez::8zew5MeC",
+        no_aug_2="ft:gpt-3.5-turbo-0613:far-ai::8zfJVtqW",
+        no_aug_3="ft:gpt-3.5-turbo-0613:academicsnyuperez::8zfE6y2I",
+        no_aug_4="ft:gpt-3.5-turbo-0613:academicsnyuperez::8zf2YSP0",
         # b_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UN5nhcE",
         # c_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8UNAODuA",
         # # d_intervention_0588_instruct="ft:gpt-3.5-turbo-0613:far-ai::8iHz2EXX",

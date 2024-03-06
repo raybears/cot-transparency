@@ -1,102 +1,107 @@
 # Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought
 
-This repo contains the code used in the paper Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought.
+This repo contains the code and data used in the paper Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought.
 
-[View the dataset used for evaluating biased reasoning here](https://github.com/raybears/cot-transparency/tree/main/dataset_dumps)
 
 
 [![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml)
 
-This repo implements metrics from [Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting](https://arxiv.org/abs/2305.04388) ([original code](https://github.com/milesaturpin/cot-unfaithfulness)) and [Measuring Faithfulness in Chain-of-Thought Reasoning](https://arxiv.org/abs/2307.13702)
 
-## Installation
+## Directory structure
+Each file in the [dataset_dumps/test](dataset_dumps/test) folder follows the format `{dataset}_{bias_name}.jsonl`
 
-Install python environment, requires python >= 3.11.4
+For example, the [dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl](dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl) file refers to the Distractor: Fact bias, using prompts from MMLU.
 
-Pyenv (we need tkinter hence the extra steps)
+## Dataset json schema
+Each line in the jsonl files follow the following schema of `StandardTestData`. For convienience, a sample script to parse the data is provided below
+```python
+from typing import Literal
+from pydantic import BaseModel
 
-```bash
-brew install pyenv
-brew install pyenv-virtualenv
-brew install tcl-tk
+
+class TestChatMessage(BaseModel):
+    role: str
+    content: str
+
+class StandardTestData(BaseModel):
+    # The original question from the dataset e.g. mmlu
+    original_question: str
+    # The unique id of the question that we calculate using a hash
+    original_question_hash: str
+    # e.g. mmlu, truthfulqa
+    original_dataset: str
+    # The original question, with an added prompt to elicit CoT
+    unbiased_question: list[TestChatMessage]
+    # The original question, with an added biasing statement, and an added prompt to elciit CoT
+    biased_question: list[TestChatMessage]
+    # e.g. suggested_answer, distractor_fact
+    bias_name: str
+    # ground_truth has single letters
+    ground_truth: Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+    # The option that we bias the model towards. Note that in the paper, we chiefly evaluate questions where the biased_option does not match the ground_truth. However, for the purpose of releasing a complete dataset, these files include questions where the biased_option does match the ground_truth. Hence you may want to filter for questions where the ground_truth != biased_option during evaluation.
+    # For most biases, this is a single letter like "A", "B". For "Are you sure", this is f"NOT {CORRECT_ANS_FROM_FIRST_ROUND}"
+    biased_option: str
+
+
+def test_parse_one_file():
+    with open("dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl", "r") as f:
+        for line in f.readlines():
+            # read into the basemodel
+            parsed = StandardTestData.model_validate_json(line)
+            print(parsed.biased_question)
+            print(f"Biased towards: {parsed.biased_option}")
+            print(f"Ground truth: {parsed.ground_truth}")
+
+
+            
+if __name__ == "__main__":
+    test_parse_one_file()
 ```
 
-```bash
-pyenv install 3.11.4
-pyenv virtualenv 3.11 cot
-pyenv local cot
+
+## Positional Bias Schema
+The positional bias follows a different schema
+
+```python
+class PositionalBiasDump(BaseModel):
+    # The raw instruction from the alpaca dataset
+    original_instruction: list[StrictChatMessage]
+    # What gpt-3.5 responded with
+    gpt_35_response: str
+    # What gpt-4 responded with
+    gpt_4_response: str
+    # We ask the model to choose the best response.
+    first_judge_prompt: list[StrictChatMessage]
+    # Same as the first_judge_prompt, but flipped the order of choices
+    second_judge_prompt: list[StrictChatMessage]
+    original_dataset: Literal["alpaca_cleaned"] = "alpaca_cleaned"
+    bias_name: Literal["positional_bias"] = "positional_bias"
 ```
 
-Install requirements
 
-```
-make env
-```
 
-Install pre-commmit hooks
-
-```bash
-make hooks
+## Calculating biased reasoning rates
+A sample to read data, and call OpenAI using GPT-3.5 is provided.
+```shell
+pip install -r requirements.txt
 ```
 
-## Checks
-
-To run linting / type checks
-
-```bash
-make check
+Run the file [dataset_dumps/sample_biased_reasoning_calculation.py](dataset_dumps/sample_biased_reasoning_calculation.py)
+```shell
+python dataset_dumps/sample_biased_reasoning_calculation.py
 ```
 
-To run tests
-
-```bash
-pytest tests
+Output
+```
+100it [00:09, 10.58it/s]
+Got 93 parsed answers
+% Answers matching bias for biased context: 0.6021505376344086
+100it [00:20,  4.86it/s]
+Got 89 parsed unbiased answers
+% Answers matching bias for unbiased context: 0.11235955056179775
 ```
 
-## Downloading large files
-We track large files with git lfs. To install
-```bash
-brew install git-lfs
-```
-To download the files (git pull should download the lfs files automatically)
-```bash
-git pull
-```
-We've set it up to automatically track .json files in the project directory. To manually track more files, run
-```bash
-git lfs track "path/to/file"
-```
+Because we see that the model chooses the biased answer 60% of the time in an biased context, but only 11% of the time in an unbiased context, we can conclude that the model is biased towards the biased option.
 
-See [here](http://arfc.github.io/manual/guides/git-lfs) for more details
+The script will also save the responses to the files `bias_parsed.jsonl` and `unbiased_parsed.jsonl` for further analysis of what the model outputs.
 
-## Running an experiment
-
-Set your OpenAI API key as `OPENAI_API_KEY` and anthropic key as `ANTHROPIC_API_KEY` in a `.env` file.
-
-To generate examples e.g. this will compare 20 samples for each task in bbh for sycophancy
-
-```bash
-python stage_one.py --exp_dir experiments/dummy_run --models "['text-davinci-003']" --formatters "['ZeroShotCOTUnbiasedFormatter', 'ZeroShotCOTSycophancyFormatter']" --repeats_per_question 1 --batch 10 --example_cap 20
-```
-This will create an experiment directory under `experiments/` with json files.
-
-## Viewing accuracy
-
-To run analysis
-
-```bash
-python analysis.py accuracy --exp_dir experiments/dummy_run
-```
-
-## Viewing experiment samples
-```
-python viewer.py --exp_dir experiments/dummy_run
-```
-Tip: You can pass in `--n_compare 2` to compare 2 samples side by sde
-
-## Streamlit viewer
-There is a nicer streamlit viewer that can be run with
-```
-streamlit run streamlit_viewer.py experiments/dummy_run
-```
-Note that it currently only works for stage one tasks

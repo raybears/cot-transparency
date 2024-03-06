@@ -1,3 +1,4 @@
+import openai
 from cot_transparency.apis.openai.finetune import FineTuneHyperParams
 from cot_transparency.formatters.interventions.few_shots_loading import (
     ModelOutputVerified,
@@ -15,7 +16,7 @@ from scripts.finetune_cot import (
 
 async def train_and_run() -> None:
     # # FAR
-    # openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
+    openai.organization = "org-AFgHGbU3MeFr5M5QFwrBET31"
     # see all pairs in BIAS_PAIRS
 
     instruct_prop = 1.0
@@ -37,9 +38,11 @@ async def train_and_run() -> None:
         no_overlap_cot_non_cot=False,
         prepend_notes=f"Train on i think answer only instruct ={instruct_prop} bs=16)",
         instruct_source=InstructSource.alpaca_gpt_35_sampled_5,
+        cot_seed="42",
+        non_cot_seed="1",
     )
 
-    await eval_grid(models={"intervention": model})
+    await eval_grid(models={"intervention": model, "baseline": "gpt-3.5-turbo-0613"})
 
 
 if __name__ == "__main__":
