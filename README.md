@@ -65,15 +65,15 @@ The positional bias follows a different schema
 ```python
 class PositionalBiasDump(BaseModel):
     # The raw instruction from the alpaca dataset
-    original_instruction: list[StrictChatMessage]
+    original_instruction: list[TestChatMessage]
     # What gpt-3.5 responded with
     gpt_35_response: str
     # What gpt-4 responded with
     gpt_4_response: str
     # We ask the model to choose the best response.
-    first_judge_prompt: list[StrictChatMessage]
+    first_judge_prompt: list[TestChatMessage]
     # Same as the first_judge_prompt, but flipped the order of choices
-    second_judge_prompt: list[StrictChatMessage]
+    second_judge_prompt: list[TestChatMessage]
     original_dataset: Literal["alpaca_cleaned"] = "alpaca_cleaned"
     bias_name: Literal["positional_bias"] = "positional_bias"
 ```
