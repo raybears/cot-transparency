@@ -13,7 +13,7 @@ Each file in the [dataset_dumps/test](dataset_dumps/test) folder follows the for
 For example, the [dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl](dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl) file refers to the Distractor: Fact bias, using prompts from MMLU.
 
 ## Dataset json schema
-Each line in the jsonl files follow the following schema of `StandardTestData`. For convienience, a sample script to parse the data is provided below
+Each line in the jsonl files follow the following schema of `StandardTestData`. For convenience, a sample script to parse the data is provided below
 ```python
 from typing import Literal
 from pydantic import BaseModel
