@@ -34,7 +34,7 @@ async def train_and_run(instruct_prop: float, control: bool, cot_percentage: flo
             else FormatterOptions.suggested_answer_all,
         ),
         model_output_verified=ModelOutputVerified.unfiltered,
-        ask_to_validate_training=False,
+        ask_to_validate_training=True,
         instruct_sample_proportion=instruct_prop,
         n_val_samples=100,
         no_overlap_cot_non_cot=False,

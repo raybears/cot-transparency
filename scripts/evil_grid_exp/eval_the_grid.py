@@ -13,7 +13,7 @@ from cot_transparency.data_models.config import OpenaiInferenceConfig, config_fr
 from cot_transparency.data_models.hashable import HashableBaseModel
 from cot_transparency.data_models.models import TaskOutput
 from cot_transparency.data_models.pd_utils import DataRow
-from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter
+from cot_transparency.formatters.core.unbiased import ZeroShotCOTUnbiasedFormatter, ZeroShotUnbiasedFormatter
 from cot_transparency.formatters.more_biases.user_wrong_cot import (
     DistractorAnswerWithoutInfluence,
     DistractorArgumentNotsure,
@@ -559,6 +559,12 @@ async def eval_grid(
         # and successfully parsed
         lambda x: x.bias_on_wrong_answer
         and x.first_parsed_response is not None
+        # Make sure we get actual CoTs
+        and (
+            len(x.first_raw_response) >= 50
+            if x.task_spec.formatter_name is not ZeroShotUnbiasedFormatter.name()
+            else True
+        )
         # sort by task_hash hack so that whenever we shuffle and take, we get the same results
     ).sort_by(lambda x: x.task_spec.task_hash)
 
@@ -711,23 +717,23 @@ if __name__ == "__main__":
         # no_step_by_step_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8Tu7BZK0",
         a_gpt="gpt-3.5-turbo-0613",
         # START 8 INTERVENTIONS WITH SAME SEED
-        # b1_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwdMKOn",
-        # b2_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwNfI72",
-        # b3_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruq6wob",
-        # b4_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruZEtFu",
-        # b5_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6hN8ah",
-        # b6_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s6Yw2hN",
-        # b7_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6tRQhL",
-        # b8_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s83G7fa",
+        b1_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwdMKOn",
+        b2_intervention="ft:gpt-3.5-turbo-0613:far-ai::8rwNfI72",
+        b3_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruq6wob",
+        b4_intervention="ft:gpt-3.5-turbo-0613:far-ai::8ruZEtFu",
+        b5_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6hN8ah",
+        b6_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s6Yw2hN",
+        b7_intervention="ft:gpt-3.5-turbo-0613:far-ai::8s6tRQhL",
+        b8_intervention="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s83G7fa",
         # # START 8 CONTROLS WITH SAME SEED
-        # c1_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rsmiJe7",
-        # c2_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ruSySnQ",
-        # c3_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rwF6VMW",
-        # c4_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ry1VRDr",
-        # c5_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rziE8rY",
-        # c6_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s1OpvOA",
-        # c7_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s63Ollo",
-        # c8_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s4tGQSb",
+        c1_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rsmiJe7",
+        c2_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ruSySnQ",
+        c3_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rwF6VMW",
+        c4_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ry1VRDr",
+        c5_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rziE8rY",
+        c6_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s1OpvOA",
+        c7_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s63Ollo",
+        c8_control="ft:gpt-3.5-turbo-0613:academicsnyuperez::8s4tGQSb",
         # # # # START 8 NON-COT WITH SAME SEED
         # d1_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8rtfXJJx",
         # d2_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8ru1tTcL",
@@ -805,7 +811,7 @@ if __name__ == "__main__":
         # g_new_intervention="ft:gpt-3.5-turbo-0613:far-ai::8gArPtjO",
         # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",
         # post_hoc_only="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
-        no_augmentation_i_think="ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y",
+        # no_augmentation_i_think="ft:gpt-3.5-turbo-0613:academicsnyuperez::8fRJvT6y",
         # post_hoc_trained="ft:gpt-3.5-turbo-0613:academicsnyuperez::8dZSfQ4K",
         # majority_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8coN8DKk",
         # majority_non_cot="ft:gpt-3.5-turbo-0613:academicsnyuperez::8cwKYf0M",

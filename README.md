@@ -1,13 +1,13 @@
 # Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought
 
-This repo contains the code and data used in the paper Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought.
+This repo contains the code and data used in the paper [Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought](https://arxiv.org/abs/2403.05518).
 
 
 
 [![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml)
 
 
-## Directory structure
+## Test dataset data
 Each file in the [dataset_dumps/test](dataset_dumps/test) folder follows the format `{dataset}_{bias_name}.jsonl`
 
 For example, the [dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl](dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl) file refers to the Distractor: Fact bias, using prompts from MMLU.
@@ -105,3 +105,12 @@ Because we see that the model chooses the biased answer 60% of the time in an bi
 
 The script will also save the responses to the files `bias_parsed.jsonl` and `unbiased_parsed.jsonl` for further analysis of what the model outputs.
 
+# Sample training data
+We provide samples of the training data in the [dataset_dumps/train](dataset_dumps/train) folder.
+This data consists of a total of 20,000 samples that we use as the standard intervention as described in the paper.
+
+| filename | samples | description |
+| --- | --- | --- |
+| bct_cot.jsonl | 5000 | BCT Training data with CoT prompts and responses |
+| bct_non_cot.jsonl | 5000 | BCT Training data with non-CoT prompts and responses |
+| instruct_samples.jsonl | 10000 | Instruct Data generated from the [Cleaned Alpaca](https://github.com/gururise/AlpacaDataCleaned) dataset. We use the prompts from the dataset, and generate completions from GPT-3.5. No BCT data is present |

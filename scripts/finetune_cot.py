@@ -87,7 +87,7 @@ from cot_transparency.formatters.prompt_sensitivity.v2_prompt_sen import (
     TRAINING_NO_COT_PROMPT_VARIANTS_7,
     TRAINING_NO_COT_PROMPT_VARIANTS_ALL,
 )
-from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
+from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 from cot_transparency.streaming.tasks import call_model_with_task_spec, data_to_task_spec
 from scripts.cot_variants import sample_cot_variant
 from scripts.num_tokens import num_tokens_for_finetuning_samples
@@ -1236,6 +1236,7 @@ def fine_tune_with_bias_augmentation(
         assert non_cot_hashes.isdisjoint(cot_hashes), "cot and non cot hashes are not disjoint, this is a bug"
 
     total_task_samples = non_cot_samples + cot_samples
+
     val_instruct_samples = int(n_val_samples * instruct_sample_proportion)
 
     n_instruct_samples = override_instruct_samples or int(instruct_sample_proportion * len(total_task_samples))
@@ -1286,6 +1287,9 @@ def fine_tune_with_bias_augmentation(
     params = FineTuneParams(model=model, hyperparameters=hyperparams)
     control_only_unbiased = sampler.format_options_name == FormatterOptions.control_only_unbiased.value
 
+    write_jsonl_file_from_basemodel("bct_non_cot.jsonl", non_cot_samples)
+    write_jsonl_file_from_basemodel("bct_cot.jsonl", cot_samples)
+    write_jsonl_file_from_basemodel("instruct_samples", alpaca_samples)
     more_config = {
         "instruct_sample_proportion": instruct_sample_proportion,
         "n_cots": len(cot_samples),
