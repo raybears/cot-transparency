@@ -939,9 +939,9 @@ def _accuracy_plot(
         ax = chart.axes
         for p in ax.patches:  # type: ignore
             ax.text(  # type: ignore
-                p.get_x() + p.get_width() / 2.0,
-                p.get_height(),
-                f"{p.get_height():.2f}",
+                p.get_x() + p.get_width() / 2.0,  # type: ignore
+                p.get_height(),  # type: ignore
+                f"{p.get_height():.2f}",  # type: ignore
                 fontsize=12,
                 ha="center",
                 va="bottom",
@@ -1005,12 +1005,12 @@ def accuracy_plot(
     if remove_winobias_pro:
         df = df[df.task_name != "winobias_pro"]
     if remove_winobias_anti:
-        df = df[df.task_name != "winobias_anti"]
+        df = df[df.task_name != "winobias_anti"]  # type: ignore
 
     if dataset_filter is not None:
-        df = df[df.task_name != dataset_filter]
+        df = df[df.task_name != dataset_filter]  # type: ignore
     if filter_na:
-        df = df[df.parsed_response.notna()]
+        df = df[df.parsed_response.notna()]  # type: ignore
 
     df["is_correct"] = (df["parsed_response"] == df["ground_truth"]).astype(int)
 
@@ -1018,13 +1018,13 @@ def accuracy_plot(
         df["is_correct"] = 1 - df["is_correct"]
 
     # Determine the order of models in the x-axis
-    x_order = df.model.unique()
+    x_order = df.model.unique()  # type: ignore
     if reorder_indices:
         x_order = [x_order[i] for i in reorder_indices]
 
     if not task_wise_plots:
         _accuracy_plot(
-            df,
+            df,  # type: ignore
             x_order,
             title,
             ylabel,
@@ -1039,9 +1039,9 @@ def accuracy_plot(
             plot_winobias_gender_delta=plot_winobias_gender_delta,
         )
     else:
-        tasks_list = df.task_name.unique()
+        tasks_list = df.task_name.unique()  # type: ignore
         for task in tasks_list:
-            df_task = df[df.task_name == task]
+            df_task = df[df.task_name == task]  # type: ignore
             _accuracy_plot(df_task, x_order, title, ylabel, ylim, reorder_indices, paper_plot)  # type: ignore
 
 
