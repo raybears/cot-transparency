@@ -25,6 +25,7 @@ from cot_transparency.data_models.data.bias_in_bios import (
 )
 from cot_transparency.data_models.data.discrim_eval import DiscrimEval, DISCRIM_EVAL_TASKS_LIST
 from cot_transparency.data_models.data.winomt_bias import WinoMTExample
+from cot_transparency.data_models.data.winobias import WinoBiasExample
 from cot_transparency.data_models.example_base import DataExampleBase
 
 
@@ -101,6 +102,8 @@ def task_name_to_data_example(task_name: str) -> Type[DataExampleBase]:
         return BBQWeakEvidenceExample
     elif task_name == "winomt_gender":
         return WinoMTExample
+    elif task_name in ["winobias_anti", "winobias_pro"]:
+        return WinoBiasExample
     elif task_name == "bios_gender":
         return BiasInBiosGenderExample
     elif task_name == "bios_profession":
