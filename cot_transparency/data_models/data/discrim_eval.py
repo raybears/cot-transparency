@@ -146,6 +146,20 @@ def discrim_eval_age_100() -> List[DiscrimEval]:
     return filtered_data
 
 
+def discrim_eval_male() -> List[DiscrimEval]:
+    path = Path("./data/discrim-eval/data.jsonl")
+    data = read_jsonl_file_into_basemodel(path, DiscrimEval)
+    filtered_data = data.filter(lambda x: x.gender == "male")
+    return filtered_data
+
+
+def discrim_eval_white() -> List[DiscrimEval]:
+    path = Path("./data/discrim-eval/data.jsonl")
+    data = read_jsonl_file_into_basemodel(path, DiscrimEval)
+    filtered_data = data.filter(lambda x: x.race == "white")
+    return filtered_data
+
+
 DISCRIM_EVAL_TASKS_LIST = [
     "discrim_eval_baseline",
     "discrim_eval_black_fixed",
@@ -164,4 +178,6 @@ DISCRIM_EVAL_TASKS_LIST = [
     "discrim_eval_age_80",
     "discrim_eval_age_90",
     "discrim_eval_age_100",
+    "discrim_eval_male",
+    "discrim_eval_white",
 ]

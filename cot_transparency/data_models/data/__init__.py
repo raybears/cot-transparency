@@ -238,6 +238,10 @@ def get_list_of_examples(
             data = discrim_eval.discrim_eval_age_90()
         elif task == "discrim_eval_age_100":
             data = discrim_eval.discrim_eval_age_100()
+        elif task == "discrim_eval_male":
+            data = discrim_eval.discrim_eval_male()
+        elif task == "discrim_eval_white":
+            data = discrim_eval.discrim_eval_white()
         elif task == "winomt_gender":
             data = winomt_bias.test()
 
