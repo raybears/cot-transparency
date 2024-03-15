@@ -18,6 +18,7 @@ from cot_transparency.data_models.data import (
     stereoset,
     bias_in_bios,
     winomt_bias,
+    winobias,
     discrim_eval,
 )
 from cot_transparency.data_models.data.bbh import BBH_TASK_LIST
@@ -57,7 +58,7 @@ COT_TRAINING_TASKS = BBH_TASK_LIST + [
 STEREOSET = ["stereoset_intra", "stereoset_inter"]
 DISCRIM_EVAL_ALL = DISCRIM_EVAL_TASKS_LIST
 BIAS_IN_BIOS = ["bios_gender", "bios_profession"]
-SOCIAL_BIASES = ["winomt_gender"] + STEREOSET + BIAS_IN_BIOS
+SOCIAL_BIASES = ["winomt_gender", "winobias_anti", "winobias_pro"] + STEREOSET + BIAS_IN_BIOS
 
 TASK_LIST = {
     "bbh": BBH_TASK_LIST,
@@ -244,6 +245,10 @@ def get_list_of_examples(
             data = discrim_eval.discrim_eval_white()
         elif task == "winomt_gender":
             data = winomt_bias.test()
+        elif task == "winobias_anti":
+            data = winobias.anti()
+        elif task == "winobias_pro":
+            data = winobias.pro()
 
     if data is None:
         raise ValueError(f"dataset and or task is not valid. Valid datasets are {list(TASK_LIST.keys())}")
