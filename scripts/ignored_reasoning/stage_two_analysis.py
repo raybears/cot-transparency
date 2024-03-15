@@ -1,7 +1,7 @@
 from typing import Optional
 import fire
 from matplotlib import pyplot as plt
-from analysis import get_general_metrics
+from analysis import get_general_metrics, get_data_frame_from_exp_dir as get_data_frame_from_exp_dir_stage_one
 from cot_transparency.data_models.models import (
     StageTwoExperimentJsonFormat,
     TaskOutput,
@@ -795,8 +795,14 @@ def _accuracy_plot(
     title: str = "",
     ylabel: str = "Accuracy",
     ylim: float = 1.0,
+    ylim_low: float = 0.0,
     reorder_indices: Optional[list[int]] = None,
     paper_plot: bool = False,
+    plot_winomt_deviation: bool = False,
+    plot_winobias_delta: bool = False,
+    plot_winobias_pro: bool = False,
+    plot_winobias_anti: bool = False,
+    plot_winobias_gender_delta: bool = False,
 ) -> None:
     # Prepare the plot
     kwargs = {}
@@ -831,26 +837,111 @@ def _accuracy_plot(
         kwargs["palette"] = palette_colors
         kwargs = {"palette": palette_colors, "capsize": 0.05, "errwidth": 1, "edgecolor": "black"}
 
+    if plot_winomt_deviation:
+        mean_accuracy = df.groupby("model")["is_correct"].mean()
+        sem = df.groupby("model")["is_correct"].sem()
+        deviation_accuracy = 0.5 - mean_accuracy  # type: ignore
+        deviation_df = pd.DataFrame(
+            {"model": deviation_accuracy.index, "deviation": deviation_accuracy.values, "sem": sem.values}  # type: ignore
+        )
+        kwargs["y"] = "deviation"  # type: ignore
+        kwargs["data"] = deviation_df  # type: ignore
+    elif plot_winobias_delta:
+        df_pro = df[df["task_name"] == "winobias_pro"]
+        df_anti = df[df["task_name"] == "winobias_anti"]
+        df_pro_mean_acc = df_pro.groupby("model")[
+            "is_correct"
+        ].mean()  # pro-stereotype score for stereotype aligned answers
+        df_anti_mean_acc = df_anti.groupby("model")[
+            "is_correct"
+        ].mean()  # this is the stereotype score for anti base, as the ground_truth in eval is set to stereotype answer by default
+        # now we have the anti base antistereotype aligned scores
+        df_anti_mean_acc = 1 - df_anti_mean_acc  # type: ignore
+        delta_score = df_pro_mean_acc - df_anti_mean_acc  # type: ignore
+        delta_df = pd.DataFrame(
+            {
+                "model": delta_score.index,
+                "delta": delta_score.values,
+            }
+        )
+        kwargs["y"] = "delta"  # type: ignore
+        kwargs["data"] = delta_df  # type: ignore
+    elif plot_winobias_pro:
+        df_pro = df[df["task_name"] == "winobias_pro"]
+        df_pro_mean_acc = df_pro.groupby("model")[
+            "is_correct"
+        ].mean()  # pro-stereotype score for stereotype aligned answers
+        pro_df = pd.DataFrame(
+            {
+                "model": df_pro_mean_acc.index,
+                "pro_score": df_pro_mean_acc.values,
+            }
+        )
+        kwargs["y"] = "pro_score"  # type: ignore
+        kwargs["data"] = pro_df  # type: ignore
+    elif plot_winobias_anti:
+        print(df.ground_truth)
+        df_anti = df[df["task_name"] == "winobias_anti"]
+        df_anti_mean_acc = df_anti.groupby("model")[
+            "is_correct"
+        ].mean()  # this is the stereotype score for anti base, as the ground_truth in eval is set to stereotype answer by default
+        # now we have the anti base antistereotype aligned scores
+        df_anti_mean_acc = 1 - df_anti_mean_acc  # type: ignore
+        anti_df = pd.DataFrame(
+            {
+                "model": df_anti_mean_acc.index,
+                "anti_score": df_anti_mean_acc.values,
+            }
+        )
+        kwargs["y"] = "anti_score"  # type: ignore
+        kwargs["data"] = anti_df  # type: ignore
+    elif plot_winobias_gender_delta:
+        df_A = df[(df["ground_truth"] == "A") & (df["task_name"] == "winobias_pro")]
+        df_B = df[(df["ground_truth"] == "B") & (df["task_name"] == "winobias_pro")]
+        df_anti_A = df[(df["ground_truth"] == "A") & (df["task_name"] == "winobias_anti")]
+        df_anti_B = df[(df["ground_truth"] == "B") & (df["task_name"] == "winobias_anti")]
+        df_anti_A["is_correct"] = (
+            1 - df_anti_A["is_correct"]  # type: ignore
+        )  # invert scores for anti-stereotype as the ground_truth in eval is set to stereotype answer by default, and the ground truth here will be the anti-stereotype answer
+        df_anti_B["is_correct"] = 1 - df_anti_B["is_correct"]  # type: ignore
+        df_A = pd.concat([df_A, df_anti_A])  # concatenate dataframes
+        df_B = pd.concat([df_B, df_anti_B])
+
+        df_A_mean = df_A.groupby("model")["is_correct"].mean()
+        df_B_mean = df_B.groupby("model")["is_correct"].mean()
+        delta = df_A_mean - df_B_mean  # type: ignore
+        delta_df = pd.DataFrame(
+            {
+                "model": delta.index,
+                "delta": delta.values,
+            }
+        )
+        kwargs["y"] = "delta"  # type: ignore
+        kwargs["data"] = delta_df  # type: ignore
+    else:
+        kwargs["y"] = "is_correct"  # type: ignore
+        kwargs["data"] = df  # type: ignore
+
     chart = sns.barplot(
         x="model",
-        y="is_correct",
-        data=df,
+        # y='is_correct',
+        # data=df,
         errorbar=("ci", 95),
         order=x_order,
         **kwargs,  # type: ignore
     )
 
     plt.ylabel(ylabel)
-    plt.ylim(0, ylim)
+    plt.ylim(ylim_low, ylim)
 
     if not paper_plot:
         chart.set_xticklabels(chart.get_xticklabels(), rotation=45, horizontalalignment="right")  # type: ignore
         ax = chart.axes
         for p in ax.patches:  # type: ignore
             ax.text(  # type: ignore
-                p.get_x() + p.get_width() / 2.0,  # type: ignore
-                p.get_height(),  # type: ignore
-                f"{p.get_height():.2f}",  # type: ignore
+                p.get_x() + p.get_width() / 2.0,
+                p.get_height(),
+                f"{p.get_height():.2f}",
                 fontsize=12,
                 ha="center",
                 va="bottom",
@@ -876,14 +967,46 @@ def accuracy_plot(
     title: str = "",
     ylabel: str = "Accuracy",
     ylim: float = 1.0,
+    ylim_low: float = 0.0,
     filter_na: bool = False,
     task_wise_plots: bool = False,
     dataset_filter: Optional[str] = None,
     reorder_indices: Optional[list[int]] = None,
     paper_plot: bool = False,
+    combine_control: bool = False,
+    combine_intervention: bool = False,
+    combine_no_cot_intervention: bool = False,
+    plot_no_cot_intervention: bool = False,
+    plot_winomt_deviation: bool = False,
+    plot_winobias_delta: bool = False,
+    plot_winobias_pro: bool = False,
+    plot_winobias_anti: bool = False,
+    plot_winobias_gender_delta: bool = False,
+    remove_winobias_pro: bool = False,
+    remove_winobias_anti: bool = False,
 ):
-    df = get_data_frame_from_exp_dir(exp_dir)
+    df = get_data_frame_from_exp_dir_stage_one(exp_dir)  # type: ignore
+    print(df.model.unique())
+
     df = map_model_names(df, paper_plot)
+
+    print(df.model.unique())
+
+    if combine_control:
+        df["model"] = df["model"].apply(lambda x: "Control" if "Control-" in x else x)
+    if combine_intervention:
+        df["model"] = df["model"].apply(lambda x: "Intervention" if "Intervention-" in x and "No-COT" not in x else x)
+    if combine_no_cot_intervention:
+        df["model"] = df["model"].apply(lambda x: "Intervention-No-COT" if "Intervention-No-COT" in x else x)
+    if plot_no_cot_intervention:
+        df = df[df["model"] != "Intervention"]
+    else:
+        df = df[df["model"] != "Intervention-No-COT"]
+    if remove_winobias_pro:
+        df = df[df.task_name != "winobias_pro"]
+    if remove_winobias_anti:
+        df = df[df.task_name != "winobias_anti"]
+
     if dataset_filter is not None:
         df = df[df.task_name != dataset_filter]
     if filter_na:
@@ -891,17 +1014,34 @@ def accuracy_plot(
 
     df["is_correct"] = (df["parsed_response"] == df["ground_truth"]).astype(int)
 
+    if remove_winobias_pro:
+        df["is_correct"] = 1 - df["is_correct"]
+
     # Determine the order of models in the x-axis
-    x_order = df.model.unique()  # type: ignore
+    x_order = df.model.unique()
     if reorder_indices:
         x_order = [x_order[i] for i in reorder_indices]
 
     if not task_wise_plots:
-        _accuracy_plot(df, x_order, title, ylabel, ylim, reorder_indices, paper_plot)  # type: ignore
+        _accuracy_plot(
+            df,
+            x_order,
+            title,
+            ylabel,
+            ylim,
+            ylim_low,
+            reorder_indices,
+            paper_plot,
+            plot_winomt_deviation=plot_winomt_deviation,
+            plot_winobias_delta=plot_winobias_delta,
+            plot_winobias_pro=plot_winobias_pro,
+            plot_winobias_anti=plot_winobias_anti,
+            plot_winobias_gender_delta=plot_winobias_gender_delta,
+        )
     else:
-        tasks_list = df.task_name.unique()  # type: ignore
+        tasks_list = df.task_name.unique()
         for task in tasks_list:
-            df_task = df[df.task_name == task]  # type: ignore
+            df_task = df[df.task_name == task]
             _accuracy_plot(df_task, x_order, title, ylabel, ylim, reorder_indices, paper_plot)  # type: ignore
 
 
