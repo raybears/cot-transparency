@@ -1,2 +1,2 @@
 # *.jsonl filter=lfs diff=lfs merge=lfs -text
-dataset_dumps/**/*.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/**/*.jsonl filter=lfs diff=lfs merge=lfs -text
