@@ -4,7 +4,7 @@ This repo contains the code and data used in the paper [Bias-Augmented Consisten
 
 
 
-[![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml)
+<!-- [![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml) -->
 
 
 ## Test dataset data
