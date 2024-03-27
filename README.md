@@ -8,7 +8,7 @@ This repo contains the code and data used in the paper Bias-Augmented Consistenc
 
 
 ## Test dataset data
-Each file in the [dataset_dumps/test](dataset_dumps/test) folder follows the format `{dataset}_{bias_name}.jsonl`
+Each file in the dataset_dumps/test folder follows the format `{dataset}_{bias_name}.jsonl`
 
 For example, the [dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl](dataset_dumps/test/distractor_fact/mmlu_distractor_fact.jsonl) file refers to the Distractor: Fact bias, using prompts from MMLU.
 
