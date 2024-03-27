@@ -1,8 +1,8 @@
 # Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought
 
-This repo contains the code and data used in the paper [Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought](https://arxiv.org/abs/2403.05518).
+<!-- This repo contains the code and data used in the paper [Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought](https://arxiv.org/abs/2403.05518). -->
 
-
+This repo contains the code and data used in the paper Bias-Augmented Consistency Training Reduces Biased Reasoning in Chain-of-Thought (under submission).
 
 <!-- [![Build Status](https://github.com/raybears/cot-transparency/actions/workflows/main.yml/badge.svg)](https://github.com/raybears/cot-transparency/actions/workflows/main.yml) -->
 
