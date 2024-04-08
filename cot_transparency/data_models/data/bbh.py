@@ -69,6 +69,17 @@ def val(task: str) -> slist.Slist[MilesBBHRawData]:
         return slist.Slist(MilesBBHRawData(**example) for example in raw_data["data"])
 
 
+def bbh_all() -> slist.Slist[MilesBBHRawData]:
+    # get all files that are val_data.json
+    json_path: Path = Path("data/bbh/")
+    all_data = []
+    for path in json_path.glob("**/val_data.json"):
+        with open(path) as f:
+            raw_data = json.load(f)
+            all_data.extend(raw_data["data"])
+    return slist.Slist(MilesBBHRawData(**example) for example in all_data)
+
+
 BBH_TASK_LIST = [
     "sports_understanding",
     "snarks",

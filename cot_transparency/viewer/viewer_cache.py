@@ -1,20 +1,24 @@
 from collections.abc import Sequence
 from functools import lru_cache
 from pathlib import Path
+import pathlib
 
 from pydantic import BaseModel, ValidationError
 from slist import Slist
 
 from cot_transparency.apis.base import FileCacheRow
 from cot_transparency.apis.openai.finetune import FinetuneSample
+from cot_transparency.data_models.config import OpenaiInferenceConfig
 from cot_transparency.data_models.data.gsm import GSMExample
 from cot_transparency.data_models.io import read_whole_exp_dir, read_whole_exp_dir_s2
-from cot_transparency.data_models.models import BaseTaskOutput, StageTwoTaskOutput, TaskOutput
+from cot_transparency.data_models.messages import ChatMessage
+from cot_transparency.data_models.models import BaseTaskOutput, ModelOutput, StageTwoTaskOutput, TaskOutput, TaskSpec
 from cot_transparency.data_models.streaming import StreamingTaskOutput
 from cot_transparency.formatters.name_mapping import name_to_formatter
 from cot_transparency.json_utils.read_write import read_jsonl_file_into_basemodel
 from cot_transparency.viewer.answer_options import TypeOfAnswerOption
 from cot_transparency.viewer.util import file_cache_row_to_task_output
+from scripts.a_verbalization.sample_biased_reasoning_calculation_claude import SecondRoundAsking
 
 
 # NOTE: These caches have to be here rather than the main streamlit file to work!
@@ -36,6 +40,57 @@ def read_streaming_task_output_jsonl_file(file_path: str) -> Sequence[StreamingT
     return read_jsonl_file_into_basemodel(file_path, basemodel=StreamingTaskOutput)
 
 
+def chat_message_into_mock_task_output(second_round: SecondRoundAsking) -> list[TaskOutput]:
+    task_hash = Slist(second_round.second_round_message).map(str).mk_string("")
+    second_round_parsed = second_round.second_round_parsed
+    second_round_spec = TaskSpec(
+        task_name="not_used",
+        inference_config=OpenaiInferenceConfig(model="not_used", max_tokens=0, temperature=0.0, top_p=0.0, n=1),
+        messages=[ChatMessage(role=m.role, content=m.content) for m in second_round.second_round_message],  # type: ignore
+        out_file_path=pathlib.Path("not_used"),
+        ground_truth=f"first_round_unbiased-{second_round.first_round.parsed_unbiased_answer}, first_round_biased-{second_round.first_round.parsed_biased_answer}, second_round-{second_round_parsed}",
+        formatter_name="second_round",
+        task_hash=task_hash,
+    )
+
+    # what to show
+    raw_response = second_round.third_round_raw or second_round.second_round_raw
+    parsed_response = second_round.third_round_parsed or second_round_parsed
+    second_round_output = TaskOutput(
+        task_spec=second_round_spec,
+        inference_output=ModelOutput(raw_response=raw_response, parsed_response=parsed_response),
+    )
+
+    first_task_spec = TaskSpec(
+        task_name="not_used",
+        inference_config=OpenaiInferenceConfig(model="not_used", max_tokens=0, temperature=0.0, top_p=0.0, n=1),
+        messages=[
+            ChatMessage(role=m.role, content=m.content) for m in second_round.first_round.unbiased_new_history[:1]  # type: ignore
+        ],
+        out_file_path=pathlib.Path("not_used"),
+        ground_truth=f"first_round_unbiased-{second_round.first_round.parsed_unbiased_answer}, first_round_biased-{second_round.first_round.parsed_biased_answer}",
+        formatter_name="first_round_unbiased",
+        task_hash=task_hash,
+    )
+    first_round_output = TaskOutput(
+        task_spec=first_task_spec,
+        inference_output=ModelOutput(
+            raw_response=second_round.first_round.raw_unbiased_response,
+            parsed_response=second_round.first_round.parsed_unbiased_answer,
+        ),
+    )
+    return [first_round_output, second_round_output]
+
+
+def read_counterfactual(file_path: str) -> Sequence[TaskOutput]:
+    messages = (
+        read_jsonl_file_into_basemodel(file_path, basemodel=SecondRoundAsking)
+        .map(chat_message_into_mock_task_output)
+        .flatten_list()
+    )
+    return messages
+
+
 @lru_cache(maxsize=32)
 def cached_read_jsonl_file(file_path: str) -> Sequence[BaseTaskOutput]:
     # Tries to read as TaskOutput, if that fails, reads as FileCacheRow
@@ -43,6 +98,7 @@ def cached_read_jsonl_file(file_path: str) -> Sequence[BaseTaskOutput]:
         read_streaming_task_output_jsonl_file,
         cached_read_model_caller_jsonl_file,
         cached_read_task_outsputs_jsonl_file,
+        read_counterfactual,
     ]
 
     everything = None

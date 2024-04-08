@@ -31,22 +31,25 @@ def display_messages(messages: Sequence[ChatMessage]):
                 with st.chat_message("user"):
                     st.markdown("### User")
                     content = msg.content.replace("\n", "  \n")
-                    st.text(content)
+                    st.markdown(content)
 
             case MessageRole.assistant:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant")
-                    st.text(msg.content.replace("\n", "  \n"))
+                    st.markdown(msg.content.replace("\n", "  \n"))
             case MessageRole.assistant_if_completion:
                 with st.chat_message("assistant"):
                     st.markdown("### Assistant if completion")
-                    st.text(msg.content.replace("\n", "  \n"))
+                    st.markdown(msg.content.replace("\n", "  \n"))
 
 
 def display_task(task: BaseTaskOutput, put_if_completion_in_user: bool = True):
     model_output = task.inference_output.parsed_response
 
     task_spec = task.get_task_spec()
+    if isinstance(task_spec, TaskSpec):  # to delete this hack
+        ground_truth = task_spec.ground_truth
+        st.markdown(f"Ground truth: {ground_truth}")
     if task_spec.get_task_name() != "not_used":
         data_obj = task_spec.get_data_example_obj()
         ground_truth = data_obj.ground_truth

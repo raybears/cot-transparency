@@ -8,7 +8,7 @@ target-version = ['py311']
 line-length = 300
 
 # Ignore `E501` line length in the `scripts` folder
-[tool.ruff.extend-per-file-ignores]
+[tool.ruff.lint.extend-per-file-ignores]
 "scripts/*" = ["E501"]
 
 
