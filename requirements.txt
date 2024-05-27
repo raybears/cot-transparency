@@ -30,3 +30,4 @@ fuzzywuzzy
 python-Levenshtein
 anyio>=3.0.0
 grugstream
+together==1.2.0
