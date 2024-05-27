@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from git import Sequence
 from pydantic import BaseModel
 from together import Together
-from together.types.finetune import FinetuneResponse
+from together.types.finetune import FinetuneResponse, FinetuneList
 
 from cot_transparency.apis.openai.finetune import (
     FineTuneHyperParams,
@@ -68,9 +68,9 @@ def finetune_together(
     file_resp = client.files.upload(file=write_jsonl_path)
     return client.fine_tuning.create(
         training_file=file_resp.id,
-        model="mistralai/Mixtral-8x7B-Instruct-v0.1",
+        model=params.model,
         n_epochs=1,
-        n_checkpoints=1,
+        n_checkpoints=2,
         batch_size=params.hyperparameters.batch_size,
         learning_rate=1e-5,
         suffix="cot-transparency",
@@ -79,11 +79,11 @@ def finetune_together(
 
 
 def main():
-    model_id = "meta-llama/Meta-Llama-3-8B"
+    model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
     params = FineTuneParams(
         model=model_id,
         hyperparameters=FineTuneHyperParams(
-            batch_size=16,
+            batch_size=1,
             n_epochs=1,
             learning_rate_multiplier=1.6,  # not used
         ),
@@ -95,10 +95,21 @@ def main():
     print(response)
 
 
+def show_file(file_id: str) -> None:
+
+    # file-5d95e12c-1a7f-4693-985b-c7f5ea0f0d90
+    file_resp = client.files.retrieve(id=file_id)
+    print(file_resp)
+
+
 if __name__ == "__main__":
-    # main()
-    all_jobs = client.fine_tuning.list()  # lists all fine-tuned jobs
-    print(all_jobs)
+    # file_id = "file-5d95e12c-1a7f-4693-985b-c7f5ea0f0d90"
+    # show_file(file_id)
+    main()
+    # all_jobs: FinetuneList = client.fine_tuning.list()  # lists all fine-tuned jobs
+    # assert all_jobs.data is not None
+    # for job in all_jobs.data:
+    #     print(job)
     # client.fine_tuning.retrieve(id="ft-c66a5c18-1d6d-43c9-94bd-32d756425b4b") # retrieves information on finetune event
     # client.fine_tuning.cancel(id="ft-c66a5c18-1d6d-43c9-94bd-32d756425b4b") # Cancels a fine-tuning job
     # client.fine_tuning.list_events(id="ft-c66a5c18-1d6d-43c9-94bd-32d756425b4b") #  Lists events of a fine-tune job
