@@ -25,7 +25,7 @@ logger = setup_logger(__name__, logging.INFO)
 
 
 together_ai_model_mapper = {
-    "llama-3": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "llama-3": "meta-llama/Llama-3-8b-chat-hf",
     "mistral": "mistralai/Mistral-7B-Instruct-v0.2",
 }
 
