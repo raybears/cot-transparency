@@ -1,6 +1,7 @@
 from typing import Sequence, Type
 
 from cot_transparency.apis.anthropic import AnthropicCaller
+from cot_transparency.apis.together.inference import TogetherAICaller
 from cot_transparency.apis.base import InferenceResponse, ModelCaller, ModelType
 from cot_transparency.apis.openai import OpenAIChatCaller, OpenAICompletionCaller
 from cot_transparency.data_models.config import OpenaiInferenceConfig
@@ -20,6 +21,8 @@ def get_caller_class(model_name: str) -> Type[ModelCaller]:
         return AnthropicCaller
     elif "gpt" in model_name:
         return OpenAIChatCaller
+    elif "llama" in model_name or "mistral" in model_name:
+        return TogetherAICaller
     else:
         raise ValueError(f"Unknown model name {model_name}")
 

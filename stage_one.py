@@ -96,9 +96,9 @@ def create_stage_one_task_specs(
     else:
         assert tasks, "You must define a task or a dataset"
 
-    for model in models:
-        if "llama" in model.lower():
-            assert batch == 1, "Llama only supports batch size of 1"
+    # for model in models:
+        # if "llama" in model.lower():
+        #     assert batch == 1, "Llama only supports batch size of 1"
     print("Number of models to run:", len(models))
 
     # match formatter name wildcard
